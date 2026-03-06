@@ -69,15 +69,23 @@ export default function CTA() {
             </button>
           </form>
         </div>
-        <p className="text-gray-400 text-sm mt-6">
-          Or email us directly at{" "}
+        <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
           <a
-            href="mailto:sales@sienovo.com"
-            className="text-accent hover:underline"
+            href="https://calendly.com/sienovoleo"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-white text-gray-900 px-6 py-3 rounded font-medium hover:bg-gray-100 transition-colors text-sm"
           >
-            sales@sienovo.com
+            Schedule a Demo Call
           </a>
-        </p>
+          <span className="text-gray-500 text-sm">or</span>
+          <a
+            href="mailto:leo.liu@jytech.us"
+            className="text-accent hover:underline text-sm"
+          >
+            leo.liu@jytech.us
+          </a>
+        </div>
       </div>
     </section>
   );

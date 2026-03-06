@@ -41,21 +41,24 @@ export default function Footer() {
             <ul className="space-y-2 text-sm">
               <li>
                 <a
-                  href="mailto:sales@sienovo.com"
+                  href="mailto:leo.liu@jytech.us"
                   className="hover:text-white transition-colors"
                 >
-                  sales@sienovo.com
+                  leo.liu@jytech.us
                 </a>
               </li>
               <li>
                 <a
-                  href="https://www.sienovo.com"
+                  href="https://sienovo.jytech.us"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-white transition-colors"
                 >
-                  www.sienovo.com
+                  sienovo.jytech.us
                 </a>
+              </li>
+              <li className="text-xs leading-relaxed">
+                600 California St, San Francisco, CA 94108
               </li>
             </ul>
           </div>
