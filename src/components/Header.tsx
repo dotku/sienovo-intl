@@ -34,6 +34,14 @@ export default function Header() {
               </a>
             ))}
             <a
+              href="https://calendly.com/sienovoleo"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="border border-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-100 transition-colors"
+            >
+              Book a Demo
+            </a>
+            <a
               href="#contact"
               className="bg-accent text-white px-5 py-2 rounded hover:bg-red-700 transition-colors"
             >
@@ -84,8 +92,17 @@ export default function Header() {
               </a>
             ))}
             <a
+              href="https://calendly.com/sienovoleo"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block mt-2 text-center border border-gray-300 text-gray-700 px-5 py-2 rounded hover:bg-gray-100 transition-colors text-sm font-medium"
+              onClick={() => setOpen(false)}
+            >
+              Book a Demo
+            </a>
+            <a
               href="#contact"
-              className="block mt-2 text-center bg-accent text-white px-5 py-2 rounded hover:bg-red-700 transition-colors text-sm font-medium"
+              className="block text-center bg-accent text-white px-5 py-2 rounded hover:bg-red-700 transition-colors text-sm font-medium"
               onClick={() => setOpen(false)}
             >
               Contact Sales
