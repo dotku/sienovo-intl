@@ -1,0 +1,54 @@
+---
+title: "【VPX总线】基于 6U VPX 总线架构的DSP+FPGA通用超宽带实时信号处理平台"
+date: "2024-08-29"
+slug: "141675329"
+tags: ["#信号处理", "#fpga开发"]
+source: "https://blog.csdn.net/yeyuangen/article/details/141675329"
+---
+
+ 
+
+*   6U VPX架构，符合VITA46规范
+*   板载 1 个TMS320C6678 多核DSP处理节点
+*   板载 1 片 XCKU115 FPGA处理节点
+*   板载 2 个FMC+ 接口
+*   背板之间具有 4 路 x4 高速 GTH 互联，支持RapidIO、PCI Express
+*   FPGA 与 DSP 之间采用高速Rapid IO互联
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141675329/01_6dac146c8da44beab610533e70138d2d.png)
+
+基于6U VPX总线架构的高速信号处理平台，该平台采用一片 Xilinx 的Kintex UltraScale系列FPGA（XCKU115）作为主处理器，完成复杂的数据采集、回放以及实时信号处理算法。采用一片带有ARM内核的高性能嵌入式处理器ZU9EG作为协处理器来实现通讯和管理功能。 该平台的主处理器XCKU115外挂两组72位DDR4 SDRAM，来实现超大容量数据缓存，数据缓存带宽可以达到2400MHz。该平台的协处理器ZU9EG的PL端支持2组DDR4 SDRAM。该协处理器的PS端是一款功能强大的ARM处理器，具有1个64位四核 ARM Cortex-A53 处理器、1个双核 ARM Cortex-R5 实时处理器、1个ARM Mali™-400MP 图形处理器，PS端外挂72位DDR4 SDRAM，支持ECC校验。该平台为适应复杂的浮点运算信号处理算法，还支持1片TI的Keystone系列多核DSP TMS320C6678，在该DSP中可以实现各种实时性要求较高的数据处理。 该板卡具有优良的抗振动设计、散热性能和独特的环境防护设计，适合于航空、航天、船舶等应用场景。
+
+#### 功能框图
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141675329/02_20d2fcb11164b31746a51e6375269a9f.png)
+
+#### 技术指标
+
+*   标准 6U VPX 规格，符合 VITA46 规范；
+*   2 个多核 DSP 处理节点、1 个 Virtex-7 FPGA 处理节点；
+*   处理性能：
+    1.  DSP 定点运算：40GMAC/Core\*16=640GMAC；
+    2.  DSP 浮点运算：20GFLOPs/Core\*16=320GFLOPs；
+*   存储性能：
+    1.  DSP 处理节点：4GByte DDR3-1333 SDRAM；
+    2.  DSP 处理节点：4GByte Nand Flash；
+    3.  FPGA 处理节点：2 组 2GByte DDR3-1600 SDRAM；
+*   互联性能：
+    1.  DSP 与 DSP：HyperLink x4@5Gbps/lane；
+    2.  DSP 与 FPGA：SRIO x4@5Gbps/lane；
+    3.  FPGA 与 FPGA：2 路 GTH x8@10Gbps/lane；
+    4.  FPGA 与主控：PCI Express x4@8Gbps/lane；
+    5.  FPGA 与 FMC 接口：2 路 GTH x4@10Gbps/lane；
+*   物理与电气特征
+    1.  板卡尺寸：100 x 233mm
+    2.  板卡供电：5A max@+12V（±5%）
+    3.  散热方式：金属导冷散热
+*   环境特征
+    1.  工作温度：-40°~﹢85°C，存储温度：-55°~﹢125°C；
+    2.  工作湿度：5%~95%，非凝结
+
+#### 应用领域
+
+*   软件无线电；
+*   雷达与基带信号处理；

@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { href: "#cases", label: "Cases" },
   { href: "#specs", label: "Specifications" },
   { href: "#platform", label: "Platform" },
+  { href: "/blog", label: "Blog" },
 ];
 
 export default function Header() {
