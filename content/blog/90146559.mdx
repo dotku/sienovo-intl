@@ -1,0 +1,91 @@
+---
+title: "DSP no boot模式启动调试"
+date: "2019-05-12"
+slug: "90146559"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/90146559"
+---
+
+ 
+
+### 1  JTAG调试ARM/DSP/FPGA芯片简介
+
+**在CPU外围，处理器内部包含了JTAG的硬件实现，并且向外界提供接口，即TMS、TCK、TDI、TDO四个引脚。**
+
+*   TCK：时钟信号，为TAP的操作提供了一个独立的、基本的时钟信号。
+*   TMS：模式选择信号，用于控制TAP状态机的转换。
+*   TDI：数据输入信号。
+*   TDO：数据输出信号。
+*   TRST：复位信号，可以用来对TAPController进行复位(初始化)。这个信号接口在IEEE1149.1标准里并不是强制要求的，因为通过TMS也可以对TAPController进行复位。
+*   STCK：时钟返回信号，在IEEE1149.1标准里非强制要求。
+
+![JTAGåç](http://www.veryarm.com/wp-content/uploads/6a3658a0575286c0d9bbc5dd9989f603.jpg)
+
+我们知道 CPU 是通过引脚与外围交流的，所有的数据都会通过引脚输入或者输出，而JTAG就是**通过监控引脚的信号达到芯片测试的目的**。而 边界 扫描链就是在引脚上的一个部件。如下图：
+
+![边界扫描链位置](http://www.veryarm.com/wp-content/uploads/4635e932934f0d29dcf628186c0c9bf3.jpg)
+
+边界扫描链位置
+
+通过边界扫描链，当有信号输入的时候，边界扫描链就能获取信号，当CPU要输出信号的时候，边界扫描链也能获取要输出的信号。另外，也可以通过边界扫描链来直接向外部输出信号。
+
+无论是信号的抓取还是输出，都需要有接口来保存这些信号，TDI 跟 TDO 就是做这样一些工作的。如图：
+
+![JTAG TDI TDO示意图](http://www.veryarm.com/wp-content/uploads/d749c1b2c2acac7dde890413f7c20db2.jpg)
+
+JTAG TDI TDO示意图
+
+本来边界扫描链保存着 引脚 上的信号，当通过TDI引脚输入我们自己的信号的时候，会发生沿上面红线方向的移位操作，
+
+**TDI ——〉 边界扫描链 —— 〉 TDO**
+
+简单地说，PC机对目标板的调试就是通过TAP接口完成对相关**数据寄存器(DR)**和**指令寄存器(IR)的访问**。
+
+系统上电后，TAPController 首先进入 **Test-LogicReset** 状态，然后依次进入**Run-Test/Idle、Selcct-DR- Scan、Select-IR-Scan、Capture-IR、Shift-IR、Exitl-IR、Update-IR**状态，最后回到 **Run- Tcst/Idle** 状态。在此过程中，状态的转移都是通过TCK信号进行驱动(上升沿)，通过TMS信号对TAP的状态进行选择转换的。其中，
+
+在 Capture-IR状态下，一个特定的逻辑序列被加载到指令寄存器中；
+
+在Shift-IR状态下，可以将一条特定的指令送到指令寄存器中；
+
+在 Update—IR状态下，刚才输入到指令寄存器中的指令将用来更新指令寄存器。
+
+最后，系统又回到Run— Test /Idle状态，指令生效，完成对指令寄存器的访问。
+
+当系统又返回到Run—Test/Idle状态后，根据前面指令寄存器的内容选定所需要的数据寄存器，开始执行对数据寄存器的工作。其基本原理与指令寄存器的访问完全相同，依次为**seIect—DR—Scan、Capture—DR、Shift—D、Exitl一DR、Update—DR**， 最后回到 **Run-Tcst/Idle** 状态。通过TDl和TDO，就可以将新的数据加载到数据寄存器中。经过一个周期后，就可以捕获数据寄存器中的数据，完 成对与数据寄存器的每个寄存器单元相连的芯片引脚的数据更新，也完成了对数据寄存器的访问。
+
+### 
+
+### 2 DSP引导boot
+
+1.  BootLoader是位于片内引导ROM中的复位后执行的一段程序，复位向量位于0x3FFFC0处
+2.  启动方式从GPIOF2、GPIOF3、GPIOF4、GPIOF12来确定引导方式
+
+TI支持很多种方式的boot，内部的ram（saram），flash，sci，spi等等，但无论哪种启动都遵循下面的流程：
+
+而该流程中的 reset ,initboot,call selectbootmode, read i/o state, call boot loader这些步骤都是固化在芯片内的程序自己执行的，也就是说这些代码在出厂的时候已经在TI的芯片内。在28335中是一段的8k\*16的read-only的memory，地址位于0x3fe000-0x3fffff,见下图：
+
+根据上面的流程图和rom分布图，详细的解释一下流程：
+
+1.在3f ffc0到3f ffff其实是放了中断向量表的地方：系统一开机当然是处于reset中断，因此直接跳至reset的地方执行（0x3f ffc0）。而这个地方的两个字节只是放了一条指令，就是跳至initboot函数，也就是3f f34c的地址执行boot load.
+
+2.在3f f34c的bootloader操作中会去检测外部GPIO口的状态，从而判断是哪种方式的启动：
+
+3\. 然后根据相依的启动方式跳至相应的入口地址：比如FLASH启动就是0x33fff6, 内部SARAM启动就是0x0.
+
+4\. 而这里的入口地址就是cmd文件中定义的begin段。因此对于flash启动和ram启动，begin的定义是不同的，在flash启动时begin就是 0x33fff6 ，而ram启动begin就是0x0. 这个2个字的区间也就是放了我们程序最初执行的第一条指令（通常是code\_start）.因为CSM\_PWL的存放位置是在0x33fff8,因此只有2个words空间来存放跳转指令。而一条长跳转指令LB刚好占两个字节（这摆明着是ti精心设计的）
+
+### 3 JTAG不能识别DSP
+
+若JTAG不能识别TI的DSP，则可能存在以下几个方面的原因：若JTAG不能识别TI的DSP，则可能存在以下几个方面的原因：  
+1、仿真器有问题；  
+2、仿真器的驱动有问题；  
+3、目标板有问题；  
+    在此，我们只讨论仿真器没问题，和仿真器的驱动正确安装，而因目标板的原因导致JTAG连不上的情况：  
+1、检查DSP的供电(Core电压，IO电压)是否正确？纹波是否满足要求? 上电顺序是否满足要求?  
+2、检查DSP的供电始终是否正确？电平是否满足要求？  
+3、检查DSP的系统复位信号是否正常？NMI管脚的接法是否正确？DSP相关的所有输入脚的接法是否正确？  
+4、测量DSP的CLKOUT是否正确?测量上电时，DSP是否会去片选boot-Flash？  
+5、测量DSP的EMIF总线，任意两个数据线或地址线不要有短路或接错的现象；若有条件，可对EMIF总线上的负载断开再进行JTGA连接测试；  
+6、若DSP的EMIF总线上，有FPGA设备，则需要先下载FPGA的程序。可把与DSP相关的FPGA所有信号都定义为输入；  
+7、正确设置CCS，打开CCS后，点击debug中reset后，若不报错，则一般驱动都没有问题；  
+8、手动多次复位DSP后再尝试连接，或连接失败后重启CCS和计算机；

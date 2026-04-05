@@ -1,0 +1,62 @@
+---
+title: "AM5728  uboot 执行流程"
+date: "2020-02-27"
+slug: "90140811"
+tags: ["#AM5728", "#uboot"]
+source: "https://blog.csdn.net/yeyuangen/article/details/90140811"
+---
+
+ 
+
+am5728的cpu上电后，执行流程：ROM->MLO(SPL)->u-boot.img
+
+**第一级bootloader:**引导加载程序，板子上电后会自动执行这些代码，如启动方式（SDcard、SPI、NOR），然后跳转至第二级bootloader。这些代码应该是存放在 176KB 的 ROM 中
+
+第二级bootloader:MLO(SPL)，用于硬件初始化，关看门狗，关中断，设置CPU时钟频率、速度、加载uboot.img、dts等操作，MLO文件应该会被映射到 64 KB的 Internal SRAM 中。
+
+第三级bootloader:u-boot.img, C代码的入口
+
+MLO与u-boot执行流程如下：
+
+reset //(arch/arm/cpu/armv7/start.S)  
+save\_boot\_params\_ret //(arch/arm/cpu/armv7/start.S)  
+  |- disable interrupts   
+  |- cpu\_init\_cp15 //(arch/arm/cpu/armv7/start.S)  
+  |   |- Invalidate L1 I/D  
+  |   |- disable MMU stuff and caches  
+  |- cpu\_init\_crit //(arch/arm/cpu/armv7/start.S)  
+  |   |- lowlevel\_init //(arch/arm/cpu/armv7/lowlevel\_init.S)  
+  |       |- Setup a temporary stack  
+  |       |- Set up global data   
+  |       |- s\_init //(arch/arm/cpu/armv7/am33xx/board.c)  
+  |           |- watchdog\_disable  
+  |           |- set\_uart\_mux\_conf  
+  |           |- setup\_clocks\_for\_console  
+  |           |- uart\_soft\_reset  
+  |- \_main //(arch/arm/lib/crt0.S)  
+        
+      |(MLO)如果是 MLO 文件  
+      |- board\_init\_f //(arch/arm/cpu/armv7/am33xx/board.c)  
+      |   |- board\_early\_init\_f //(arch/arm/cpu/armv7/am33xx/board.c)  
+      |   |   |- prcm\_init  
+      |   |   |- set\_mux\_conf\_regs  
+      |   |- sdram\_init //(board/ti/am335x/board.c) 初始化 DDR  
+      |- spl\_relocate\_stack\_gd  
+      |- board\_init\_r //(common/spl/spl.c)                                              【完成u-boot.img  dts加载】  
+          |- ...  
+          |- spl\_load\_image //根据不同的启动方式加载 u-boot 镜像 ，  
+          |- jump\_to\_image\_no\_args //进入u-boot代码运行  
+        
+    
+      |(U-Boot)如果是U-Boot 镜像  
+      |- board\_init\_f //(common/board\_f.c)  
+      |   |- ...  
+      |   |- initcall\_run\_list(init\_sequence\_f)     
+      |   |- ...     
+      |     
+      |- relocate\_code //(arch/arm/lib/relocate.S) 代码重定位  
+      |- relocate\_vectors //(arch/arm/lib/relocate.S) 向量表重定义  
+      |- Set up final (full) environment   
+      |- board\_init\_r //(common/board\_r.c)  
+          |- initcall\_run\_list(init\_sequence\_r)//初始化各种外设  
+              |- main\_loop()

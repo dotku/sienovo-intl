@@ -1,0 +1,47 @@
+---
+title: "Linux中TASK_RUNNING状态的进程链表"
+date: "2012-03-14"
+slug: "7353107"
+tags: ["#linux", "#struct", "#list"]
+source: "https://blog.csdn.net/yeyuangen/article/details/7353107"
+---
+
+ 
+
+早先的Linux版本把所有处于TASK\_RUNNING状态的进程组织在一个叫做运行队列(runqueue)的链表中，由于维持链表中的进程按优先级排序的开销过大，因此，早期的调试程序需扫描整个队列以选择“最佳”的可运行程序。
+
+  
+
+Linux2.6实现的运行队列有所不同。**为了实现在固定的时间内选出“最佳”的可运行程序，内核将可运行进程的优先级划分为0-139，并为此建立了140个可运行进程链表，用以组织处于TASK\_RUNNING状态的进程，每个进程优先权对应一个不同的链表。**此外，在多处理器系统中，每个CPU都有它自己的运行队列。
+
+  
+
+Linux2.6实现的运行队列结构如下：
+
+类型
+
+字段
+
+描述
+
+int
+
+nr\_active
+
+链表中进程描述符的数量
+
+unsigned long\[5\]
+
+bitmap
+
+优先权位图：当且仅当某个优先权的进程链表不为空时设置相应的位标志
+
+struct list\_head\[140\]
+
+queue
+
+140个优先权队列的头结点
+
+  
+
+进程描述符的结构都包含一个list\_head类型的tasks字段，这个类型的prev和next字段分别指向前面和后面的task\_struct元素，实现双向链表。

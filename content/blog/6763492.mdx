@@ -1,0 +1,157 @@
+---
+title: "linux时间片及线程调度相关的问题  收集整理"
+date: "2011-09-09"
+slug: "6763492"
+tags: ["#linux", "#null", "#struct", "#delay", "#多线程", "#timer"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6763492"
+---
+
+ 
+
+1\.   在Linux   2.6上，怎么能够让一个线程每隔1ms起来运行一次？   
+我自己试用过以下两种方法，但结果不是很好，通过protype测试，大部分时间间隔是在1ms左右，但是总是有一部分时间间隔在好几个ms的级别，有的甚至是10ms以上。   
+（1）用settimer，interval为1000us；   
+（2）建立一个高优先级的线程，线程包括 "需要执行的工作 "和一个usleep来实现。这个usleep就是用来实现联系两次被调度上来的时间间隔是1ms。   
+所以，我想请教高手，   
+1.如何在用户层实现准确的1ms的timer或者是能够让一个线程能够每隔1ms起来执行一次？   
+2.在用户面，多线程的切换开销是多大？每个线程得到CPU后，执行的时间片是多长？ 
+
+3.线程的调度策略是什么样的？能用pthread实现嘛？ 
+
+\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
+
+\###   o-1.txt   ---     
+1.如何在用户层实现准确的1ms的timer或者是能够让一个线程能够每隔1ms起来执行一次？   
+不能,如果不特别高要求是可以的。   
+  
+2.在用户面，多线程的切换开销是多大？每个线程得到CPU后，执行的时间片是多长？   
+a.开销很小,因为调度程序采用O(1)算法；b.执行时间片开始默认20ms,根据调度算法策略和优先级等计算该时间总是变化的。   
+  
+3.线程的调度策略是什么样的？能用pthread实现嘛？   
+a.线程策略就是进程策略；b.估计很难没有试过   
+  
+建议:a.可以试试内核的软中断；b.如果对时间特别要求可以是设置进程内核调度策略为SCHED\_FIFO、SCHED\_RR，这两个都是实时的，还可以看看关于内核抢占的资料，最好用最新的kernel； 
+
+\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
+
+#include   <stdio.h>   
+#include   <stdlib.h>   
+#include   <time.h>   
+#include   <sys/time.h>   
+#include   <errno.h>   
+#include   <string.h>   
+#include   <unistd.h>   
+#include   <sys/types.h>   
+  
+#define   PRINT\_USEAGE     {   \\   
+      fprintf(stderr, "\\n   Usage:   %s   usec   ",argv\[0\]);   \\   
+      fprintf(stderr, "\\n\\n ");\\   
+    }   
+  
+int   
+main   (int   argc,   char   \*\*argv)   
+{   
+    unsigned   int   nTimeTestSec   =   0;                 /\*   sec   \*/   
+    unsigned   int   nTimeTest   =   0;                 /\*   usec   \*/   
+    struct   timeval   tvBegin;   
+    struct   timeval   tvNow;   
+    int   ret   =   0;   
+    unsigned   int   nDelay   =   0;                 /\*   usec   \*/   
+    fd\_set   rfds;   
+    struct   timeval   tv;   
+    int   fd   =   1;   
+    int   i   =   0;   
+    struct   timespec   req;   
+    unsigned   int   delay\[20\]   =   
+        {   500000,   100000,   50000,   10000,   1000,   900,   500,   100,   10,   1,   0   };   
+    int   nReduce   =   0;                                 /\*   误差     \*/   
+  
+#if   0   
+    if   (argc   <   2)   
+        {   
+            PRINT\_USEAGE;   
+            exit   (1);   
+        }   
+    nDelay   =   atoi   (argv\[1\]);   
+#endif   
+  
+    fprintf   (stderr,   "%18s%12s%12s%12s\\n ",   "function ",   "time(usec) ",   "realTime ",   
+                      "reduce ");   
+    fprintf   (stderr,   
+                      "-------------------------------------------------------------------\\n ");   
+  
+    for   (i   =   0;   i   <   20;   i++)   
+        {   
+            if   (delay\[i\]   <=   0)   
+                break;   
+            nDelay   =   delay\[i\];   
+  
+            /\*             test   usleep   \*/   
+            gettimeofday   (&tvBegin,   NULL);   
+            ret   =   usleep   (nDelay);   
+            if   (-1   ==   ret)   
+                {   
+                    fprintf   (stderr,   "   usleep   error   .   errno=%d   \[%s\]\\n ",   errno,   
+                                      strerror   (errno));   
+                }   
+            gettimeofday   (&tvNow,   NULL);   
+            nTimeTest   =   
+                (tvNow.tv\_sec   -   tvBegin.tv\_sec)   \*   1000000   +   tvNow.tv\_usec   -   
+                tvBegin.tv\_usec;   
+            nReduce   =   nTimeTest   -   nDelay;   
+            fprintf   (stderr,   "\\t   usleep               %8u       %8u       %8d\\n ",   nDelay,   nTimeTest,nReduce);   
+  
+  
+            /\*             test   nanosleep   \*/   
+            gettimeofday   (&tvBegin,   NULL);   
+            req.tv\_sec   =   nDelay   /   1000000;   
+            req.tv\_nsec   =   (nDelay   %   1000000)   \*   1000;   
+            ret   =   nanosleep   (&req,   NULL);   
+            if   (-1   ==   ret)   
+                {   
+                    fprintf   (stderr,   "\\t   nanosleep         %8u       not   support\\n ",   nDelay);   
+                }   
+            else   
+                {   
+                    gettimeofday   (&tvNow,   NULL);   
+                    nTimeTest   =   
+                        (tvNow.tv\_sec   -   tvBegin.tv\_sec)   \*   1000000   +   tvNow.tv\_usec   -   
+                        tvBegin.tv\_usec;   
+                    nReduce   =   nTimeTest   -   nDelay;   
+                    fprintf   (stderr,   "\\t   nanosleep         %8u       %8u       %8d\\n ",   nDelay,   
+                                      nTimeTest,   nReduce);   
+                }   
+  
+            /\*             test   select   \*/   
+            gettimeofday   (&tvBegin,   NULL);   
+            FD\_ZERO   (&rfds);   
+            FD\_SET   (fd,   &rfds);   
+            tv.tv\_sec   =   0;   
+            tv.tv\_usec   =   nDelay;   
+            ret   =   select   (0,   NULL,   NULL,   NULL,   &tv);   
+            if   (-1   ==   ret)   
+                {   
+                    fprintf   (stderr,   "   select   error   .   errno=%d   \[%s\]\\n ",   errno,   
+                                      strerror   (errno));   
+                }   
+            gettimeofday   (&tvNow,   NULL);   
+            nTimeTest   =   
+                (tvNow.tv\_sec   -   tvBegin.tv\_sec)   \*   1000000   +   tvNow.tv\_usec   -   
+                tvBegin.tv\_usec;   
+            nReduce   =   nTimeTest   -   nDelay;   
+            fprintf   (stderr,   "\\t   select               %8u       %8u       %8d\\n ",   nDelay,   nTimeTest,   
+                              nReduce);   
+  
+        }   
+  
+    return   0;   
+}   
+  
+  
+这是测试预计延迟和实际延迟误差的一个小程序.   
+你可用测一下你的机器.   
+实际上1ms的延迟,不大好控制.  
+
+  
+
+更祥细请参考：[http://topic.csdn.net/u/20070807/21/4cc574ab-94db-495d-a3b5-d44cdcf1bb1e.html](http://topic.csdn.net/u/20070807/21/4cc574ab-94db-495d-a3b5-d44cdcf1bb1e.html)

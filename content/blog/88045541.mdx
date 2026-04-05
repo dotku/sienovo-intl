@@ -1,0 +1,138 @@
+---
+title: "AM5728通过GPMC接口与FPGA高速数据通信实现"
+date: "2019-02-28"
+slug: "88045541"
+tags: ["#AM5728", "#GPMC", "#FPGA", "#DSP+ARM+FPGA"]
+source: "https://blog.csdn.net/yeyuangen/article/details/88045541"
+---
+
+ 
+
+硬件：AM5728开发板；Artix-7开发板  
+软件：Linux am57xx-evm 4.4.19；Vivado 2015.2  
+作者：杭州矢志信息科技有限公司  
+邮箱：admin@sysjoint.com
+
+AM5728外设接口丰富，有V-PORT接口、PCIe、GPMC、USB、UART等等，通常与FPGA之间高速数据通信可以选择V-PORT、PCIe、GPMC，这里以实现起来最简单的GPMC为例，实现了从FPGA到AM5728的高速数据搬运。
+
+AM5728的ARM端运行Linux 4.4内核操作系统，通过GPMC接口采用DMA的方式读取FPGA端的数据，读取32KB数据大概用了540us，即60MB/s左右的速度，实际上通过配置GPMC接口的时间参数和工作模式，速度还可以更快。
+
+*   GPMC接口介绍
+
+GPMC的全称是 General-Purpose Memory Controller，即通用存储控制器，是TI的Sitara 系列处理器AM5728用来与外部存储设备例如NOR FLASH、NAND FLASH、SRAM等等通信的一个接口。这个接口并不是AM5728特有的，在BeagleBone Black、AM33XX等芯片上也有类似接口。
+
+1.1 硬件连接方式
+
+参考SPRUHZ6I 15.4.6.1.2 在AM5728中把GPMC接口配置为异步模式并设置NOR FLASH、非地址数据线复用的模式与FPGA通信，但只用16位数据线，不用地址线，即采用类似于FIFO的方式与FPGA通信。目前实际只使用到了如下I/O口，信号方向如下图所示。
+
+GPMC\_D\[15:0\]：  16位数据线
+
+GPMC\_nCS：      片选信号
+
+GPMC\_nOE：      输出使能时钟
+
+FPGA\_nRST：     用于通知FPGA读写指针复位
+
+FPGA\_nIRQ：     用于通知ARM读取一块数据
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/88045541/01_68d10d585cf29358194cc4ec02c4575a.png)
+
+1.2 硬件接口协议
+
+采用异步方式读取，即不使用GPMC\_CLK，FPGA端在GPMC\_nOE的下降沿把数据送出去。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/88045541/02_9aa02262693245cf0be248581acf0de6.png)
+
+目前这种工作模式下的GPMC接口，我们只需要关心以下几个时间：
+
+即CS有效时间，OE有效时间，GPMC读取数据时间，GPMC单个读取周期。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/88045541/03_6b46e0c73c7917951b32eb04c32a9800.png)
+
+*   Linux驱动实现
+
+Linux 4.4 版本内核采用设备树dts的方法编写驱动，与2.6版本时候有较大区别，4.4版本内核中关于GPMC接口的API几乎没有导出，通过API来操作不可行，必须使用编写设备树方法。
+
+AM5728的dts文件路径：linux-4.4.19-g5e4091a-v1.3\\arch\\arm\\boot\\dts
+
+内核实现的gpmc驱动在：linux-4.4.19-g5e4091a-v1.3\\drivers\\memory\\omap-gpmc.c
+
+关于 dts 的编程方法可以参考：
+
+[https://learn.adafruit.com/introduction-to-the-beaglebone-black-device-tree/overview](https://learn.adafruit.com/introduction-to-the-beaglebone-black-device-tree/overview)
+
+以及阅读Linux内核目录下的文档：
+
+Documentation\\devicetree\\bindings\\mtd\\gpmc-nor.txt
+
+配置方面主要包括与GPMC相关的7个配置寄存器CONFIG1-CONFIG7，GPMC端口初始化等等。
+
+（1）首先确保在 文件dra7.dtsi中引入了GPMC控制器，如下：
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/88045541/04_bb36003e8867085e5b8f4e0d32ff08bf.png)
+
+（2）接着在 am57xx-beagle-x15-common.dtsi 加入 GPMC 管脚初始化配置
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/88045541/05_22bb5c4a52a6dfb496136179bd9423b4.png)
+
+（3）最后在实现一个自己的GPMC设备节点，其中关键的时序参数如下，在这里我们设置GPMC的片选CS6地址为0x10000000，大小为16MB，GPMC的单个读取周期为30ns。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/88045541/06_b786ebb39089c3a0053dd7262192a0f9.png)
+
+*   采用DMA传输
+
+AM5728带有System DMA和Enhanced DMA，Linux 4.4 之后内核中 EDMA 相关的API不对外导出，因此暂时只能采用通用的DMA API操作，实现DMA搬运。
+
+需要注意的是，DMA中配置的地址都为物理地址，即DMA传送到源端为外设的地址即GPMC的物理地址，目的地端为你申请的内存空间物理地址。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/88045541/07_3bd158cf82e7612a3336443eaacd4eec.png)
+
+*   实验验证
+
+（1）使用memread读取GPMC端口数据
+
+memread中使用mmap方法把GPMC的物理地址0x10000000映射到用户空间。在用户空间通过CPU读取GPMC端口数据，抓取CS6n和OEn的波形如下，目前没有用到DMA传送，只是在Linux循环读取，可以看见每个周期里片选信号CS6n都会维持很长一段高电平的时间，GPMC一次的读取周期大概为200ns。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/88045541/08_dfa8f41df3d1d4119cc72ff4543aa341.png)
+
+通道1为片选信号CS6n，通道2为输出使能信号OEn
+
+这样的速率大概只有 16bit / 200ns = 10MB/s
+
+（2）使用DMA传输
+
+编译并使用insmod工具加载DMA驱动edmatest.ko，抓取CS6n和OEn的波形如下，使用DMA传送，这下读周期就小了很多了，大概只有30ns，和GPMC参数里设置的完全一致。读取32KB数据大概用了540us，即60MB/s左右的速度。实际上通过配置GPMC接口的时间参数和工作模式，速度还可以更快。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/88045541/09_3a8601e52817e65db11112f79b992e66.png)
+
+（3）FPGA端对应的代码，FPGA端的代码只要是实现在每个OEn信号下降沿来的时候，把16bit的数据送到GPMC\_DATA端口，并自加一次。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/88045541/10_13cebdf562b6ad5993d062293c8da684.png)
+
+（4）Linux端读取数据并做校验
+
+校验通过，说明数据一致性正确！至此AM5728与FPGA通过GPMC接口用DMA实现数据高速传输，验证可行！
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/88045541/11_bb8c684071773e9bcaeb24568802b531.png)
+
+*   源代码下载
+
+设备树文件：[http://sysjoint.com/files/dts.zip](http://sysjoint.com/files/dts.zip)
+
+Linux 下 memread 参考代码：[http://sysjoint.com/files/memread.zip](http://sysjoint.com/files/memread.zip)
+
+Linux 下 edmatest 参考代码：[http://sysjoint.com/files/edmatest.zip](http://sysjoint.com/files/edmatest.zip)
+
+FPGA端对应代码比较简单就不上传了。
+
+整个实验过程中涉及到的细节很多，如有错误之处请不吝指出！
+
+参考资料：
+
+[https://e2e.ti.com/support/arm/sitara\_arm/f/791/t/512464](https://e2e.ti.com/support/arm/sitara_arm/f/791/t/512464)
+
+[https://e2e.ti.com/support/arm/sitara\_arm/f/791/p/315716/1530903#pi316653=1](https://e2e.ti.com/support/arm/sitara_arm/f/791/p/315716/1530903#pi316653=1)
+
+[https://github.com/fpga-logi/logi-kernel/commit/42066f774425afb196dc0f8f1ad40f450da34115](https://github.com/fpga-logi/logi-kernel/commit/42066f774425afb196dc0f8f1ad40f450da34115)
+
+[http://valentfx.com/wiki/index.php?title=LOGI\_-\_BBB\_GPMC\_Bus-\_HW](http://valentfx.com/wiki/index.php?title=LOGI_-_BBB_GPMC_Bus-_HW)

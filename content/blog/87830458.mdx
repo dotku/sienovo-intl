@@ -1,0 +1,79 @@
+---
+title: "TI AM5728 OMAP平台BSP学习笔记之 - LCD 驱动(1)"
+date: "2019-02-20"
+slug: "87830458"
+tags: ["#AM5728", "#LCD", "#驱动", "#OMAP", "#AM5728 LCD"]
+source: "https://blog.csdn.net/yeyuangen/article/details/87830458"
+---
+
+ 
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/87830458/01_618d5bb5b2ecfaf993abbe038e6d4f38.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/87830458/02_6da72f88ef836bda14701ee20c1a1fe0.png)
+
+版权声明：本文为博主原创文章，转载请注明出处，未经博主允许不得用于商业用途。如有问题，欢迎指正。    https://blog.csdn.net/hsg\_\_tg2/article/details/86703168  
+本文参考的 开发板 是信迈XM5728-IDK-V3系列开发板。   
+
+ LCD驱动是显示子系统DSS的一部分，DSS 是显示子系统display  subsystem 的缩写，在kernel中DSS的实现有基于framebuffer或者DRM两种，可以通过不同的配置选择。本篇学习DSS的基本知识，在后面学习LCD的驱动代码，以便做移植。
+
+    需要注意的是display系统是独立于GPU的一个模块，我们使用GPU进行绘制(rendering)和合成(composite)，通常它针对的是图像缓存；而display主要的是用来显示，虽然它也支持简单的图形变换和合成。TI OMAP平台上有另外的GPU 加速模块进行图像操作。
+
+1\. OMAP DSS框架  
+    我们知道驱动的目的是控制和驱动硬件设备，DSS在硬件上分为两部分 ：
+
+DISPC，display controller，主要作用就是overlay，即将多个图形缓存作为输入合成为一个输出。比如不同的两个不同的应用的界面、状态栏界面、鼠标指针等等，都可以作为输入的一个；同时，不同厂家的IC会在该模块增加对图像进行处理比如颜色变换、gama变换、图片旋转等，这取决于它从RAM拿数据，可以对图形缓存做处理比如变形，旋转等；TI的display子系统也差不多，不过不同的版本稍有不同，具体查看参考 链接 。  
+Encoders，将controller的数据转换成输出信号，例如HDMI，MIPI DPI等等；在板级上可以直接连支持相应接口的LCD(或者外接 encoder ，比如DPI-DVI转换来支持不同的显示设备。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/87830458/03_90c1e32c38586be839c13df2828041e5.png)
+
+1.1 DISPC  
+Overlays,  从SRAM中拿图像数据，做变换、伸缩等等，OMAP平台包含两种类型的overlay硬件：GFX 和 VIDEO， GFX不支持scaling和YUV格式通常不支持视频而用作UI显示。  
+Overlay Manager，作用主要是合成(composite)并产生timing。如前所述，合成的意思是将多个overlay的数据合成成一个buffer，同时该模块也能对图形进行简单的变换处理； 该模块还能根据encoder或者panel的要求产生timing，例如pixel clock，hsync，vsync，data enable， RGB data等等。有了这些时序，OMAP芯片就可以支持那些没有GRAM的LCD，而通过时序控制直接刷图像缓存。  
+     ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/87830458/04_c3ad75bee624c3d3419daa3774adef71.png)
+
+    从上图可以看出，不同的型号，DISPC的功能也是有差异的。
+
+1.2 Encoder  
+    Encoder也叫interface，是将合成的图像数据转换成标准格式的流数据，然后将其送到对应的外设显示。如上图所示，OMAP支持的标准有MIPI DPI，HDMI，MIPI DSI，MIPI DBI/RFBI。
+
+DPI(Display Pixel Interface)接口也叫RGB接口，host直接将数据刷到屏上显示，需要在host自己的时序下进行操作。  
+DBI(Display Bus Interface)接口不需要host有时序控制，它直接将控制和RGB数据通过数据线刷到LCM的GRAM里面，由Panel的驱动IC从GRAM中取出数据再刷到屏上。  
+MIPI DSI区别于上述两种平行接口，它是一种串行标准接口，支持video和command两种模式。  
+    在后面学习AM5728平台上，会发现它通常使用DPI接口。
+
+2\. AM5728 DSS和接口 介绍  
+    AM5728属于OMAP中的一种，如下图，它的结构也大同小异：
+
+3个Video的pipe line，一个GFX的 pipeline ，一个write back的pipeline；  
+3个LCD的output(DPI)，一个TV output(可以输出到HDMI或者DPI)。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/87830458/05_125f09f8818e61698972a8975793f4ec.png)  
+    主要关心DPI接口，示意如下图，这些信号直接和LCD相连，将输入刷入LCD显示
+
+d\[23:0\]是24根数据线，最高支持24bit色彩深度，根据特定的panel选择；关于如何连线，参考文档中有介绍；   
+clk是指pixel clock；  
+hsync和vsync是行，列同步信号；  
+de是使能信号；  
+fid指field idecntifer设置
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/87830458/06_f976ebb947d056e3f6170c78ef9cf022.png)  
+3\. MIPI DPI接口介绍  
+    dpi接口也称为RGB接口，host直接将RGB数据同步写入LCD中进行显示。host通过上节中的时序和数据线进行操作，如下图所示白色区域是屏幕区域，横向通过hsync，纵向通过vsync，中间白色是LCD显示区域。在LCD驱动中需要设置好这些参数。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/87830458/07_f392f64ca04c089bd611ecc2f46c01b7.png)
+
+参考文档：
+
+http://processors.wiki.ti.com/index.php/Linux\_Core\_DSS\_User%27s\_Guide
+
+https://blog.csdn.net/longxiaowu/article/details/24249971
+
+AM572x Sitara ™ Processors Silicon Revision 2.0, 1.1 Technical Reference Manual
+
+MIPI Alliance Standard for Display Pixel Interface  
+\---------------------   
+作者：佛系代码阅读家   
+来源：CSDN   
+原文：https://blog.csdn.net/hsg\_\_tg2/article/details/86703168   
+版权声明：本文为博主原创文章，转载请附上博文链接！

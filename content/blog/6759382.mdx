@@ -1,0 +1,154 @@
+---
+title: "linux线程间通信"
+date: "2011-09-08"
+slug: "6759382"
+tags: ["#linux", "#多线程", "#thread", "#join", "#signal", "#编程"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6759382"
+---
+
+ 
+
+线程间无需特别的手段进行通信，因为线程间可以共享数据结构，也就是一个全局变量可以被两个线程同时使用。不过要注意的是线程间需要做好同步，一般用mutex。可以参考一些比较新的UNIX/Linux编程的书，都会提到Posix线程编程，比如《UNIX环境高级编程（第二版）》、《UNIX 系统 编程》等等。 linux的消息属于IPC，也就是进程间通信，线程用不上。   
+  
+linux用pthread\_kill对线程发信号。 另：windows下不是用post..(你是说PostMessage吗？)进行线程通信的吧？   
+  
+windows用PostThreadMessage进行线程间通信，但实际上极少用这种方法。还是利用同步多一些 LINUX下的同步和Windows原理都是一样的。不过Linux下的singal中断也很好用。   
+  
+用好信号量，共享资源就可以了。 
+
+ 使用多线程的理由之一是和进程相比，它是一种非常"节俭"的多任务操作方式。我们知道，在Linux系统下，启动一个新的进程必须分配给它独立的地址空间，建立众多的数据表来维护它的代码段、堆栈段和数据段，这是一种"昂贵"的多任务工作方式。而运行于一个进程中的多个线程，它们彼此之间使用相同的地址空间，共享大部分数据，启动一个线程所花费的空间远远小于启动一个进程所花费的空间，而且，线程间彼此 切换 所需的时间也远远小于进程间切换所需要的时间。  
+  
+　　使用多线程的理由之二是线程间方便的[通信](http://tele.it168.com/ "通信")机制。对不同进程来说，它们具有独立的数据空间，要进行数据的传递只能通过通信的方式进行，这种方式不仅费时，而且很不方便。线程则不然，由于同一进程下的线程之间共享数据空间，所以一个线程的数据可以直接为其它线程所用，这不仅快捷，而且方便。当然，数据的共享也带来其他一些问题，有的变量不能同时被两个线程所修改，有的子程序中声明为static的数据更有可能给多线程程序带来灾难性的打击，这些正是编写多线程程序时最需要注意的地方。  
+1、简单的多线程程序
+
+   首先在主函数中，我们使用到了两个函数，pthread\_create和pthread\_join，并声明了一个pthread\_t型的变量。  
+pthread\_t在头文件pthread.h中已经声明，是线程的标示符
+
+   函数pthread\_create用来创建一个线程，函数 原型 ：
+
+extern int pthread\_create \_\_P ((pthread\_t \*\_\_thread, \_\_const pthread\_attr\_t \*\_\_attr,void \*(\*\_\_start\_routine) (void \*), void \*\_\_arg));  
+  
+　　第一个参数为指向线程标识符的指针，第二个参数用来设置线程属性，第三个参数是线程运行函数的起始地址，最后一个参数是运行函数的参数。若我们的函数thread不需要参数，所以最后一个参数设为空指针。第二个参数我们也设为空指针，这样将生成默认属性的线程。对线程属性的设定和修改我们将在下一节阐述。当创建线程成功时，函数返回0，若不为0则说明创建线程失败，常见的错误返回代码为EAGAIN和EINVAL。前者表示系统限制创建新的线程，例如线程数目过多了；后者表示第二个参数代表的线程属性值非法。创建线程成功后，新创建的线程则运行参数三和参数四确定的函数，原来的线程则继续运行下一行代码。   
+函数pthread\_join用来等待一个线程的结束。函数原型为：  
+  
+　　extern int pthread\_join \_\_P ((pthread\_t \_\_th, void \*\*\_\_thread\_return));  
+  
+　　第一个参数为被等待的线程标识符，第二个参数为一个用户定义的指针，它可以用来[存储](http://storage.it168.com/ "存储")被等待线程的返回值。这个函数是一个线程阻塞的函数，调用它的函数将一直等待到被等待的线程结束为止，当函数返回时，被等待线程的资源被收回。一个线程的结束有两种途径，一种是象我们上面的例子一样，函数结束了，调用它的线程也就结束了；另一种方式是通过函数pthread\_exit来实现。它的函数原型为：  
+  
+　　extern void pthread\_exit \_\_P ((void \*\_\_retval)) \_\_attribute\_\_ ((\_\_noreturn\_\_));  
+  
+　　唯一的参数是函数的返回代码，只要pthread\_join中的第二个参数thread\_return不是NULL，这个值将被传递给thread\_return。最后要说明的是，一个线程不能被多个线程等待，否则第一个接收到信号的线程成功返回，其余调用pthread\_join的线程则返回错误代码ESRCH。
+
+2、修改线程的属性  
+设置线程绑定状态的函数为pthread\_attr\_setscope，它有两个参数，第一个是指向属性结构的指针，第二个是绑定类型，它有两个取值：PTHREAD\_SCOPE\_SYSTEM（绑定的）和PTHREAD\_SCOPE\_PROCESS（非绑定的）。下面的代码即创建了一个绑定的线程。   
+  
+`#include    pthread_attr_t attr;   pthread_t tid;      /*初始化属性值，均设为默认值*/   pthread_attr_init(&attr);   pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);      pthread_create(&tid, &attr, (void *) my_function, NULL);   `  
+3、线程的数据处理
+
+和进程相比，线程的最大优点之一是数据的共享性，各个进程共享父进程处沿袭的数据段，可以方便的获得、修改数据。但这也给多线程编程带来了许多问题。我们必须当心有多个不同的进程访问相同的变量。许多函数是不可重入的，即同时不能运行一个函数的多个拷贝（除非使用不同的数据段）。在函数中声明的静态变量常常带来问题，函数的返回值也会有问题。因为如果返回的是函数内部静态声明的空间的地址，则在一个线程调用该函数得到地址后使用该地址指向的数据时，别的线程可能调用此函数并修改了这一段数据。在进程中共享的变量必须用关键字volatile来定义，这是为了防止编译器在优化时（如 gcc 中使用-OX参数）改变它们的使用方式。为了保护变量，我们必须使用信号量、互斥等方法来保证我们对变量的正确使用。
+
+4、互斥锁
+
+互斥锁用来保证一段时间内只有一个线程在执行一段代码。必要性显而易见：假设各个线程向同一个文件顺序写入数据，最后得到的结果一定是灾难性的
+
+1.  #define \_GNU\_SOURCE
+    
+2.  #include <unistd.h>
+    
+3.  #include <pthread.h>
+    
+
+5.  #include <stdlib.h>
+    
+6.  #include <stdio.h>
+    
+
+8.  //static pthread\_rwlock\_t rwlock = PTHREAD\_RWLOCK\_INITIALIZER;
+    
+9.  // 这里虽然是 P/V ，但是用 cond 确实更方便。
+    
+10.  static pthread\_cond\_t cond = PTHREAD\_COND\_INITIALIZER;
+     
+11.  static pthread\_mutex\_t mutex = PTHREAD\_MUTEX\_INITIALIZER;
+     
+
+13.  int i =  0;
+     
+
+15.  void get  ( )
+     
+16.  {
+     
+17.  pthread\_mutex\_lock  (&mutex );
+     
+18.  while  ( i ==  0  )  // 队列下限
+     
+19.  pthread\_cond\_wait  (&cond, &mutex );  // 唤醒其它线程进行检测。
+     
+
+21.  \--i;
+     
+22.  pthread\_cond\_signal  (&cond );
+     
+23.  [printf](http://www.opengroup.org/onlinepubs/009695399/functions/printf.html)  ( "Current size: %d/n", i );
+     
+
+25.  pthread\_mutex\_unlock  (&mutex );
+     
+26.  }
+     
+
+28.  void put  ( )
+     
+29.  {
+     
+30.  pthread\_mutex\_lock  (&mutex );
+     
+31.  while  ( i ==  3  )  // 队列上限
+     
+32.  pthread\_cond\_wait  (&cond, &mutex );
+     
+
+34.  ++i;
+     
+35.  pthread\_cond\_signal  (&cond );  // 唤醒其它线程
+     
+36.  [printf](http://www.opengroup.org/onlinepubs/009695399/functions/printf.html)  ( "Now size: %d/n", i );
+     
+
+38.  pthread\_mutex\_unlock  (&mutex );
+     
+39.  }
+     
+
+41.  void \*thf  (  void \*arg  )
+     
+42.  {
+     
+43.  while  (  1  )
+     
+44.  {
+     
+45.  put  ( );
+     
+46.  }
+     
+47.  }
+     
+
+49.  int main  ( )
+     
+50.  {
+     
+51.  pthread\_t tid;
+     
+52.  pthread\_create  (&tid,  NULL, thf,  NULL );
+     
+
+54.  sleep  ( 3 );
+     
+55.  while  (  1  )
+     
+56.  get  ( );
+     
+57.  }

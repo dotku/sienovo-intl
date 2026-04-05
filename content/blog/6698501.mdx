@@ -1,0 +1,57 @@
+---
+title: "rz命令与sx等命令——串口终端下载文件到目标板"
+date: "2011-08-18"
+slug: "6698501"
+tags: ["#终端", "#makefile", "#编译器", "#windows", "#linux", "#测试"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6698501"
+---
+
+ 
+
+移植新下载的linux源码中是没有超级终端的 命令 的，需要自己添加。添加完了，开发板就可以PC通过串口传输文件了。
+
+步骤：
+
+1、  下载软件 rzsz-3.48. tar.gz 。 [http://freeware.sgi.com/source/rzsz/rzsz-3.48.tar.gz](http://freeware.sgi.com/source/rzsz/rzsz-3.48.tar.gz)下载。
+
+2、解压 tar zxvf  rzsz-3.48.tar.gz
+
+3、安装  cd src
+
+       vi Makefile
+
+       修改CC=arm-linux-gcc
+
+       保存退出
+
+       make posix 。
+
+    注意：这个软件安装与常规的GNU软件不同—没有configure(配置)及make install (安装过程)。
+
+        我的是 S3C2410的交叉编译器，不同的平台只是交叉编译器不一样而已。
+
+        输入命令make posix后，如果编译成功，在输入 ls命令，你将发现，多了很多文件
+
+        COPYING   gz         minirb.c    rc      rz.c    sz       undos.doc  zmodem.h
+
+        crc.c     mailer.rz  minirb.doc  README  rz.doc  sz.c     zcommand   zmr.c
+
+        crc.doc   Makefile   rb          rx      sb      sz.doc   zcommandi  zupl.t
+
+        crctab.c  Makefile~  rbsb.c      rz      sx      undos.c  zm.c
+
+    将rb,rx,rc,rz,sb,sx,sz,zcommand zcommandi拷贝到你制作的根文件系统的bin目录下，然后在将交叉编译器下的ld-2.5.so      libc-2.5.so      libcrypt.so.1  libgcc\_s.so.1  libm.so.6 ld-linux.so.3  libcrypt-2.5.so  libc.so.6      libm-2.5.so等库（可能版本不同，相应的数字，但只要是这几个文件即可）拷贝到根文件系统的lib目录下，然后再重新制作该根文件系统，下载到 开发板，重新启动，可以试一下rz和sz命令。
+
+命令用法：
+
+    sz  /文件名 ，然后打开windows下的超级终端，右击选择接收文件，设置接收文件的目录，确定就OK了。
+
+    rz           ，在超级终端中右击选择发送的文件即可。
+
+在我具体操作中，我用ldd命令查看rz等命令所依赖的动态文件库，发现他们并没有依赖任何动态库，这里我只查看了rz与sx两个命令，其它的就不知道了，所以我在制作文件系统时，并没有将以上所讲到的动态库移植到lib中，
+
+最后在用rz命令测试时确实能够用。
+
+注意，
+
+     如果命令用不了，你就应该用ldd命令查看它是否有依赖动态文件库，再将其移植到文件系统中。这样就能用了~~哈哈~~

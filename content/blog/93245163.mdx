@@ -1,0 +1,125 @@
+---
+title: "基于AM5728 DSP+ARM+FPGA的实时工业以太网EtherCAT主站实现"
+date: "2022-02-21"
+slug: "93245163"
+tags: ["#AM5728", "#ETHERCAT", "#主站", "#工业总线"]
+source: "https://blog.csdn.net/yeyuangen/article/details/93245163"
+---
+
+ 
+
+ 信迈ethercat主站 FPGA 高实时带加密实现32轴
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/93245163/01_073c3c79f809e50a1cf62c33769a7f50.png)
+
+**性能优势**
+
+1.  更快的循环周期，可以达到31.25us
+2.  更低的抖动，抖动时间小于0.004us
+3.  同步性能好，主站和各个从站设备可以达到远小于1us的时钟同步精度（4轴实测50ns）
+
+**性能对比：**
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/93245163/02_189d758fec4b5baf792b6af757282279.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/93245163/03_46a68ecebeac947c57b0ab2dfa34b24c.png)
+
+**更多性能对比总结：**
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/93245163/04_422024ab63dd3fc67f7597d8fd4423f0.png)
+
+针对EtherCAT的数控系统的实现,提出了一种基于EtherCAT 技术 的实时通信及DSP控制的可行系统方案,构建了EtherCAT主站网络结构,并重点分析了EtherCAT主站的状态机、分布时钟、CoE协议。 
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/93245163/05_bb539c2b03f3c955b2fe517044797af5.png)
+
+本实验使用AM57x开发板、Linux\-4.4.19内核，提供基于 EtherCAT协议 控制伺服驱动器，驱动伺服电机运转的方法。
+
+实验硬件：
+
+评估板： 信迈 XM5728-IDK-V3
+
+ 伺服驱动器 SAN YO RS2A03A0KA4W00  
+伺服电机——SANYO R2AA08075FXH00W 实验 软件 EC Master V2.9 Linux\_armv6 vfp eabihf Eval.tar.gz 例程源码压缩包  
+EC-Engineer （免费试用版，会定期更新，路径为：光盘资料\\Tools\\Windows）
+
+内核 版本 Linux 4.4.19
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/93245163/06_6b47befb60ec54054b047170d5652db2.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/93245163/07_29d9c475f2613b2e0931b7844913af08.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/93245163/08_dd1e529fab907834006fc6b7e24feb8d.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/93245163/09_4c5a7f6948eca88fc2210cb3c4ccefcb.jpeg)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/93245163/10_a38e09d18a2b456f816b43714ad1f9cc.jpeg)
+
+## 为什么EtherCAT如此受欢迎？
+
+EtherCAT（用于 控制 自动化技术的[以太网](http://www.elecfans.com/tags/%E4%BB%A5%E5%A4%AA%E7%BD%91/ "以太网")）是Beckhoff在2003年开发EtherCAT（用于控制 自动化 技术的以太网）是Beckhoff在2003年开发的实时以太网网络。开放标准现在由[EtherCAT技术组](https://www.ethercat.org/default.htm "EtherCAT技术组")（ETG）管理，其中[TRINAMIC](http://www.elecfans.com/tags/trinamic/ "TRINAMIC")Mo[ti](http://www.elecfans.com/tags/%E5%BE%B7%E5%B7%9E%E4%BB%AA%E5%99%A8/ "ti")onControl是其成员之一。Beckhoff的原始代码保持不变，允许设备使用主/从原理相互通信-允许快速和动态的通信结构。由于数据使用与以太网相同的格式，因此可以直接连接到以太网。不需要特定的路由器或[交换机](http://www.elecfans.com/dianzichangshi/20171204593673.html "交换机")。
+
+其次，这是一个广泛采用的开放标准。越来越多的设备正在通过现场总线或无线连接-而EtherCAT是这样做的首选技术之一。这意味着您可以通过使用Beckhoff的EtherCAT-IP在同一接口上进行多种产品的选择。
+
+第三，它的构建持续。使用成熟的以太网[电缆](http://www.hqchip.com/app/862 "电缆")，EtherCAT端子可以在-25°C至+60°C的温度范围内工作，而Trinamic的EtherCAT运动 控制器 甚至可以满足-40°C至125°C的汽车级温度规格。
+
+投资符合EtherCAT标准的产品意味着投资未来-这就是为什么TRINAMICMotionControl开发易于使用的带EtherCAT协议栈的电机和运动控制IC产品的原因。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/93245163/11_f7bd87825fbdcdfb43155f36e01cd665.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/93245163/12_230f85f2c23b2b579ce34e24a2543bcf.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/93245163/13_53791b118fdfc2d9a1ac88f0f90d172a.png)
+
+### EtherCAT的主/从原理
+
+EtherCAT主站通常作为具有以太网MAC的标准或嵌入式[计算机](http://www.hqchip.com/app/873 "计算机")的软件解决方案实施。只有主站可以主动创建包含每帧高达1518字节数据的EtherCAT帧的包，并将其下行发送到从站。除了诸如SOEM（[简易开放式EtherCAT主站](https://openethercatsociety.github.io/ "简易开放式EtherCAT主站")）之类的开放式EtherCAT主站实施之外，100多家公司提供各种通用或专用主站[EtherCAT产品](https://www.ethercat.org/en/products.html "EtherCAT产品")。
+
+除了标准的以太网设备之外，EtherCAT从站可以在非常紧凑的时间要求下即时处理帧-它们读取数据并将它们自己的信息添加到同一帧。这样做需要EtherCAT从站控制器中的专用硬件。简单的从设备不需要额外的微控制器，而更复杂的设备需要处理器来处理协议和应用程序代码。EtherCAT™过程框架的独特方式使其成为最快的工业以太网技术;没有其他技术可以提高EtherCAT的带宽利用率或相应的性能。
+
+### 功能原理
+
+EtherCAT主站写入一个报文并将其发送到所有从站的下游。当数据通过网络中的每个节点时，从设备读取帧并向其添加数据，同时检查是否有另一个从设备进一步位于流的下游。如果网段中的最后一个节点检测到一个开放端口，它立即知道没有更多的设备发送这些报文。相反，从站将按照预定义的拓扑将该报文返回给EtherCAT主站。
+
+由于数据是即时处理的，当从机读取或添加数据到帧时，帧不会停止移动。只有硬件传播延迟时间会延迟数据，接收帧和传输帧之间的端口到端口延迟为1μs。一般来说，在主机发送和接收使用以太网技术的全双工电报之间只有几个毫秒的延迟。
+
+一个单一的报文可以用来传递整个网络需要处理的所有数据-如果数据不是太大的话。换句话说，EtherCAT主站无需为网络中的每个从站创建新的软件包，从而节省了时间并消除了对集中式I/O的需求。
+
+此外，每个EtherCAT从站都通过硬件进行通信，而不是软件。这为实时关键任务留下了更多的计算能力，并确保了稳定的性能，并与网络中所有其他EtherCAT设备完全兼容。当网络仅由EtherCAT设备组成时，也不需要交换机，这意味着没有额外的时间延迟并且没有额外的成本来设置基础设施。
+
+### 拓扑
+
+EtherCAT基于以太网的 物理层 。数据报可以使用全双工传输，这意味着连接是通过一个带有缓冲器的交换机在每个端口进行的。通过具有一个，两个或更多端口的EtherCAT从站设备，各种拓扑结构都是可能的，例如简单的线路，星形或树状拓扑结构。一个单一的EtherCAT网络可以支持多达65,535个设备，而不会限制拓扑结构。
+
+由于物理层是以太网，因此不需要特殊电缆，也不需要交叉。这意味着您将不需要网格中心的额外连接，如图所示。建立此电缆冗余可最大限度地降低故障风险。
+
+如果有下游设备并且打开或关闭相应的端口，则网络段或分支中的每个EtherCAT从站控制器都会自动进行检测。链中的最后一个设备通过关闭其端口将数据包返回给发送方-所有其他接收返回到主方的帧的从服务器都将忽略它并简单地让它通过。
+
+### 同步
+
+无论何时分布式应用程序需要及时同步操作，如几个伺服轴完全同时启动或停止，EtherCAT的分布式[时钟](http://www.elecfans.com/tags/%E6%97%B6%E9%92%9F/ "时钟")系统即可发挥作用。
+
+分布式时钟机制同步所有从设备的时钟，导致偏差小于1μs。这些同步时钟产生的网络轴同步至微秒，即使通信周期抖动增加，抖动也非常低。
+
+**实际控制案例分享：**
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/93245163/17_b22b9730b43da7e4bb6095d7c57aa8a8.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/93245163/18_27b3069019691a154d86dde834405e25.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/93245163/19_a7333c774bba08a83c4c46f067638b21.png)
+
+另外，我们还提供am5728+fpga ethercat解决方案。它比纯linux实现具有实时性更快更强的特点。
+
+**性能优势**
+
+1.  更快的循环周期，可以达到31.25us
+2.  更低的抖动，抖动时间小于0.004us
+3.  同步性能好，主站和各个从站设备可以达到远小于1us的时钟同步精度（4轴实测50ns）
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/93245163/20_c6175e9ca60622ea291ac4549d3ea271.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/93245163/21_959d9346db044e6569dc0b9d923d6092.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/93245163/22_2252e11df8c6e7572994a95b78e93c0b.png)
+
+技术交流加wx:13670212541

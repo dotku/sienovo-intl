@@ -1,0 +1,211 @@
+---
+title: "linux find"
+date: "2014-07-01"
+slug: "36186695"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/36186695"
+---
+
+ 
+
+查找目录下的所有文件中是否含有某个字符串   
+find .|xargs grep -ri "IBM" 查找目录下的所有文件中是否含有某个字符串,并且只打印出文件名   
+find .|xargs grep -ri "IBM" -l 1.正则表达式    
+  （1）正则表达式一般用来描述文本模式的特殊用法，由普通字符（例如字符a-z）以及特殊字符（称为元字符，如/、\*、?等）组成。   
+  （2）基本元字符集及其含义   
+      ^ ：只匹配行首。   如^a 匹配以a开头的行abc,a2e,a12,aaa,......   
+      $ ：只匹配行尾。   如^a 匹配以a结尾的行bca,12a,aaa,.......   
+      \* ：匹配0个或多个此单字符。 如(a)\* 匹配 空，a,aa,aaa,....   
+      \[\] ：只匹配\[\]内字符。可以是一个单字符，也可以是字符序列，用","将里面要匹配的不同字符串分开。也可以使用-来表示\[\]内字符序列的范围，如\[1-5\]表示\[12345\]   
+      \\ ：只用来屏蔽一个元字符的特殊含义。 如\\\*,\\',\\",\\|,\\+,\\^,\\. 等   
+      .：（点）只匹配任意单字符。   
+      pattern\\{n\\}：只用来匹配前面pattern出现的次数.n为次数。如a\\{2\\}匹配aa.   
+      pattern\\{n,\\}：含义同上，但次数最少为n.如a\\{2,\\}匹配aa,aaa,aaaa,.....   
+      pattern\\{n,m\\}：含义同上，但次数在n和m之间。如a\\{2,4\\}匹配aa,aaa,aaaa三个   
+  (3)举例说明：   
+      ^$ ：匹配空行   
+      ^.$ ：匹配包含一个字符的行   
+    \\\*\\.pas ：匹配以\*.pas结尾的所有字符或文件   
+    \[0123456789\]或\[0-9\] ：假定要匹配任意一个数字   
+    \[a-z\] ：任意小写字母   
+    \[A-Za-z\] ：任意大小写字母   
+    \[S,s\] ：匹配大小写S   
+    \[0-9\]\\{3\\}\\.\[0-9\]\\{3\\}\\.\[0-9\]\\{3\\}\\.\[0-9\]\\{3\\} ：匹配IP地址 \[0-9\]\\{3\\}三个0-9组成的字符串；\\. ：匹配点（注意这里点是特殊的字符，所以要用"\\"来屏蔽其含义）   
+2.find介绍   （1）查找具有某些特征文件的命令，可遍历当前目录甚至于整个文件系统来查看某些文件或目录，其遍历大的文件系统时一般放在后台执行。   
+  （2）find命令的一般形式   
+      find pathname -options \[-print -exec -ok\]   
+      -pathname :find命令所查找的目录路径。如用"."来表示当前的目录，用/来表示系统根目录   
+      -print :find命令将匹配的文件输出到标准输出   
+      -exec: find命令对匹配的文件执行该参数所给出的shell命令，相应的命令形式为   
+        'command'{} \\; (注意{}和\\之间的空格)   
+      -ok 和 -exec的作用相同，只不过以一种更为安全的模式来执行该参数所给出的shell命令，在执行每一个命令之前，都会给出提示，让用户来确定是否执行。   
+    options有如下几种：   
+    -name ：按照文件名查找文件   
+    -perm ：按照文件权限来查找文件   
+    -user ：按照文件属主来查找文件   
+    -group ：按照文件所属的组来查找文件   
+    -mtime -n +n 按照文件的更改时间来查找文件，-n表示文件更改时间距现在n天以内，+n表示文件更改时间距现在n天以前。find命令还有-atime 和-ctime选项，但它们都和-mtime选项相似。   
+    -size n\[c\]查找文件长度为n块的文件，带有c时表示文件长度以字节计。   
+    -nogroup 查找无有效所属组的文件，即该文件所属的组在/etc/groups中不存在   
+    -newer file1 !file2查找更改时间比文件file1新但比文件file2旧的文件   
+    -depth 先查找指定目录有无匹配文件，若无则再在子目录中查找   
+    -type 查找某一类型的文件，如   
+      b :块设备文件   
+      d：目录   
+      e：字符设备文件   
+      p；管道文件   
+      l：符号链接文件   
+      f：普通文件   
+  （3）find命令举例   
+      find -name "\*.txt" -print 查找txt结尾的文件并输出到屏幕上   
+      find /cmd ".sh" -print 查找/cmd目录下所有sh文件，并输出   
+      find . -perm 755 -print 查找当前目录下权限为755的文件，并输出   
+      find \`pwd\` -user root -print 查找当前目录下属主为root的文件，并输出   
+      find ./ -group sunwill -print 查找当前目录下所属主是sunwill的文件   
+      find /var -mtime -5 -print 查找/var目录下更改时间为5天内的所有文件   
+      find /var -mtime +5 -print 查找/var目录下更改时间为5天以前的所有文件   
+      find /var -newer "myfile1" ! -newer "myfile2" -print 查找/var目录下比myfile1新，但是比myfile2旧的所有文件。   
+      find /var -type d -print 查找/var目录下所有目录   
+      find /var -type l -print 查找/var目录下所有的符号链接文件。   
+      find . -size +1000000c -print 查找当前目录下大于1000000字节的文件   
+      find / -name "con.file" -depth -print 查找根目录下有无"con.file",若无则在其子目录中查找   
+      find . -type f -exec ls -l {} \\; 查找当前目录下是否有普通文件，若有则执行ls -l   
+    （4）xargs命令   
+      在 使用find命令的-exec选项处理匹配到的文件时，find命令将所有匹配到的文件一起传递给exec。不幸的是，有些系统对能够传递给exec的命 令长度有限制，这样find命令运行几分钟之后就算出现溢出错误。错误信息通常是“参数列太长”或“参数列溢出”。这就是xargs的用处所在，特别是与 find命令一起使用,exec会发起多个进程，而xargs会多个，只有一个   
+      find ./ -perm -7 -print | xargs chmod o-w 查找权限为7的文件并传递给chmod处理   
+3.grep介绍   (1)grep 的一般格式为 grep \[options\] 基本正则表达式 \[文件\]   
+      字符串参数最好采用是双引号括，一是以防被误解为shell命令，二是可以用来查找多个单词组成的字符串   
+      -c：只输出匹配行的记数   
+      -i：不区分大小写（只适用于单个字符）   
+      -h：查询多个文件时不显示文件名   
+      -H：只显示文件名   
+      -l：查询多文件时只输出包含匹配字符的文件名   
+      -n：只显示匹配行及其行号   
+      -s：不显示不存在或无匹配文本的错误信息。   
+      -v：显示不包含匹配文本的所有行。   
+  （2）举例说明：   
+      grep ^\[^210\] myfile 匹配myfile中以非2、1、0开头的行   
+      grep "\[5-8\]\[6-9\]\[0-3\]" myfile 匹配myfile中第一位为5|6|7|8，第二位6|7|8|9，第三位为0|1|2|3的三个字符的行   
+      grep "4\\{2,4\\}" myfile 匹配myfile中含有44,444或4444的行   
+      grep "\\?" myfile匹配myfile中含有任意字符的行   
+  （3）grep命令类名   
+      \[\[:upper:\]\]   表示\[A-Z\]   
+      \[\[:alnum:\]\]   表示\[0-9a-zA-Z\]   
+      \[\[:lower:\]\]   表示\[a-z\]   
+      \[\[:space:\]\]   表示空格或者tab键   
+      \[\[:digit:\]\]   表示\[0-9\]   
+      \[\[:alpha:\]\]   表示\[a-zA-Z\]   
+    如：grep "5\[\[:digit:\]\]\[\[:digit:\]\]" myfile 匹配myfile中含有5开头接下去两位都是数字的行。   
+4.awk介绍   
+可以从文件或字符串中基于指定规则浏览和抽取信息，是一种自解释的变成语言。   
+（1）awk命令行方式 awk \[-F filed-spearator\] 'command' input-files   
+    awk脚本：所有awk命令插入一个文件，并使awk程序可执行，然后用awk命令解释器作为脚本的首行，以便通过键入脚本名称来调用它。awk脚本是由各种操作和模式组成。   
+    模式部分决定动作语句何时触发及触发事件。（BEGIN,END）   
+    动作对数据进行处理，放在{}内指明（print）   
+（2）分隔符、域和记录   
+    awk执行时，其浏览域标记为1,1,2,...𝑛.这种方法成为域标识。n.这种方法成为域标识。0为所有域。   
+（3）举例说明:   
+      awk '{print 0}' test.txt |tee test.out 输出test.txt中所有行0}' test.txt |tee test.out 输出test.txt中所有行0表示所有域   
+      awk -F : '{print $1} test.txt |tee test.out'   同上。。只是分隔符为":"   
+      awk 'BEGIN {print "IPDate\\n"}{print 1"\\t"1"\\t"4} END{print "end-of-report"}' test.txt   
+      开始时打印“IPDate”结束时打印“end-of-report”中间打印主体信息，比如总共匹配三条信息，则输出如下：     
+IPDate   
+1 first   
+2 second   
+3 third   
+end-of-report   
+  （4）匹配操作符 ~ 匹配,!~ 不匹配   
+      cat test.txt |awk '$0~/210.34.0.13/' 匹配test.txt中为210.34.0.13的行   
+      awk '$0!~/210.34.0.13' test.txt     匹配test.txt中不是210.34.0.13的行   
+      awk '{if(1\=\="210.34.0.13")𝑝𝑟𝑖𝑛𝑡1\=="210.34.0.13")print0}' test.txt 匹配 test.txt中第一个域为210.34.0.13的行。  
+5.sed介绍     sed不与初始化文件打交道，它操作的只是一个拷贝，然后所有的改动如果没有重定向到一个文件，将输出到屏幕。   
+    sed是一种很重要的文本过滤工具，使用一行命令或者使用管道与grep与awk相结合。是一种非交互性文本流编辑。   
+    （1）调用sed的三种方式   
+      使用sed命令行格式为：sed \[options\] sed命令 输入文件   
+      使用sed脚本文件格式为：sed\[options\] -f sed脚本文件 输入文件   
+      sed脚本文件\[options\] 输入文件   
+      --不管是使用shell命令行方式或脚本文件方式，如果没有指定输入文件，sed从标准输入中接受输入，一般是键盘或重定向结果。   
+    （2）sed 命令的options如下   
+        -n：不打印   
+        -c：下一命令是编辑命令   
+        -f：如果正在调用sed脚本文件   
+    （3）sed在文件中查询文本的方式   
+          --使用行号，可以是一个简单的数字，或是一个行号的范围   
+          --使用正则表达式   
+    （4）读取文本的方式   
+          x       x为一行号   
+          x,y       表示行号范围从x到y   
+          /pattern/     查询包含模式的行   
+          /pattern/pattern/ 查询包含两个模式的行   
+          pattern/,x   在给定的行号上查询包含模式的行   
+          x,/pattern/   通过行号和模式查询匹配行   
+          x,y!       查询不包含指定行号x和y的行   
+      （5）基本sed编辑命令   
+            p   打印匹配行   
+            d   删除匹配行   
+            =   显示文件行号   
+            a\\   在定位行号后附加新文本信息   
+            i\\   在定位行号后插入新文本信息   
+            c\\   用新文本替换定位文本   
+            s     使用替换模式替换相应模式   
+            r     从另一个文件中读文件   
+            w   写文本到一个文件   
+            q     第一个模式匹配完成后推出或立即退出   
+            l     显示与八禁止ASCII代码等价的控制字符   
+            {}   在定位行执行的命令组   
+            n     从另一个文件中读文本下一行，并附加在下一行   
+            g     将模式2粘贴到/pattern n/   
+            y     传送字符   
+    （6）举例说明：   
+          sed -n '2p' test.txt 打印第二行的信息(注意：-n是不打印不匹配的信息，若没加-n，则打印文件的所有信息而不是匹配信息)   
+          sed -n '1,4p' test.txt 打印第一行到第四行的信息   
+          sed -n '/los/p' test.txt模式匹配los，并打印出来   
+          sed -n '2,/los/p' test.txt 从第二行开始。。知道匹配第一个los   
+          sed -n '/^$/p' test.txt 匹配空行   
+          sed -n -e '/^/p' -e '/^/p' -e '/^/=' test.txt 打印空行及行号   
+          sed -n '/good/a\\morning' test.txt 在匹配到的good后面附加morning   
+          sed -n '/good/i\\morning' test.txt 在匹配到的good前面插入morning   
+          sed -n '/good/c\\morning' test.txt 将匹配到的good替换成morning   
+          sed '1,2d' test.txt 删除第1和2行   
+          sed 's/good/good morning/g' test.txt 匹配good并替换成goodmorning   
+          send 's/good/& hello /p' test.txt 匹配到good就在其后面加上hello   
+          send 's/good/ hello &/p' test.txt 匹配到good就在其前面加上hello   
+6.合并与分割（sort,uniq,join,cut,paste,split）     (1)sot命令   
+        sort \[options\] files 许多不同的域按不同的列顺序排序   
+          -c 测试文件是否已经排序   
+          -m 合并两个排序文件   
+          -u 删除所有同样行   
+          -o 存储sort结果的输出文件名   
+          -t 域分隔符，用非空格或tab开始排序   
+          +n ：n 为列号，使用此列号开始排序   
+          -n 指定排序是域上的数字分类项   
+          -r 比较求逆   
+        sort -c test.txt 测试文件是否分类过   
+        sort -u test.txt 排序并合并一样的行   
+        sort -r test.txt 以相反的顺序排列   
+        sort -t "/" +2 test.txt 以"/"分隔，第二个域开始分类   
+      （2）uniq命令   
+          uniq \[options \] files 从一个文本文件中去除或禁止重复行   
+          -u 只显示不重复行   
+          -d 只显示有重复数据行，每种重复行只显示其中一行   
+          -c 打印每一重复行出现次数   
+          -f ：n为数字，前n个域被忽略   
+          uniq -f 2 test.txt 忽略前2个域   
+      （3）join 命令   
+          join \[options\] file1 file2 用来将来自两个分类文本文件的行连在一起   
+          -an，n为一数字，用于连接时从文件n中显示不匹配行   
+          -onm ，连接域，n为文件号，m为域号   
+          -jnm，n为文件号，m为域号，使用其他域作连接域   
+          -t ，域分隔符。用来设置非空格或tab键的域分隔符。   
+        （4）split命令   
+          split -output\_file\_size intput\_filename output\_filename   
+          用来将大文件分割成小文件。   
+            -b n，每个分割文件的大小n   
+            -C n，每个分割文件一行最多n字节   
+            -l n，每个分割文件的行数   
+            -n，同-l n   
+            split -10 test.txt 将test.txt分割成10行的小文件   
+        （5）cut 命令   
+          cut -c n1-n2 filename 显示每行从开头算起 n1 到 n2 的文字。 
+
+          cut -c 3-5 test.txt 显示test.txt中每行从第3到第5个字符

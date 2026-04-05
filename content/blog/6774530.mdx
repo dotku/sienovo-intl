@@ -1,0 +1,18 @@
+---
+title: "Linux sleep函数作用"
+date: "2011-09-14"
+slug: "6774530"
+tags: ["#linux", "#float"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6774530"
+---
+
+ 
+
+sleep把进程的运行状态改为睡眠，将其从 系统 可执行队列去掉，这样系统就不会调度到该进程，不会分配CPU时间片。同时根据该进程的睡眠时间，将进程挂入相应的定时器 队列 中。
+
+同时内核维持一个定时器队列，每一次 时钟 中断处理，都把当前到期的队列中的进程唤醒，加入到可运行进程队列中。 同时对所有挂入定时器队列中的进程时间值减1，
+
+```cpp
+    clock_t start=clock();    sleep(5);    clock_t end=clock();    float time=(float)(end-start)/CLOCKS_PER_SEC;    printf("Sleep clock:%f\n",time);
+```
+首先獲取當前系統滴答數A，然後再加上需要sleep的時長結合CPU時鐘頻率計算得到的滴答數B。再來一個while循環，循環體中不停獲取當前滴答數，大於（A+B）時跳出循環，函數返回。

@@ -1,0 +1,43 @@
+---
+title: "htonl(),htons(),ntohl(),ntons()--大小端模式转换函数"
+date: "2013-06-14"
+slug: "9092717"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/9092717"
+---
+
+ 
+
+## [htonl(),htons(),ntohl(),ntons()--大小端模式转换函数](http://www.cnblogs.com/kungfupanda/archive/2013/04/24/3040785.html)
+
+不同机器内部对变量的字节存储顺序不同，有的采用大端模式(big-endian)，有的采用小端模式(little-endian)。  
+大端模式是指高字节数据存放在低地址处，低字节数据放在高地址处。  
+小端模式是指低字节数据存放在低地址处，高字节数据放在高地址处。  
+  
+在网络上传输数据时，由于数据传输的两端可能对应不同的硬件平台，采用的存储字节顺序也可能不一致，因此 TCP/IP 协议规定了在网络上必须采用网络字节顺序(也就是大端模式) 。  
+通过对大小端的存储原理分析可发现，对于 char 型数据，由于其只占一个字节，所以不存在这个问题，这也是一般情况下把数据缓冲区定义成 char 类型 的原因之一。对于 IP 地址、端口号等非 char 型数据，必须在数据发送到网络上之前将其转换成大端模式，在接收到数据之后再将其转换成符合接收端主机的存储模式。  
+  
+Linux 系统为大小端模式的转换提供了 4 个函数，输入 man byteorder 命令可得函数原型：
+
+**\[cpp\]**  [view plain](http://www.cnblogs.com/kungfupanda/archive/2013/04/24/3040785.html# "view plain") [copy](http://www.cnblogs.com/kungfupanda/archive/2013/04/24/3040785.html# "copy") [print](http://www.cnblogs.com/kungfupanda/archive/2013/04/24/3040785.html# "print") [?](http://www.cnblogs.com/kungfupanda/archive/2013/04/24/3040785.html# "?")
+
+1.  #include <arpa/inet.h> 
+
+3.  uint32\_t htonl(uint32\_t hostlong); 
+
+5.  uint16\_t htons(uint16\_t hostshort); 
+
+7.  uint32\_t ntohl(uint32\_t netlong); 
+
+9.  uint16\_t ntohs(uint16\_t netshort); 
+
+```cpp
+#include <arpa/inet.h> uint32_t htonl(uint32_t hostlong); uint16_t htons(uint16_t hostshort); uint32_t ntohl(uint32_t netlong); uint16_t ntohs(uint16_t netshort);
+```
+
+  
+
+htons 表示 host to network short ，用于将主机 unsigned short 型数据转换成网络字节顺序；
+
+htonl 表示 host to network long ，用于将主机 unsigned int 型数据转换成网络字节顺序；  
+ntohl、ntohs 的功能分别与 htonl、htons 相反。

@@ -1,0 +1,45 @@
+---
+title: "内核移植（包括LCD液晶屏、OTG-usb)"
+date: "2011-08-15"
+slug: "6688258"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/6688258"
+---
+
+ 
+
+\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
+
+(一)内核编译成 映像 文件
+
+————————————————————————
+
+1.出现错误，是关于Pci的不能编译通过。可以make menuconfig->drivers->去掉pci 驱动 选项
+
+2.
+
+  
+
+——————————
+
+（二）Lcd驱动移植
+
+——————————
+
+1.静态加载LCD驱动  
+  　　将写好的lcd驱动程序lcd.c放到arm/linux/drivers/char目录下，修改arm/linux/drivers/char/config.in文件，加上一行：BoolLCD driver supportCONFIG\_LCD；修改arm/linux/drivers/char/Makefile文件，加上一行：obj-$(CONFIG\_LCD)+=lcd.o。  
+  　　这样，当再进行make xconfig时，就会选择是否将LCD驱动编译进内核。同样的办法也可用在其他设备上。  
+  
+  
+  
+  
+
+  
+
+——————————————
+
+（三） USB \-OTG驱动移植
+
+——————————————
+
+1.

@@ -1,0 +1,64 @@
+---
+title: "条件变量的理解"
+date: "2014-06-18"
+slug: "32101815"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/32101815"
+---
+
+ 
+
+### 了解 pthread\_cond\_wait() 的作用非常重要 -- 它是 POSIX 线程信号发送系统的核心，也是最难以理解的部分。 
+
+首先，让我们考虑以下情况：线程为查看已链接列表而锁定了互斥对象，然而该列表恰巧是空的。这一特定线程什么也干不了 -- 其设计意图是从列表中除去节点，但是现在却没有节点。因此，它只能：   
+  
+锁定互斥对象时，线程将调用 pthread\_cond\_wait(&mycond,&mymutex)。pthread\_cond\_wait() 调用相当复杂，因此我们每次只执行它的一个操作。   
+  
+pthread\_cond\_wait() 所做的 **第一件事**就是同时对互斥对象解锁（于是其它线程可以修改已链接列表），并等待条件 mycond 发生（这样当 pthread\_cond\_wait() 接收到另一个线程的“信号”时，它将苏醒）。现在互斥对象已被解锁，其它线程可以访问和修改已链接列表，可能还会添加项。 【 **要求解锁并阻塞是一个原子操作**】  
+  
+此时，pthread\_cond\_wait() 调用还未返回。对互斥对象解锁会立即发生，但等待条件 mycond 通常是一个阻塞操作，这意味着线程将睡眠，在它苏醒之前不会消耗 CPU 周期。这正是我们期待发生的情况。线程将 **一直睡眠，直到特定条件发生**，在这期间不会发生任何浪费 CPU 时间的繁忙查询。从线程的角度来看，它只是在等待 pthread\_cond\_wait() 调用返回。   
+  
+现在继续说明，假设另一个线程（称作“2 号线程”）锁定了 mymutex 并对已链接列表添加了一项。在对互斥对象解锁之后，2 号线程会立即调用函数 pthread\_cond\_broadcast(&mycond)。此操作之后，2 号线程将使所有等待 mycond 条件变量的线程立即苏醒。这意味着第一个线程（仍处于 pthread\_cond\_wait() 调用中）现在将 **苏醒**。   
+  
+现在，看一下第一个线程发生了什么。您可能会认为在 2 号线程调用 pthread\_cond\_broadcast(&mymutex) 之后，1 号线程的 pthread\_cond\_wait() 会立即返回。不是那样！实际上，pthread\_cond\_wait() 将执行最后一个操作： **重新锁定 mymutex**。一旦 pthread\_cond\_wait() 锁定了互斥对象，那么它将返回并允许 1 号线程继续执行。那时，它可以马上检查列表，查看它所感兴趣的更改。   
+  
+**停止并回顾！**   
+那个过程非常复杂，因此让我们先来回顾一下。第一个线程首先调用：   
+  
+  
+  
+pthread\_mutex\_lock(&mymutex);   
+  
+  
+  
+  
+然后，它检查了列表。没有找到感兴趣的东西，于是它调用：   
+  
+  
+  
+pthread\_cond\_wait(&mycond, &mymutex);   
+  
+  
+  
+  
+然后，pthread\_cond\_wait() 调用在返回前执行许多操作：   
+  
+  
+  
+pthread\_mutex\_unlock(&mymutex);   
+  
+  
+  
+  
+它对 mymutex 解锁，然后进入睡眠状态，等待 mycond 以接收 POSIX 线程“信号”。一旦接收到“信号”（加引号是因为我们并不是在讨论传统的 UNIX 信号，而是来自 pthread\_cond\_signal() 或 pthread\_cond\_broadcast() 调用的信号），它就会苏醒。但 pthread\_cond\_wait() 没有立即返回 -- 它还要做一件事：重新锁定 mutex：   
+  
+  
+  
+pthread\_mutex\_lock(&mymutex);   
+  
+  
+  
+  
+pthread\_cond\_wait() 知道我们在查找 mymutex “背后”的变化，因此它继续操作，为我们锁定互斥对象，然后才返回。   
+
+[#技术文章](http://hi.baidu.com/tag/%E6%8A%80%E6%9C%AF%E6%96%87%E7%AB%A0/feeds)
