@@ -1,0 +1,208 @@
+---
+title: "Vxworks消息队列例解"
+date: "2012-02-19"
+slug: "7271926"
+tags: ["#任务", "#存储", "#null"]
+source: "https://blog.csdn.net/yeyuangen/article/details/7271926"
+---
+
+ 
+
+ 
+
+### Vxworks消息队列例解
+
+###   
+Vxworks下的任务间通信方法有内存共享，信号量，消息队列和管道等几种方式。关于信号量有一篇敝作发在中国单片机世界论坛上。链接为：  
+http://www.mcuw.com/bbs/dispbbs.asp?boardID=26&ID=5267&page=1  
+  
+▲消息队列与其他方式的一些比较：  
+
+  
+1、信号量使用方便，可以解决很多任务间的协调问题，但是信号量所传递的信息有限，而内存共享虽然传递信息可以大些，但是不标准。消息队列作为一种折忠方式用于线程之间的信息交换。  
+
+  
+2、消息队列允许许多的消息排队，而每个信息可以有不同长度，而传统管道中的数据仅仅是一个数据流，没有边界。Vxworks中的管道数据有消息组成。  
+
+  
+▲消息队列使用特性：  
+
+  
+在传输较小的数据块时，效率较高，但在传输大的数据时，不如共享内存高效。另外，消息队列不能指定接受者，消息队列不支持广播机制，因此一个任务所发出的信息不能被许多任务所接收。  
+
+  
+使用消息队列作为任务传送数据量比较小的数据时的通信机制是比较理想的，一般不会产生死锁问题。  
+
+  
+▲ 消息队列的种类：  
+
+  
+分wind型和POSIX型。Wind型转为Vxworks设计，而POSIX型是为了方便移植到其他遵循POSIX标准的操作系统上。分别包含的文件库为：  
+
+  
+msgQLib Wind消息队列库  
+
+  
+msgQShow Wind消息队列查看函数库  
+
+  
+mqPxLib POSIX消息队列库  
+
+  
+mqPxShow POXIX消息队列查看函数库  
+
+  
+▲原理简述：  
+首先是创建一个消息队列，该消息队列中指定存放最多消息数的数量和每个消息的最大长度，由此产生一个消息队列名称MsgQId。任务A通过消息发送函数 msgQSend（）将一段信息发送到消息队列中存放。如果有任务B在等待消息队列中的消息，即该发送的消息马上交给任务B，其中任务B有一定的存放区，即通过msgQReceive（）将收到的信息存放在任务B中自己的存储区内。如果消息队列中没有消息，那么在等待消息的任务B将被阻塞并被添加到等待消息的任务队列中。  
+
+  
+▲参数说明：  
+
+  
+myMsgQId = msgQCreate (MAX\_MSGS, MAX\_MSG\_LEN, MSG\_Q\_PRIORITY)  
+
+  
+myMsgQId ：消息队列名称 MAX\_MSGS：最多消息数目  
+
+  
+MAX\_MSG\_LEN：每个消息最大的长度。MSG\_Q\_PRIORITY：属性。这里为基于优先级的。还有一个是FIFO型的。这个参数说明是针对需要等待消息的而且是被阻塞的任务而言的。即如果消息队列中没有消息，那么等待消息的任务被阻塞，这些阻塞的任务排列是基于优先级的还是基于FIFO型的。  
+
+  
+
+  
+
+  
+msgQSend (myMsgQId, MESSAGE, sizeof (MESSAGE), WAIT\_FOREVER,  
+
+  
+MSG\_PRI\_NORMAL)  
+
+  
+myMsgQId：消息发送到的消息队列名称。MESSAGE：消息内容 sizeof (MESSAGE)：消息大小 WAIT\_FOREVER：等待方式 MSG\_PRI\_NORMAL：发送消息的优先级。分为一般型和紧急型，这个优先级是相对于消息在消息队列中的排列顺序而言的，如果为一般级别，则在消息队列的尾部，如果为紧急级别，则在消息队列中的头部。  
+
+  
+
+  
+
+  
+消息队列例子（很多教材上采用的，只做一修改）：  
+
+  
+#include "vxWorks.h"  
+
+  
+#include "msgQLib.h"  
+
+  
+#define MAX\_MSGS (10)  
+
+  
+#define MAX\_MSG\_LEN (100)  
+
+  
+MSG\_Q\_ID myMsgQId;  
+
+  
+task2 (void)  
+
+  
+{  
+
+  
+char msgBuf\[MAX\_MSG\_LEN\]; //接收消息，存放  
+
+  
+if (msgQReceive(myMsgQId, msgBuf, MAX\_MSG\_LEN, WAIT\_FOREVER) == ERROR)  
+
+  
+return (ERROR);  
+
+  
+printf ("Message from task 1:\\n%s\\n", msgBuf); //在串口中显示消息内容  
+
+  
+}  
+
+  
+task3 (void)  
+
+  
+{  
+
+  
+char msgBuff\[MAX\_MSG\_LEN\];  
+
+  
+  
+
+  
+if (msgQReceive(myMsgQId, msgBuff, MAX\_MSG\_LEN, WAIT\_FOREVER) == ERROR)  
+
+  
+return (ERROR);  
+
+  
+printf ("\\n Message from task 1f:\\n%s\\n", msgBuff); //为了试验是否可以重复接收消息  
+
+  
+}  
+
+  
+#define MESSAGE "Greetings from Task 1"  
+
+  
+task1 (void)  
+
+  
+{  
+
+  
+if ((myMsgQId = msgQCreate (MAX\_MSGS, MAX\_MSG\_LEN, MSG\_Q\_PRIORITY))  
+
+  
+\== NULL) //消息创建  
+
+  
+return (ERROR);  
+
+  
+if (msgQSend (myMsgQId, MESSAGE, sizeof (MESSAGE), WAIT\_FOREVER,  
+
+  
+MSG\_PRI\_NORMAL) == ERROR)  
+
+  
+return (ERROR);  
+
+  
+}  
+
+  
+void start(void)  
+
+  
+{  
+
+  
+int tGetId,tJudId,tProId;  
+
+  
+tGetId = taskSpawn("tPget",200,0,1000,(FUNCPTR)task1,1,0,0,0,0,0,0,0,0,0);  
+
+  
+tJudId = taskSpawn("tPjud",201,0,1000,(FUNCPTR)task2,3,0,0,0,0,0,0,0,0,0);  
+
+  
+tProId = taskSpawn("tPro",202,0,1000,(FUNCPTR)task3,3,0,0,0,0,0,0,0,0,0);  
+
+  
+}  
+
+  
+试验结果为：只打印出Message from task 1:  
+
+  
+Greetings from Task 1（只有一条，而不是两条，说明消息一旦从buf被取走，就没有了）  
+
+  
+说明：如果消息队列中的一个消息被取走，其他任务将不能再次接收这个消息。如果有多个消息，那么按照消息创建时的属性参数进行消息排列，一个个一次性地被读取。其实以上例子整个过程就是任务1创建一个消息队列，并且往这个消息队列中放入消息（也就是一串数据），然后任务2通过接收消息队列中保存并排列好的消息，这个有任务1送来的消息被一次性使用给任务2调走，存放在任务2接收函数中指定的存储区内，完成整个任务间的通信。

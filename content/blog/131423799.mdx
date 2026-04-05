@@ -1,0 +1,95 @@
+---
+title: "RK3568/RK3588+LinuxCNC+Ethercat解决方案"
+date: "2023-06-27"
+slug: "131423799"
+tags: ["#linuxcnc"]
+source: "https://blog.csdn.net/yeyuangen/article/details/131423799"
+---
+
+ 
+
+RK3588是瑞芯微新一代旗舰级高端处理器，具有高算力、低功耗、超强多媒体、丰富数据接口等特点。搭载四核A76+四核A55的八核CPU和ARM G610MP4 GPU，内置6.0TOPs算力的NPU。
+
+有五大技术优势
+
+1\. 内置多种功能强大的嵌入式硬件引擎，支持8K@60fps 的 H.265 和 VP9 解码器、8K@30fps 的 H.264 解码器和 4K@60fps 的 AV1 解码器；支持 8K30fps 的 H.264 和H.265 编码器，高质量的 JPEG 编码器/解码器，专门的图像预处理器和后处理器。
+
+2\. 内置 3D GPU，兼容 OpenGL ES1.1/2.0/3.2、OpenCL 2.2 和 Vulkan 1.2。带有 MMU 的特殊 2D 硬件引擎将最大限度地提高显示性能，并提供流畅的操作体验。
+
+3\. 内置瑞芯微自研的48M像素 ISP（图像信号处理器），支持实现众多算法加速器，如 HDR、 3A、LSC、3DNR、2DNR、锐化、去雾、鱼眼校正、伽马校正等。
+
+4\. 高算力 NPU 可支持 INT4/INT8/INT16/FP16 混合运算，其强大的兼容性，可以轻松转换基于TensorFlow / MXNet/PyTorch/Caffe 等一系列框架的网络模型。
+
+5\. 具有高性能的 4 通道外部存储器接口（LPDDR4/LPDDR4X/LPDDR5），能够支持苛刻的存储器带宽。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131423799/01_c9286e96a21ccc862e5235cbd666504d.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131423799/02_e23baee9d1a25969abd93fa1302cfdcf.png) 
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131423799/03_253db56745209d247bd04fd95a9948e6.png) 
+
+Linux+xenomai+igh运行53小时 实测结果：
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131423799/04_64886016d4d8cdf7a3f989e76d7e44ec.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131423799/05_00e4ef41c9f396f10db99a2a486fdb67.png) 
+
+**二、Linuxcnc数控系统的比对**
+
+1、一体化的高度集成开发的数控系统  
+2、基于PLC,轴运动的运动控制卡开发的数控系统：将运动控制部分写入运动控制卡，由该设备控制硬件，而非实时操作或运算的部分放入计算机内，由计算机完成非实时的任务。  
+3、完全基于软件的运动规划控制系统：实时任务等完全交由计算机软件完成，并能响应硬件中断。
+
+![数控系统分类](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131423799/06_90c3d6bf221c6b405317146695914e9a.jpeg)  
+本文主要讲述LinuxCNC这款纯软件的操作系统，它是基于Linux的非实时的操作系统，相对于前面两种类型的数控系统它功能优越代表者数控未来的发展趋势，但是现阶段它的响应时间，实时精度还是比不上硬件控的。瑕不掩瑜它的优点主要体现在它的开放性  
+所有的开放性系统都具备以下几点：
+
+ ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131423799/07_5329c25574d10a257c9d735c0a19e36f.png)
+
+  
+LinuxCNC由四部分组成：
+
+![在这里插入图片描述](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131423799/08_c796bce9143debef3c172c1ab456cfa8.jpeg)  
+运动控制模块
+
+![在这里插入图片描述](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131423799/09_6738ee8a2ea4a13413ece334eb263068.jpeg)
+
+任务调度模块
+
+![在这里插入图片描述](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131423799/10_533453ba63fa2c42ca39a649ed428b95.jpeg)  
+LinuxCNC的通信方式
+
+ ![在这里插入图片描述](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131423799/11_9e957a4ece26bfb671111d1bd869a448.jpeg)
+
+  
+LinuxCNC的安装最低配置要求。可以去下面这个网址下载用户安装手册《已经翻译成中文了》，进行入门  
+https://download.csdn.net/download/weixin\_44880138/11197220
+
+![在这里插入图片描述](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131423799/12_3e711f339889c55727547cb097839bbf.jpeg)  
+简单列举一下进行步进配置的步骤stepconf
+
+![在这里插入图片描述](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131423799/13_b6ae81e91794d4595d30574eae83652d.jpeg)
+
+现在一般在使用LinuxCNC的的时候不可避免的需要使用到EtherCAT这个协议。  
+EtherCAT协议的特点:
+
+![在这里插入图片描述](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131423799/14_6da85f16c000e9b6d5fd3b12d07ba5c6.jpeg)
+
+EtherCAT的运行原理：这个原理的解释是参考一位硕士毕业生的毕业论文，具体名字忘记啦，希望这个大佬不要怪我啊哈哈哈
+
+![在这里插入图片描述](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131423799/15_57357930d53034cbd002417fd33a0fa6.jpeg)  
+EtherCAT主站结构
+
+ ![在这里插入图片描述](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131423799/16_b91a75817b4001df5ed588f945810ed0.jpeg)
+
+  
+主站的基本功能：  
+1、读取从站设备描述XML文件并对其进行解析，获取其中配置参数  
+2、捕获和发送EtherCAT数据帧，完成EtherCAT子报文解析、打包等  
+3、管理从站设备状态，运行状态机，完成主从站状态机设置和维护  
+4、可进行非周期性数据通信，完成系统参数配置，处理通讯过程中突发事件  
+5、实现周期性过程数据通信，实现数据实时交换，实时监控从站状态，从站反馈 信号实时处理等功能
+
+EtherCAT从站的结构
+
+![在这里插入图片描述](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131423799/17_15748a3d8bc667a521223a780ab0c21c.jpeg)

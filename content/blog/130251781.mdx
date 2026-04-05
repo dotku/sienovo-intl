@@ -1,0 +1,119 @@
+---
+title: "基于LS1028 TSN 交换机软件系统设计与实现(三）"
+date: "2023-04-19"
+slug: "130251781"
+tags: ["#linux", "#TSN"]
+source: "https://blog.csdn.net/yeyuangen/article/details/130251781"
+---
+
+ 
+
+NXP 推出 OpenIL 作为用于工业领域的 Linux 发行版，OpenIL 新增的部分中
+
+含有：支持实时的操作系统的扩展和支持工业厂房中自动化 OEM 的 Time-Sensitive
+
+网络。OpenIL 作为开放型的工业 Linux 系统最大的优势便是将实时计算在网络中
+
+的障碍清除了，OEM 厂商借标准的、社区的发行版 OpenIL 将逐步跨入工业 4.0
+
+时代。
+
+4.1 TSN 交换机软件的基本设计思想
+
+在本文中支持 TSN 系统的交换机软件选用的是开放式工业 Linux 系统
+
+(OpenIL)，因为 TSN 的特性就是实时性强，而 OpenIL 是针对用于工业领域的开发
+
+的专业 Linux 版本，扩展了实时的操作系统并且支持工业厂房中自动化 OEM 的
+
+Time-Sensitive 网络（包括流过滤监管、分时拥塞感知整形和 802.1AS 时间同步等）。
+
+软件系统的总体框图如图 4-1 所示。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/130251781/01_f95cf4fc095598d9fc38a74209d3b636.png)
+
+OpenIL 不仅拥有网络协议栈、用于配置管理的 Web 服务、脚本工具等一些 IT
+
+的基础架构软件，还有一般来说可作为 Linux 发行版中一部分的实用的系统程序，
+
+除此之外还包含如下工业领域的软件特性：
+
+（1）对 Unix 的 Xenomai 实时扩展，简化实时操作系统(RTOS)移植(如 VxWorks
+
+pSOS) 。
+
+（2）可扩展标记语言(XML)和基于 NETCONF 的 TSN 网络配置实用程序。
+
+（3）支持通用精确时间协议(gPTP)的 linuxptp 守护程序。
+
+（4）支持边缘计算服务。
+
+（5）安全性的 SeLinux 。
+
+采用 OpenIL 不仅可以实现交换机的 TSN 特性，在未来工业互联网大平台
+
+中还可以将该交换机作为 TSN END POINT 使用，连接 TSN 整网**\[26\]**。 OpenIL 系
+
+统的目录结构如图 4-2，第二层和第三层是为编译产生的。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/130251781/02_61eb95abd569893a83d6ff4559538e30.png)
+
+OpenIL 在通用 Linux 的基础上提供 OT 所需的可确定性、可管理性、工业网
+
+络和安全性。Xenomai cobalt 是一种实时框架，将传统 RTOS 应用程序移植到
+
+OpenIL 上，扩展单 linux 内核成双内核（实时 kernel 和原生态 linux kernel **\[27\]**）。
+
+这样只需要部署一种 IEEE 标准以太网网络，就既能传输 OT 系统中对实时性要求
+
+较高的控制流量，又能传输 IT 系统中尽力而为的普通以太网流量。在本次研究中，
+
+主要工作集中在 Xenomai colbat 双内核在 OpenIL 中的实现。
+
+图 4-3 是 OpenIL 系统中双内核的架构，TSN API 是给有实时要求的应用所调
+
+用，通过实时 Xenomai cobalt 核对 TSN switch 进行配置，
+
+kernel 中同时支持 gPTP 协
+
+议（precious time protocol）来同步时间。用户态空间支持通用的 ethernet App，同
+
+时也支持 TSN 相关的 App，这样只需要一个系统就同时满足 IT 和 OT 的需求，简
+
+化网络的部署和管理。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/130251781/03_b47cac64ac461be453d5d4917c4da359.png)
+
+ ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/130251781/04_4474bdcb46fed86e84bc956dcace4d28.png)
+
+4.3 TSN 交换机软件的功能模块
+
+4.4 TSN 交换机软件功能
+
+TSN 的软件功能由三大块共同实现。分别为用户态的 tsn api 接口，嵌入在
+
+kernel 中的 tsn 配置接口，以及 switchdev 驱动。图 4-8 为软件层面的调用关系。![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/130251781/05_65faf7910efeebe0c5874e8a1948b673.png)
+
+用户态的 TSN API 以共享库的形式（
+
+libtsn.so）分布，对开发者提供统一的接
+
+口。Api 接口均是以 tsn\_xx\_set, 或 tsn\_xx\_get 的形式，其中 xx 代表功能缩写。比
+
+如 qbv 功能设置接口：tsn\_qbv\_set, tsn\_qbv\_get。
+
+实现原理是通过 Netlink 套接字与内核的 TSN api 模块进行通信。这是 Linux
+
+通用的一种用户进程与内核进程通信的方式，所以不再赘述。我们同时提供 tsntool
+
+可执行文件进行交互的配置方式，tsntool 就是使用 libtsn.so 实现的。
+
+内核态的 TSN API 作为 kernel 的 Buildin 编译到内核中，在 menuconfig 中配
+
+置是否编译此 TSN 功能接口。这个模块主要提供 tsn\_port\_register(port, optfunc,
+
+enable)接口供 switchdev 驱动调用。接口的配置函数最终由回调函数 optfunc 实现。
+
+另一方面，内核态 TSN API 接收 netlink socket 消息（来自用户态 TSN ），解
+
+析后通过 optfunc 函数进行配置，并返回结果给用户。

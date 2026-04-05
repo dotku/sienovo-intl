@@ -1,0 +1,349 @@
+---
+title: "gtk/glade程序开发(二)"
+date: "2011-09-21"
+slug: "6796212"
+tags: ["#程序开发", "#button", "#gtk", "#callback", "#signal", "#user"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6796212"
+---
+
+ 
+
+微调按钮构件(spin buttons)   
+  
+常用函数:   
+  
+创建微调按钮构件:   
+/\*创建微调按钮构件要用到“调整对象”，所以还要创建“调整对象”   
+　以下就是Glade自动创建的微调按钮构件，就用到了“调整对象”\*/   
+
+GtkObject \*spinbutton1\_adj;
+
+GtkWidget \*spinbutton1;
+
+
+
+spinbutton1\_adj = gtk\_adjustment\_new (1, 0, 100, 1, 10, 10);
+
+spinbutton1 = gtk\_spin\_button\_new (GTK\_ADJUSTMENT (spinbutton1\_adj), 1, 0);
+
+  
+这一节用到的新函数：   
+取得微调按钮构件的当前值:   
+函数名： gtk\_spin\_button\_get\_value\_as\_int   
+用法：   
+
+gfloat spinvalue1;
+
+gint spinvalue2;
+
+spinvalue1=gtk\_spin\_button\_get\_value(GTK\_SPIN\_BUTTON(spinbutton));
+
+spinvalue2=gtk\_spin\_button\_get\_value\_as\_int(GTK\_SPIN\_BUTTON(spinbutton));
+
+  
+函数名： sprintf()   
+用法： sprintf (buf, "%d", spinvalue1);   
+  
+函数名： lookup\_widget()   
+用法： GtkWidget \*label1 = lookup\_widget (GTK\_WIDGET(spinbutton), "label1");   
+  
+一、用Glade设计界面   
+步骤：1、新建glade工程   
+　　　　　2、依此放置 窗口（400，300）、固定位置、标签、微调按钮。   
+　　　　　3、为微调按钮构件，添加value\_changed信号响应，object后填写：spinbutton1。   
+4、设置微调按钮的一些属性：值、最小值、最大值、步进增量、页面增量、页面大小。(这些属性什么意思，自己捉摸捉摸。)　　　　   
+5、保存工程，并生成代码。   
+  
+二、修改代码   
+  
+Interface.c /\*不作任何修改，看你的文件中的部分和这个一样不一样。\*/   
+
+g\_signal\_connect\_swapped ((gpointer) spinbutton1, "value\_changed",
+
+G\_CALLBACK (on\_spinbutton1\_value\_changed),
+
+GTK\_OBJECT (spinbutton1));
+
+
+
+callbacks.h /\*不作任何修改，看你的文件和这个一样不一样。\*/
+
+
+
+void on\_spinbutton1\_value\_changed (GtkSpinButton \*spinbutton,
+
+gpointer user\_data);
+
+callbacks.c 
+
+
+
+void
+
+on\_spinbutton1\_value\_changed (GtkSpinButton \*spinbutton,
+
+gpointer user\_data)
+
+{
+
+gchar buf\[10\];
+
+gint spinvalue1;
+
+
+
+GtkWidget \*label1 = lookup\_widget (GTK\_WIDGET(spinbutton), "label1");
+
+spinvalue1 = gtk\_spin\_button\_get\_value\_as\_int(GTK\_SPIN\_BUTTON(spinbutton));
+
+sprintf (buf, "%d", spinvalue1);
+
+gtk\_label\_set\_text(GTK\_LABEL(label1),buf);	
+
+}
+
+绘图区构件(drawingarea)   
+  
+常用函数:   
+  
+创建构件:   
+/\* \*/   
+GtkWidget \*drawingarea1;   
+drawingarea1 = gtk\_drawing\_area\_new ();   
+  
+这一节用到的新函数：   
+  
+函数名： gdk\_gc\_new /\*新建画笔\*/   
+用法：   
+GdkGC \*gc1;   
+gc1 = gdk\_gc\_new (drawingarea1->window);   
+  
+函数名： gdk\_gc\_set\_rgb\_fg\_color /\*设置画笔的前景色\*/   
+用法：   
+GdkColor color;   
+color.red = 30000;   
+gdk\_gc\_set\_rgb\_fg\_color (gc1, &color);   
+  
+函数名： gdk\_draw\_line /\*画直线\*/   
+函数名： gdk\_draw\_rectangle /\*画矩形\*/   
+  
+一、用Glade设计界面   
+步骤： 1、新建glade工程   
+　　　　　2、依此放置 窗口（400，300）、固定位置、按钮、绘图区。   
+　　　　　3、为按钮构件，添加clicked信号响应。   
+　　 4、保存工程，并生成代码。   
+  
+二、修改代码   
+  
+Interface.c /\*不作任何修改，看你的文件中的部分和这个一样不一样。\*/   
+
+g\_signal\_connect ((gpointer) button1, "clicked",
+
+G\_CALLBACK (on\_button1\_clicked),
+
+NULL);
+
+  
+callbacks.h /\*不作任何修改，看你的文件和这个一样不一样。\*/   
+  
+  
+callbacks.c   
+
+void
+
+on\_button1\_clicked (GtkButton \*button,
+
+gpointer user\_data)
+
+{
+
+GtkWidget \*drawingarea1 = lookup\_widget (GTK\_WIDGET(button), "drawingarea1");
+
+GdkGC gc1; /\*定义画笔\*/
+
+GdkColor color;　　　　　　　　　　　　　　　　　/\*定义颜色变量\*/
+
+gc1 = gdk\_gc\_new (drawingarea1->window);　　　　　/\*新建画笔\*/
+
+
+
+color.red = 30000;　　　　　　　　　　　　　　　　/\*定义颜色\*/
+
+gdk\_gc\_set\_rgb\_fg\_color (gc1, &color);　　　　　　　　/\*设置画笔的前景色\*/
+
+gdk\_draw\_line (drawingarea1->window,　　　　　　　/\*画直线\*/
+
+gc1,
+
+0,0,0,300 );
+
+
+
+color.red = 0;
+
+color.blue = 30000;　　　　　　　　　　　　　　　　/\*重新定义颜色\*/
+
+gdk\_gc\_set\_rgb\_fg\_color (gc1, &color);　　　　　　　　/\*设置画笔的前景色\*/
+
+
+
+gdk\_draw\_rectangle (drawingarea1->window,　　　　　　/\*画矩形\*/
+
+gc1,
+
+TRUE,
+
+50,
+
+50,
+
+100,
+
+100);	
+
+}
+
+文件选择对话框构件(File chooser dialog)   
+  
+常用函数:   
+  
+创建 构件:   
+/\* \*/   
+GtkWidget window2;   
+window2 = create\_filechooserdialog1 ();   
+gtk\_widget\_show (window2);   
+  
+  
+这一节用到的新函数：   
+  
+函数名： gtk\_file\_chooser\_get\_filename /\*取得文件名\*/   
+用法：   
+  
+gchar \* filename;   
+filename = gtk\_file\_chooser\_get\_filename (GTK\_FILE\_CHOOSER (window2));   
+  
+  
+**说明：这一节涉及到在主窗口中调用对话框的问题，所以在callbacks.h中定义了一个全局指针变量，用于指向对话框。**   
+  
+一、用Glade设计界面   
+步骤： 1、新建glade工程   
+　　　　　2、依此放置 窗口（400，300）、固定位置、按钮、文件选择对话框。   
+　　　　　3、为按钮构件、文件选择对话框里的“取消”、“打开”按钮，添加clicked信号响应。   
+　　　　　4、保存工程，并生成代码。   
+  
+二、修改代码   
+修改代码以前，把工程属性设置为“win32控制台程序”   
+
+Main.c
+
+去掉以下部分：/\*在linux下用Anjuta IDE设计时，就没有这一部分。\*/
+
+GtkWidget \*fontselectiondialog1;
+
+fontselectiondialog1 = create\_fontselectiondialog1 ();
+
+gtk\_widget\_show (fontselectiondialog1);
+
+
+
+Interface.c /\*不作任何修改，看你的文件中的部分和这个一样不一样。\*/
+
+
+
+create\_window1
+
+g\_signal\_connect ((gpointer) button1, "clicked",
+
+G\_CALLBACK (on\_button1\_clicked),
+
+NULL);
+
+
+
+create\_filechooserdialog1
+
+g\_signal\_connect ((gpointer) button2, "clicked",
+
+G\_CALLBACK (on\_button2\_clicked),
+
+NULL);
+
+g\_signal\_connect ((gpointer) button3, "clicked",
+
+G\_CALLBACK (on\_button3\_clicked),
+
+NULL);
+
+
+
+callbacks.h /\*看你的文件和这个一样不一样。\*/
+
+
+
+gchar \*filename; /\*用于存放得到的文件名\*/　　 （全局变量）
+
+GtkWidget \*window2;　　　　/\*指向对话框的指针变量（全局），通过它访问对话框。\*/
+
+
+
+void on\_button1\_clicked (GtkButton \*button,
+
+gpointer user\_data);
+
+void on\_button2\_clicked (GtkButton \*button,
+
+gpointer user\_data);
+
+void on\_button3\_clicked (GtkButton \*button,
+
+gpointer user\_data);
+
+
+
+callbacks.c 
+
+
+
+void on\_button1\_clicked (GtkButton button,　　 /\*对应主窗口上的按钮，用于创建对话框\*/
+
+gpointer user\_data)
+
+{
+
+window2 = create\_filechooserdialog1 ();
+
+gtk\_widget\_show (window2);
+
+}
+
+
+
+void on\_button2\_clicked (GtkButton \*button,　　　　/\*对话框上的“取消”按钮\*/
+
+gpointer user\_data)
+
+{
+
+g\_print("No file is select/n");
+
+gtk\_widget\_destroy (window2); 　 /\*去除对话框\*/
+
+}
+
+
+
+void on\_button3\_clicked (GtkButton button,　　　　/\*对话框上的“打开”按钮\*/
+
+gpointer user\_data)
+
+{
+
+filename = gtk\_file\_chooser\_get\_filename (GTK\_FILE\_CHOOSER (window2));　/\*取得对话框中的文件名\*/
+
+g\_print("The file is: /n");
+
+g\_print(filename);
+
+gtk\_widget\_destroy (window2);　　　　　　　　　　　　　　　　　　　　　　　/\*去除对话框\*/
+
+}

@@ -1,0 +1,231 @@
+---
+title: "【FPGA + Nvidia/算能GPU+AI】自动驾驶多核异构实现 16路车载摄像头实时AI分析解决方案"
+date: "2024-06-21"
+slug: "139854589"
+tags: ["#fpga开发", "#人工智能"]
+source: "https://blog.csdn.net/yeyuangen/article/details/139854589"
+---
+
+ 
+
+基于 Xilinx 公司ZYNQ Ultrascale+ MPSoC系列 FPGA 芯片设计，应用于无人驾驶、慢速特种车及数据采集车、车载仿真测试系统等自动驾驶领域
+
+自动驾驶：16通道车载摄像头PCIE采集卡方案。
+
+#### 
+
+*   ##### ·16 通道摄像头
+    
+    最多支持 16 通道 GMSL1/2 摄像头输入
+    
+*   ##### ·8MP 摄像头
+    
+    最高支持 8通道 8MP分辨率摄像头
+    
+*   ##### ·PCIE 3.0 总线
+    
+    支持 PCIE 3.0 X8 X4 X1 模式，兼容 PCIE 2.0, 最高理论带宽 8GB/s
+    
+*   ##### ·多平台支持
+    
+    INTEL CPU平台、AMD CPU平台、NVDIA Jatson平台，算能BM1684X平台
+    
+
+![_K4A9650.jpg](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/139854589/06_fce11547e12b15bab65861a5cdd2ad30.jpeg)
+
+![车载摄像头采集卡.png](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/139854589/02_352639176dece743527f341ca03e3b4e.png)
+
+产品简介
+
+*   ·基于 Xilinx 公司 ZYNQ Ultrascale+ MPSoC 系列 FPGA 芯片设计
+    
+*   ·支持多通道 GMSL1/2 摄像头输入，最多支持 16 通道，最高支持 8MP 摄像头
+    
+*   ·支持 PCIE 3.0 总线
+    
+*   ·支持 2 路 10/100/1000M 以太网接口
+    
+*   ·支持 H.264/H.265 编解码
+    
+*   ·支持可编程，可加入自定义算法
+    
+*   ·支持 V4L2 调用
+    
+*   ·支持低延时
+    
+*   ·支持外部触发信号输入和板卡同步信号输出
+    
+
+产品优势
+
+1.  ##### 1.支持多通道 GMSL1/2 摄像头输入
+    
+    最多支持 16 通道 1920\*1080@30 分辨率摄像头
+    
+    最高支持 8 通道 8MP 分辨率摄像头
+    
+2.  ##### 2.PCIE 3.0总线
+    
+    支持 PCIE 3.0 X8 X4 X1 模式，兼容 PCIE 2.0, 最高理论带宽8GB/s
+    
+3.  ##### 3.线缆长度支持
+    
+    GMSL1 模式下可达 40 米（3Gbps）
+    
+    GMSL2 模式下可达 20 米（6Gbps）
+    
+4.  ##### 4.车规连接器
+    
+    使用安费诺 Z Code FAKRA 车规同轴连接器
+    
+5.  ##### 5.同步采集
+    
+    支持外部触发信号输入，实现多板卡的同步触发，高电平触发，触发电平支持 3.3V-5V
+    
+6.  ##### 6.触发模式
+    
+    支持板卡同步信号输出，对多路摄像头进行同步触发（摄像头需支持触发功能）
+    
+7.  ##### 7.软件支持
+    
+    支持 Linux 操作系统，使用 V4L2 框架驱动
+    
+    支持 AXI 接口扩展外设，并支持外设使用 MSI 中断
+    
+    支持标准 IIC 和 UART 设备
+    
+    支持视频格式：YUV2、RGB888
+    
+    内存模式支持 USERPTR 及 MMAP
+    
+    支持摄像头配置及查询操作
+    
+    提供16路摄像头显示上位机 DEMO
+    
+
+关键参数
+
+##### 机械结构
+
+板卡尺寸
+
+标准全高尺寸
+
+视频接口
+
+安费诺 Z Code FAKRA 车规同轴连接器
+
+触发接口
+
+SMA 连接器
+
+##### 视频参数
+
+总线
+
+GMSL1/GMSL2
+
+POC供电
+
+单通道Max 1A@12V
+
+通道数
+
+Max 16通道摄像头输入
+
+输入分辨率
+
+1920\*1080@30fps  最多支持16通道
+
+4096×2160@25fps  最多支持8通道
+
+视频格式
+
+YUV2、RGB888
+
+##### 软件开发
+
+主机 操作系统
+
+已测试过 Linux 内核版本：5.4.0-91-generic
+
+软件支持
+
+支持Linux操作系统，使用V4L2框架驱动  
+支持 AXI 接口扩展外设，并支持外设使用MSI中断  
+支持标准IIC和UART设备  
+内存模式支持USERPTR 及MMAP  
+支持通过IIC总线对摄像头配置及查询操作  
+支持常用操作：  
+  VIDIOC\_DQBUF  
+  VIDIOC\_QBUF  
+ VIDIOC\_STREAMOFF  
+VIDIOC\_STREAMON  
+VIDIOC\_REQBUFS  
+ VIDIOC\_QUERYBUF  
+VIDIOC\_QUERYCAP  
+VIDIOC\_QUERYCTRL  
+VIDIOC\_G\_PARM  
+VIDIOC\_S\_PARM  
+VIDIOC\_G\_FMT  
+ VIDIOC\_S\_FMT,  
+  VIDIOC\_G\_CTRL  
+VIDIOC\_S\_CTRL
+
+##### 温度范围
+
+工作温度
+
+\-40℃ - +70℃
+
+工作湿度
+
+10% - 90%
+
+存储温度
+
+\-40℃ - +85℃
+
+存储湿度
+
+10% - 90%
+
+应用领域
+
+##### 无人驾驶
+
+用于无人驾驶系统摄像头视频采集传输
+
+![解决方案无人驾驶.jpg](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/139854589/03_900b38c0df3ec223d389b168ab04b5d4.jpeg)
+
+##### 慢速特种车及数据采集车
+
+用于数据采集车辆的摄像头视频采集传输
+
+![汽车采集车.jpg](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/139854589/04_17a45dbf5e3cebe7c9926a06dbfb3f84.jpeg)
+
+##### 车载仿真测试系统
+
+用于ADAS、自动驾驶测试系统摄像头接入后视频还原
+
+![汽车仿真测试.jpg](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/139854589/05_76a1fef783dfa0c3e5f90cb4ae67a858.jpeg)
+
+多平台支持
+
+##### INTEL CPU平台
+
+已测试Intel 12代 酷睿 i5-12400 处理器
+
+##### AMD CPU平台
+
+测试AMD 锐龙9 5900X 处理器
+
+##### NVDIA Jatson平台
+
+已测试Xavier、Orin架构
+
+**算能平台**
+
+算能BM1684X平台
+
+![_K4A9650.jpg](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/139854589/06_fce11547e12b15bab65861a5cdd2ad30.jpeg)

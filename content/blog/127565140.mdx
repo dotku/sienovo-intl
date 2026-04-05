@@ -1,0 +1,110 @@
+---
+title: "C6678/C6657+ZYNQ/K7/A7 FPGA+AD+北斗的软硬件设计方案"
+date: "2022-10-28"
+slug: "127565140"
+tags: ["#C6678", "#ZYNQ"]
+source: "https://blog.csdn.net/yeyuangen/article/details/127565140"
+---
+
+ 
+
+针对当前北斗导航定位接收机在高动态和复杂电磁环境下定位精度不高的问题，本文在了解卫星导航原理的基础上，介绍了一种基于DSP+FPGA 的嵌入式北斗导航接收机的设计，以满足在高动态和复杂电磁环境下无人机、单兵、机器人等高精度导航定位的要求。
+
+相较于TMS320C6678+ Kintex \-7组合，TMS320C6678+ZYNQ组合则拥有更多的硬件资源，最为明显的是增加了两个ARM Cortex-A9核心，并具有原生[Ethernet](http://www.elecfans.com/tags/ethernet/ "Ethernet")、[USB](http://www.hqchip.com/app/576 "USB")、[UART](http://www.elecfans.com/tags/uart/ "UART")、[CAN](http://www.elecfans.com/tags/can/ "CAN")、S[PI](http://www.elecfans.com/tags/pi/ "PI")、[I2C](http://www.elecfans.com/tags/i2c/ "I2C")等[接口](http://www.hqchip.com/app/1039 "接口")，并具有16对GTX、高达444K逻辑资源。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/127565140/01_b545d1e633eeebe8e03d0da68651013c.png)
+
+方案要点
+
+**(1) 图像数据采集**
+
+通过可编程逻辑器件（例如FPGA）进行高速、高精度的图像数据采集，且可灵活接入各种摄像头，如CameraLink、SDI、PAL等。
+
+**(2) 目标追踪分析**
+
+将采集得到的图像数据通过高速数据总线（例如SRIO、PCIe等）传输至数字信号处理平台（例如DSP），通过算法对图像数据进行位置分析。
+
+**(3) 目标图像监控**
+
+将处理后的图像通过CameraLink、HDMI等接口进行实时显示，并可对可视化界面进行控制。
+
+**开发案例主要包括：**
+
+DSP
+
+■ 基于裸机的开发案例
+
+■ 基于SYS/B[IOS](http://www.elecfans.com/tags/ios/ "IOS")的开发案例
+
+■ 基于IPC、OpenMP的多核开发案例
+
+■ SRIO、PCIe、EMIF16通信开发案例
+
+■ DSP算法开发案例
+
+ZYNQ
+
+■ 基于[Linux](http://www.elecfans.com/tags/linux/ "Linux")的开发案例
+
+■ 基于裸机的开发案例
+
+■ 基于[FreeRTOS](http://www.elecfans.com/tags/freertos/ "FreeRTOS")的开发案例
+
+■ 基于PS + PL的异构多核开发案例
+
+■ 基于OpenAMP的Linux + 裸机/FreeRTOS双核ARM通信开发案例
+
+■ 基于PL端的HDL、HLS开发案例
+
+■ [SDI](http://www.elecfans.com/tags/sdi/ "SDI")、PAL、CameraLink、[HDMI](http://www.hqchip.com/app/576 "HDMI")视频采集开发案例
+
+■ [AD](https://dfm.elecfans.com/uploads/software/hqdfm.zip?neilian "AD")9613、AD9361高速AD采集开发案例
+
+■ SFP+万兆 光 口开发案例
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/127565140/02_4748e3e5bce28f18b8cf57945e7b6595.png)
+
+**应用领域**
+
+■ 视频追踪
+
+■ 图像处理
+
+■ 软件无线电
+
+■ 雷达探测
+
+■ 光电探测
+
+■ 水下探测
+
+■ 定位导航
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/127565140/03_5ec333c1ec7b74f3257923cabf3ef6ad.jpeg)
+
+图 1 TMS320C6678处理器功能框图
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/127565140/04_2f18155d1f42ee39f9d656ee95d54d47.jpeg)
+
+图 2 Kintex-7特性
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/127565140/05_305ef15a1c323406dfe9b9b6bc7972e1.jpeg)
+
+图3 北斗
+
+### **技术服务**
+
+1.  协助底板设计和测试，减少硬件设计失误；
+2.  协助解决按照用户手册操作出现的异常问题；
+3.  协助产品故障判定；
+4.  协助正确编译与运行所提供的源代码；
+5.  协助进行产品二次开发；
+6.  提供长期的售后服务。
+
+### **增值服务**
+
+*   主板定制设计
+*   核心板定制设计
+*   嵌入式软件开发
+*   项目合作开发
+*   技术培训

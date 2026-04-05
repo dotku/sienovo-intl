@@ -1,0 +1,125 @@
+---
+title: "linux下获取系统时间的方法"
+date: "2011-09-14"
+slug: "6774784"
+tags: ["#linux", "#struct", "#语言", "#c"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6774784"
+---
+
+ 
+
+可以用 localtime 函数分别获取年月日时分秒的数值。
+
+　　Linux下获得系统时间的C语言的实现方法：
+
+　　1. 可以用 localtime 函数分别获取年月日时分秒的数值。
+
+　　#include //C语言的头文件
+
+　　#include //C语言的I/O
+
+　　void main ()
+
+　　{
+
+　　time\_t now; // 实例 化time\_t结构
+
+　　struct tm \*timenow; //实例化tm结构指针
+
+　　time(&now);
+
+　　//time函数读取现在的时间( 国际标准 时间非北京时间)，然后传值给now
+
+　　timenow = localtime(&now);
+
+　　//localtime函数把从time取得的时间now换算成你电脑中的时间(就是你设置的地区)
+
+　　printf(" Local time is %s ",asctime(timenow));
+
+　　//上句中asctime函数把时间转换成字符，通过printf()函数输出
+
+　　}
+
+　　注释：time\_t是一个在time.h中定义好的 结构体 。而tm结构体的原形如下：
+
+　　struct tm
+
+　　{
+
+　　int tm\_sec;//seconds 0-61
+
+　　int tm\_min;//minutes 1-59
+
+　　int tm\_hour;//hours 0-23
+
+　　int tm\_mday;//day of the month 1-31
+
+　　int tm\_mon;//months since jan 0-11
+
+　　int tm\_year;//years from 1900
+
+　　int tm\_wday;//days since Sunday, 0-6
+
+　　int tm\_yday;//days since Jan 1, 0-365
+
+　　int tm\_isdst;//Daylight Saving time indicator
+
+　　};
+
+　　2. 对某些需要较高精准度的需求，Linux提供了gettimeofday()。
+
+　　#include
+
+　　#include
+
+　　#include
+
+　　int main(int argc, char \*\*argv)
+
+　　{
+
+　　struct tim start,stop,diff;
+
+　　gettimeofday(&start,0);
+
+　　//做你要做的事...
+
+　　gettimeofday(&stop,0);
+
+　　tim\_subtract(&diff,&start,&stop);
+
+　　printf("总计用时:%d毫秒 ",diff.tv\_usec);
+
+　　}
+
+　　int tim\_subtract(struct tim \*result, struct tim \*x, struct tim \*y)
+
+　　{
+
+　　int nsec;
+
+　　if ( x->tv\_sec > y->tv\_sec )
+
+　　return -1;
+
+　　if ((x->tv\_sec==y->tv\_sec) && (x->tv\_usec>y->tv\_usec))
+
+　　return -1;
+
+　　result->tv\_sec = ( y->tv\_sec-x->tv\_sec );
+
+　　result->tv\_usec = ( y->tv\_usec-x->tv\_usec );
+
+　　if (result->tv\_usec<0)
+
+　　{
+
+　　result->tv\_sec--;
+
+　　result->tv\_usec+=1000000;
+
+　　}
+
+　　return 0;
+
+　　}

@@ -1,0 +1,286 @@
+---
+title: "unix环境高级编程编译方法 -apue最简单编译方法(第二版)"
+date: "2011-09-21"
+slug: "6796948"
+tags: ["#unix", "#编程", "#freebsd", "#solaris", "#linux", "#include"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6796948"
+---
+
+ 
+
+转自[http://www.cnblogs.com/gaojunling/articles/1237611.html](http://www.cnblogs.com/gaojunling/articles/1237611.html)
+
+/\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+\*第0种-最简单实用  
+\*  
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*/.  
+1.直接进入源码目录的lib目录  
+  cd lib  
+2.执行make命令  
+  make -f linux.mk  
+3.把生成的libapue.a与apue.h拷贝到你的源代码目录。如你的file目录下  
+4.使用gcc -o ls1 ls1.c  libapue.a来编译你的源代码  
+5.成功  
+  
+/\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+\*第一种  
+\*  
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*/.  
+  
+《UNIX环境高级编程》(这里使用的是第二版本的源码)每个历程中，都会有这样一行源码：  
+＃include "apue.h"  
+    这个头文件是作者把把每个例程中常用的标准头文件，一些常用的出错处理函数（err\_\*\*（）之类的函  
+  
+数）和一些常用的宏定义给整理在一个头文件中。这个可以省去在每个例程中录入较多的重复代码，这样可  
+  
+以减少每个例程的长度。给读者带来了不少麻烦。下面给出一种源代码的编译方法。  
+  
+  
+1、解压文件到apue.2e目录  
+2、修改相应平台的文件,我使用的是linux,所以修改Make.defines.linux  
+你修改的只需要这一行WKDIR=/home/your\_dir/apue2e\_src/apue.2e,改成自己的目录路径  
+3、cd到apue.2e目录执行make -f linux.mk，之后你会在lib目录下面找到libapue.a这个文件.  
+现在,你可以把它拷贝到你能寻找的地方,在编写例子的时候,你就可以  
+  
+4、拷贝apue2e\_src/apue.2e/include/apue.h和apue2e\_src/apue.2e/lib/libapue.a  
+  
+到你的源代码目录。  
+  
+5、使用gcc -o hello hello.c libapue.a来编译你的源代码  
+  
+/\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+\*第二种  
+\*  
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*/  
+  
+最近在看apue的第二版,刚才在Linux下把随书的源代码编译了一遍,还是稍微花了点时间,作为备忘把编译过  
+  
+程记录下来  
+随书的源代码可从www.apuebook.com上获得,下载后的解压得到名为apue.2e的目录,在我的系统中该目录的  
+  
+完整路径为/home/se/apue.2e  
+接着首先是要阅读/home/se/apue.2e/README,这是由apue第二版的作者Steve Rago写的如何编译随书代码的  
+  
+基本指导以及部分自本书第一版以来的更改,主要内容如下:  
+Some source changes needed to be made after the book went out for the first  
+printing.  I forgot to make corresponding changes in the source tree on the  
+system used to develop the book.  The changes are summarized below.  
+1\. lib/recvfd.c and sockets/recvfd.c - needed sys/uio.h on Mac OS X  
+2\. lib/sendfd.c and sockets/sendfd.c - needed sys/uio.h on Mac OS X  
+3\. stdio/buf.c - added code for Mac OS X  
+4\. threadctl/suspend.c - changed wait to waitloc to avoid symbol definition  
+ clash on Solaris  
+5\. include/apue.h - FreeBSD compiles work better if we rely on the default  
+ system settings.  Solaris needed a different XOPEN\_SOURCE definition  
+ and also a CMSG\_LEN definition.  
+To build the source, edit the Make.defines.\* file for your system and set  
+WKDIR to the pathname of the tree containing the source code.  Then just  
+run "make".  It should figure out the system type and build the source for  
+that platform automatically.  If you are running on a system other than  
+FreeBSD, Linux, Mac OS X, or Solaris, you'll need to modify the makefiles  
+to include the settings for your system.  Also, you'll probably need to  
+modify the source code to get it to build on a different operating system.  
+The example source was compiled and tested using FreeBSD 5.2.1, Linux 2.4.22,  
+Mac OS X 10.3, and Solaris 9.  
+For FAQs, updated source code, and the lost chapter, see http://www.apuebook.com.  
+Please direct questions, suggestions, and bug reports to sar@apuebook.com.  
+   
+基本内容就是你用的系统如果是FreeBSD,Linux,Mac OS X或是Solaris,那么你只要修改相应的  
+  
+Make.defines.\*文件(即如果你使用的是Linux,那么你需要修改 Make.defines.linux文件的内容),将其中的  
+  
+设置改为你自己系统的设置然后在apue.2e目录下运行make就ok了.所有的代码都在 FreeBSD 5.2.1,Linux   
+  
+2.4.22,Mac OS X 10.3,Solaris 9上编译通过.  
+   
+总的来说要编译成功是很简单的,但总会因为平台的不同会出现一些错误,这时你就要根据自己系统的配置情  
+  
+况来进行修改了  
+1.首先粗略的看了一下makefile的内容,make首先会执行脚本文件systype.sh,判断所用系统的类型,然后根  
+  
+据该类型选择对应的Make.defines文件.这里所要做的就是给systype.sh添加执行权限,chmod u+x   
+  
+systype.sh  
+2.因为我用的是Linux,所以先看Make.defines.linux,需要修改的地方是WKDIR=/home/sar/apue.2e,把WKDIR  
+  
+改为你自己的工作目录,在我这就是改为WKDIR=/home/se/apue.2e,这个路径在编译时寻找"apue.h"头文件时  
+  
+使用.  
+  
+3.然后我尝试性的运行了一次make,果然有问题,在进入std目录后报错了,说找不到nawk命令,nawk是new   
+  
+awk,而我的系统上只有awk,这时你有两种选择,可以在运行make之前执行alias nawk='awk',这样本质上是给  
+  
+awk取了个叫nawk的别名,实际上运行的还是awk,另一种方法就是修改WKDIR/std /linux.mk,把第10行和15行  
+  
+中的nawk都改为awk,至于什么是awk和nawk,以及它们的使用方法可以参考我之前收藏的一篇文章  
+  
+http://www.360doc.com/showWeb/0/0/308938.aspx  
+在这里,awk用来分别从makeconf.awk和makeopt.awk生成conf.c和options.c源文件,注意,在修改了linux.mk  
+  
+或是添加了alias之后要先把之前make失败时生成的conf.c和options.c删除,否则会报错  
+  
+4.进行了上述的修改后,回到WKDIR,运行make,ok,没有报错,编译成功了  
+  
+之后,如果你要利用apue的lib,编译运行自己的代码,必须在编译时加上-I/home/se/apue.2e/include选项,  
+  
+在连接时加上-L/home/se/apue.2e/lib source.c /home/se/apue.2e/lib/libapue.a选项,这样你就可以利  
+  
+用apue提供的想err\_sys等函数了^\_^  
+  
+  
+/\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+\*第三种  
+\*  
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*/  
+  
+  
+  
+  
+unix环境高级编程编译方法  
+  
+    这里要谈到的一个问题就是该书中的源代码编译的问题。此书中差不多每个历程中，都会有这样一行源  
+  
+码：  
+  
+    ＃include "ourhdr.h"  
+        
+    在第二版中改为：  
+    ＃include "apue.h"  
+  
+        这个头文件是作者把把每个例程中常用的标准头文件，一些常用的出错处理函数（err\_\*\*（）之类  
+  
+的函数）和一些常用的宏定义给整理在一个头文件中。这个可以省去在每个例程中录入较多的重复代码，这  
+  
+样可以减少每个例程的长度。但是，这样就给读者带来了不少麻烦。因为我们还要去搞明白如何把这个头文  
+  
+件编译，然后做成库文件，添加到我们的系统中。特别读于初学者，本来满怀信心的，结果在编译第一个程  
+  
+序的时候就出现了问题。我也没有搞明白如何把 "ourhdr.h"静态的编译到系统中。  
+  
+        不过，不明白如何使用"ourhdr.h"这个头文件，并不会影响我们学习APUE，也不会影响我们编译和  
+  
+运行每一个例程。其实，简单的想一下，如果一个 C程序要能顺利的编译和运行，除了我们要语法正确等方  
+  
+面外，最根本的是要保证我们程序中所调用的函数以及宏等等都要有完整的来源，也就是必须包含所有调用  
+  
+函数和宏所在的头文件。对于一个具体的源程序，如果我们正确的包含了头文件，那么剩下的就是程序本生  
+  
+语法方面应该注意的事项。  
+  
+        如何确定系统调用函数包含在那个头文件中呢？这在Unix/Linux系统下并非一件难事。Unix/Linux  
+  
+下命令man可以帮助我们找到。man命令不仅可以帮助我们查找一般命令的用法，同时提供不同层次的帮助诸  
+  
+如系统调用或者管理员级别的命令等等（譬如FreeBSD6.1中，man 1是用户专用手册，man 2是系统调用，  
+  
+man 3是库函数查询等等）。  
+  
+        下面我们就以APUE书中程序1-1 （实现ls命令部分功能）为例，来说明如何将书中的程序改编成全  
+  
+部使用标准头文件的程序。其中，操作系统用的是FreeBSD6.1，经过相应的修改可以在书中所说的几个Unix  
+  
+系统及Linux系统中运行，我也曾在Debian Linux下成功编译和运行该程序。书中1-1.c的原始代码如下：  
+  
+    #include <sys/types.h>  
+    #include <dirent.h>  
+    #include "ourhdr.h"  
+  
+    int  
+    main(int argc, char \*argv\[\])  
+    {  
+        DIR                \*dp;  
+        struct dirent    \*dirp;  
+  
+        if (argc != 2)  
+            err\_quit("usage: ls directory\_name");  
+  
+        if ((dp = opendir(argv\[1\])) == NULL)  
+            err\_sys("can't open %s", argv\[1\]);  
+        while ((dirp = readdir(dp)) != NULL)  
+            printf("%s"n", dirp->d\_name);  
+  
+        closedir(dp);  
+        exit(0);  
+    }  
+  
+        从书后面的附录中可以看到"ourhdr.h"的内容比较多，包含了比较多的常用头文件，一些宏定义和  
+  
+一些常用函数和出错函数的定义。其实，对于每一个具体的程序，我们只需要找到该程序中用到的头文件即  
+  
+可。  
+  
+        该1-1.c中所用到的系统函数调用有：opnedir()，readdir()，printf()，closedir()和exit()。  
+    其中，对于常用的函数prinft()和exit()，它们所在的头文件一般都知道，分别是<stdio.h>和<   
+  
+stdlib.h>。而对于opnedir ()，readdir()和closedir()，我们可以通过man opendir，man readdir，man   
+  
+closedir得到这三个关于目录操作的函数所在的头文件都是：<sys/types.h>和<dirent.h>。这两个头文件  
+  
+在源程序中也已经列出。  
+  
+        其次，1-1.c中还用到了作者自定义的两个函数：err\_quit()和err\_sys()。这两个函数主要使用来  
+  
+进行出错处理的。当然，使用这两个函数对错误信息的处理是比较完善的。但是，作为我们学习来讲，了解  
+  
+程序的核心功能是首要的，我们可以将出错处理简化一点，即当遇到错误的时候，我们只简单的使用  
+  
+printf()函数来提示一下有错误发生。当然，用printf()来进行出错处理并不是一种很合理的方法，而且往  
+  
+往我们看不到更关键的错误信息，但对于我们仅仅作为学习来用还是可以接受的。毕竟我们要理解的核心部  
+  
+分是程序的功能实现，出错处理在于其次。  
+  
+       通过以上的说明，我们可以将1-1.c修改为如下内容：  
+  
+    #include <sys/types.h>  
+    #include <dirent.h>  
+    #include <stdio.h>  
+    #include <stdlib.h>  
+    int main(int argc, char\* argv\[\])  
+    {  
+        DIR \*dp;  
+        struct dirent \*dirp;  
+         
+        if(argc != 2)  
+        {  
+            printf("You need input the directory name."n");  
+            exit(1);    
+        }  
+         
+        if((dp = opendir(argv\[1\])) == NULL)  
+        {  
+            printf("cannot open %s"n", argv\[1\]);  
+            exit(1);     
+        }  
+  
+        while ((dirp = readdir(dp)) != NULL)  
+            printf("%s"n", dirp->d\_name);  
+  
+  
+        closedir(dp);  
+  
+        exit(0);  
+    }  
+  
+        这样修改后的程序已经与作者的头文件"ourhdr.h"没有关系，可以单独的进行编译。我使用的是  
+  
+root用户，执行命令：  
+  
+    # gcc 1-1.c  //生成目标文件a.out  
+    或者  
+    ＃ gcc -o 1-1 1-1.c  //生成目标文件1-1  
+  
+        没有任何错误和警告，说明编译成功。这时我们执行生成的目标文件：  
+  
+    ＃ ./a.out /home  
+    或者  
+    ＃ ./1-1 /home  
+  
+        则会列出/home路径下的所有文件，包括目录(.)和(..)。  
+  
+        通过这样的方法，基本上我们可以将该书中所有的例程修改成不包含"ourhdr.h"的程序。这样，我  
+  
+们就可以单独的编译每一个例程，而不用顾及作者所给的杂凑的头文件。同时这种比较笨的方法，反而有利  
+  
+于帮助我们了解不同系统调用所对应的头文件，对于学习来说，这应该是一件好事。

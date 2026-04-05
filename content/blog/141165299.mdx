@@ -1,0 +1,45 @@
+---
+title: "物联网HMI/网关搭载ARM+CODESYS实现软PLC+HMI一体化"
+date: "2024-08-13"
+slug: "141165299"
+tags: ["#物联网", "#codesys"]
+source: "https://blog.csdn.net/yeyuangen/article/details/141165299"
+---
+
+ 
+
+物联网HMI/网关搭载CODESYS实现软PLC+HMI一体化
+
+1.  硬件：ARM平台，支持STM32/全志T3/RK3568/树莓派等平台
+    
+2.  软件：CODESYS V3.5、JMobile Studio
+    
+
+CODESYS是一款功能强大的PLC软件编程工具，它支持IEC61131-3标准IL、ST、FBD、LD、CFC、SFC六种PLC编程语言，用户可以在同一项目中选择不同的语言编辑子程序，功能模块等。通过在硬件平台上移植Runtime，可以将任何嵌入式设备或基于PC的设备转变为符合IEC 61131-3标准的工业控制器，也由此，越来越多的工程师偏向于CODESYS应用。
+
+物联网HMI/网关是一款高性能数据采集和监控设备，支持**200+通讯协议**，包括常见的**OPC UA**、**Modbus TCP**和**MQTT**协议，以及**西门子**、**三菱**和**欧姆龙**等各大主流PLC协议；支持**趋势**、**警报**、**配方**、**报表**和**审计追踪**等功能，快速实现设备数据的采集和分析。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141165299/01_58acc3baf55690681dd6abd1ef9aeabc.png)
+
+此外，信迈物联网HMI/网关已**内置CODESYS PLC Runtime**，激活后就能作为软PLC+HMI一体机使用，支持扩展IO模块和通信模块，可实现一些实时控制功能。
+
+**1\. 安装HMI Codesys Package**
+
+（1）HMI CODESYS Package允许CODESYS编程软件对HMI内部PLC进行编程；
+
+（2）HMI CODESYS Package在JMobile Studio安装目录下，具体位置为“\\CODESYS\\V3”；
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141165299/02_628c95b2a19a655c5f5eb1d316133ad4.png)
+
+（3）文件安装：
+
+*   方法一：双击“.package”文件，无论是完整安装还是经典安装都能安装CODESYS V3 PLC Runtime功能所需的文件。
+    
+*   方法二：使用CODESYS编程软件中的“Package Manager”工具可以确认已经安装的“.package”文件或者安装新的“.package”文件，点击“install”按钮，选择合适的文件路径，点击“open”即可。
+    
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141165299/03_7be54a140b8f0b4361d2fd4fc5f607e7.png)
+
+**2\. 安装HMI Runtime**
+
+HMI出厂时没有HMI Runtime，首次启动会显示“Runtime加载器”。可以通过以太网（需要有效的IP地址）和USB（创建更新包，选择“Runtime加载器”中的启动程序）安装Runtime。

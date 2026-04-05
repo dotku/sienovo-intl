@@ -1,0 +1,40 @@
+---
+title: "FILE *p 是什么类型的指针呢"
+date: "2011-09-28"
+slug: "6830757"
+tags: ["#file", "#stream", "#character", "#struct", "#token"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6830757"
+---
+
+ 
+
+1）定义
+
+FILE是一个在stdio.h中预先定义的一个文件类型。
+
+要先声名一个文件指针变量然后用文件函数操作。  
+在书上看到过一个FILE类型  
+typedef struct{  
+short level;/\*缓冲区“满/空”的程度\*/  
+unsigned flags;/\*文件状态标志字\*/  
+char fd;  
+unsigned char hold;  
+short bsize;/\*缓冲区大小\*/  
+unsigned char \*buffer;/\*数据缓冲区的位置\*/  
+unsigned char \*curp;/\*当前读写位置指针\*/  
+unsigned istemp;  
+short token;  
+
+}FILE;
+
+FILE是一个结构体 指针 ，里面包括文件名啊，文件缓冲区啊什么的。  
+
+2）初始化
+
+FILE \*fpt = fopen("a.txt"," r ");  
+
+3） 程序 例
+
+```cpp
+　　#include <stdio.h>　　int main(void)　　{　　FILE *stream;　　/* open a file for reading */　　stream = fopen("DUMMY.FIL", "r");　　/* read a character from the file */　　fgetc(stream);　　/* check for EOF */　　if (feof(stream))　　printf("We have reached end-of-file\n");　　/* close the file */　　fclose(stream);　　return 0;　　}
+```

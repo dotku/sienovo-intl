@@ -1,0 +1,98 @@
+---
+title: "PROFINET转EtherCAT网关方案设计"
+date: "2022-11-22"
+slug: "127985044"
+tags: ["#profinet", "#ethercat", "#网关"]
+source: "https://blog.csdn.net/yeyuangen/article/details/127985044"
+---
+
+ 
+
+ 1 摘要  
+PLC控制器和远程IO通过 通讯 的方式在目前的生产现场中越来越频繁；有些现场是控制器和远程IO站是统一的通讯协议，而有些现场会出现远程IO站不用协议的情况，主要是来自不同厂家的产品受限。  
+1.1 解决方案  
+河南某现场控制器采用西门子1500系列PLC，远程IO站的模块均来自汇川AM600中型系列PLC；所有的IO模块均挂在AM600-RTU-ECAT的耦合器上；汇川的耦合器模块在正产工作时支持 EtherCAT协议 ，作为EtherCAT从站，监控系统西门子S7-1500系列PLC支持PROFINET协议。协议上不一致无法直接通讯实现数据交互。需要通过第三方的协议转换模块来实现不同协议之间的数据交换。在本案例中使用自研 EtherCAT Master to PROFINET Slave网关模块ET300，实现PLC和远程IO数据的整体交互。  
+1.2 关键词  
+EtherCAT Master to PROFINET Slave S7-1500 汇川EtherCAT耦合器 ET300  
+2 应用 项目 配置示例  
+2.1 自动化任务 概述  
+下图提供自动化任务的概述，ET300网关模块连接西门子S7-1500 PLC(PROFINET)和汇川EtherCAT耦合器通讯。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/127985044/01_8d58a34d70c85a33aeb5de4e48188f96.png)
+
+   
+图2.1 自动化任务概述  
+2.2 使用环境  
+本文例子基于以下使用环境创建
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/127985044/02_8db8a63f59620a103e8ab6cc21db9371.png)
+
+ EtherCAT总线   
+基于XMC4800 XMC4300 亚信AX58100  LA N9252的EtherCAT总线远程IO、步进伺服开发板，支持FOE。  
+支持Io定制，方便快速入门，开发产品。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/127985044/03_1bdca6592c4ebb60587d039bdc9f5d3f.png)
+
+### 特点
+
+*   在两个网络之间快速复制循环I/O数据(10-15 ms)
+*   经过所有PLC制造商验证和测试
+*   每个方向支持最大512字节的输入和输出数据
+*   通过使用来自其他所连设备的数据，能够建立web页面，显示和控制工厂层过程
+*   通过包含的Anybus OPC服务器，可以快速、动态地传输现场总线数据，到基于微软Windows的SCADA/HMI/企业级系统
+*   可选控制和状态信息添加到I/O数据用于诊断目的
+*   坚固的独立外壳，可用于严苛工业环境
+
+###  技术规格说明
+
+**尺寸(长•宽•高)**  
+
+114 x 44 x 127mm或4,49 x 1,73 x 5,00"
+
+**重量**
+
+400g或0,880 lbs
+
+**工作温度**
+
+\-25至+65 °C或-13至+149 °F 
+
+**储藏温度**
+
+\-40至+85 °C或-40至+185 °F 
+
+**电源**
+
+24 VDC +/- 20%通过2孔5.08 mm菲尼克斯可插入式旋转连接件  
+
+**电流消耗**
+
+最大400mA (标准200mA)
+
+**外壳材料** 
+
+铝合金和塑料
+
+**安装方式和位置**
+
+垂直/水平\*
+
+**电气隔离**
+
+是，总线/以太网侧都支持
+
+**机械等级**
+
+IP20，NEMA rating 1
+
+**安装**
+
+DIN导轨安装 (EN 50022标准)
+
+**I/O配置**
+
+通过USB端口，使用Anybus Configuration Manager软件
+
+**认证**
+
+CE, CULUS, ATEX/Haz.Loc, [RoHS](http://www.hms-networks.com/about/quality-environment "RoHS")

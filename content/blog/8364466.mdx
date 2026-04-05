@@ -1,0 +1,56 @@
+---
+title: "互斥锁Mutex与信号量Semaphore的区别"
+date: "2012-12-21"
+slug: "8364466"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/8364466"
+---
+
+ 
+
+多线程编程中，常常会遇到这两个概念：Mutex和Semaphore，两者之间区别如下:
+
+ 
+
+有人做过如下类比：
+
+Mutex是一把钥匙，一个人拿了就可进入一个房间，出来的时候把钥匙交给队列的第一个，一般的用法是用于串行化对临界区代码的访问，保证这段代码不会被并行的运行。
+
+Semaphore是一件可以容纳N人的房间，如果人不满就可以进去，如果人满了，就要等待有人出来。
+
+对于N=1的情况，称为binary semaphore，一般的用法是，用于限制对于某一[资源](http://www.haogongju.net/tag/%E8%B5%84%E6%BA%90 "资源")的同时访问。在有的[系统](http://www.haogongju.net/tag/%E7%B3%BB%E7%BB%9F "系统")中Binary semaphore与Mutex是没有差异的
+
+ 
+
+信号量可以设置计数器，而互斥锁只有0和1的关系。
+
+Semaphore semaphore = new Semaphore(1);表示同时访问资源的许可数量只有一个。这个语义可以实现一个Mutex互斥锁：
+
+  
+class semaphore
+
+{
+
+public:
+
+    Semaphore(int count, int max\_count);
+
+    ~Semaphore();
+
+    void Unsignal();//等待操作P,count--，如果count==0则等待
+
+    void Signal();//释放操作V，count++
+
+}
+
+classmutex
+
+{
+
+public:
+
+    waitMutex();//阻塞线程，直到其它线程释放互斥锁
+
+    releaseMutex();//释放线程
+
+}

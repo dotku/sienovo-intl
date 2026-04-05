@@ -1,0 +1,845 @@
+---
+title: "基于RK3568高性价比全国产EMS储能解决方案（二）设计方案"
+date: "2023-10-29"
+slug: "134104001"
+tags: ["#EMS", "#储能方案"]
+source: "https://blog.csdn.net/yeyuangen/article/details/134104001"
+---
+
+ 
+
+**目录**
+
+[版 本 修 订 记 录](#_Toc147746227)
+
+[1. 产品介绍](#_Toc147746228)
+
+[1.1. 什么是](#_Toc147746229)XM3568-EP
+
+[1.2. 产品特点](#_Toc147746230)
+
+[1.3. 外壳尺寸](#_Toc147746231)
+
+[1.4. 外壳外观](#_Toc147746232)
+
+[1.5. 规格参数](#_Toc147746233)
+
+[2. 设备使用介绍](#_Toc147746234)
+
+[2.1. 下载需要使用到的驱动和调试工具](#_Toc147746235)
+
+[2.2. 启动网关](#_Toc147746236)
+
+[2.3. DEBUG串口的使用方法](#_Toc147746237)
+
+[2.4. LED指示灯说明](#_Toc147746238)
+
+[3. Linux系统的使用](#_Toc147746239)
+
+[3.1. 发行版类型和内核版本](#_Toc147746240)
+
+[3.2. 系统预装软件](#_Toc147746241)
+
+[3.3. 系统默认登录账号和密码](#_Toc147746242)
+
+[3.4. 网络连接配置与功能测试](#_Toc147746243)
+
+[3.5. HDMI终端](#_Toc147746244)
+
+[3.6. (DI)开关量输入](#_Toc147746245)
+
+[3.7. (DO)开关量输入](#_Toc147746246)
+
+[3.8. (RS485)串口调试](#_Toc147746247)
+
+[3.9. (AI)模拟量采集(0.3 - 10V电压)](#_Toc147746248)
+
+[3.10. CAN接口](#_Toc147746249)
+
+[3.11. 设备唯一标识Serial ID](#_Toc147746250)
+
+[3.12. 增加TF扩展存储卡或SATA硬盘](#_Toc147746251)
+
+[4. 注意事项](#_Toc147746252)
+
+1.  **产品介绍**
+    1.  
+
+XM3568-EP是集成了串口、CAN接口、开关量输入、开关量输出、AI电压采集等多种接口的边缘计算网关（以下简称：网关），也可额外扩展4G模块，SATA硬盘等插件；系统基于arm64架构；具备高可靠性的工业级处理核心；具备高处理能力的4核并发处理性能；运行 Linux 操作系统。
+
+1.  1.  产品特点
+
+性能强悍
+
+网关拥有4个1.5GHz主频的高性能核心，并内置linux 标准操作系统，不仅可以用于数据采集，也可当成常规服务器使用，根据用户自行需要，自由下载安装Mysql、Java、Chrome...等应用软件和 编程语言 SDK。
+
+耐高低温和电磁兼容
+
+网关通过GB/T2423、GB/T9254、GB/T17626等国家标准，满足各项高低温、电磁骚扰和磁场抗扰度试验等级，能够稳定运行在-20℃ ~ +70℃的环境温度和各种复杂的电磁环境下，可以适用于高速、户外园区、工业机房等各种复杂的应用场景。
+
+接口丰富
+
+网关集成了RS485、开关量接口、开关量输出等多个采集和控制接口，丰富的接口使得单个网关即可满足于各种工业设备的接入，无需外扩其他的采集模块。
+
+4G通讯
+
+网关内置4G通讯模块，默认使用DHCP功能，无需配置工具，网关上电后自动联网，方便快捷，上手快速，省去大量的人力成本。
+
+视频输出
+
+网关拥有HDMI高清多媒体接口，并提供多种常用视频分辨率，默认分辨率1920\*1080P@60Hz，插入屏幕即可显示高清画面，并自动适配鼠标、键盘、触摸屏，使用户拥有与桌面PC相同的体验。
+
+1.  1.  外壳尺寸
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/134104001/01_fcc6cfba196107a68f5375928418886d.png)
+
+1.  1.  外壳外观
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/134104001/02_bfaed7e13f4501b5e42e0f34f972d58e.png)
+
+1.  1.  规格参数
+
+主板规格
+
+外观尺寸
+
+439mm(L)X300.2mm(W)X43.5mm(H)
+
+CPU
+
+四核64位1.5GHz Cortex™-A53处理器
+
+GPU
+
+Mail G31 MP2 (OpenGL ES 3.2/2.0/1.0)
+
+内存
+
+2GB (DDR3 / LPDDR4)
+
+板载存储
+
+8GB EMMC
+
+以太网\*2
+
+ETH1(10/100M)、ETH2(10/100/1000M自适应)
+
+电源
+
+额定输入 AC100-240V，1.2A，50/60Hz
+
+         DC120-340V，1.2A( L(+)  N(-) )
+
+USB\*2
+
+支持2路USB2.0
+
+TYPE-C
+
+DEBUG串口
+
+视频输出
+
+HDMI2.0 (1920x1080p@60Hz/1280x720p@60Hz)
+
+实时时钟
+
+1路RTC(断电下能长期记录实时时间)
+
+MicroSD(TF)
+
+支持插入 <= 512GB 的MicroSD(TF)卡
+
+采集接口规格(插线端子)
+
+CAN
+
+4路CAN(单路最高速率支持500k bps)
+
+串口
+
+8路RS485
+
+开关量输入
+
+4路DI
+
+模拟量输入
+
+4路AI (电压检测区间0.3 - 10V)
+
+开关量输出
+
+4路DO(最高通过 AC 3A/250V，DC 3A/30V)
+
+12V直流电源输出
+
+2路12V对外输出，单路最高500mA，6W
+
+选配扩展插件
+
+电源
+
+标配1路电源模块，有2路电源版本选配  
+单路输出(Single output): 12V-4.2A
+
+4G通讯
+
+4G LTE Cat.1 无线通信模块(联网、短信、拨号)
+
+SATA硬盘
+
+支持512GB/1TB的2.5寸SATA硬盘
+
+所有信号线均具有±15KV，10/700us波形浪涌6KV，8/20us波形浪涌2KV的ESD；
+
+模块化板架构，可1U安装或配电箱安装；
+
+网关稳定运行的环境温度应处于-20 ~ +70℃
+
+1.  **设备使用介绍**
+    1.  下载需要使用到的驱动和调试工具
+2.  1.  启动网关
+3.  网关默认已经烧录ubuntu18.04 LTS 操作系统
+4.  网关有HDMI高清多媒体接口，出厂根据客户定制需求已适配了1920x1080p@60Hz或者1280x720p@60Hz的分辨率，根据实际定制信息通过HDMI高清多媒体连接线将网关连接到显示器。
+5.  USB可以接入触摸屏、USB鼠标或键盘，用于控制网关
+6.  网关有以太网口，可以插入网线进行远程控制
+7.  网关有TYPE-C数据接口，可以连接电脑端后通过串口工具进行远程控制，具体操作方式请查看[DEBUG串口的使用方法](#_DEBUG%E4%B8%B2%E5%8F%A3%E7%9A%84%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95)一节
+8.  使用标配的AC-220V电源线接入网关即可开机
+    1.  DEBUG串口的使用方法
+9.  安装DEBUG串口驱动
+10.  使用TYPE-C转USB数据线，连接网关的TYPE-C数据接口到电脑端的USB数据接口
+11.  打开MobaXterm客户端，点击Session >> Seiral ，选择相应显示的串口，波特率设置为115200，选择OK保存
+
+1.  双击左边sessions会话栏对应session，打开会话窗口
+
+1.  1.  LED指示灯说明
+
+****名称****
+
+****功能****
+
+POWER
+
+电源指示灯
+
+4G
+
+4G运行指示灯
+
+SYS
+
+系统运行指示灯
+
+COM
+
+串口数据指示灯(RX/蓝、TX/绿)
+
+DI
+
+开关量输入触发指示灯
+
+DO
+
+开关量输出继电器闭合指示灯
+
+1.  **Linux系统的使用**
+    1.  发行版类型和内核版本
+
+发行版类型：Ubuntu 18.04 LTS
+
+内核版本：Linux 4.9.170 arm64
+
+gcc编译器：aarch64-linux-gnu-gcc 7.3.0
+
+1.  1.  系统预装软件
+2.  apt 数据源
+
+apt install -y vim
+
+apt install -y sudo
+
+apt install -y libgdiplus libc6-dev     # GDI图形处理库
+
+apt install -y unzip
+
+\# 安装桌面环境和浏览器
+
+apt install -y chromium-browser     #297MB
+
+apt install -y xserver-xorg         #40.6MB
+
+apt install -y xinit                #58.4KB
+
+apt install -y xterm                #2188KB
+
+apt install -y matchbox-window-manager      #584KB
+
+\# 安装中文环境
+
+apt install \-y xfonts-intl-chinese
+
+apt install \-y ttf-wqy-zenhei  #文泉驿-正黑  
+
+apt install \-y xfonts-wqy #文泉驿-点阵宋体\*
+
+1.  pip数据源
+
+pip install pyserial
+
+pip install pymysql
+
+pip install pexpect
+
+pip install sanic
+
+1.  1.  系统默认登录账号和密码
+
+****账号****
+
+****密码****
+
+****权限等级****
+
+root
+
+123456
+
+超级管理员
+
+system
+
+system
+
+备用账号
+
+1.  1.  网络连接配置与功能测试
+
+****以太网****
+
+****默认IP****
+
+****说明****
+
+eth0
+
+DHCP
+
+4G通讯模块(需选配)
+
+eth1
+
+192.168.1.177
+
+ETH百兆以太网
+
+eth2
+
+192.168.2.177
+
+ETH千兆以太网
+
+目前常见的 Linux 发行版使用的网络管理服务有数种，网关默认使用最为常规的systemd\-networkd.service网络管理服务，配置文件的目录及文本内容如下所示。
+
+vi /etc/systemd/network/eth1.network
+
+### 以下是文本内容
+
+\[Match\]
+
+Name\=eth1
+
+\[Network\]
+
+Address\=192.168.1.177/24
+
+DNS\=114.114.114.114
+
+\[Gateway\]
+
+Gateway\=192.168.1.1
+
+Destination\=192.168.1.0/24
+
+### 文本内容结束
+
+vi /etc/systemd/network/eth2.network
+
+### 以下是文本内容
+
+\[Match\]
+
+Name\=eth2
+
+\[Network\]
+
+Address\=192.168.2.177/24
+
+DNS\=114.114.114.114
+
+\[Gateway\]
+
+Gateway\=192.168.2.1
+
+Destination\=192.168.2.0/24
+
+### 文本内容结束
+
+当配置好对应需要的IP之后，在文本内使用:wq保存退出文件，之后只需重启网关或者使用systemctl restart systemd-networkd命令重启网络管理服务，设置IP即可生效。配置文件更多配置参数可参考[http://www.jinbuguo.com/systemd/systemd.network.html#](http://www.jinbuguo.com/systemd/systemd.network.html "http://www.jinbuguo.com/systemd/systemd.network.html#")
+
+1.  1.  HDMI终端
+
+网关目前支持1920x1080p@60Hz或者1280x720p@60Hz的分辨率，通过修改配置文件/boot/uEnv.txt来调整分辨率。
+
+vi /boot/uEnv.txt
+
+### 以下是文本内容
+
+screen0\_output\_mode\=10
+
+dev0\_output\_mode\=10
+
+fb0\_width\=1920
+
+fb0\_height\=1080
+
+### 文本内容结束，修改分辨率按照文本内容复制粘贴替换 
+
+\### 修改分辨率为1280\*720@60Hz
+
+screen0\_output\_mode\=5
+
+dev0\_output\_mode\=5
+
+fb0\_width\=1280
+
+fb0\_height\=720
+
+\### 修改分辨率为1920\*1080@60Hz
+
+screen0\_output\_mode\=10
+
+dev0\_output\_mode\=10
+
+fb0\_width\=1920
+
+fb0\_height\=1080
+
+\### 修改分辨率为800\*1280@60Hz
+
+screen0\_output\_mode\=69
+
+dev0\_output\_mode\=69
+
+fb0\_width\=800
+
+fb0\_height\=1280
+
+备注：若需要将800\*1280@60Hz分辨率横屏显示，需要将/etc/X11/ 目录下的xorg.conf.bak 和xorg.conf.d/40-libinput.conf.bak重命名为xorg.conf和xorg.conf.d/40-libinput.conf。
+
+网关默认使用/opt/scripts/boot/view.sh来配置开机显示程序画面，如需修改默认开机显示程序及端口，可自行修改该文件。
+
+vi /opt/scripts/boot/view.sh
+
+### 以下是文本内容
+
+#! /bin/bash
+
+export DISPLAY\=:0
+
+nohup xinit matchbox-window-manager \> /dev/null 2>&1 &
+
+\# 演示版web 应用, 占用了80端口, 可自行注释或删除行
+
+nohup python /opt/scripts/boot/web.py \> /dev/null 2>&1 &
+
+\# 打开chromium浏览器,访问网址
+
+nohup chromium-browser --no-sandbox --kiosk --app\="http://127.0.0.1:80" \> /dev/null 2>&1 &
+
+sleep 5s    
+
+\# xset 需要等桌面服务启动后才能设置
+
+\# xset s 10 600
+
+\# 10秒后进入屏保
+
+xset s off \# 关闭屏保
+
+\# xset dpms 0 0 0 # 设置电源管理 standby, suspend, off
+
+xset -dpms  \# 关闭电源管理 +dpms 开启电源管理
+
+### 文本内容结束
+
+配置文件调用chromium 浏览器打开http://127.0.0.1:80网址，显示页面如下：
+
+1.  1.  (DI)开关量输入
+
+网关共有4个DI接口，对应rootfs空间下的设备节点/dev/di，并且仅支持只读模式。简单测试指令可以使用cat 指令直接读取/dev/di 设备节点。
+
+cat /dev/di
+
+### 以下是返回文本
+
+0x0ff1
+
+### 以下是解析说明
+
+\# 0x0ff1 即换算成2个字节，即16位bit 0000 ffff ffff 0001
+
+\# 高12位bit保留
+
+\# 以此解析（高位在前），此时bit0置0，网关面板应是DI1与地短接
+
+以下为代码调用，仅以C语言作为示例
+
+#include <stdio.h>
+
+#include <stdlib.h>
+
+#include <fcntl.h>
+
+#include <unistd.h>
+
+#include <string.h>
+
+void main(void){
+
+    int fd \= 0;
+
+    unsigned char hex\_buf\[2\] \= {0, 0};
+
+    fd \= open("/dev/di", O\_RDONLY);
+
+    if (fd < 0)
+
+    {
+
+        printf("error\\n");
+
+        return;
+
+    }
+
+    // 对于DI，最多读取2个字节，高位在前
+
+    read(fd, hex\_buf, 2);
+
+    printf("0x%02X%02X\\r\\n", hex\_buf\[0\], hex\_buf\[1\]);
+
+}
+
+1.  1.  (DO)开关量输入
+
+网关共有4个DO接口，对应rootfs空间下的设备节点/dev/do设备节点，支持读写模式。简单测试指令可以使用echo 及cat 指令直接读写设备节点
+
+echo 0x01 \> /dev/do
+
+### 以下是解析说明
+
+\# 1 继电器闭合 0 继电器断开
+
+\# 0x01 = 0000 0001
+
+\# 继电器DO1 闭合 其余继电器断开
+
+以下为代码调用，仅以C语言作为示例
+
+#include <stdio.h>
+
+#include <stdlib.h>
+
+#include <fcntl.h>
+
+#include <unistd.h>
+
+#include <string.h>
+
+void main(void){
+
+    int fd \= 0;
+
+    unsigned char hex\_buf\[1\] \= {0};
+
+    fd \= open("/dev/do", O\_RDWR);
+
+    if (fd < 0)
+
+    {
+
+        printf("error /dev/do\\n");
+
+        return;
+
+    }
+
+    // 对于DO，最多读写1个字节，高位在前
+
+    read(fd, hex\_buf, 1);
+
+    printf("0x%02X\\r\\n", hex\_buf\[0\]);
+
+    hex\_buf\[0\] \= 1;
+
+    write(fd, hex\_buf, 1);
+
+}
+
+1.  1.  (RS485)串口调试
+
+网关共有8路RS485串口。8路串口最高可支持115200波特率。
+
+网关面板与设备节点对应关系
+
+****面板标识****
+
+****设备节点****
+
+A1B1
+
+/dev/com1
+
+A2B2
+
+/dev/com2
+
+A3B3
+
+/dev/com3
+
+A4B4
+
+/dev/com4
+
+A5B5
+
+/dev/com5
+
+A6B6
+
+/dev/com6
+
+A7B7
+
+/dev/com7
+
+A8B8
+
+/dev/com8
+
+1.  1.  (AI)模拟量采集(0.3 - 10V电压)
+
+网关共有4个AI接口，对应rootfs空间下的设备节点/dev/adc设备节点，支持串口读写模式。
+
+(波特率: 9600 数据位: 8 校验位: None  停止位: 1)
+
+串口每隔约300毫秒接收一段AI接口电压数据，字节内容及数据解析如下：
+
+01 03 00 00 00 00 12 cf 00 00 0d 0a
+
+// 串口每隔300毫秒接收12个字节数据
+
+// 以 0x01 0x03开头，以0x0d 0x0a (\\r\\n)结尾
+
+// 常规编程语言可以使用readline()等函数按行接收数据，以保证数据不粘包
+
+// 电压数据单位mV
+
+// 中间8个字节从左到右每2个字节代表1个AI接口电压值
+
+如以上接收内容转化为实际电压值
+
+AI1: 0x0000
+
+AI2: 0x0000
+
+AI3: 0x12cf = 4815 mV
+
+AI4: 0x0000
+
+1.  1.  CAN接口
+
+网关共有4路CAN接口，CAN接口支持5k、10k、20k、25k、40k、50k、80k、100k、125k、200k、250k、400k、500k等波特率，支持远程帧和扩展帧，暂不支持过滤器。
+
+#include <stdio.h>
+
+#include <string.h>
+
+#include <unistd.h>
+
+#include <net/if.h>
+
+#include <sys/ioctl.h>
+
+#include <sys/socket.h>
+
+#include <linux/can.h>
+
+#include <linux/can/raw.h>
+
+#include <stdint.h>
+
+uint8\_t BBC(uint8\_t \*data, uint16\_t len)
+
+{
+
+    uint8\_t value \= 0;
+
+uint16\_t i;
+
+for (i \= 0; i < len; i++)
+
+{
+
+value ^= data\[i\];
+
+}
+
+return value;
+
+}
+
+int main(void)
+
+{
+
+    \_\_u8 buf\[8\] \= {0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38};
+
+    int sock\_fd, i, j;
+
+    unsigned long nbytes, len;
+
+    struct sockaddr\_can addr;
+
+    struct ifreq ifr;
+
+    struct can\_frame frame;
+
+    /\*建立套接字，设置为原始套接字，原始CAN协议 \*/
+
+    sock\_fd \= socket(PF\_CAN, SOCK\_RAW, CAN\_RAW);
+
+    /\*以下是对CAN接口进行初始化，如设置CAN接口名，即当我们用ifconfig命令时显示的名字 \*/
+
+    strcpy((char \*)(ifr.ifr\_name), "can1");
+
+    ioctl(sock\_fd, SIOCGIFINDEX, &ifr);
+
+    printf("can0 can\_ifindex = %x\\n", ifr.ifr\_ifindex);
+
+    addr.can\_family \= AF\_CAN;
+
+    addr.can\_ifindex \= ifr.ifr\_ifindex;
+
+    /\*将刚生成的套接字与CAN套接字地址进行绑定\*/
+
+    bind(sock\_fd, (struct sockaddr\*)&addr, sizeof(addr));
+
+    /\*设置CAN帧的ID号，可区分为标准帧和扩展帧的ID号\*/
+
+    frame.can\_id \= 0x1122;
+
+    // strcpy((char \*)frame.data,"1234567");
+
+    // frame.can\_dlc = strlen(frame.data);
+
+    memcpy(frame.data, buf, 8);
+
+    frame.can\_dlc \= 8;
+
+    printf("Send a CAN frame from interface %s\\n", ifr.ifr\_name);
+
+    /\*开始发送数据\*/
+
+    nbytes \= sendto(sock\_fd, &frame, sizeof(struct can\_frame), 0, (struct sockaddr\*)&addr, sizeof(addr));
+
+    printf("nbytes %ld!\\n", nbytes);
+
+    i \= 0;
+
+    while (i < 10)
+
+    {
+
+        nbytes \= read(sock\_fd, &frame, sizeof(struct can\_frame));
+
+        printf("nbytes %ld!\\n", nbytes);
+
+        if (nbytes < 0)
+
+        {
+
+            printf("can raw socket read");
+
+            close(sock\_fd);
+
+            return 1;
+
+        }
+
+        else
+
+        {
+
+            /\*将接收到的CAN数据打印出来，其中ID为标识符，DLC为CAN的字节数，DATA为1帧报文的字节数\*/
+
+            printf("CAN frame:\\n ID = %x\\n DLC = %x\\n DATA = %s\\n",frame.can\_id,frame.can\_dlc,frame.data);
+
+            for(j\=0; j<frame.can\_dlc; j++)
+
+                printf("%02x ", frame.data\[j\]);
+
+            printf("\\n");
+
+        }
+
+        i++;
+
+    }
+
+    close(sock\_fd);
+
+return 0;
+
+}
+
+1.  1.  设备唯一标识Serial ID
+
+使用cat 指令读取设备唯一标识
+
+cat /proc/cpuinfo |grep "Serial"|awk {'print $3'}
+
+1.  1.  增加TF扩展存储卡或SATA硬盘
+
+扩展TF卡和SATA硬盘操作方式一致，故以TF卡为例。设备TF卡扩展插槽支持安装TF(MicroSD)卡增加扩展存储，理论扩展存储无上限，实测过安装容量512G的TF卡可以稳定运行(SATA硬盘容量实测支持1TB)。
+
+扩展SATA硬盘读写速率如下：
+
+\### 测试SATA硬盘读写速率(1Gb)
+
+### 1\. 测试目录所在磁盘的写入速度
+
+time dd if=/dev/zero bs=1024 count=1000000 of=./1Gb.file
+
+1024000000 bytes (1.0 GB, 977 MiB) copied, 30.2637 s, 33.8 MB/s
+
+### 2\. 测试目录所在磁盘的读出速度
+
+time dd if=./1Gb.file bs=1024 of=/dev/null
+
+1024000000 bytes (1.0 GB, 977 MiB) copied, 32.7612 s, 31.3 MB/s
+
+1.  **注意事项**
+
+1.  安装时切勿带电工作。
+2.  请勿使用有机溶剂或腐蚀性液体清洗网关。
+3.  交流电源输入AC100~240V 或直流电源输入DC120-340V，建议使用安规认证的电源线。
+4.  请遵循所有标注在网关及网关相关说明上的警示和指引信息。
+5.  请保持网关干燥，如果不慎被任何液体泼溅或浸润，请立刻断电并充分晾干。
+6.  使用中注意网关的通风散热，避免温度过高造成元器件损坏。
+7.  请勿在多尘、脏乱的环境中使用或存放网关。  
+8.  请勿粗暴对待网关，跌落、敲打或剧烈晃动都可能损坏线路及元器件。
+9.  请勿自行修理、拆卸本公司产品，如网关出现故障请及时联系本公司进行维修，擅自修改或使用未经授权的配件可能损坏网关，由此造成的损坏将不予以保修。

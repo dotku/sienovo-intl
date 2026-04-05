@@ -1,0 +1,468 @@
+---
+title: "gtk/glade程序开发(三)"
+date: "2011-09-21"
+slug: "6796219"
+tags: ["#程序开发", "#gtk", "#buffer", "#attributes", "#tree", "#insert"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6796219"
+---
+
+ 
+
+菜单构件(menu)   
+  
+　　这一节我们是这样设计的：单击主窗口　菜单“文件”下的“打开”子菜单，会弹出一个新窗口。   
+　　菜单构件的使用比较简单，只要设计好后，在callbacks.c文件中找到“相应菜单”对应的“函数”，   
+在里面添加代码就可以了。   
+　　　我们设计的主菜单有两项，“文件”和“编辑”。“文件”下有：“打开”、“保存”。“编辑”下有：“拷贝”、“粘贴”。   
+  
+创建菜单构件:   
+/\* 创建菜单构件要用到较多的函数，所辛，Glade会自动生成代码。我们不用管它了\*/   
+  
+这一节用到的新函数：   
+  
+无   
+  
+一、用Glade设计界面   
+步骤：　　1、新建glade工程   
+　　　　　2、依此放置 窗口（400，300）、固定位置、菜单构件。   
+　　　　　3、选中菜单构件，然后在“属性”面版中，单击“编辑菜单”按钮，编辑菜单。   
+　　　　　4、编辑菜单时主意：菜单的标签可以使用汉字，菜单的名子要使用英文，否则生成的代码中，   
+　　　　　　你根本就看不出谁是谁。　　   
+　　　　　5、在工程中，再放置一个窗口构件，在新窗口上放置标签，label属性是“window2”。   
+　　　　　6、保存工程，并生成代码。   
+  
+二、修改代码   
+
+callbacks.h /\*\*/
+
+
+
+void　　on\_open1\_activate (GtkMenuItem \*menuitem,
+
+gpointer user\_data);
+
+
+
+void　　on\_save1\_activate (GtkMenuItem \*menuitem,
+
+gpointer user\_data);
+
+void　　on\_copy1\_activate (GtkMenuItem \*menuitem,
+
+gpointer user\_data);
+
+
+
+void　　on\_pause1\_activate (GtkMenuItem \*menuitem,
+
+gpointer user\_data);
+
+
+
+callbacks.c 
+
+
+
+void on\_open1\_activate (GtkMenuItem \*menuitem,
+
+gpointer user\_data)
+
+{
+
+GtkWidget \*window2;
+
+window2 = create\_window2 ();
+
+gtk\_widget\_show (window2);
+
+}
+
+
+
+void on\_save1\_activate (GtkMenuItem \*menuitem,
+
+gpointer user\_data)
+
+{
+
+}
+
+
+
+void on\_copy1\_activate (GtkMenuItem \*menuitem,
+
+gpointer user\_data)
+
+{
+
+}
+
+
+
+void on\_pause1\_activate (GtkMenuItem \*menuitem,
+
+gpointer user\_data)
+
+{
+
+}
+
+对范围构件的原代码做一些修复.   
+interface.c   
+将 /\* GtkWidget \*all\_label1;\*/ 的注释去掉.   
+  
+callbacks.h   
+将 GtkWidget \*all\_label1; 删除.   
+  
+callbacks.c   
+在函数 on\_hscrollbar1\_value\_changed 里加上下面一句代码,加在第一行.   
+GtkWidget \*all\_label1 = lookup\_widget (GTK\_WIDGET(range), "all\_label1");   
+  
+在函数 on\_vscrollbar1\_value\_changed 里加上下面一句代码,加在第一行.   
+GtkWidget \*all\_label1 = lookup\_widget (GTK\_WIDGET(range), "all\_label1");   
+  
+这样就可以了.  
+  
+  
+
+TextView构件   
+  
+我们是这样设计的：在窗口上放置一个按钮构件和一个TextView构件，   
+单击按钮构件，在TextView构件里显示格式话的文本。   
+  
+TextView构件是这样使用的：TextView构件要和TextBuffer构件结合使用。   
+在TextBuffer构件里定义并存储“格式化的文本”，然后在TextView构件里   
+显示出来。   
+  
+所以使TextView构件显示格式化的文本需要三个步骤：   
+1、定义“格式化文本”（在TextBuffer里）。   
+2、存储“格式化文本”（在TextBuffer里）。   
+3、显示“格式化文本”（在TextView里）   
+  
+这一节里：定义“格式化文本”，写了一个单独的函数create\_tags,   
+存储“格式化文本”，写了一个单独的函数insert\_text,   
+  
+一、用Glade设计界面，给按钮构件添加clicked信号响应。   
+  
+二、添加代码。   
+
+callbacks.c
+
+
+
+/\*函数：定义格式化文本\*/
+
+
+
+static void 
+
+create\_tags (GtkTextBuffer \*buffer)
+
+{
+
+gtk\_text\_buffer\_create\_tag (buffer, "bold",
+
+"weight", PANGO\_WEIGHT\_BOLD, NULL); 
+
+gtk\_text\_buffer\_create\_tag (buffer, "blue\_foreground",
+
+"foreground", "blue", NULL); 
+
+gtk\_text\_buffer\_create\_tag (buffer, "red\_background",
+
+"background", "red", NULL);
+
+/\*
+
+参数的含义： "red\_background" ,格式化文本的名字。"background", "red", 格式化文本的属性。
+
+\*/
+
+
+
+}
+
+
+
+/\*函数：存储格式化文本\*/
+
+
+
+static void
+
+insert\_text (GtkTextBuffer \*buffer)
+
+{
+
+GtkTextIter iter;
+
+GtkTextIter start, end;
+
+gtk\_text\_buffer\_get\_iter\_at\_offset (buffer, &iter, 0);
+
+gtk\_text\_buffer\_insert (buffer, &iter, "The text widget can display Richtext./n", -1);
+
+gtk\_text\_buffer\_insert (buffer, &iter, "For example, you can have/n ", -1);
+
+
+
+gtk\_text\_buffer\_insert\_with\_tags\_by\_name (buffer, &iter,
+
+"a blue foreground /n", -1,
+
+"blue\_foreground", NULL); 
+
+
+
+gtk\_text\_buffer\_insert\_with\_tags\_by\_name (buffer, &iter,
+
+"a red background /n /n", -1,
+
+"red\_background", NULL); 
+
+/\*
+
+参数的含义："a red background /n /n", 要显示的文本。"red\_background", 格式化文本的名字。
+
+\*/
+
+}
+
+
+
+
+
+void
+
+on\_button1\_clicked (GtkButton \*button,
+
+gpointer user\_data)
+
+{
+
+
+
+GtkWidget \*textview1 = lookup\_widget (GTK\_WIDGET(button), "textview1");
+
+GtkTextBuffer \*buffer; 
+
+
+
+buffer = gtk\_text\_view\_get\_buffer (GTK\_TEXT\_VIEW(textview1));
+
+create\_tags (buffer);
+
+insert\_text (buffer);
+
+
+
+}
+
+**TreeView构件**   
+  
+Treeview构件的使用,需要三个构件的支持.或者说,Treeview构件和其它三个构件结合在一起才能使用.   
+这三个构件连同treeview是:   
+GtkTreeModel   
+GtkCellRenderer   
+GtkTreeViewColumn   
+GtkTreeView   
+  
+TreeView构件的使用是相当灵活的,它可以,以列表的形式显示数据,   
+也可以,以树形的形式使用显示数据.   
+还可以对显示出来的数据,进行各种灵活的操作.   
+好多功能,以后慢慢捉摸吧!   
+  
+这一节,我们讲述它的最简单的功能:以列表的形式显示数据.   
+是这样设计的：单击按钮，在TreeView构件中以列表的形式显示数据。   
+  
+**一、用Glade设计界面。**   
+依此放置window构件，垂直框构件（放置的时候设置为两行），   
+然后在垂直框的第一行，放置按钮构件。   
+在第二行，放置TreeView构件。   
+生成代码。   
+  
+**二、编写代码**   
+
+callbacks.c
+
+/\*定义数据结构\*/
+
+typedef struct
+
+{
+
+const gchar \*id;
+
+const gchar \*name;
+
+const gchar \*address;
+
+}
+
+telman;
+
+
+
+enum
+
+{
+
+COLUMN\_ID,
+
+COLUMN\_NAME,
+
+COLUMN\_ADDRESS,
+
+NUM\_COLUMNS
+
+};
+
+
+
+/\*添加数据\*/
+
+static telman data\[\] = 
+
+{
+
+{"001","cuigf","china"},{"002","home","shanxi"},{"003","",""},
+
+};
+
+
+
+/\*设置TreeView构件的模式\*/
+
+static GtkTreeModel \* create\_model (void)
+
+{
+
+gint i = 0;
+
+GtkListStore \*store;
+
+GtkTreeIter iter;
+
+
+
+/\* create list store \*/
+
+store = gtk\_list\_store\_new (NUM\_COLUMNS,
+
+G\_TYPE\_STRING,
+
+G\_TYPE\_STRING,
+
+G\_TYPE\_STRING);
+
+
+
+/\* add data to the list store \*/
+
+for (i = 0; i < G\_N\_ELEMENTS (data); i++)
+
+{
+
+gtk\_list\_store\_append (store, &iter);
+
+gtk\_list\_store\_set (store, &iter,
+
+COLUMN\_ID, data\[i\].id,
+
+COLUMN\_NAME, data\[i\].name,
+
+COLUMN\_ADDRESS, data\[i\].address,
+
+-1);
+
+}
+
+
+
+return GTK\_TREE\_MODEL (store);
+
+}
+
+
+
+/\*往TreeView构件里添加列\*/
+
+static void add\_columns (GtkTreeView \*treeview)
+
+{
+
+GtkCellRenderer \*renderer;
+
+GtkTreeViewColumn \*column;
+
+renderer = gtk\_cell\_renderer\_text\_new ();
+
+column = gtk\_tree\_view\_column\_new\_with\_attributes ("ID",
+
+renderer,
+
+"text",
+
+COLUMN\_ID,
+
+NULL);
+
+gtk\_tree\_view\_append\_column (treeview, column);
+
+
+
+renderer = gtk\_cell\_renderer\_text\_new ();
+
+column = gtk\_tree\_view\_column\_new\_with\_attributes ("NAME",
+
+renderer,
+
+"text",
+
+COLUMN\_NAME,
+
+NULL);
+
+gtk\_tree\_view\_append\_column (treeview, column);
+
+
+
+renderer = gtk\_cell\_renderer\_text\_new ();
+
+column = gtk\_tree\_view\_column\_new\_with\_attributes ("ADDRESS",
+
+renderer,
+
+"text",
+
+COLUMN\_ADDRESS,
+
+NULL);
+
+gtk\_tree\_view\_append\_column (treeview, column);
+
+}
+
+
+
+void
+
+on\_button1\_clicked (GtkButton \*button,
+
+gpointer user\_data)
+
+{
+
+GtkWidget \*treeview1 = lookup\_widget (GTK\_WIDGET(button), "treeview1");
+
+GtkTreeModel \*model; 
+
+model = create\_model ();
+
+gtk\_tree\_view\_set\_model(GTK\_TREE\_VIEW(treeview1),model);
+
+g\_object\_unref (model);
+
+add\_columns (GTK\_TREE\_VIEW (treeview1));
+
+}

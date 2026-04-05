@@ -1,0 +1,21 @@
+---
+title: "memset函数用法"
+date: "2011-09-09"
+slug: "6763717"
+tags: ["#工作"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6763717"
+---
+
+ 
+
+楼主希望通过库函数memset()来对一个数组进行初始化，需要了解一下该函数的 工作原理 。库函数memset()是针对字节操作的，其中第二个参数值被赋给第一个参数指向的内存地址开始的每一个字节，因此，这种初始化其实存在局限性，也导致其主要用于清除数组内容等。
+
+比如：假设i=0,1,2,...memset(a,0,sizeof(a)); // 此时a\[i\]=0x00000000
+
+memset(a,-1,sizeof(a)); // 此时a\[i\]=0xffffffff
+
+memset(a,0x0f,sizeof(a)); // 此时a\[i\]=0x0f0f0f0f=252645135
+
+由于500=0x1f4，400=0x190，因此，如果使用memset(a,0x190,sizeof(a)); // 此时a\[i\]=0x90909090
+
+所以，初始化过程还是建议使用循环语句来做。

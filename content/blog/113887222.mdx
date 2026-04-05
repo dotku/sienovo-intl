@@ -1,0 +1,72 @@
+---
+title: "XM5728_IDK_V3 基于AM5728 iperf千兆网络速率测试指南"
+date: "2021-02-20"
+slug: "113887222"
+tags: ["#AM5728", "#Iperf", "#千兆网络", "#网络性能", "#linux"]
+source: "https://blog.csdn.net/yeyuangen/article/details/113887222"
+---
+
+ 
+
+本测试基于信迈科技TI AM5728评估板XM5728\_IDK\_V3进行。
+
+1.  基于Iperf网速测试指南
+
+Iperf 是一个 TCP /IP 和 UDP/IP 的性能测量工具，能够提供网络吞吐率信息，以及震
+
+动、丢包率、最大段和最大传输单元大小等统计信息。
+
+以下使用 iperf 工具测试开发板与 Ubuntu 的网络通信速度。若未安装，可在 Ubuntu
+
+中执行" sudo apt-get install iperf"安装。
+
+在 Ubuntu 执行如下命令查看 Ubuntu IP 地址并等待开发板连接：
+
+****Host****\# ifconfig
+
+****Host****\# iperf -s
+
+在开发板 文件系统 执行如下命令测试网络速度：
+
+****Target****\# iperf -c 192.168.1.102 -i 1
+
+“192.168.1.102”为 Ubuntu 的实际 IP地址 。
+
+测试过程注意：
+
+*   把ubuntu电脑wifi关掉
+*   sudo ufw disable防火墙关掉
+*   ubuntu不能用虚拟机
+*   建议使用网件路由器，如NETGEAR R7800，普通的TP-LINK千兆路由器速率上不去。
+
+2.如果是windowns是测试：
+
+参考：https://www.jianshu.com/p/2781fe7a3ee0
+
+iperf -s -p 5553 -i 1  
+
+iperf -c 192.168.1.102 -p 5553 -P 1 -i 1 -C -f k -t 20
+
+Windows测试速率一直在110Mbps左右，速率上不来。建议还是用ubuntu测试。
+
+3. 测试数据 ：
+
+*   XM5728-IDK-V3测试1000秒的数据：
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/113887222/01_66ffc89583ac06e9ca12719dd2870e00.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/113887222/02_7e4233b8e4b691d90a9030d17921bf2d.png)
+
+*   911Mbps的数据：
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/113887222/03_14a1d418362d1b858c711239a8f8da80.png)
+
+*   平均840Mbps, 1800秒的数据
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/113887222/04_69c235c3de8ca3a8690ed5f18fee64ce.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/113887222/05_3117a0689c014ef850e86e864815339b.png)
+
+*   没有CRC错误和丢包：
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/113887222/06_883d2cd5d42ddb7ecb2d1d8c2f72d09a.png)

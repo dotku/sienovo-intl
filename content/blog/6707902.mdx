@@ -1,0 +1,71 @@
+---
+title: "用GPIO口驱动与显示LCD屏幕——mini2440"
+date: "2011-08-22"
+slug: "6707902"
+tags: ["#class", "#dialog", "#byte", "#manager", "#command", "#mfc"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6707902"
+---
+
+ 
+
+———————————————————————————————————————————
+
+目标：LCD屏幕的驱动和显示。
+
+了解GPIO的控制方法，并独立编写一个简单的菜单测试程序（包括彩色汉字和静态图画的显示）
+
+————————————————————————————————————————-———
+
+**一、术语问答**
+
+1.什么是GPIO口？mini2440中有哪些相关的资源？
+
+答：
+
+2.2416/2440关于GPIO口的芯片资料（data sheet 解读）
+
+**二、源码解析**
+
+1.sys/ioctl.h
+
+2.IOR,IOW
+
+3.看出代码的 架构 ，意思出来。
+
+4.#include <afxext.h>的作用
+
+答：
+
+```cpp
+定义MFC一些扩展的东西，定义的类包括：// Classes declared in this file //CObject //CCmdTarget;  //CWnd   //CButton    class CBitmapButton;    // Bitmap button (self-draw)   class CControlBar;          // control bar    class CStatusBar;       // status bar    class CToolBar;         // toolbar    class CDialogBar;       // dialog as control bar    class CReBar;           // ie40 dock bar   class CSplitterWnd;         // splitter manager    //CView    //CScrollView    class CFormView;        // view with a dialog template    class CEditView;        // simple text editor view  //CDC  class CMetaFileDC;              // a metafile with proxyclass CRectTracker;                     // tracker for rectangle objects
+```
+
+  
+
+5.extern变量用法
+
+extern可以置于变量或者[函数](http://www.bc-cn.net/Article/Search.asp?Field=Title&ClassID=&keyword=%BA%AF%CA%FD)前，以标示变量或者[函数](http://www.bc-cn.net/Article/Search.asp?Field=Title&ClassID=&keyword=%BA%AF%CA%FD)的定义在别的文件中，提示 编译器 遇到此变量和[函数](http://www.bc-cn.net/Article/Search.asp?Field=Title&ClassID=&keyword=%BA%AF%CA%FD)时在其他模块中寻找其定义。  
+另外，extern也可用来进行 链接 指定。
+
+**三、LCD驱动解析**
+
+1. mmap((void\*)target,length,PROT\_READ|PROT\_WRITE,MAP\_SHARED,fd,target)            //参数祥解？尤其是target
+
+2.volatile BYTE \*lcdcmdadr        //什么意思？
+
+3.
+
+```cpp
+void Xadd(char startx,char endx){    LCDCOM_MASTER(0x2A);             //搞明白这些地址的含义    LCDDATA_MASTER(startx);    LCDDATA_MASTER(endx);}
+```
+4.
+
+```cpp
+ //映射用户空间内存地址到内核空间的内存地址    lcdcmdadr=(BYTE *)mapDirectIoRegister(LCD_COMMAND,MAP_SIZE);
+```
+5.
+
+```cpp
+    LCD_RST_LOW;	usleep(100000);	LCD_RST_HIG;	usleep(100000);         //模拟一个方波    LCD_ON;
+```
+6.

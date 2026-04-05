@@ -1,0 +1,56 @@
+---
+title: "Mechatrolink III转EtherCAT网关模块解决方案"
+date: "2022-12-21"
+slug: "128356770"
+tags: ["#ethercat转换模块"]
+source: "https://blog.csdn.net/yeyuangen/article/details/128356770"
+---
+
+ 
+
+**概述**
+
+工业以太网在工业控制领域越来越流行， 协议 种类较多，例如Mechatrolink III、EtherCAT、Powerlink、Profinet、EtherNet/IP等等，在数控加工领域主流的协议有Mechatrolink III、EtherCAT。但是各种协议之间很难通信协作。
+
+安川电机的Mechatrolink III是一项先进的工业以太网技术，在数控加工领域应用广泛。伺服设备多采用Mechatrolink III，但缺少配套的I/O或传感设备，国内的I/O或传感设备多采用 EtherCAT ，资源相对丰富。Mechatrolink III转 EtherCAT Master 的MIE SoC模块，有效解决了Mechatrolink III协议缺少配套设备的问题，能够快速接入，减轻系统负担，同时支持多个I/O设备接入。
+
+**Mechatrolink III 转 EtherCAT 解决方案**
+
+现有解决方案一般如下图所示，
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128356770/01_a3881284a69ee360f39e24dee002ea9f.jpeg)
+
+主系统中要同时支持两种协议，系统成本增加。同时，开发难度大，需要更多的软硬件开发投入，而且CPU负担重，导致升级系统成本增加。
+
+采用MIE SoC 模块的解决方案如下图所示，
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128356770/02_027cc7dd693e7de3efabec75a0af2ef1.jpeg)
+
+主系统硬件不做任何改变，无需硬件开发投入，CPU不增加负担。仅需增加MIE SoC模块即可快速实现EtherCAT设备扩展。
+
+**MIE SoC模块简介**
+
+MIE SoC模块实物和结构框图如下图所示，基于Intel Cyclone V SoC模块， 最小片上系统，上电自启动。 FPGA 部分集成Mechatrolink III和EtherCAT两个IP，以及Mechatrolink III和EtherCAT之间报文转换和同步处理。不仅可以实现Mechatrolink III Slave转EtherCAT master，还可以实现Mechatrolink III master + EtherCAT master的双主站系统。FPGA 片上ARM A9处理器完成Mechatrolink III和EtherCAT初始化，周期性中断处理及异常处理等。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128356770/03_c08f75d819f41c304abdf88e7ba81261.jpeg)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128356770/04_fb773b5fc1cd36e6b5041325a37d497a.jpeg)
+
+技术参数
+
+*   Intel Cyclone V SoC主处理芯片
+    *   集成ARM-Cortex A9 双核处理器
+    *   集成FPGA
+*   模块外设 
+    *   QSPI Flash (16MB)
+    *   DDR3 \*16bit (512MB)
+    *   集成4路 100M PHY
+        *   其中两路实现Mechatrolink Slave
+        *   另外两路实现 EtherCAT Master
+*   PCB
+    *   12层, 54mm\*54mm
+    *   邮票孔设计
+
+**结束语**
+
+MIE SoC模块是低成本的工业以太网协议转换模块，FPGA实现协议的硬转换，效率高，实时性强，系统组建简单易用，而且能够降低系统复杂度。

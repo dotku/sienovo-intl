@@ -1,0 +1,149 @@
+---
+title: "RK3399+XILINX K7 FPGA 应用于雷达通信遥测成像等领域"
+date: "2022-08-15"
+slug: "126235520"
+tags: ["#RK3399+K7", "#RK3399+FPGA"]
+source: "https://blog.csdn.net/yeyuangen/article/details/126235520"
+---
+
+ 
+
+ARM端 xdma 的驱动编译，交叉编译器的配置，编译内核。
+
+先上图。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/126235520/01_0b3cb910e96e57f729d3d06da5545613.jpeg)
+
+以下参考[XILINX FPGA+RK3399 PCIE X4\_FPGA零下的博客-CSDN博客](https://blog.csdn.net/wcdlove/article/details/112839141 "XILINX FPGA+RK3399 PCIE X4_FPGA零下的博客-CSDN博客")
+
+编译xdma说明  
+一、安装交叉编译器（官方用的6.3的）
+
+// An highlighted block  
+   1、 mkdir -p /opt/FriendlyARM/toolchain/  #新建一个目录  
+   2 、cp gcc \-linaro-7.4.1-2019.02-x86\_64\_aarch64-linux-gnu.tar  /opt/FriendlyARM/toolchain/  
+   3、tar xvf gcc-linaro-7.4.1-2019.02-x86\_64\_aarch64-linux-gnu.tar # 将编译器解压到当前目录  
+   4、 mv  gcc-linaro-7.4.1-2019.02-x86\_64\_aarch64-linux-gnu  gcc-linaro-7.4.1    #把名字变短一点  
+   5 、source setEnv.sh  #设置临时 环境变量  只在当前终端有效 、每次编译前source一下  
+  
+验证 aarch64 \-linux-gnu-gcc -v  
+2、Makefile 修改 kernel 路径 自己的 编译器自己指定
+
+// An highlighted block  
+obj-m += xdma.o  
+xdma-objs := xdma-core.o xdma-sgm.o xdma-ioctl.o xdma-bit.o
+
+KERNELDIR ?=/home/ycd/project/rk3399/kernel/kernel-rockchip-nanopi4-linux-v4.4.y   
+PWD       := $(shell pwd)
+
+ROOT := $(dir $(M))  
+XILINXINCLUDE := -I$(ROOT)../include -I$(ROOT)/include
+
+GCC49 :=aarch64-linux-gnu-  
+all:  
+    $(MAKE) -C $(KERNELDIR) M=$(PWD) modules
+
+install: all  
+    $(MAKE) -C $(KERNELDIR) M=$(PWD) modules\_install  
+    depmod -a  
+    install -m 644 10-xcldma.rules /etc/udev/rules.d
+
+clean:  
+    rm -rf \*.o \*.o.d \*~ core .depend .\*.cmd \*.ko \*.ko.unsigned \*.mod.c .tmp\_versions \*.symvers .#\* \*.save \*.bak Modules.\* modules.order Module.markers \*.bin
+
+CFLAGS\_xdma-core.o := -Wall -DDEBUG $(XILINXINCLUDE)
+
+ifeq ($(GCC49),1)  
+    CFLAGS\_xdma-core.o += -Wno-error=date-time  
+endif
+
+CFLAGS\_xdma-sgm.o := $(XILINXINCLUDE)  
+CFLAGS\_xdma-bit.o := $(XILINXINCLUDE)  
+CFLAGS\_xdma-ioctl.o := $(XILINXINCLUDE)
+
+  
+编译出xdma.ko 导入到开发板内就可以插入内核了。
+
+\=============下面是C6678+K7平台的方案，便于对比====================
+
+1\. RK3399是国产的，K7也有对应的复旦微国产取代；
+
+2.C6678芯片已经有10年时间，并且没有新的迭代
+
+基于FPGA与DSP协同处理 架构 的双目交汇视觉图像处理系统平台，该平台采用1片TI的KeyStone系列多核浮点/定点DSP TMS320C6678作为核心处理单元，来完成视觉图像处理算法，采用1片Xilinx的Kintex-7系列FPGA XC7K325T作为视频协处理单元，来完成视频图像的编解码、缓存以及预处理。该系统能够适应不同形式的视频格式输入和不同形式的视频格式输出，可实现基于双目交汇的目标测量、跟踪与识别，可广泛应用于机载或车载设备。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/126235520/02_9ebdf55c94f2c15f4ef751b1d8b9e4b1.png)
+
+FPGA+多核DSP协同处理架构；
+
+视频图像接口性能：
+
+ 1. 1路CameraLink Base数字视频输入；
+
+ 2.1路PAL制模拟复合视频输入，分辨率720x576，25帧/秒；
+
+ 3. 1路PAL制原始视频输出，分辨率720x576，25帧/秒；
+
+ 4.1路PAL制处理后视频输出，分辨率720x576，25帧/秒；
+
+ 5.1路HD-SDI高清数字视频输入，分辨率1920x1080@30p；
+
+ 6.1路HD-SDI高清原始视频输出，分辨率1920x1080@30p；
+
+ 7.1路HD-SDI高清处理后视频输出，分辨率1920x1080@30p；
+
+ 8.1路DVI显示输出接口，支持1080P分辨率；
+
+处理性能：
+
+ 1.DSP定点运算：40GMAC/Core\*8=320GMAC；
+
+ 2.DSP浮点运算：20GFLOPs/Core\*8=160GFLOPs；
+
+动态存储性能：
+
+ 1.DSP处理节点：64位，4GByte DDR3-1333 SDRAM；
+
+ 2.FPGA处理节点：64位，2GByte DDR3-1600 SDRAM；
+
+ 互联性能：
+
+ 1.DSP与FPGA：SRIO x4@5Gbps/lane；
+
+ 2.DSP与FPGA：PCIe x2@5Gbps/lane；
+
+ 物理与电气特征
+
+ 1.板卡尺寸：158 x 217mm
+
+ 2.板卡供电：3A max@+12V（±5%）
+
+ 3.散热方式：自然风冷散热
+
+环境特征
+
+ 1.工作温度：-40°~﹢85°C，存储温度：-55°~﹢125°C；
+
+ 2.工作湿度：5%~95%，非凝结
+
+**软件支持**
+
+ 1.可选集成板级软件开发包（BSP）：
+
+2\. DSP底层接口驱动；
+
+3\. FPGA底层接口驱动；
+
+4\. 板级互联接口驱动；
+
+5\. 基于SYS/ BIOS 的多核处理底层驱动；
+
+ 6.可根据客户需求提供定制化算法与系统集成：
+
+**应用范围**
+
+1\. 机器视觉；
+
+2\. 光 电信息处理；
+
+3\. 高速图形处理；

@@ -1,0 +1,125 @@
+---
+title: "AM5728+QT的图像采集与处理应用, 中文字库显示"
+date: "2020-10-06"
+slug: "108945120"
+tags: ["#AM5728", "#QT"]
+source: "https://blog.csdn.net/yeyuangen/article/details/108945120"
+---
+
+ 
+
+第一步：下载 文泉驿 字体，我使用的是 wenquanyizenhei.ttf 待会我会附上文件
+
+第二步：放到 ubuntu 系统的字体文件中 。
+
+在： /usr/share/fonts 目录下 新建 一个文件夹 wqy ,将字库文件拷贝进去,具体操作如下:
+
+\# cd /usr/share/fonts
+
+\# mkdir wqy
+
+\# cd wqy
+
+\# cp /...(字库文件路径) /usr/share/fonts/wqy
+
+注意这个时候你应该保持在 wqy 目录下，然后执行以下操作，更新字库
+
+\# mkfontscale
+
+\# mkfontdir
+
+\# fc-cache
+
+执行完后，打开 Qt，在 ui 上放一个 label 写几个字，选中它，在右侧的属性栏中找到 font
+
+点开如下图：
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108945120/01_3fef52e84f5694b87774fc0e4c358bc4.png)
+
+找到刚才安装的字体，是不是很神奇？
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108945120/02_5fb6c53da154bd3141c1c148dccfdc4d.png)
+
+交叉编译成可执行文件
+
+第三步
+
+接下来，该轮到 Arm 板上的字库了，将刚才的 .ttf 字库 文件放到 Arm 板的 Qt
+
+索引字库中，我的在/usr/qt/lib/fonts 目录下。
+
+开发析上
+
+执行 export QT\_QPA\_FONTDIR=/usr/qt/lib/fonts
+
+第四步
+
+拷贝交叉编译成可执行文件到开发板子上运行。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108945120/03_c9e63920873f8971dcd4722bd5816e9d.png)
+
+本试验基于信迈AM5728开发板进行。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108945120/04_92c8dabc72a2919d0fa82665752cad4b.png)
+
+##1：ssh远程访问am5728
+
+ssh root@192.168.123.70
+
+##2：新开另一个终端，进入ti5728sdk环境：
+
+source ~/ti5728sdk/ linux \-devkit/environment-setup
+
+##3:在sdk环境中，加载qtcreater：
+
+~/Qt5.9.0/Tools/QtCreator/bin/qtcreator
+
+##4:成功打开Qt，开始编译吧。
+
+##5：远程使用am5728编译时，需要在pro文件中加入远程目标的地址：
+
+target.path += /home/root
+
+INSTALLS += target
+
+保存工程，然后点击左侧工具栏中的Project---点击AM335x EVM----Run---可以看到远程执行的地址已经更新为am5827的/home/root/文件夹下了。
+
+##6：运行project：
+
+点击左侧工具栏底部，绿色Run按钮，开始把可执行文件编译---远程传输到am5728---远程运行可执行文件
+
+##7：关闭am5728中的 程序 ：
+
+在ssh终端窗口中按下ctrl+c可以退出am5728中正在运行的程序。
+
+##8：ssh控制am5728关机/重启
+
+poweroff
+
+reboot
+
+##9：sftp远程文件传输， local 与am5728进行文件传输：
+
+sftp root@192.168.123.70
+
+语法： put（get） \[选项\] 源文件或目录 目标文件或目录
+
+说明：该 命令 把指定的源文件(夹）复制（提取）到目标文件
+
+该命令的各选项含义如下：
+
+\- a 该选项通常在拷贝目录时使用。它保留链接、文件属性，并递归地拷贝目录，其作用等于dpR选项的组合。
+
+\- d 拷贝时保留链接。
+
+\- f 删除已经存在的目标文件而不提示。
+
+\- i 和f选项相反，在覆盖目标文件之前将给出提示要求用户确认。回答y时目标文件将被覆盖，是交互式拷贝。
+
+\- p 此时cp除复制源文件的内容外，还将把其修改时间和访问权限也复制到新文件中。
+
+\- r 若给出的源文件是一目录文件，此时cp将递归复制该目录下所有的子目录和文件。此时目标文件必须为一个目录名。
+
+\- l 不作拷贝，只是链接文件。
+
+例子：put -r /home/lidawei0124/ led /home/root/

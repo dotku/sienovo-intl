@@ -1,0 +1,87 @@
+---
+title: "基于XMC4800 Ethercat从站的工厂自动化解决方案"
+date: "2022-12-22"
+slug: "128410412"
+tags: ["#自动化", "#XMC4800", "#Ethercat从站"]
+source: "https://blog.csdn.net/yeyuangen/article/details/128410412"
+---
+
+ 
+
+**背景**
+
+随着“工业4.0”与“工业互联网”概念的提出，“互联网+制造”的概念被大众所熟知，人们称之为第四次工业革命。在这样的背景下，新的工业自动化孕育而生。智能工厂、提供智能工厂设计与实施的工业4.0解决方案商、技术供应商相继出现。ARROW深度联合解决方案商、技术供应商提供实现智能工厂的渠道。伺服系统作为工业自动化最为重要的控制和执行机构之一，在机床工具、纺织机械、印刷机械和包装机械等领域得到广泛应用，同时随着近几年工业机器人、电子制造设备等产业的迅速扩张，伺服系统在新兴产业的应用规模增长迅速。新的工业自动化对高性能的电机控制系统、工业以太网（EtherCAT）有较高需求，众多客户在寻找可以将两者整合的新解决方案。
+
+工厂自动化场景1(工业机器人)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128410412/01_fdff00ba9e3a23feba4b7bdf5b0fd3bc.jpeg)
+
+工厂自动化场景2(搬运机器人)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128410412/02_d0a177ad86a4eff54a2ed71407f3a08e.jpeg)
+
+英飞凌在此前推出基于32位ARM®Cortex™-M 内核的XMC4000系列MCU基础上，新推出了集成ESC（EtherCAT Slave Controller）的XMC4800芯片。XM-XMC4800工厂自动化解决方案是基于Infineon 32-bit XMC4000系列工业微处理器XMC4800的开发套件。套件提供双路EtherCAT网络接口，实现EtherCAT从站设计。扩展通用通讯接口RS485、CAN、USB-UART。电机控制专用接口可支持使用增量位置编码器的电机。提供USIC/ADC/DAC/IO集成连接器，4 inputs与2 outputs IO使用光耦隔离器件进行电气隔离。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128410412/03_8d7d2f48665d03fb8e817cd106d4750b.jpeg)
+
+ **XMC4800****硬件**
+
+**方案介绍**
+
+XMC4800采用单板设计，预留电机控制接口、EtherCAT接口、CAN通讯接口、USB串口、扩展按键、LED显示及扩展引脚。XMC4800提供针对运动控制的专用外设模Capture/Compare Unit 4 (CCU4)、 CCU8、POSIF、VADC，使SEED-XMC4800可执行位置环、速度环、转矩环的全闭环FOC控制。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128410412/04_06199bc21ad89ecf237c338c5d4af7da.png)
+
+XMC4800套件框图
+
+全闭环FOC控制是目前常用的控制算法，控制算法如下图所示。转矩环为闭环控制系统中的最内层，包括FOC算法、电流采集及SVPWM输出。速度环位于中间层，通过PI控制器计算内层转矩环的期望值。位置环位于最外层，通过控制位置环的期望值完成对全闭环FOC的控制。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128410412/05_944e7c5ef57c39220acd34a9a75b6648.png)
+
+FOC全闭环结构图
+
+XMC4800套件提供Micrium uC-Probe XMC工具实时检查各个软件参数。对调整软件系数、确定软件结构具有重要的作用。Micrium uC-Probe XMC工具的界面可以自由定义，包括样式、颜色、数据范围等等。对于一些需要连续观察变化的参数可以使用期其波形显示功能。Micrium uC-Probe XMC工具如下图所示，可以对电机的速度进行控制，并且可以观察软件状态机、FOC控制环路中参数的变化。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128410412/06_cc6afec7c525285bb30aac220bcddf04.png)
+
+Micrium uC-Probe XMC
+
+**EtherCAT****介绍**
+
+伺服系统通常采用FOC矢量控制法，而工业互联网则采用速度更快、接线更灵活、更易实施的EtherCAT工业以太网。传统解决方案是MCU与ESC之间使用PDI接口通讯。MCU实现电机控制，位置环、速度环、电流环等FOC电机控制算法，电机温度，母线电压，功率段等模拟量信号的检测。ESC负责网络通讯，且需要独立EEPROM用于存储EtherCAT从站信息。图5为传统EtherCAT从站组成框架。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128410412/07_e7a5ac08423e7d4e963bd52d73846471.png)
+
+传统EtherCAT从站框架
+
+XMC4800工作频率高达144MHz，内部集成丰富的外设，如高精度PWM、POSIF（位置）接口、ΔΣ模块。可以实现多种电机的控制。XMC4800将ESC作为MCU的外设集成在芯片内部，并完全兼容倍福ET1100的ESC，且无需外接EEPROM。这样做的优势在于产品设计简化。XMC4800可使FOC电机控制算法与EtherCAT通讯无缝衔接。图6为使用XMC4800的EtherCAT从站组成框架。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128410412/08_90e062464fb5a75f6e09e9cfa9310b6b.png)
+
+XMC4800高集成EtherCAT从站框架
+
+XMC4800不仅完全兼容倍福的ESC ET1100，并且DPRAM的读取速度具有更大的优势，使ESC的运行效率显著提高。结合XMC4800丰富的外设，可在单独EtherCAT方案中实现两轴Encoder 或 Resolver接口的电机同时控制。XMC提供LQFP100、LQFP144、LFBGA196多种封装形式，实现双轴控制需选择LFBGA196封装。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128410412/09_f960d1d5b2f0159f9824ca11b222a805.png)
+
+DPRAM读取速度
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128410412/10_6da70ac6d5908e6bf9e78626ff76f1e2.png)
+
+EtherCAT电机控制
+
+**应用场景**
+
+*   EtherCAT从站设备
+    
+*   电机控制器系统
+    
+*   工业自动化设备
+    
+*   工业机器人
+    
+*   半导体制造机器
+    
+*   自动化装配系统
+    
+*   家具生产设备

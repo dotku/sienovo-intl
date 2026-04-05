@@ -1,0 +1,257 @@
+---
+title: "TI AM5728 SDK升级之 linux设备树解析，以网口cpsw为例"
+date: "2019-02-09"
+slug: "86761811"
+tags: ["#DTS", "#DTB", "#AM5728", "#设备树"]
+source: "https://blog.csdn.net/yeyuangen/article/details/86761811"
+---
+
+ 
+
+如果一个结点描述的设备有地址，则应该给出@unit-address。多个相同 类 型设备结点的name可以一样，只要unit-address不同即可，如本例中含有cpu@0、cpu@1以及serial@101f0000与serial@101f2000这样的同名结点。
+
+从软件的层面讲model属性仅仅表示一个名字而已，没有更多的作用。compatible属性则不同，该属性决定软件如何匹配硬件对硬件进行初始化。属性那一节我们说过compatible属性的类型是字符串数组，按照范围从小到大的顺序排列，每个字符串表示一种匹配类型。根节点的compatible属性表示平台如何匹配，比如‘compatible = "samsung,smdk5420", "samsung,exynos5420", "samsung,exynos5"’，表示软件应该首先匹配'samsung,smdk5420'，这个是一款开发板。如果无法匹配，再试着匹配"samsung,exynos5420"，这个是一款芯片平台。如果还是无法匹配，还可以试着匹配 "samsung,exynos5"，这是一个系列的芯片平台。
+
+一、设备树编译  
+有两种方式  
+1、将设备树文件拷贝到内核源码的arch/\*（处理器平台）/boot/dts/\*（厂家）/目录下，  
+   执行make dtbs
+
+具体到AM5728，如下：
+
+不同型号开发板的设备树文件名不同，故编译命令不同。在 Linux 内核源码安装目录下，执行如下命令编译设备树文件：
+
+Host# make ARCH=arm CROSS\_COMPILE=arm-linux-gnueabihf- am57xx-evm-reva3.dtb  
+编译完成后， 会在 Linux 内核源码目录"arch/arm/boot/dts"路径下， 生成对应平台的设备树文件。  
+使用 SD 系统启动卡启动系统时， 如需替换设备树， 只需将编译生成的新设备树文件替换 SD 系统启动卡 rootfs 分区“/boot”目录下的对应文件即可。
+
+2、dtc -I dts -O dtb  \*.dts > my.dtb
+
+二、设备树反编译  
+dtc -I dtb -O dts \*.dtb > my.dts
+
+3.SDK升级设备树网口调试
+
+转载于 :  http://46aae4d1e2371e4aa769798941cef698.devproxy.yunshipei.com/woshidahuaidan2011/article/details/48526081
+
+对于设备数的语法网上已经有很多了，但是懂了语法之后可能还是不太理解具体设备树的工作原理，这里以ti的CPSW为例说明设备树与内核的 驱动 之家的微妙关系。
+
+cpsw就是ti公司的Common Platform Ethernet Switch 的缩写，CPSW为三端口调换器（three port switch ），一个cpu端口，两个外部端口。CPSW或者说以太网调换驱动遵循标准的[Linux](http://lib.csdn.net/base/linux)网络接口构造。
+
+对于TI的am335x的CPSW的设备树来说，其定义在am33x.dtsi文件中，内容如下：
+
+mac:ethernet@4a100000 {
+
+                     compatible ="ti,cpsw";
+
+       属性，这是跟驱动函数的匹配字符串，要跟驱动中一直。必须为“ti,cpsw“
+
+                     ti,hwmods ="cpgmac0";
+
+       可选属性：对硬件模块的配置，为了跟驱动，必须是"cpgmac0"
+
+                     clocks =<&cpsw\_125mhz\_gclk>, <&cpsw\_cpts\_rft\_clk>;
+
+       指定时钟，其定义在 am33xx-clocks.dtsi文件中
+
+                     clock-names ="fck", "cpts";
+
+                     cpdma\_channels = <8>;
+
+       cpdma（common platformdma）的通道数
+
+                     ale\_entries= <1024>;
+
+       制定ALE条目
+
+                     bd\_ram\_size =<0x2000>;
+
+       描述内部ram的大小
+
+                     no\_bd\_ram = <0>;
+
+       设置 HW descriptor 是否在内部 bd ram，只能是0或者1
+
+                     rx\_descs = <64>;
+
+       制定RX描述符的个数
+
+                     mac\_control = <0x20>;
+
+       制定默认MAC控制寄存器的内容
+
+                     slaves = <2>;
+
+       从站数量
+
+                     active\_slave = <0>;
+
+                     cpts\_clock\_mult =<0x80000000>;
+
+       时钟周期转换ns系数的分子
+
+                     cpts\_clock\_shift =<29>;
+
+       时钟周期转换ns系数的分母
+
+                     reg = <0x4a100000 0x800
+
+                            0x4a101200 0x100>;
+
+       cpsw寄存器映射地址
+
+                     #address-cells = <1>;
+
+                     #size-cells = <1>;
+
+                     interrupt-parent =<&intc>;
+
+       父中断控制器
+
+                     /\*
+
+                      \* c0\_rx\_thresh\_pend
+
+                      \* c0\_rx\_pend
+
+                      \* c0\_tx\_pend
+
+                      \* c0\_misc\_pend
+
+                      \*/
+
+                     interrupts = <40 41 4243>;
+
+       描述中断号
+
+                     ranges;
+
+                     davinci\_mdio: mdio@4a101000{
+
+                            compatible ="ti,davinci\_mdio";
+
+                            #address-cells =<1>;
+
+                            #size-cells =<0>;
+
+                            ti,hwmods ="davinci\_mdio";
+
+                            bus\_freq =<1000000>;
+
+                            reg = <0x4a1010000x100>;
+
+                     };
+
+                     cpsw\_emac0: slave@4a100200{
+
+       以太网控制器
+
+                            /\* Filled in byU-Boot \*/
+
+                            mac-address = \[ 0000 00 00 00 00 \];
+
+                     };
+
+                     cpsw\_emac1: slave@4a100300{
+
+                            /\* Filled in byU-Boot \*/
+
+                            mac-address = \[ 0000 00 00 00 00 \];
+
+                     };
+
+                     phy\_sel:cpsw-phy-sel@44e10650 {
+
+                            compatible ="ti,am3352-cpsw-phy-sel";
+
+                            reg= <0x44e106500x4>;
+
+       phy寄存器的基地址和寄存器大小
+
+                            reg-names ="gmii-sel";
+
+                     };
+
+              };
+
+接下来看一下内核是如何调用这些参数的：
+
+首先在文件Cpsw.c (drivers\\net\\ethernet\\ti)中的平台驱动结构体中有of\_match\_table匹配函数:
+
+static structplatform\_driver cpsw\_driver = {
+
+       .driver = {
+
+              .name      = "cpsw",
+
+              .owner    = THIS\_MODULE,
+
+              .pm  = &cpsw\_pm\_ops,
+
+              .of\_match\_table= cpsw\_of\_mtable,
+
+       },
+
+       ………………
+
+};
+
+驱动是否执行probe函数就是通过上面的函数判断的，就本例而言，首先会通过of\_match\_table进行判断是否在设备树种可以找到配对资源信息，假如在dtb文件中找不到其次判断是否在平台设备中是否有name为”cpsw”的设备，假如有的话则获取设备信息，然后执行驱动函数。但是，显然之前没有对platform\_devicecpsw\_device进行设置，因此一般情况下无法配对成功。
+
+进一步展开of\_match\_table函数可得：
+
+static conststruct of\_device\_id cpsw\_of\_mtable\[\] = {
+
+       { .compatible ="ti,cpsw", },
+
+       { /\* sentinel \*/ },
+
+};
+
+结构体中.compatible = "ti,cpsw",正好跟设备树中的cpsw节点属性一致。于是会匹配成功，进而执行probe函数。
+
+在probe函数中，驱动为了获取dts中设置的参数，其调用了cpsw\_probe\_dt。该函数的主要获取数据的函数有：
+
+of\_property\_read\_u32(node,"slaves", &prop)
+
+获取在dts文件中的slaves的个数：slaves = <2>;
+
+of\_property\_read\_u32(node,"active\_slave", &prop)
+
+获取设定的active\_slave的参数：active\_slave= <0>;
+
+of\_property\_read\_u32(node,"cpts\_clock\_mult", &prop)
+
+获取设定的cpts\_clock\_mult的参数：cpts\_clock\_mult = <0x80000000>;
+
+后面的很多也很类似，不再一一列出。
+
+就这样吧，内核启动就把dts中的信息读出来然后为之后的驱动程序提供数据。
+
+四、在TI sdk由Linux内核4.4版本（TI 原生底板）升级为4.14版本（自制底板）过程中，发现执行ifconfig时，风口没有对应的IP出现。如下所示：
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/86761811/01_d3366aabad5f91766bb895ced307df81.png)
+
+对比sdk 内核为4.4的版本网络控制器dts描述：
+
+```hljs
+			mdio@48485000 {				compatible = "ti,cpsw-mdio";				#address-cells = <0x1>;				#size-cells = <0x0>;				ti,hwmods = "davinci_mdio";				bus_freq = <0xf4240>;				reg = <0x48485000 0x100>;				linux,phandle = <0x117>;				phandle = <0x117>;			}; 			slave@48480200 {				mac-address = [00 00 00 00 00 00];				phy_id = <0x117 0x0>;				phy-mode = "rgmii";				dual_emac_res_vlan = <0x1>;			}; 			slave@48480300 {				mac-address = [00 00 00 00 00 00];				phy_id = <0x117 0x1>;				phy-mode = "rgmii";				dual_emac_res_vlan = <0x2>;			};
+```
+
+sdk 内核为4.14的版本网络控制器dts描述：
+
+```hljs
+            mdio@48485000 {                compatible = "ti,cpsw-mdio", "ti,davinci_mdio";                #address-cells = <0x1>;                #size-cells = <0x0>;                ti,hwmods = "davinci_mdio";                bus_freq = <0xf4240>;                reg = <0x48485000 0x100>;                 ethernet-phy@1 {                    reg = <0x1>;                    phandle = <0x105>;                };                 ethernet-phy@2 {                    reg = <0x2>;                    max-speed = <0x64>;                    phandle = <0x106>;                };            };             slave@48480200 {                mac-address = [00 00 00 00 00 00];                phy-handle = <0x105>;                phy-mode = "rgmii";                dual_emac_res_vlan = <0x1>;            };             slave@48480300 {                mac-address = [00 00 00 00 00 00];                phy-handle = <0x106>;                phy-mode = "rgmii";                dual_emac_res_vlan = <0x2>;            };
+```
+
+其中差异在于reg要改成和对应底板一致的。
+
+修改完就可以看到对应的网络地址了。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/86761811/04_8bea193b0475fb1ea8936aef221c50d8.png)
+
+参考文献：
+
+AM335x双网口RGMII&RMII调试笔记 [http://asd7893361.spaces.eepw.com.cn/articles/article/item/108935](http://asd7893361.spaces.eepw.com.cn/articles/article/item/108935)
+
+我眼中的设备树[https://www.cnblogs.com/targethero/p/5086085.html](https://www.cnblogs.com/targethero/p/5086085.html)

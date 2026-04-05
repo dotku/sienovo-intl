@@ -1,0 +1,63 @@
+---
+title: "基于XC7VX690T FPGA+ZU15EG SOC的6U VPX总线实时信号处理平台（支持4路光纤）"
+date: "2024-07-13"
+slug: "140407985"
+tags: ["#fpga开发", "#信号处理"]
+source: "https://blog.csdn.net/yeyuangen/article/details/140407985"
+---
+
+ 
+
+*   6U VPX架构，符合VITA46规范
+*   板载高性能FPGA处理器：XC7VX690T-2FFG1927I
+*   板载1片高性能MPSOC：XCZU15EG-2FFVB1156I
+*   板载1片MCU，进行健康管理、时钟配置等
+*   V7 FPGA外挂2个FMC+接口
+*   两片FPGA之间通过高速GTH进行互联
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/140407985/01_496d5d33bc6e4b07b880c84129abfb6e.png)
+
+基于6U VPX总线 架构 的通用实时信号处理平台，该平台采用一片Xilinx的高性能Virtex系列FPGA（XC7VX690T-2FFG1927I）作为预处理单元，外挂2个FMC+扩展接口，来完成数据采集、数据回放以及实时信号处理算法。采用一片带有ARM内核的高性能嵌入式处理器ZYNQ UltraScale系列ZU15EG作为主处理器来实现通讯、管理等功能。 该平台的预处理器XC7VX690T外挂两组64位DDR3 SDRAM，来实现超大容量数据缓存，数据缓存带宽可以达到1600MHz。该平台的主处理器ZU15EG的PL端支持2组32位的DDR4 SDRAM。PS端是一款功能强大的ARM处理器，具有1个64位四核ARM Cortex-A53处理器、1个双核 ARM Cortex-R5 实时处理器、1个ARM Mali™-400MP 图形处理器，PS端外挂72位DDR4 SDRAM，支持ECC校验。两片处理器之间通过16路GTH进行互联。 该平台在VPX处对外引出多路SRIO高速串行接口，LVDS并行接口，以及多路GPIO信号，方便与系统内其他板卡进行数据交互，以及对外设的控制。该板卡具有优良的抗振动设计、散热性能和独特的环境防护设计，适合于航空、航天、船舶等应用场景 。
+
+#### 功能框图
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/140407985/02_80f51d2f139db62ebc0a129dd1a115d5.png)
+
+#### 技术指标
+
+*   标准 6U VPX 规格，符合 VITA46 规范；
+*   板载高性能FPGA处理器：XC7VX690T-2FFG1927I；
+*   处理性能：
+    1.  外挂2组64位DDR3 SDRAM，每组4GByte容量；
+    2.  外挂1片BPI Flash，容量128MByte，用于FPGA的加载；
+*   板载1片高性能MPSOC：XCZU15EG-2FFVB1156I：
+    1.  PL端挂2组32位DDR4 SDRAM；
+    2.  PS端挂1组72位DDR4 SDRAM；
+    3.  PS端扩展出1路1000BASE-T千兆以太网口至VPX P4；
+    4.  PS端扩展出1路1000BASE-T千兆以太网口至前面板J30J；
+*   互联性能：
+    1.  VPX P1支持3路SRIO X4，连接至V7 690T；
+    2.  VPX P2支持32对LVDS，连接至ZU15EG SOC；
+    3.  VPX P3支持1个8端口射频盲插连接器；
+    4.  VPX P4支持1路千兆以太网接口；
+*   物理与电气特征
+    1.  板卡尺寸：100 x 233mm
+    2.  板卡供电：5A max@+12V（±5%）
+    3.  散热方式：金属导冷散热
+*   环境特征
+    1.  工作温度：-40°~﹢85°C，存储温度：-55°~﹢125°C；
+    2.  工作湿度：5%~95%，非凝结
+
+#### 软件支持
+
+*   可选集成板级软件开发包（BSP）；
+    1.  V7 FPGA底层接口驱动；
+    2.  ZU FPGA 底层接口驱动；
+    3.  板级互联接口驱动；
+    4.  AD/DA接口程序移植；
+*   可根据客户需求提供定制化算法与系统集成：
+
+#### 应用领域
+
+*   软件无线电；
+*   雷达与基带信号处理；

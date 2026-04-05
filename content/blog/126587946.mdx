@@ -1,0 +1,32 @@
+---
+title: "国产FPGA Ethercat从站实时低成本运动控制系统方案"
+date: "2022-08-29"
+slug: "126587946"
+tags: ["#fpga ethercat从站"]
+source: "https://blog.csdn.net/yeyuangen/article/details/126587946"
+---
+
+ 
+
+Ethercat slave是什么？  
+相比其他的有什么特点优势。如何通过FPGA实现Ethercat slave，基于FPGA状态机设计实现EtherCAT从站基本通信链路并作验证。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/126587946/01_443d6f5d1d5562504b3c339f628577ef.jpeg)
+
+摘 要： EtherCAT是工业控制领域广泛应用的现场总线之一，从站控制器ESC（EtherCAT Slave Controller）是从站模块实现EtherCAT协议数据通信的关键，对从站控制芯片实现自主可控是工业 控制系统 国产化研发的重要基础。基于EtherCAT通信协议及基本通信功能逻辑，设计了EBUS编码/解码、Auto-forwarder、Loop-back funcTIon关键通信节点的FPGA状态机，并通过解析各阶段数据状态变化，验证了各节点通信数据的正确性。实验结果表明，基于上述状态机的FPGA实现EtherCAT从站基本通信链路是完全可行的。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/126587946/02_aeb3bfa6d2edaf4e9eba6145b4c9a0a2.png)
+
+0 引言  
+EtherCAT是由BECKHOFF提出的在工业控制领域获得广泛应用的现场总线之一，该总线具备全双工工作模式，可基于主站（ Master ）和从站（Slave）连接的模式实现数据传递，且具有低延时、高安全性的特点。EtherCAT从站控制器ESC（EtherCAT Slave Controller）是从站模块实现EtherCAT通信协议的关键，目前国内基于EtherCAT协议的通信功能基本都采用ET1100/ET1200等从站芯片来实现\[1-4\]。然而，由于这类芯片除基本通信功能外，还具备大量其他功能，而此类额外通信机制并不对我国技术人员公开，造成对此类通信芯片还无法实现完全自主可控，采用有效的安全机制提升系统安全性更是无从谈起。随着工业控制领域的信息安全问题日益突出，此类不可自主可控通信芯片的应用给我国核心控制系统的运行引入一定安全风险。为了实现对控制系统用通信芯片的完全自主可控，基于FPGA实现EtherCAT通信协议的自主化开发显得非常必要，同时也是采用自主安全机制提升通信系统安全能力的重要前提。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/126587946/03_7a3e13c59cf7399447267165c9def492.png)
+
+基本通信链路是实现收发EtherCAT协议数据的核心，因此，本研究基于EtherCAT协议特征及数据传递机制，设计关键通信节点的FPGA状态机，验证FPGA实现EtherCAT从站控制器基本通信链路功能的可行性，为完善EtherCAT其他通信功能及安全机制奠定重要基础。
+
+1 EtherCAT从站控制器框架  
+EtherCAT主站与各从站之间的通信链路如图1所示。通信过程中，数据帧遍历所有从站设备，数据帧通过某一从站时，从站设备根据报文命令分析寻址到本机报文并进行读/写数据到指定位置，数据帧到达最后一个从站后，该从站把处理后的数据帧发送给主站。主站收到此上行电报后处理返回数据，一次通信结束\[5-6\]。
+
+EtherCAT从站控制器主要包括数据帧处理单元、EBUS接口编码/解码模块、 Auto \-forwarder模块、Loop-back funcTIon模块等。以ET1100/ET1200从站控制器为例，其内部框架如图2所示，主要包括MII、EBUS接口，EtherCAT数据帧处理单元，现场总线内存管理单元（FMMU，Fliedbus Memory Management Unit），存储同步管理通道（SM，SyncManager），分布时钟，PDI接口，ESC地址空间（包括寄存器和用户数据存储器），EEPROM控制，以及状态控制、中断、看门狗和物理层管理等部分。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/126587946/04_2399440a345be4b594f03bd170fcd5df.png)

@@ -1,0 +1,13 @@
+---
+title: "exec函数簇理解"
+date: "2014-08-08"
+slug: "38445005"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/38445005"
+---
+
+ 
+
+在Linux中进程要使用exec 函数 族来启动另一个程序的执行。 系统调用 execve（）对当前进程进行替换，替换者为一个指定的程序，其参数包括文件名（filename）、参数列表（argv）以及环境变量（envp）。exec函数族当然不止一个，但它们大致相同，在 Linux中，它们分别是：execl，execlp，execle，execv，execve和execvp，下面我只以execlp为例，其它函数究竟与execlp有何区别，请通过manexec命令来了解它们的具体情况。
+
+　　一个进程一旦调用exec 类 函数，它本身就"死亡"了，系统把代码段替换成新的程序的代码，废弃原有的数据段和堆栈段，并为新程序分配新的数据段与堆栈段，唯一留下的，就是进程号，也就是说，对系统而言，还是同一个进程，不过已经是另一个程序了。（不过exec类函数中有的还允许继承环境变量之类的 信息 。）

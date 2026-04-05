@@ -1,0 +1,37 @@
+---
+title: "AM5728核心板出厂测试笔记"
+date: "2019-06-17"
+slug: "92718549"
+tags: ["#AM5728", "#出厂测试", "#emmc"]
+source: "https://blog.csdn.net/yeyuangen/article/details/92718549"
+---
+
+ 
+
+1.emmc格式化
+
+参考：emmc挂载，分区及格式化 [https://blog.csdn.net/u011975319/article/details/51803126](https://blog.csdn.net/u011975319/article/details/51803126)
+
+  
+1.用万用表检查板上有无电源短路现象。
+
+2.检查接入端子电源电压以及信号顺序是否正确。
+
+3.通电后，用万用表或者 示波器 测试板上各处电源测试点电压是否正确。------Q1没有导通，所以D1（LED）没有亮。需要调整R9阻值。
+
+4.去掉R330 R333 R328 R334,在 windows 系统sb\_loader目录下（cmd）终端，输入命令sb\_loader -f u-boot(2G).imx。用sb\_loader工具将u-boot(2G).imx文件烧入板中 。
+
+5.内部efuse------详细操作方法见“IMX6内部efuse熔断”篇章。
+
+6. SPI Flash 烧写文件
+
+\> fatload mmc 0 10800000 u-boot.imx  
+or ext4load mmc 2 10800000 u-boot.imx  
+\> sf probe
+
+\> sf erase 0 0xc0000
+
+\> sf write 10800000 0x400 $filesize
+
+\> reset  
+ 7.插入SDCARD启动卡重新上电。

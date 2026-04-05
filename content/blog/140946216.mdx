@@ -1,0 +1,128 @@
+---
+title: "LS1046A&LS1028A+FPGA平台的SerDes设计方案"
+date: "2024-08-06"
+slug: "140946216"
+tags: ["#fpga开发", "#LS1046"]
+source: "https://blog.csdn.net/yeyuangen/article/details/140946216"
+---
+
+ 
+
+**本期我们就此系列平台的SerDes资源分配做一篇文章。**
+
+LS系列产品的资源不可为不丰富，其中最让人头晕的当属于SerDes协议。百度百科这样解释，SERDES是英文SERializer(串行器)/DESerializer(解串器)的简称。
+
+它是一种主流的时分多路复用(TDM)、点对点(P2P)的串行通信技术。即在发送端多路低速并行信号被转换成高速串行信号，经过传输媒体(光缆或铜线)，最后在接收端高速串行信号重新转换成低速并行信号。这种点对点的串行通信技术充分利用传输媒体的信道容量，减少所需的传输信道和器件引脚数目，提升信号的传输速度，从而大大降低通信成本。
+
+**我们先以最复杂的LS1046A做讲解**
+
+#### **PART.1** **LS1046A**
+
+在下图框图中可以看到有2个SerDes模块，每个模块各有2个PLL，每个模块各有4lane，共有4个PLL，8条lane，有网口、PCIe、SATA功能。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/140946216/01_5987ba88272cb992f7adb99a52731b34.png)
+
+在《LS1046 ARM》文档的“Chapter31 SerDes Module”章节，比较详细的描述了这一部分，所以我也建议用户在制定方案前看一看这一部分。我们列出所有LS1046A的 SerDes功能：
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/140946216/02_0dc42ba517e56a1ca0ec78d4e828d85a.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/140946216/03_6f0043be28e8979da40f827d09e178b1.png)
+
+第一列是RCW位，只能在这些选项中选择方案（所以不存在8条lane都配置成网口这种操作）；后面ABCD列代表硬件上的信号名称和接口功能；最后两列是PLL的配置，需要注意Mapping这个词，表示你需要配置PLL1还是PLL2，举例：2222代表ABCD4条lane都使用PLL2，2211代表AB lane使用PLL2，CD lane使用PLL1，not available代表此方案不支持PCIe Gen3速度。
+
+XFI，SGMII，QSGMII都是网络。SGMII.n表示1G速度，n是MAC；QSGMII包含4个MAC，每个都有1G的速度；XFI是10G的速度。配置网口必须注意MAC不能冲突。
+
+PCIe.n的n表示PCIE标号，为了方便理解，可以认为n是RC（PCI Express root complex）标识，不可以配置冲突，举例说SerDes1配置为1163，SerDes2配置为5559，这是不可以的！因为PCIe.1重复了。PCIe.nx4表示4条lane合并为一个PCIE RC，只可以接一个EP（endpoint device）设备，那么速度会x4翻倍。
+
+**SATA就不用多说了，从可选择的方案中挑选出来就可以了。**
+
+选定好了每条lane的功能之后，还需要选择SerDes参考时钟。各功能需要的时钟如下图：
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/140946216/04_13c3df13522979827b8998d81de0e675.png)
+
+这就是我们需要配置的PLL1和PLL2，硬件和软件需要同时做好。参考的时钟源我们在[核心板](https://link.zhihu.com/?target=https%3A//www.forlinx.com/ "核心板")上已经做好，用户不需要额外做这部分的硬件。 **具体是这样实现的：**
+
+SerDes2只有PCIE、SATA、SGMII（1.25G）的功能，这三个功能都可以参考100MHz时钟，那么我们的核心板上硬件已经固定死100MHz，只需要软件去选择PLL即可。
+
+SerDes1有SGMII（1.25G），SGMII（3.125G），QSGMII，XFI，PCIE功能，我们看Table31-4表中这些功能的PLL1都可以设置为100MHz，所以我们在核心板中硬件固定死100MHz，PLL2可以参考100MHz和1[56](https://link.zhihu.com/?target=https%3A//www.forlinx.com/ "56").25MHz即可实现全部功能，我们从核心板引出一个SD1\_REFCLK\_SEL引脚，用于选择100M，156M，然后软件配置相对应的PLL即可。
+
+所以使用我们的核心板S2的PLL1，PLL2只能选100MHz；S1\_PLL1只有100MHz，S1\_PLL2在100M和156M之间做选择。
+
+可以关闭PLL来禁用对应的SerDes模块。
+
+如果还是没讲清楚那么我们举个例子来说。假如有个项目需求1个万兆网口，4个千兆网口，3个PCIEx1，1个SATA。
+
+Serdes1模块选择RCW为1040：
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/140946216/05_491fc335e60715cd39aba9d0836963f7.png)
+
+XFI.9参考serdes1的PLL2，将S1的PLL2写为1：156MHz
+
+QSGMII参考serdes1的PLL1，将S1的PLL1写为0：100MHz
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/140946216/06_ce6db79ad368981b571580b9dc99eeb3.png)
+
+SerDes2模块选择RCW为5559：（PCIEGen3不可用，Gen2速度为5Gbps）。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/140946216/07_5380b81d55fc882f25d1b9d09f82cf5b.png)
+
+PCIe.1，PCIe.2，PCIe.3参考serdes2的PLL2，将S2的PLL2写为0：100MHz
+
+SATA参考serdes2的PLL1，将S2的PLL1写为0：100MHz
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/140946216/08_4e9f119a916f02fbfc20fbdcbf6d5d5a.png)
+
+看到这里大家有没有觉得这个配置方案很熟悉啊，**加上CPU原生的2路RGMII, 共组成1万兆+6千兆+3路pcie+1路SATA**，实现了CPU接口资源最大化，可供用户调试开发。
+
+讲完了LS1046A平台，其他平台只有1个serdes模块，就比较简单了。
+
+为了加深大家对于serdes模块配置方案的理解，在本文第二部分，我们再讲LS1028A平台的SerDes设计方案做个简单解读。
+
+#### PART.2 LS1028A
+
+其包含丰富的高速接口：PCIE、SATA、USB、以太网。与我们早已上市的LS1043A、LS1046A相同的是内含SerDes模块，不同的是LS1028A的以太网口不一样，因为内置TSN Switch，下面我们先详细讲这一部分。下图是LS1028A的功能框图：
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/140946216/09_5c345275949ceb647276607898630d0f.png)
+
+以下内容参考NXP官方手册《LS1028 ARM》，手册可以在网站或者在我们的用户资料里获取到。在使用核心板做方案设计时，建议用户也翻一翻这个手册。
+
+网口switch介绍
+
+以太网系统由两个组件组成：以太网控制器（）和支持TSN的以太网交换机。下图描述了LS1028A中的以太网子系统。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/140946216/10_1e2872e5c70624f29cade358ec788bd3.png)
+
+ENETC（以太网NET控制器）是一个4端口虚拟化以太网控制器，支持千兆级设计和时敏网络（TSN）功能，有两个外部以太网端口，两个内部端口连接到该交换机，并且充当[Cortex](https://link.zhihu.com/?target=https%3A//www.forlinx.com/CortexA9.html "Cortex")\-[A7](https://link.zhihu.com/?target=https%3A//www.forlinx.com/article-new-c22/333.html "A7")2 CPU与ENETC和支持TSN的以太网交换机交互的PCI根联合体集成端点。
+
+具有TSN功能的以太网交换机总共有6个端口：4个外部以太网端口，以及两个内部连接到ENETC的端口，用于交换数据和管理/控制功能。
+
+TSN以太网交换机核心包含5个10/100/1000/2500Mbps以太网端口和1个10/100/1000Mbps以太网端口。
+
+概括起来就是LS1028A最多可以引出6个网口，且都支持TSN。
+
+**Serdes介绍**
+
+SerDes模块可以引出PCIE，SATA，和网口，前面讲的ENETC中有5个网口都是通过SerDes引出的SGMII/QSGMII/QXGMII，这部分涉及到的硬件接口有SD1\_TX\[0:3\]\_P/N，SD1\_RX\[0:3\]\_P/N，SD1\_REFx\_CLK\_P/N，TX/RX是发送/接收数据的信号线，CLK是输入到SerDes的参考时钟。
+
+让我们来看看SerDes模块的时钟结构。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/140946216/11_79ab18e9375a5bcd9204f245c16f4b59.png)
+
+SerDes的参考时钟源有2个，SYSCLK或者外部输入的REF\_CLK。SYSCLK是固定100MHz的频率，当SerDes参考SYSCLK 100MHz的时候，有些接口功能是有限制的；使用外部的REF\_CLK则可以灵活选择配置时钟。
+
+Serdes方案表  
+输入文字
+
+在LS1028A芯片中，SerDes可以配置下表的功能，不在表中的搭配是不允许使用的。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/140946216/12_8c70e19e85704ab829a2869fb48296ac.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/140946216/13_ab4bd91926fa0871086fb120e93de945.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/140946216/14_1f539ccfad308a9127c25ca1ac5ca1c0.png)
+
+选定SesDes方案后还需要配置时钟，根据前面的时钟结构我们可以看到SerDes内部有PLL1和PLL2，PCIeGen1/2 PLL mapping这一列就是我们需要配置PLL1还是PLL2，比如2211，表示laneA和laneB选择PLL2，laneC和laneD选择PLL1。
+
+**下图是每种功能接口需要的参考时钟频率。**
+
+比如PCIE功能需要参考100MHz或者125MHz时钟，因为我们的SYSCLK是100MHz的，就不需要额外再REF\_CLK引脚上添加外部时钟。一旦我们使用了2.5xSGMII或者USXGMII网络功能，SYSCLK就不符合需求了，就需要在REF\_CLK引脚上输入参考时钟。

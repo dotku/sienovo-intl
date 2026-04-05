@@ -1,0 +1,71 @@
+---
+title: "buffer 与cache 的区别"
+date: "2014-07-31"
+slug: "38313929"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/38313929"
+---
+
+ 
+
+一、free命令  
+\[root@xen\_202\_12 /\]# free -m  
+             total       used       free     shared    buffers     cached  
+Mem:          3072       2459        612          0        207       1803  
+\-/+ buffers/cache:        447       2624  
+Swap:         1913          0       1913
+
+第2行:  
+total 内存总数: 3072  
+used 已经使用的内存数: 2459  
+free 空闲的内存数: 612  
+shared 当前已经废弃不用，总是0  
+buffers: Buffer Cache内存数: 13220  
+cached: Page Cache内存数: 2720160
+
+关系：total = used + free
+
+第3行:  
+\-/+ buffers/cache的意思:  
+\-buffers/cache 的内存数: 447 (等于第1行的 used - buffers - cached)  
++buffers/cache 的内存数: 2624 (等于第1行的 free + buffers + cached)  
+注:此处的内存数在用上面式子计算后，在大小上有一点点出入(还不知道是什么原因)。
+
+可见-buffers/cache反映的是被程序实实在在吃掉的内存，而+buffers/cache反映的是可以挪用的内存总数。
+
+第4行单独针对交换分区。
+
+为了提高磁盘存取效率, Linux做了一些精心的设计, 除了对dentry进行缓存(用于VFS,加速文件路径名到inode的转换), 还采取了两种主要Cache方式：Buffer Cache和Page Cache。前者针对磁盘块的读写，后者针对文件inode的读写。这些Cache有效缩短了 I/O系统调用(如read,write,getdents)的时间。
+
+第2行(mem)的used/free与第3行(-/+ buffers/cache) used/free的区别:  
+这两个的区别在于使用的角度.第2行是从OS的角度来看，因为对于OS，buffers/cached 都是属于被使用，所以他的可用内存是612MB,已用内存是2059MB,其中包括,内核（OS）使用+Application(X, oracle,etc)使用的+buffers+cached.  
+第3行所指的是从应用程序角度来看，对于应用程序来说，buffers/cached 是可用的，因为buffer/cached是为了提高文件读取的性能而设，当应用程序要用到内存的时候，buffer/cached会很快地被回收。所以从应用程序的角度来说，可用内存=系统free memory+buffers+cached.
+
+如上例：  
+2624= 612+207+1803
+
+  
+二、buffers与cached的区别:  
+  
+buffers是用来给块设备做的缓冲大小，他只记录文件系统的metadata以及 tracking in-flight pages。  
+cached用来给文件做缓冲。  
+即：buffers是用来存储目录里面有什么内容，权限等等,而cached用来记忆我们打开的文件.
+
+A buffer is something that has yet to be "written" to disk. A cache is something that has been "read" from the disk and stored for later use.
+
+  
+
+还可以借助top命令观察来理解buffer与cache的区别：
+
+第四行：内存状态  
+8306544k total 物理内存总量（8GB）  
+7775876k used 使用中的内存总量（7.7GB）  
+530668k free 空闲内存总量（530M）  
+79236k buffers 缓存的内存量 （79M）  
+ 
+
+第五行：swap交换分区  
+2031608k total 交换区总量（2GB）  
+2556k used 使用的交换区总量（2.5M）  
+2029052k free 空闲交换区总量（2GB）  
+4231276k cached 缓冲的交换区总量（4GB）

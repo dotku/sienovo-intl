@@ -1,0 +1,49 @@
+---
+title: "进程间通信系列（一）管道读写实例"
+date: "2011-08-31"
+slug: "6736411"
+tags: ["#numbers", "#server", "#终端", "#null"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6736411"
+---
+
+ 
+
+**一、管道读写注意点**
+
+1.只有在 管道 读端存在时，向管道写入才有意义；否则，会收到内核中的出错信号：SIFPIPE
+
+2.向管道写入 数据 时不保证写入的原子性，管道缓冲区一有空闲区域，写进程就试图向其写入内容。若读进程不读取管道中的内容，则写进程会一直阻塞。
+
+3.父子进程在运行时，它们的先后顺序得不到保证。因此在这里，为保证父进程关闭读描述符，可向子进程加入sleep(2)。
+
+**二、实例**
+
+**1.无名管道**
+
+```cpp
+/*pipe_rw.c*/#include <unistd.h>#include <sys/types.h>#include <errno.h>#include <stdio.h>#include <stdlib.h> int main(){	int pipe_fd[2];	pid_t pid;	char buf_r[100];	char* p_wbuf;	int r_num;	memset(buf_r,0,sizeof(buf_r));	if(pipe(pipe_fd)<0)	{	printf("pipe create error\n");	return -1;	}	if((pid=fork())==0)    //若是子进程	{		printf("\n");		/*关闭子进程管道写端。睡眠2秒，确保父进程已相应地关闭了管道读端*/		close(pipe_fd[1]);		sleep(2);		/*子进程读取管道内容*/		if((r_num=read(pipe_fd[0],buf_r,100))>0){			printf(   "%d numbers read from the pipe is %s\n",r_num,buf_r);		}			/*关闭子进程读端*/		close(pipe_fd[0]);		exit(0);  	}	else if(pid>0)	{	/*关闭父进程读端*/		close(pipe_fd[0]);		/*分两次向管道写入数据*/		if(write(pipe_fd[1],"Hello",5)!=-1)			printf("parent write1 success!\n");		if(write(pipe_fd[1]," Pipe",5)!=-1)			printf("parent write2 success!\n");		/*关闭父进程写端并睡眠3秒，让子进程读数据*/		close(pipe_fd[1]);		sleep(3);		/*收集子进程退出信息*/		waitpid(pid,NULL,0);		exit(0);	}}
+```
+运行结果如下：
+```cpp
+[root@localhost ipc]# ./pipe_rw parent write1 success!parent write2 success!10 numbers read from the pipe is Hello Pipe
+```
+
+  
+
+**2.有名管道**
+
+```cpp
+/*fifo_write.c*/#include <sys/types.h>#include <sys/stat.h>#include <errno.h>#include <fcntl.h>#include <stdio.h>#include <stdlib.h>#include <string.h>#define FIFO_SERVER "/tmp/myfifo" main(int argc,char** argv){	int fd;	char w_buf[100];	int nwrite;		if(fd==-1)		if(errno==ENXIO)			printf("open error; no reading process\n");	/*打开有名管道，并设置为非阻塞*/	fd=open(FIFO_SERVER,O_WRONLY|O_NONBLOCK,0);	if(argc==1)		printf("Please send something\n");	strcpy(w_buf,argv[1]);	/*向管道写入字符串*/	if((nwrite=write(fd,w_buf,100))==-1)	{		if(errno==EAGAIN)			printf("The FIFO has not been read yet.Please try later\n");	}	else 		printf("write %s to the FIFO\n",w_buf);}  /*fifo_read.c*/ #include <sys/types.h>#include <sys/stat.h>#include <errno.h>#include <fcntl.h>#include <stdio.h>#include <stdlib.h>#include <string.h>#define FIFO "/tmp/myfifo" main(int argc,char** argv){	char buf_r[100];	int  fd;	int  nread;		/*创建有名管道,并设置相应的权限*/	if((mkfifo(FIFO,O_CREAT|O_EXCL)<0)&&(errno!=EEXIST))		printf("cannot create fifoserver\n");	printf("Preparing for reading bytes...\n");		memset(buf_r,0,sizeof(buf_r));	/*打开有名管道，并设置非阻塞标志*/	fd=open(FIFO,O_RDONLY|O_NONBLOCK,0);	if(fd==-1)	{		perror("open");		exit(1);		}	while(1)	{		memset(buf_r,0,sizeof(buf_r));		/*读取管道中的字符串*/		if((nread=read(fd,buf_r,100))==-1){			if(errno==EAGAIN)				printf("no data yet\n");		}		printf("read %s from FIFO\n",buf_r);		sleep(1);	}		pause();	unlink(FIFO);}  
+```
+运行结果：
+
+终端1：
+
+```cpp
+[root@localhost ipc]# ./fifo_write 123123write 123123 to the FIFO
+```
+终端2：
+
+```cpp
+[root@localhost ipc]# ./fifo_readPreparing for reading bytes...read  from FIFOread  from FIFOread  from FIFOread  from FIFOread  from FIFOread 123123 from FIFOread  from FIFO
+```

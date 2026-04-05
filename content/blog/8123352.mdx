@@ -1,0 +1,63 @@
+---
+title: "判断单链表是否有环"
+date: "2012-10-29"
+slug: "8123352"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/8123352"
+---
+
+ 
+
+1、如何判断一个链表是不是这类链表？ 　 2、如果链表为存在环，如果找到环的入口点？
+
+解答：
+
+一、判断链表是否存在环，办法为：
+
+设置两个指针(fast, slow)，初始值都指向头，slow每次前进一步，fast每次前进二步，如果链表存在环，则fast必定先进入环，而slow后进入环，两个指针必定相遇。(当然，fast先行头到尾部为NULL，则为无环链表)程序如下：
+
+bool IsExitsLoop(slist \*head) {     slist \*slow \= head, \*fast = head;     while ( fast &&fast\->next )     {         slow \= slow\->next;         fast \= fast\->next\->next;         if ( slow \==fast ) break;     }     return !(fast \== NULL || fast\->next \== NULL); }
+
+二、找到环的入口点
+
+当fast若与slow相遇时，slow肯定没有走遍历完链表，见注释（１）而fast已经在环内循环了n圈(1<=n)。假设slow走了s步，则fast走了2s步（fast步数还等于s 加上在环上多转的n圈），设环长为r，则：
+
+　2s = s + nr 　 　s= nr
+
+设整个链表长L，入口环与相遇点距离为x，起点到环入口点的距离为a。 　　a + x = nr 　　a + x = (n – 1)r +r = (n-1)r + L - a 　　a = (n-1)r + (L – a – x)
+
+(L – a – x)为相遇点到环入口点的距离，由此可知，从链表头到环入口点等于(n-1)循环内环+相遇点到环入口点，于是我们从链表头、与相遇点分别设一个指针，每次各走一步，两个指针必定相遇，且相遇第一点为环入口点。程序描述如下：
+
+slist\* FindLoopPort(slist \*head) {     slist \*slow = head, \*fast = head;     while ( fast &&fast->next )     {         slow = slow->next;         fast = fast->next->next;         if ( slow ==fast ) break;     }     if (fast == NULL || fast->next == NULL)         return NULL;     slow =head;     while (slow != fast)     {          slow = slow->next;          fast = fast->next;     }     return slow; }
+
+扩展问题：
+
+判断两个单链表是否相交，如果相交，给出相交的第一个点（两个链表都不存在环）。
+
+比较好的方法有两个：
+
+一、将其中一个链表首尾相连，检测另外一个链表是否存在环，如果存在，则两个链表相交，而检测出来的依赖环入口即为相交的第一个点。
+
+二、如果两个链表相交，那个两个链表从相交点到链表结束都是相同的节点，我们可以先遍历一个链表，直到尾部，再遍历另外一个链表，如果也可以走到同样的结尾点，则两个链表相交。
+
+这时我们记下两个链表length，再遍历一次，长链表节点先出发前进(lengthMax-lengthMin)步，之后两个链表同时前进，每次一步，相遇的第一点即为两个链表相交的第一个点。
+
+注释１
+
+设r为环长，则fast指针r／２内可以跑完一圈，若r为奇数，刚r步内fast会遍历循环内所有点．刚r内一定会跟slow相遇．若r为偶数，r／２步内可令fast跟slow的最近距离为２或１（f追赶s）．若为２，则
+
+　　　　　　　　　　fast＋２＝slow
+
+　　　所以下一步时slow的位置是slow＋１；而fast则为fast＋２；
+
+　　　再下步slow＋２，fast＋４；
+
+　　　因为之前fast＋２＝slow，所以
+
+　　　　　　　　　slow－２＋４＝slow＋２
+
+　　　又因为最近距离为１时，只要两指针各走一步便相遇．
+
+　　　所以两指针相遇．最大步数为s＜＝r／２＋２（r＞＝４）
+
+　　　注：注释部分为本人加上去的，只作参考．若有错，请见谅．

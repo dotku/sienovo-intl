@@ -1,0 +1,451 @@
+---
+title: "基于ZYNQ的数据存储和实时成像系统"
+date: "2022-02-08"
+slug: "122832903"
+tags: ["#ZYNQ", "#ARM+FPGA", "#图像处理"]
+source: "https://blog.csdn.net/yeyuangen/article/details/122832903"
+---
+
+ 
+
+本文介绍了一种_基于_数据存储和实时成像系统,主要解决现有_成像系统_结构复杂,开发周期长及不具有可移植性的问题.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/122832903/01_ecb3c3932204e077ab5a69bd81a6d6e2.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/122832903/02_c0f0bc76e36d236092a34e64f35adddc.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/122832903/03_899c3e48afbd8c61b9ec4538fe4291de.png)
+
+###  **1 评估板简介**
+
+信迈科技 XM-ZYNQ7045-EVM 是一款基Xilinx Zynq-7000 系列 XC7Z045/XC7Z100 高性能处理器设计的高端异构多核 SoC 评估板，处理器集成 PS 端双核 ARM Cortex-A9 + PL 端 Kintex-7 架构 28nm 可编程逻辑资源，评估板由核心板与评估底板组成。核心板经过专业的 PCB Layout 和高低温测试验证，稳定可靠，可满足各种工业应用环境。
+
+评估板接口资源丰富，引出双路千兆网口、四路 SFP+光口、CameraLink、HDMI、F
+
+MC HPC、GTX、PCIe、USB、Micro SD 等接口，方便用户快速进行产品方案评估与技术
+
+预研。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/122832903/04_10e9e04058d14383029b67e4e7c25283.png)
+
+图 1 Xilinx Zynq\-7000 处理器功能框图
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/122832903/05_d176325daf225e0cc82bae6a7a17d966.png)
+
+图2
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/122832903/06_b16e6be6a69b40e52c85396b05b0ad30.png)
+
+图3
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/122832903/07_208bbe92ea2ea912df280abfaaedeeaa.png)
+
+图4
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/122832903/08_ba44f01db498f6ee54789e5677fe64ca.png)
+
+ 图5
+
+### **2** **典型应用领域**
+
+*   软件无线电
+*   雷达探测
+*   光电探测
+*   视频追踪
+*   图像处理
+*   水下探测
+*   定位导航
+*   深度学习
+
+### **3 软硬件参数**
+
+****3.1**** ****硬件参数****
+
+表1
+
+CPU
+
+CPU：Xilinx Zynq-7000 XC7Z045/XC7Z100-2FFG900I
+
+2x ARM Cortex-A9，主频 800MHz，2.5DMIPS/MHz Per Core
+
+1x Kintex-7 架构可编程逻辑资源
+
+ROM
+
+PS 端：8GByte eMMC
+
+PS 端：128/256Mbit SPI NOR FLASH
+
+RAM
+
+PS：单通道 32bit DDR 总线，1GByte DDR3
+
+PL：单通道 32bit DDR 总线，1/2GByte DDR3
+
+Logic Cell
+
+XC7Z045：350K，XC7Z100：444K
+
+OSC
+
+PS 端：33.33MHz
+
+B2B Connector
+
+2x 140pin 公座高速 B2B 连接器，2x 140pin 母座高速 B2B 连接器，共 560pin，
+
+间距 0.5mm，合高 7.0mm
+
+LED
+
+2x 电源指示灯（核心板 1 个，评估底板 1 个）
+
+1x PL 端 DONE 灯（核心板 1 个）
+
+3x PS 端用户可编程指示灯（核心板 2 个，评估底板 1 个）
+
+2x PL 端用户可编程指示灯（评估底板 2 个）
+
+KEY
+
+1x 电源复位按键
+
+1x 系统复位按键
+
+1x PS 端用户输入按键
+
+1x PL 端用户输入按键
+
+SD
+
+1x Micro SD 接口（PS 端）
+
+XADC
+
+1x 排针接口，2x 2pin 规格，2.54mm 间距，单通道专用差分输入，1MSPS
+
+Ethernet
+
+1x PS RGMII，RJ45 接口，10/100/1000M 自适应（PHY 位于核心板上）
+
+1x PL RGMII，RJ45 接口，10/100/1000M 自适应
+
+Watchdog
+
+1x Watchdog，3pin 排针方式，2.54mm 间距，通过跳线帽配置
+
+UART
+
+1x Debug UART，Micro USB 接口（PS 端）
+
+1x RS232 UART，DB9 接口（PL 端）
+
+1x RS485 UART，3pin 3.81mm 绿色端子方式（PL 端）
+
+CAN
+
+2x CAN，3pin 3.81mm 绿色端子方式（PL 端）
+
+USB
+
+4x USB 2.0 HOST 接口，使用 HUB 扩展（PHY 位于核心板上）
+
+PCIe
+
+1x PCIe，由两组 GTX 引出，共两通道，x4 金手指连接方式（PL 端）
+
+IO
+
+1x 400pin FMC 连接器，1.27mm 间距，HPC 标准
+
+SATA
+
+1x 7pin SATA 接口，150MHz LVDS 差分时钟（PL 端）
+
+HDMI
+
+1x HDMI OUT（PL 端）
+
+1x HDMI IN（PL 端）
+
+DISPLAY
+
+1x LCD RES 电阻触摸屏，40pin FFC 连接器，间距 0.5mm（PL 端）
+
+CAMERA
+
+2x CAMERA，2x 10pin 排母方式，间距 2.54mm（PL 端）
+
+CameraLink
+
+2x CameraLink Base 接口，支持 Full 模式（PL 端）
+
+SFP+
+
+4x SFP+光口，支持万兆光模块，由高速串行收发器(GTX)引出
+
+LVDS
+
+1x 排针接口，2x 15pin 规格，可接通用 LVDS 显示屏，间距 2.00mm（PL 端）
+
+SMA
+
+1x GTX CLK
+
+1x GTX RX
+
+1x GTX TX
+
+RTC
+
+1x RTC 座，适配纽扣电池 ML2032（3V 可充）、CR2032（3V 不可充）
+
+FAN
+
+1x FAN，3pin 排针端子，12V 供电，间距 2.54mm
+
+JTAG
+
+1x 14pin JTAG 接口，间距 2.0mm
+
+BOOT SET
+
+1x 6bit 启动方式选择拨码开关
+
+SWITCH
+
+1x 电源摆动开关
+
+POWER
+
+1x 12V6A 直流输入 DC-005 电源接口，可接外径 5.5mm、内径 2.1mm 电源插头
+
+****3.2**** ****软件参数****
+
+表 2
+
+ARM 端软件支持
+
+裸机，FreeRTOS，Linux-4.9.0
+
+Vivado 版本号
+
+2017.4
+
+软件开发套件提供
+
+PetaLinux-2017.4，Xilinx SDK 2017.4，Xilinx HLS 2017.4
+
+驱动支持
+
+SPI NOR FLASH
+
+DDR3
+
+USB 2.0
+
+eMMC
+
+LED
+
+KEY
+
+RS485
+
+MMC/SD
+
+Ethernet
+
+CAN
+
+7in Touch Screen LCD(Res)
+
+XADC
+
+I2C
+
+USB 4G
+
+USB WIFI
+
+RS232
+
+### **4 开发资料**
+
+（1）提供核心板引脚定义、 可编辑 底板原理图、可编辑底板 PCB、芯片 Datasheet，缩短
+
+硬件设计周期；
+
+（2）提供系统固化镜像、内核驱动源码、文件系统源码，以及丰富的 Demo 程序；
+
+（3）提供完整的平台开发包、入门教程，节省软件整理时间，让应用开发更简单；
+
+（4）提供详细的 PS + PL SoC 架构通信教程，完美解决异构多核开发瓶颈。
+
+开发案例主要包括： Ø
+
+*   基于 Linux 的开发例程
+*   基于裸机的开发案例
+*   基于 FreeRTOS 的开发案例
+*   基于 PS + PL 的异构多核开发案例
+*   基于 OpenAMP 的 Linux + 裸机/FreeRTOS 双核 ARM 通信开发案例
+*   基于 PL 端的 HDL、HLS 开发案例
+*   Qt 开发案例
+*   CameraLink、SDI、HDMI、PAL 视频输入/输出案例
+*   高速 AD(AD9613)采集 + 高速 DA(AD9706)输出案例
+*   AD9361 软件无线电案例
+*   UDP(10G)光口通信案例
+*   Aurora 光口通信案例
+*   PCIe 通信案例
+
+### **5 电气特性**
+
+工作环境
+
+环境参数
+
+最小值
+
+典型值
+
+最大值
+
+核心板工作温度
+
+\-40°C
+
+/
+
+85°C
+
+核心板工作电压
+
+/
+
+5.0V
+
+/
+
+评估板工作电压
+
+/
+
+12.0V
+
+/
+
+功耗测试
+
+类别
+
+工作状态
+
+电压典型值
+
+电流典型值
+
+功耗典型值
+
+核心板
+
+状态 1
+
+5.0v
+
+0.40A
+
+2.00W
+
+状态 2
+
+5.0v
+
+1.85A
+
+9.25W
+
+评估板
+
+状态 1
+
+12.0v
+
+0.43A
+
+5.16W
+
+状态 2
+
+12.0v
+
+1.19A
+
+14.28W
+
+备注：功耗基于 CPU 为 XC7Z045 的核心板测得。功耗测试数据与具体应用场景有关，测试数据仅供参考。
+
+状态 1：评估板不接入外接模块，PS 端启动系统，不执行额外应用程序；PL 端运行 LED 测试程序。
+
+状态 2：评估板不接入外接模块，PS 端启动系统，运行 DDR 压力读写测试程序，2 个 ARM Cortex-A9核心的资源使用率约为 100%；PL 端运行 IFD 综合测试程序。
+
+图 11 状态 2 资源使用率
+
+### **6****机械尺寸**
+
+表 4
+
+核心板
+
+评估底板
+
+PCB 尺寸
+
+62mm\*100mm
+
+142.75mm\*260mm
+
+PCB 层数
+
+14 层
+
+8 层
+
+PCB 板厚
+
+1.6mm
+
+1.6mm
+
+安装孔数量
+
+4
+
+4
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/122832903/09_0ba1e5d6c075eca2ac3b001892cb9ebb.png)
+
+图 12 核心板机械尺寸图
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/122832903/10_d47494c29fa9b5f49065eea09e292e71.png)
+
+图 13 评估底板机械尺寸图
+
+### **7技术服务**
+
+1.  协助底板设计和测试，减少硬件设计失误；
+2.  协助解决按照用户手册操作出现的异常问题；
+3.  协助产品故障判定；
+4.  协助正确编译与运行所提供的源代码；
+5.  协助进行产品二次开发；
+6.  提供长期的售后服务。
+
+### **8增值服务**
+
+*   主板定制设计
+*   核心板定制设计
+*   嵌入式软件开发
+*   项目合作开发
+*   技术培训
+
+ 更多信息，请联系深圳信迈科技。

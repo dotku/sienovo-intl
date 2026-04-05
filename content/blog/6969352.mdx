@@ -1,0 +1,63 @@
+---
+title: "(int   *)&i  与int   increment(int   *   &   i) 相关理解的整理"
+date: "2011-11-14"
+slug: "6969352"
+tags: ["#null", "#c"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6969352"
+---
+
+ 
+
+Q1:  
+#include   "stdio.h "  
+void   main()  
+{  
+int   i\[\]={2,3};  
+int   \*j=i;  
+int   \*\*k=&j;//双指针，正确；  
+int   \*p=NULL;  
+  
+//         k=&i;   //i就表示一个数组地址，&i也表示双指针，为什么这里出错？    
+//提示cannot   convert   from   'int   (\*)\[2\] '   to   'int   \*\*   '  
+//int   (\*)\[2\]应该是数组指针吧？比如int   (\*c)\[2\]；c=arry\[3\]\[2\],在这里c也是当作双指针来用的啊~  
+  
+// i=(int   \*)&i;//提示cannot   convert   from   'int   \* '   to   'int   \[2\] '  
+// k=(int   \*)&i;   //提示cannot   convert   from   'int   \* '   to   'int   \*\*   '  
+// k=(int   \*)i;//提示cannot   convert   from   'int   \* '   to   'int   \*\*   '  
+  
+p=(int   \*)i;  
+p=(int   \*)&i;  
+//这里的两个强制转换都可以，在这里&i和i到底有什么区别？难道&没有用吗？  
+}   
+  
+A1:  
+i=(int   \*)&i;//提示cannot   convert   from   'int   \* '   to   'int   \[2\] '
+
+这句肯定是错的，因为i作为一个数组名，虽然是一个指针，但却是一个常量指针，不能给它赋值    
+k=(int   \*)&i;   //提示cannot   convert   from   'int   \* '   to   'int   \*\*   '  
+这句也是错的，因为&i已经是int\*\*的了，再加一个(int\*\*)反而弄巧成拙了  
+k=(int   \*)i;//提示cannot   convert   from   'int   \* '   to   'int   \*\*   '  
+
+这句也是错的，k是(int\*\*)型的，不能由(int\*)转换  
+\--------------------------------------------------------------------------------------------  
+Q2:  
+**义一个函数     比如：int   increment(int   \*   &   i)   
+                                          {     
+                              i++;   
+                              return   0;   
+                                            }   
+  
+    参数：int   \*   &   i     怎么理解？  
+**  
+A2:  
+1)int   increment(int   \*   &   i)  
+                                          {    
+                              i++;  
+                              return   0;  
+                                            }  
+  
+increment是一个函数，其实就是int   increment(int   \*     i)。。加上&只是代表按引用方式传递。。  
+2)&   i就是i的别名而已;表示一个整形指针的引用;  
+ \*指针   &引用  
+int   \*   &   i  
+表示一个整形指针的引用

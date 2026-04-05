@@ -1,0 +1,205 @@
+---
+title: "进程调度的实现  陈莉君"
+date: "2011-09-11"
+slug: "6766986"
+tags: ["#struct", "#list", "#signal", "#each", "#null", "#c"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6766986"
+---
+
+ 
+
+****5.3.5** 进程调度的实现**
+
+调度程序在内核中就是一个函数，为了讨论方便，我们同样对其进行了简化，略其对SMP的实现部分。
+
+asmlinkage void schedule(void)
+
+{
+
+struct task\_struct \*prev, \*next, \*p; ／\* prev表示调度之前的进程,
+
+next表示调度之后的进程 \*／
+
+struct list\_head \*tmp;
+
+int this\_cpu, c;
+
+if (!current->active\_mm) BUG();/\*如果当前进程的的active\_mm为空，出错\*／
+
+need\_resched\_back:
+
+prev = current; ／\*让prev成为当前进程 \*／
+
+this\_cpu = prev->processor;
+
+if (in\_interrupt()) {／\*如果schedule是在中断服务程序内部执行，
+
+就说明发生了错误\*／
+
+printk("Scheduling in interrupt\\n");
+
+BUG();
+
+}
+
+release\_kernel\_lock(prev, this\_cpu); /\*释放全局内核锁，
+
+并开this\_cpu的中断\*／
+
+spin\_lock\_irq(&runqueue\_lock); ／\*锁住运行队列，并且同时关中断\*/
+
+if (prev->policy == SCHED\_RR) ／\*将一个时间片用完的SCHED\_RR实时
+
+goto move\_rr\_last; 进程放到队列的末尾 \*／
+
+move\_rr\_back:
+
+switch (prev->state) { ／\*根据prev的状态做相应的处理\*／
+
+case TASK\_INTERRUPTIBLE: /\*此状态表明该进程可以被信号中断\*/
+
+if (signal\_pending(prev)) { /\*如果该进程有未处理的
+
+信号，则让其变为可运行状态\*/
+
+prev->state = TASK\_RUNNING;
+
+break;
+
+}
+
+default: ／\*如果为可中断的等待状态或僵死状态\*／
+
+del\_from\_runqueue(prev); ／\*从运行队列中删除\*／
+
+case TASK\_RUNNING:;／\*如果为可运行状态，继续处理\*／
+
+}
+
+prev->need\_resched = 0;
+
+／\*下面是调度程序的正文 \*／
+
+repeat\_schedule: ／\*真正开始选择值得运行的进程\*／
+
+next = idle\_task(this\_cpu); /\*缺省选择空闲进程\*/
+
+c = -1000;
+
+if (prev->state == TASK\_RUNNING)
+
+goto still\_running;
+
+still\_running\_back:
+
+list\_for\_each(tmp, &runqueue\_head) { ／\*遍历运行队列\*／
+
+p = list\_entry(tmp, struct task\_struct, run\_list);
+
+if (can\_schedule(p, this\_cpu)) { ／\*单CPU中，该函数总返回1\*／ int weight = goodness(p, this\_cpu, prev->active\_mm);
+
+if (weight > c)
+
+c = weight, next = p;
+
+}
+
+}
+
+／\* 如果c为0，说明运行队列中所有进程的权值都为0，也就是分配给各个进程的
+
+时间片都已用完，需重新计算各个进程的时间片 \*／
+
+if (!c) {
+
+struct task\_struct \*p;
+
+spin\_unlock\_irq(&runqueue\_lock);／\*锁住运行队列\*／
+
+read\_lock(&tasklist\_lock); ／\* 锁住进程的双向链表\*／
+
+for\_each\_task(p) ／\* 对系统中的每个进程\*／
+
+p->counter = (p->counter >> 1) + NICE\_TO\_TICKS(p->nice);
+
+read\_unlock(&tasklist\_lock);
+
+spin\_lock\_irq(&runqueue\_lock);
+
+goto repeat\_schedule;
+
+}
+
+spin\_unlock\_irq(&runqueue\_lock);／\*对运行队列解锁，并开中断\*／
+
+if (prev == next) { /\*如果选中的进程就是原来的进程\*/
+
+prev->policy &= ~SCHED\_YIELD;
+
+goto same\_process;
+
+}
+
+／\* 下面开始进行进程切换\*／
+
+kstat.context\_swtch++; ／\*统计上下文切换的次数\*／
+
+{
+
+struct mm\_struct \*mm = next->mm;
+
+struct mm\_struct \*oldmm = prev->active\_mm;
+
+if (!mm) { ／\*如果是内核线程，则借用prev的地址空间\*／
+
+if (next->active\_mm) BUG();
+
+next->active\_mm = oldmm;
+
+} else { ／\*如果是一般进程，则切换到next的用户空间\*／
+
+if (next->active\_mm != mm) BUG();
+
+switch\_mm(oldmm, mm, next, this\_cpu);
+
+}
+
+if (!prev->mm) { ／\*如果切换出去的是内核线程\*／
+
+prev->active\_mm = NULL;／\*归还它所借用的地址空间\*／
+
+mmdrop(oldmm); ／\*mm\_struct中的共享计数减1\*／
+
+}
+
+}
+
+switch\_to(prev, next, prev); ／\*进程的真正切换，即堆栈的切换\*／
+
+\_\_schedule\_tail(prev); ／\*置prev->policy的SCHED\_YIELD为0 \*／
+
+same\_process:
+
+reacquire\_kernel\_lock(current);／\*针对SMP\*／
+
+if (current->need\_resched) ／\*如果调度标志被置位\*／
+
+goto need\_resched\_back; ／\*重新开始调度\*／
+
+return;
+
+}
+
+以上就是调度程序的主要内容，为了对该程序形成一个清晰的思路，我们对其再给出进一步的解释：
+
+· 如果当前进程既没有自己的地址空间，也没有向别的进程借用地址空间，那肯定出错。另外， 如果schedule()在中断服务程序内部执行,那也出错.
+
+· 对当前进程做相关处理，为选择下一个进程做好准备。当前进程就是正在运行着的进程,可是，当进入schedule()时,其状态却不一定是TASK\_RUNNIG，例如，在exit()系统调用中，当前进程的状态可能已被改为TASK\_ZOMBE；又例如，在wait4()系统调用中，当前进程的状态可能被置为TASK\_INTERRUPTIBLE。因此，如果当前进程处于这些状态中的一种，就要把它从运行队列中删除。
+
+· 从运行队列中选择最值得运行的进程，也就是权值最大的进程。
+
+· 如果已经选择的进程其权值为0，说明运行队列中所有进程的时间片都用完了（队列中肯定没有实时进程，因为其最小权值为1000），因此，重新计算所有进程的时间片，其中宏操作NICE\_TO\_TICKS就是把优先级nice转换为时钟滴答。
+
+· 进程地址空间的切换。如果新进程有自己的用户空间，也就是说，如果next->mm与next->active\_mm相同，那么，switch\_mm( )函数就把该进程从内核空间切换到用户空间，也就是加载next的页目录。如果新进程无用户空间（next->mm为空），也就是说，如果它是一个内核线程，那它就要在内核空间运行，因此，需要借用前一个进程（prev）的地址空间，因为所有进程的内核空间都是共享的，因此，这种借用是有效的。
+
+· 用宏switch\_to()进行真正的进程切换，后面将详细描述。

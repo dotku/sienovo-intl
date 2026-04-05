@@ -1,0 +1,65 @@
+---
+title: "什么是 \"asmlinkage\"？"
+date: "2012-03-06"
+slug: "7324654"
+tags: ["#system", "#assembly", "#function", "#optimization", "#gcc", "#compiler"]
+source: "https://blog.csdn.net/yeyuangen/article/details/7324654"
+---
+
+ 
+
+**什么是 "asmlinkage"？**
+
+相信大家在看 linux 的source code的时候,都会注意到asmlinkage这个宏,它是用来做什么的呢?
+
+The asmlinkage tag is one other thing that we should observe about this simple function. This is a #define for some gcc magic that tells the compiler that the function should
+
+not expect to find any of its arguments in registers (a common optimization), but only on the CPU's stack. Recall our earlier assertion that system\_call consumes its first
+
+argument, the system call number, and allows up to four more arguments that are passed along to the real system call. system\_call achieves this feat simply by leaving its
+
+other arguments (which were passed to it in registers) on the stack. All system calls are marked with the asmlinkage tag, so they all look to the stack for arguments. Of
+
+course, in sys\_ni\_syscall's case, this doesn't make any difference, because sys\_ni\_syscall doesn't take any arguments, but it's an issue for most other system calls.
+
+看一下/usr/include/asm/linkage.h里面的定义：  
+#define asmlinkage CPP\_ASMLINKAGE \_\_attribute\_\_((regparm(0)))  
+\_\_attribute\_\_是关键字，是gcc的C语言扩展，regparm(0)表示不从寄存器传递参数
+
+如果是\_\_attribute\_\_((regparm(3)))，那么调用函数的时候参数不是通过 栈 传递，而是直接放到寄存器里，被调用函数直接从寄存器取参数
+
+还有一种是：
+
+#define fastcall \_\_attribute\_\_((regparm(3)))   
+#define asmlinkage \_\_attribute\_\_((regparm(0)))   
+函数定义前加 宏 asmlinkage ,表示这些函数通过堆栈而不是通过寄存器传递参数。   
+gcc编译器在 汇编 过程中调用c语言函数时传递参数有两种方法：一种是通过堆栈，另一种是通过寄存器。缺省时采用寄存器，假如你要在你的汇编过程中调用c语言函数，并且想通过堆栈传递参数，你定义的c函数时要在函数前加上宏asmlinkage
+
+asmlinkage long sys\_nice(int increment)  
+"asmlinkage" 是在 i386 system call 实作中相当重要的一个 gcc 标签（tag）。  
+当 system call handler 要调用相对应的 system call routine 时，便将一般用途缓存器的值 push 到 stack 里，因此 system call routine 就要由 stack 来读取 system call handler 传递的
+
+参数。这就是 asmlinkage 标签的用意。  
+system call handler 是 assembly code，system call routine（例如：sys\_nice）是 C code，当 assembly code 调用 C function，并且是以 stack 方式传参数（parameter）时，在 C
+
+function 的 prototype 前面就要加上 "asmlinkage"。  
+加上 "asmlinkage" 后，C function 就会由 stack 取参数，而不是从 register 取参数（可能发生在程序代码最佳化后）。  
+更进一步的说明...  
+80x86 的 assembly 有 2 种传递参数的方法：  
+1\. register method  
+2\. stack method  
+Register method 大多使用一般用途（general-purpose）缓存器来传递参数，这种方法的好处是简单且快速。另外一种传递参数的做法是使用 stack（堆栈），assembly code 的模式如下：  
+push number1  
+push number2  
+push number3  
+call sum  
+在 'sum' procedure 里取值的方法，最简单的做法是：  
+pop ax   
+pop ax  
+pop bx  
+pop cx  
+Stack Top 是放 IP，我们传给 sum procedure 的参数由 stack 的后一个 entry 开始读取。  
+其它有关 asmlinkage  
+1\. asmlinkage 是一个定义  
+2\. "asmlinkage" 被定义在 /usr/include/linux/linkage.h  
+3\. 如果您看了 linkage.h，会发现 "\_\_attribute\_\_" 这个语法，这是 gcc 用来定义 function attribute 的语法

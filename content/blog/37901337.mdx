@@ -1,0 +1,45 @@
+---
+title: "Linux 初始 RAM 磁盘（initrd）概述"
+date: "2014-07-17"
+slug: "37901337"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/37901337"
+---
+
+ 
+
+## [原文链接](http://www.ibm.com/developerworks/cn/linux/l-initrd.html)
+
+  
+
+### 使用初始 RAM 磁盘来引导系统
+
+现在我们已经了解了如何构建并使用定制的初始 RAM 磁盘，本节将探索内核是如何识别 initrd 并将其作为根文件系统进行挂载的。我们将介绍启动链中的几个主要函数，并解释一下到底在进行什么操作。
+
+引导加载程序，例如 GRUB，定义了要加载的内核，并将这个内核映像以及相关的 initrd 拷贝到内存中。我们可以在 Linux 内核源代码目录中的 ./init 子目录中找到很多这种功能。
+
+在内核和 initrd 映像被解压并拷贝到内存中之后，内核就会被调用了。它会执行不同的初始化操作，最终您会发现自己到了`init/main.c:init()`（subdir/file:function）函数中。这个函数执行了大量的子系统初始化操作。此处会执行一个对`init/do_mounts.c:prepare_namespace()` 的调用，这个函数用来准备名称空间（挂载 dev 文件系统、RAID 或 md、设备以及最后的 initrd）。加载 initrd 是通过调用 `init/do_mounts_initrd.c:initrd_load()` 实现的。
+
+`initrd_load()` 函数调用了 `init/do_mounts_rd.c:rd_load_image()`，它通过调用 `init/do_mounts_rd.c:identify_ramdisk_image()` 来确定要加载哪个 RAM 磁盘。这个函数会检查映像文件的 magic 号来确定它是 minux、etc2、romfs、cramfs 或 gzip 格式。在返回到`initrd_load_image` 之前，它还会调用 `init/do_mounts_rd:crd_load()`。这个函数负责为 RAM 磁盘分配空间，并计算循环冗余校验码（CRC），然后对 RAM 磁盘映像进行解压，并将其加载到内存中。现在，我们在一个适合挂载的块设备中就有了这个 initrd 映像。
+
+现在使用一个 `init/do_mounts.c:mount_root()` 调用将这个块设备挂载到根文件系统上。它会创建根设备，并调用`init/do_mounts.c:mount_block_root()`。在这里调用 `init/do_mounts.c:do_mount_root()`，后者又会调用`fs/namespace.c:sys_mount()` 来真正挂载根文件系统，然后 `chdir` 到这个文件系统中。这就是我们在清单 6 中所看到的熟悉消息 `VFS: Mounted root (ext2 file system).` 的地方。
+
+最后，返回到 `init` 函数中，并调用 `init/main.c:run_init_process`。这会导致调用 `execve` 来启动 init 进程（在本例中是 `/linuxrc`）。linuxrc 可以是一个可执行程序，也可以是一个脚本（条件是它有脚本解释器可用）。
+
+这些函数的调用层次结构如清单 7 所示。尽管此处并没有列出拷贝和挂载初始 RAM 磁盘所涉及的所有函数，但是这足以为我们提供一个整体流程的粗略框架。
+
+###### 清单 7. initrd 加载和挂载过程中所使用的主要函数的层次结构
+
+init/main.c:init
+  init/do\_mounts.c:prepare\_namespace
+    init/do\_mounts\_initrd.c:initrd\_load
+      init/do\_mounts\_rd.c:rd\_load\_image
+        init/do\_mounts\_rd.c:identify\_ramdisk\_image
+        init/do\_mounts\_rd.c:crd\_load
+          lib/inflate.c:gunzip
+    init/do\_mounts.c:mount\_root
+      init/do\_mounts.c:mount\_block\_root
+         init/do\_mounts.c:do\_mount\_root
+           fs/namespace.c:sys\_mount
+  init/main.c:run\_init\_process
+    execve

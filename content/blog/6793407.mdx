@@ -1,0 +1,49 @@
+---
+title: "多线程：利用互斥锁来处理全局变量的互斥问题"
+date: "2011-09-20"
+slug: "6793407"
+tags: ["#多线程", "#unix", "#signal", "#编程", "#网络", "#linux"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6793407"
+---
+
+ 
+
+多个线程会共享一些进程的静态数据段的资源，比如在主线程中定义的全局变量。肯定其他线程也能访问的。
+
+在Unix, Linux平台下，我们利用互斥锁来处理全局变量的互斥问题。
+
+考查互斥锁变量，利用互斥锁变量专门关联一个变量。
+
+数据类型： pthread\_mutex\_t
+
+初始化： pthread\_mutex\_t macPIB\_mutex = PTHREAD\_MUTEX\_INITIALIZER;
+
+操作函数:：
+
+int pthread\_mutex\_lock(pthread\_mutex\_t \*mutex) //加锁函数，如果mutex被锁住了，此函数会阻塞程序，直到那个锁被释放。
+
+int pthread\_mutex\_unlock(pthread\_mutex\_t \*mutex) //解锁函数
+
+互斥锁变量适合于防止同时访问某个共享变量，但是我们需要在等待某个条件发生期间让我们进入睡眠，而不是一直的轮询的查询。可以使用 条件变量的数据类型。
+
+考查条件变量
+
+数据类型： pthread\_cond\_t
+
+初始化：pthread\_cond\_t count\_cond = PTHREAD\_COND\_INITIALIZER;
+
+操作函数：
+
+int pthread\_cond\_wait (pthread\_cond\_t \*condptr, pthread\_mutex\_t \*mutexptr)
+
+int pthread\_cond\_signal (pthread\_cond\_t \*condptr)
+
+注意，我们使一个全局变量，同时关联上一个互斥锁和一个条件变量。
+
+然后如果在调用pthread\_cont\_wait的时候，已经被锁住了，则睡眠，同时释放mutexptr锁。
+
+具体解释见UNIX网络编程的604-606页。
+
+以上是关于多个线程对共享变量访问的互斥等问题。
+
+我们在创建线程时，主线程需要给线程函数传递参数，注意，那个参数一定要注意，不能传指针。可以传值（C语言函数调用拷贝参数，支持）；或者在传之前，动态分配一个内存。具体的例子见UNIX网络编程的588-589页。

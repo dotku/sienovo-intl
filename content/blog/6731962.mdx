@@ -1,0 +1,19 @@
+---
+title: "linux socket实现网络聊天室（一）：服务器和客户端对话"
+date: "2011-08-30"
+slug: "6731962"
+tags: ["#socket", "#服务器", "#linux", "#聊天", "#网络", "#struct"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6731962"
+---
+
+ 
+
+```cpp
+1.服务器端#include <sys/types.h>#include <sys/socket.h>#include <stdio.h>#include <stdlib.h>#include <errno.h>#include <string.h>#include <unistd.h>#include <netinet/in.h>#define SERVPORT 3333#define BACKLOG 10#define MAX_CONNECTED_NO 10#define MAXDATASIZE 5 int main(){	struct sockaddr_in server_sockaddr,client_sockaddr;	int sin_size,recvbytes;	int sockfd,client_fd;	char buf[MAXDATASIZE];/*创建socket*/	if((sockfd = socket(AF_INET,SOCK_STREAM,0))==-1){		perror("socket");		exit(1);	}	printf("socket success!,sockfd=%d\n",sockfd);/*设置服务器sockaddr_in结构*/	server_sockaddr.sin_family=AF_INET;	server_sockaddr.sin_port=htons(SERVPORT);	server_sockaddr.sin_addr.s_addr=INADDR_ANY;	bzero(&(server_sockaddr.sin_zero),8);/*绑定socket和端口*/	if(bind(sockfd,(struct sockaddr *)&server_sockaddr,sizeof(struct sockaddr))==-1){		perror("bind");		exit(1);	}	printf("bind success!\n");/*监听客户端请求*/	if(listen(sockfd,BACKLOG)==-1){		perror("listen");		exit(1);	}	printf("listening....\n");/*接受客户端请求*/	if((client_fd=accept(sockfd,(struct sockaddr *)&client_sockaddr,&sin_size))==-1){		perror("accept");		exit(1);	}/*接收客户端信息*/	if((recvbytes=recv(client_fd,buf,MAXDATASIZE,0))==-1){		perror("recv");		exit(1);	} 	printf("received a connection :%s\n",buf);/*关闭socket*/	close(sockfd);}2.客户端#include <stdio.h>#include <stdlib.h>#include <errno.h>#include <string.h>#include <netdb.h>#include <sys/types.h>#include <netinet/in.h>#include <sys/socket.h>#define SERVPORT 3333#define MAXDATASIZE 100main(int argc,char *argv[]){	int sockfd,sendbytes;	char buf[MAXDATASIZE];	struct hostent *host;	struct sockaddr_in serv_addr;/*argc<2,表示没有输入主机名，主机句是IP地址形式，如“192.168.1.1”*/	if(argc < 2){		fprintf(stderr,"Please enter the server's hostname!\n");		exit(1);	}/*获取主机名，地址解析函数*/	if((host=gethostbyname(argv[1]))==NULL){		perror("gethostbyname");		exit(1);	}/*创建socket*/	if((sockfd=socket(AF_INET,SOCK_STREAM,0))==-1){		perror("socket");		exit(1);	}/*设置serv_addr结构参数*/	serv_addr.sin_family=AF_INET;	serv_addr.sin_port=htons(SERVPORT);	serv_addr.sin_addr=*((struct in_addr *)host->h_addr);	bzero(&(serv_addr.sin_zero),8);/*向服务器请求连接，serv_addr是服务器端地址*/	if(connect(sockfd,(struct sockaddr *)&serv_addr,\		sizeof(struct sockaddr))==-1){		perror("connect");		exit(1);	}/*发送消息给服务器，此时可以在服务器端看到"hello"字样*/	if((sendbytes=send(sockfd,"hello",5,0))==-1){		perror("send");		exit(1);	}/*关闭连接*/	close(sockfd);} 
+```
+
+二、编译步骤
+
+```cpp
+#gcc server.c -o server#./server                       //此时服务器端在监听#gcc client.c -o client#./client 172.31.100.236        //客户端向服务器端发送“hello"，服务器端监听终止
+```

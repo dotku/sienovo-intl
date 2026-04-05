@@ -1,0 +1,97 @@
+---
+title: "Vxworks 进程间通信1－－消息队列"
+date: "2012-02-19"
+slug: "7272003"
+tags: ["#buffer", "#任务"]
+source: "https://blog.csdn.net/yeyuangen/article/details/7272003"
+---
+
+ 
+
+ 
+
+## Vxworks 进程间通信1－－消息队列
+
+## 一．概念：
+
+1.消息队列用于Task之间传递信息。
+
+2.多个任务向同一个消息队列发送消息或接收消息。
+
+3.ISR可以用NO\_WAIT方式发送消息。
+
+## ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/7272003/01_0_1303094586oOvP.gif)
+
+## 二.控制函数:
+
+## **1\. msgQCreate**
+
+## 
+
+**\[c-sharp\]** [view plain](http://write.blog.csdn.net/postedit# "view plain") [copy](http://write.blog.csdn.net/postedit# "copy")
+
+1.  MSG\_Q\_ID msgQCreate  
+2.  (  
+3.      int maxMsgs, /\* 消息队列长度（最大消息个数） \*/  
+
+5.      int maxMsgLength, /\* 消息队列中消息的最大长度\*/  
+
+7.      int options /\* FIFO/PRIORITY 等待Task排队方式\*/  
+8.  )  
+
+**![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/7272003/02_0_13030945987Ino.gif)**
+
+**2\. msgQSend**
+
+**\[c-sharp\]** [view plain](http://write.blog.csdn.net/postedit# "view plain") [copy](http://write.blog.csdn.net/postedit# "copy")
+
+1.  STATUS msgQSend  
+2.  (  
+3.      MSG\_Q\_ID msgQId, /\* 消息队列ID \*/  
+
+5.      char \*buffer, /\* 指向要发送的消息的指针\*/  
+
+7.      UINT nBytes, /\* 消息长度\*/  
+
+9.      int timeout, /\* 超时时间（tick）/no-wait/forever \*/  
+
+11.      int priority /\* MSG\_PRI\_NORMAL 或MSG\_PRI\_URGENT \*/  
+12.  )  
+
+**3.msgQReceive**
+
+**\[c-sharp\]** [view plain](http://write.blog.csdn.net/postedit# "view plain") [copy](http://write.blog.csdn.net/postedit# "copy")
+
+1.  int msgQReceive  
+2.  (  
+3.      MSG\_Q\_ID msgQId, /\* 消息队列ID \*/  
+
+5.      char \*buffer, /\* 指向接消息的收缓冲的指针\*/  
+
+7.      UINT maxNBytes, /\* 接收缓冲的字节数\*/  
+
+9.      int timeout /\* 超时时间（tick）/no-wait/forever \*/  
+10.  )  
+
+**4\. msgQDelete**
+
+**\[c-sharp\]** [view plain](http://write.blog.csdn.net/postedit# "view plain") [copy](http://write.blog.csdn.net/postedit# "copy")
+
+1.  STATUS msgQDelete  
+2.  (  
+3.      MSG\_Q\_ID msgQId /\* 需要删除的消息队列的ID \*/  
+4.  )  
+
+一旦msgQDelete()操作执行完毕，阻塞在该消息队列上的Task，包括阻塞在发送队列、接收队列上的Task，都将被唤醒(Unpend)，而消息队列的ID从此不再有效。
+
+## 三．建议：
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/7272003/03_0_13030946041z5O.gif)
+
+1.为每一个Task创建专用MsgQ。
+
+2.所有需发给该Task的Message都送到唯一MsgQ。
+
+3.因为消息队列有**Copy & MaxLength**的特性，所以消息队列中我们可以只存放指针。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/7272003/04_0_13030946111XwX.gif)

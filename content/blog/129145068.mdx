@@ -1,0 +1,367 @@
+---
+title: "基于龙芯 2K1000 的嵌入式 Linux 系统移植和驱动程序设计（二）"
+date: "2023-02-22"
+slug: "129145068"
+tags: ["#linux", "#系统移植"]
+source: "https://blog.csdn.net/yeyuangen/article/details/129145068"
+---
+
+ 
+
+第 3 章 嵌入式软件系统移植
+
+本课题中嵌入式系统正常工作的前提是嵌入式软件系统完整且能正常工作，
+
+以便为之后的软件开发提供一个能够正常工作的平台。引导程序 PMON 需要完成
+
+内核引导，嵌入式 Linux 内核需要具有完备的功能且能够正常使用，根文件系统要
+
+完成启动过程中初始化工作。
+
+3.1 PMON 启动流程与编译
+
+3.1.1 PMON 目录结构及主要命令
+
+PMON 目录结构如表 3-1 所示，PMON 目录下包含处理器相关代码和一些基
+
+本的设备驱动，Targets 目录下有针对不同板卡详细的配置文件\[39\]。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129145068/01_3fa00688494ae39e33f7cf20b1f6be09.png)
+
+PMON 主要命令包括常用指令和对设备的操作指令，例如设置网络设备 IP 的
+
+命令 ifaddr，网络连接命令 ping 和查看设备命令 devls 等。
+
+3.1.2 PMON 启动流程分析
+
+龙芯 2K1000 处理器通过 SPI 总线接口连接 NOR Flash，PMON 镜像文件存储
+
+在 NOR Flash 中，NOR Flash 的物理地址起始地址为 0x1fc00000，该地址为处理器
+
+的 SPI 总线控制器。但是程序主要在内存中运行，因此需要的改地址映射的虚拟地
+
+址起始地址为 0xbfc00000。处理器上电后，直接从 0xbfc00000 开始运行 PMON 的
+
+代码。
+
+PMON 有两部分代码，PMON 镜像文件开头部分为第一部分汇编代码，这部
+
+分代码上电后直接运行，因此没有压缩，执行完毕会执行第二部分经过压缩的 C 代
+
+码。PMON 分为两部分代码的原因在于系统初始阶段并没有准备好 C 语言运行的
+
+环境，因此需要汇编代码来完成一些处理器和内存等设备的初始化，完成准备工作
+
+\[40\]。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129145068/02_5e5324269e73d09663b97e2f7707a033.png)
+
+PMON 启动流程如图 3-1 所示，准备工作完成后，start.s 将第二部分压缩的 C
+
+代码解压，之后 C 代码就在内存中运行。start.s 是 PMON 镜像文件的开头，因此
+
+这部分代码存放在虚拟地址 0xbfc00000，这段代码初始化寄存器、内存、串口、网
+
+口之后，将 PMON 代码搬运到内存中运行，之后开始执行 initmips 函数。initmips
+
+函数在 Targets\\LS2K\\ls2k\\tgt\_machdep.c 文件中，该函数首先执行 tgt\_cpufreq 函数
+
+来探测 CPU 频率，之后执行 dbginit 函数对命令、文件系统、可执行文件和环境变
+
+量进行初始化，初始化 PCI 总线和设备，加载串口、网络接口、视频接口和 USB
+
+接口等设备的驱动，构建一个可以进行人机交互的命令行。
+
+3.1.3 PMON 编译
+
+1）下载 PMON 源代码，并解压。
+
+2）获取编译 PMON 的 gcc 编译器
+
+3）安装编译 PMON 必要的依赖工具
+
+#sudo apt-get install xutils-dev
+
+#sudo apt-get install bison flex build-essential patch
+
+#cd /home/troy/pmon-loongson3-20200728/tools/pmoncfg
+
+#make pmoncfg
+
+#cp pmoncfg /usr/bin
+
+4）在 PMON 源码存放目录下，更改相关文件配置编译所需环境变量
+
+#vi .bashrc
+
+在文件末尾增加三行 pmon 交叉编译工具链和编译器的路径信息
+
+export LD\_LIBRARY\_PATH=/home/troy/pmongcc/opt/gcc-4.4-gnu/lib:
+
+exportCROSS\_COMPILE=/home/troy/pmongcc/opt/gcc-4.4-gnu/bin/mipsel-linux
+
+export PATH=/home/troy/pmongcc/opt/gcc-4.4-gnu/bin/:$PATH
+
+#source .bashrc 使设置的环境变量生效
+
+5）进入 pmon 源码目录进行编译
+
+#cd /home/troy/pmon-loongson3-20200728/zloader.ls2k
+
+#make cfg
+
+#make all tgt=rom
+
+#make dtb
+
+如图 3-2 所示编译完成后在 pmon 源码目录下的 zloader.ls2k/目录下生成
+
+gzrom.bin 和 gzrom-dtb.bin。
+
+如果更改了 Targets/LS2K/conf/ls2k 目录下的文件源代码或者参数, 则在编译
+
+前要执行 make cfg，使得更改生效，如果普通编译没有更改配置，则每次无需都执
+
+行 make cfg 命令。执行 make dtb 可以将设备树 dtb 和 gzrom.bin 结合生成 gzrom
+
+dtb.bin，此命令可以在上面编译完成后执行。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129145068/03_0cff62eb4308c5236fad2db4fdb36c76.png)
+
+3.2 嵌入式 Linux 内核移植
+
+3.2.1 Linux 内核简介
+
+本课题中应用程序、Linux 内核、驱动程序、硬件关系如图 3-3 所示，Linux 内
+
+核是应用程序和硬件设备之间的媒介，内核将应用程序的请求和命令通过底层程
+
+序传递给硬件设备实现对硬件的操作。Linux 内核根据功能分为五个内核子系统，
+
+分别为进程调度、内存管理、文件系统、进程通信和网络。进程调度是内核的核心
+
+功能，多个进程需要使用 CPU 有限的资源，但是 CPU 一次只能处理一个进程，进
+
+程调度会通过合理切换多进程让宏观上多进程并行，无论何时都有进程运行，使
+
+CPU 资源得到最有效利用。内存管理使用一块内存区域给多个进程使用，节省内
+
+存资源。虚拟文件系统屏蔽了不同文件的细节，让用户可以使用一种方式通过例如
+
+read 和 write 等统一接口实现对不同类型文件的访问，如果没有虚拟文件系统，用
+
+户访问文件只能直接访问存储设备上文件存放的位置，这显然对于用户访问文件
+
+非常不方便。进程通信是指内核支持多进程之间通过信号量、共享内存等方式，实
+
+现互斥利用资源以及进程间消息传递，随着软件功能越来越复杂，目前几乎没有单
+
+进程的软件，因此进程调度属于内核中非常重要的功能。网络子系统包含各种网络
+
+协议以及对网络设备的驱动程序，可以让系统实现网络传输功能\[41\]。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129145068/04_f450fe90fd2d367c144c7ed0b8e2d804.png)
+
+3.2.2 Linux 内核的配置与编译
+
+对于龙芯 2K1000 处理器，考虑到软件的可互换性和可移植性，本课题选择龙
+
+芯官方获得支持 MIPS 架构的嵌入式 Linux 源代码，在 ubuntu 虚拟机中对 Linux 内
+
+核进行裁剪和交叉编译。主要工作流程如下：
+
+1）获取 Linux 源码
+
+从龙芯官方 ftp 下载内核源码压缩包并解压，生成对应的内核源码目录。
+
+2）配置环境变量
+
+#vi .bashrc
+
+在文件最后一行增加交叉编译工具链的绝对路径
+
+#export PATH=/home/troy/opt/gcc-4.9.3-64-gnu/bin:$PATH
+
+#source .bashrc 使配置的环境变量生效
+
+3）内核裁剪配置
+
+Linux 内核代码中提供使用图形化界面进行内核裁剪的工具，本课题不直接修
+
+改 Linux 的编译文件代码，而是使用图形界面工具进行内核裁剪，命令如下：
+
+#make ARCH=mips CROSS\_COMPILE=mips64el-linux- menuconfig
+
+运行该命令之后会弹出如图 3-4 所示的内核配置界面。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129145068/05_b5c57d87bc4638e27e43d20c891a43b7.png)
+
+由于本课题使用龙芯官方维护 Linux 内核，需要根据龙芯 2K1000 处理器实际
+
+情况对内核进行一些裁剪：
+
+（1）增加帧缓冲区驱动
+
+Device Driver—\>
+
+Graphics support—\>
+
+Support for frame buffer devices—\>
+
+Loongson Frame Buffer Support
+
+（2）增加龙芯 2K1000 处理器 SPI 总线控制驱动
+
+Device Driver—\>
+
+SPI support—\>
+
+<\*>Loongson SPI Controller Support
+
+（3）增加龙芯 2K1000 处理器 VGA 驱动
+
+Device Driver—\>
+
+Graphics support—\>
+
+<\*>Loongson VGA DRM
+
+\[ \] use platform device
+
+（4）将自己开发的网络驱动等编译进内核
+
+（5）删除如邮箱、无线网络等不需要使用的驱动程序和功能
+
+4）编译内核
+
+#make ARCH=mips CROSS\_COMPILE=mips64el-linux-，对内核进行编译。如
+
+图 3-5 所示编译完毕之后在内核目录下生成 vmlinux 为可移植的 Linux 内核镜像，
+
+vmlinuz 为可移植的 Linux 内核压缩镜像。由于嵌入式系统一般资源有限，所以使
+
+用 vmlinuz 作为系统内核镜像。
+
+ ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129145068/06_af87f642d683c710179426fe27cd9ece.png)
+
+3.3 根文件系统制作
+
+3.3.1 Linux 根文件系统
+
+内核启动后首先挂载根文件系统，根文件系统除了有文件系统存储和管理数
+
+据的功能，也有普通文件系统没有的功能。根文件系统中一般在/etc 目录下存放着
+
+许多初始化脚本和配置文件，负责系统启动过程中的初始化功能。根文件系统在内
+
+核启动最后阶段被挂载到根目录/，其他目录再挂载到根目录\[42\]。
+
+虽然根文件系统负责 Linux 内核启动过程中的初始化工作，但在嵌入式系统
+
+中它与内核一般是分开的，这是由于内核负责一些进程调度等操作系统的基本工
+
+作，这些基本工作在所有处理器平台下基本相同。但是根文件系统负责配置工作，
+
+不同的处理器配置方法和具体内容不同，因此根文件系统和内核分离，可以让嵌入
+
+式软件系统的可移植性更好。
+
+3.3.2 根文件系统制作
+
+制作根文件系统常用工具是 BusyBox 和 Buildroot\[43\]，由于 BusyBox 使用较为
+
+繁琐，因此本课题使用 Buildroot 工具来制作根文件系统。Buildroot 包含了 Makefile
+
+和 Kconfig，可以用来构建内核、引导程序和根文件系统，在嵌入式开发中主要用
+
+来构建根文件系统。使用 Buildroot 制作根文件系统镜像步骤如下：
+
+1）下载并配置 Buildroot
+
+下载并解压 Buildroot 之后，使用龙芯 2k1000 对应的 config 文件替换之前默
+
+认 config 文件，具体命令如下：
+
+#wget http://ftp.loongnix.org/embedd/ls2h/Buildroot/
+
+#sudo tar -zxvf Buildroot.tar.gz
+
+#cp ls2k\_docker-systemd-gcc-4.9.3.config .config
+
+2）创建自动编译脚本
+
+通过使用可执行脚本，将编译根文件系统步骤放在一个脚本文件中，减少操作
+
+复杂度，具体命令如下：
+
+#touch cmd.sh
+
+#vi cmd.sh
+
+脚本内容如下：
+
+#! /bin/bash
+
+export LANG=C
+
+export PATH=/home/troy/opt/gcc-4.9.3-64-gnu/bin/:$PATH
+
+make ARCH=mips CROSS\_COMPILE=mips64el-linux- -j2
+
+#chmod 777 cmd.sh
+
+3）使用图形化界面对 Buildroot 进行配置
+
+#make menuconfig
+
+Buildroot 图形化配置界面如图 3-6 所示，具体配置步骤如下：
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129145068/07_95a388a73c223485df3609ebfffdc1b2.png)
+
+（1）Target options —\>
+
+根据龙芯 2K1000 处理器实际参数配置 CPU 参数为小端 MIPS64
+
+（2）Toolchain —\>
+
+设置工具链 gcc-4.9.3-64-gun 的路径，根据虚拟机中工具链实际的目录来填写
+
+（3）System configuration —\>
+
+包含了开机之后系统的欢迎语和用户名及其密码
+
+（4）Run a getty (login prompt) after boot —\>
+
+配置串口的波特率，由于本课题中不使用串口而是直接外接屏幕来显示，因此
+
+该项可以不进行设置。
+
+（5）Kernel —\>
+
+由于制作不附带内核的根文件系统，该项为空
+
+（6）Target packages —\>
+
+根据实际需求选择附带的嵌入式软件，本课题中只需要构建一个最基本的根
+
+文件系统，因此不需要进行选择。
+
+4）开始编译 buildroot
+
+在 buildroot 的顶层目录下执行如下命令：
+
+#./cmd.sh
+
+执行自动编译脚本进行编译。
+
+编译成功后，如图 3-7 所示/buildroot/output/images/目录下会生成 cpio、
+
+cpio.gz、
+
+ubi、ubifs 以及 yaffs2 五种类型的根文件系统镜像。由于系统使用 SSD 卡作为存储
+
+介质，因此选择除 ubifs 之外格式的文件系统。
+
+ ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129145068/08_82212623fcc5d274113e5f19e58699fc.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129145068/09_ba1d5d5e14ab0d089e1446a3c7c962e2.png)

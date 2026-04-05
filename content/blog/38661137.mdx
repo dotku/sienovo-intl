@@ -1,0 +1,22 @@
+---
+title: "MAC ,PHY, MII"
+date: "2014-08-18"
+slug: "38661137"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/38661137"
+---
+
+ 
+
+MAC和PHY处理OSI七层网络结构的最低两层。
+
+（一）PHY负责电气信号的转换、线路状态、数据硬编码等。PHY在发送数据的时候，收到MAC过来的数据(对PHY来说，没有帧的概念，对它来说，都是数据而不管什么地址，数据还是CRC)，每4bit就增加1bit的检错码，然后把并行数据转化为串行流数据，再按照物理层的编码规则(10Based-T的NRZ编码或100based-T的曼彻斯特编码)把数据编码，再变为模拟信号把数据送出去。收数据时的流程反之。
+
+（二）MAC负责组帧、CRC校验、与IP协议层的接口，寻址机制等。以太网卡中数据链路层的芯片称之为MAC控制器。很多网卡的这两个部分是做到一起的。他们之间的关系是pci总线接mac总线，mac接phy，phy接网线（当然也不是直接接上的，还有一个变压装置）。 
+
+（三）MII (Media Independent Interface )是介质无关接口。40针。MII类似于10Mbps以太网的连接单元接口（AUI）。MII层定义了在100BASE-T MAC和各种物理层之间的标准电气和机械接口，这种标准接口类似于经典以太网中的AUI，它允许制造厂家制造与介质和布线无关的产品，利用外接MAU去连接实际的物理电缆。 
+MII和AUI的电气信号是不同的，AUI信号具有较强的、能驱动50米电缆的能力，而MII的信号是数字型的，只能驱动0.5米电缆。MII采用一个类似于SCSI连接器的40芯小型连接器。
+
+参考文章：
+
+1、[PHY和MAC：网卡工作原理](http://wenku.baidu.com/link?url=4zn7hG6mmSCMbytRx9T0LDd2hS4XI50Ufmue5SSWevwnTcMAIpbSb3wnd7oN0JhTxdFHgkHsUX1BWLD-n9ugTFB2nFDGFYjIPYRUgiJcelK)

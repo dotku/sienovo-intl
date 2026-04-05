@@ -1,0 +1,63 @@
+---
+title: "memset ,memcpy 和strcpy 区别"
+date: "2011-09-16"
+slug: "6782101"
+tags: ["#struct"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6782101"
+---
+
+ 
+
+**Memset**  用来对一段内存空间全部设置为某个字符，一般用在对定义的字符串进行初始化为‘ ’或‘\\0’；
+
+例:char a\[100\];memset(a, '\\0', sizeof(a));
+
+     memset可以方便的清空一个结构类型的变量或数组。
+
+如：
+
+struct sample\_struct  
+{  
+ char   csName\[16\];  
+ int    iSeq;  
+ int    iType;  
+};
+
+对于变量  
+struct sample\_strcut  stTest;
+
+一般情况下，清空stTest的方法：
+
+stTest.csName\[0\]='\\0';  
+stTest.iSeq=0;  
+stTest.iType=0;
+
+用memset就非常方便：  
+memset(&stTest,0,sizeof(struct sample\_struct));
+
+如果是数组：
+
+ struct sample\_struct   TEST\[10\];  
+则  
+memset(TEST,0,sizeof(struct sample\_struct)\*10);
+
+**memcpy**  用来做内存拷贝，你可以拿它拷贝任何数据类型的对象，可以指定拷贝的数据长度。
+
+例：char a\[100\],b\[50\]; memcpy(b, a, sizeof(b));注意如用sizeof(a)，会造成b的内存地址溢出。
+
+**Strcpy**   就只能拷贝字符串了，它遇到'\\0'就结束拷贝。
+
+例：char a\[100\],b\[50\];strcpy(a,b);如用strcpy(b,a)，要注意a中的字符串长度（第一个‘\\0’之前）是否超过50位，如超过，则会造成b的内存地址溢出。
+
+str也可以用用个参数的strncpy(a,b,n)
+
+\========================================================
+
+memset主要应用是初始化某个内存空间。  
+memcpy是用于copy源空间的数据到目的空间中。  
+strcpy用于字符串copy,遇到‘\\0’，将结束。
+
+如果你理解了这些，你应该知道他们的区别：例如你初始化某块空间的时候，用到memcpy，那么应该怎么写，是不是显得很笨。  
+  int  m\[100\]  
+memset((void\*)m,0x00,sizeof(int)\*100);//Ok！  
+memcpy((void\*)m,"\\0\\0\\0\\0....",sizeof(int)\*100);//it’s wrong.

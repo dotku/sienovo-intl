@@ -1,0 +1,19 @@
+---
+title: "【面试】4.单链表的反向"
+date: "2013-01-03"
+slug: "8462325"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/8462325"
+---
+
+ 
+
+参考经典博文：[链表逆序](http://blog.csdn.net/niuer09/article/details/5961004)
+
+  
+
+给定单链表的头指针Head，可以将链表反向，一种方法利用指针直接赋值，一种借助stack先进后出的特性
+
+```cpp
+#include<iostream>#include<stack>using namespace std; struct node{    int i;    node* next;}; void reverse1(node** head){    node* p1;    node* p2;    p1=*head;    p2=p1->next;    (*head)->next=NULL;    while(p2)    ...{        p1=p2->next;        p2->next=*head;        *head=p2;        p2=p1;    } }void reverse2(node** head){    stack<node*> S;    node* temp=*head;    while(temp)    {        S.push(temp);        temp=temp->next;    }    *head=S.top();    S.pop();    temp=*head;    while(!S.empty())    {        temp->next=S.top();        S.pop();        temp=temp->next;        temp->next=NULL;    }} int main(){     node* head=new node;    head->i=0;    head->next=NULL;    node* temp=head;    int i;    for(i=1;i<10;++i)    {        temp->next=new node;        temp=temp->next;        temp->i=i;        temp->next=NULL;    }     temp=head;    while(temp)    {        cout<<temp->i<<endl;        temp=temp->next;    }     reverse1(&head);    temp=head;    while(temp)    {        cout<<temp->i<<endl;        temp=temp->next;    }     reverse2(&head);    temp=head;    while(temp)    {        cout<<temp->i<<endl;        temp=temp->next;    }      return 0;}
+```

@@ -1,0 +1,45 @@
+---
+title: "linux下使用samba上传文件夹和映射samba目录为windows下的目录以及使用source insight查看Linux工程的问题"
+date: "2011-08-18"
+slug: "6698541"
+tags: ["#linux", "#windows", "#vim", "#redhat", "#防火墙", "#服务器"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6698541"
+---
+
+ 
+
+刚才朋友遇到了问题，如何在windows下把samba目录映射成windows的一个磁盘,还有就是他的samba为什么不能上传目录.
+
+今天把这连个问题的解决方法写出来,希望遇到同样问题的人，能够提供些帮助.
+
+  
+
+**问题1:如何映射?**
+
+首先你要启动你的linux系统,而且正确配置你的samba服务器,把共享目录的权限设置为777.所有的目录都要是可穿透的.
+
+然后，你回到windows下，右击我的电脑,选择“映射网络驱动器”,在"文件夹"右面的”浏览“,选择你的samba目录,点击完成。就OK了.
+
+这样的话,你就不用每次在windows下查看samba中的文件时,在"运行"中输入linux的IP地址了.
+
+现在samba目录就是你windows上的一个目录了,你可以正常访问了.
+
+**问题2: 创建了samba后，发现单个文件可以拖进去,但是目录确拖不进去?**
+
+ 我们使用的是redhat企业版,在安装的时候，SELinux是启动的。这个问题主要是由于它的启动而导致的.
+
+ 进入linux系统，在system-->administration--->security level and firewall中禁用SELinux和firewall之后，就可以拖入文件夹了。
+
+ **问题3:在windows下我们可以使用source insight来阅读和修改工程内的文件，但是现在在linux内只能用VIM，能不能使用windows下的source insight来查看呢？**
+
+当然可以。对于Linux下的阅读工程，你可以使用Linux版本的source insight，也可以通过配置直接使用VIM来查看。VIM是很强大的！
+
+ 现在我们来使用windows下的source insight来查看,你映射了samba后，你就可以和在windows下一样，对你要查看的工程文件创建
+
+ 一个source insight工程了.但是，你可能会在打开工程的时候，出现提示"there was an error opening project .......",这个其实还是
+
+ 因为防火墙的起作用，当然你要把工程文件目录及文件的权限都要设置为可读写执行。按照我上面的问题2去操作后，你发现可以正常打开
+
+ 工程了.  这样我们就可以像在windows下一样去阅读修改工程了.
+
+ 希望以上可以帮助到遇到这样困难的人!

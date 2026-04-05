@@ -1,0 +1,209 @@
+---
+title: "跟我一起makefile学习笔记"
+date: "2011-08-19"
+slug: "6702197"
+tags: ["#makefile", "#wildcard", "#扩展", "#list", "#filter", "#emacs"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6702197"
+---
+
+ 
+
+**一、术语解析**
+
+**1.自动化变量**
+
+$<:所有的依赖集合。扩展成依靠列表中的第一个依靠文件
+
+$@:规则的目标所对应的所有文件，扩展成当前规则的目的文件名。注：&（OBJECTS)才是所有目标的集合。【疑难辨析，到底有何本质不同】
+
+$?:
+
+$^:扩展成整个依靠的列表（除掉了里面所有重复的文件名）
+
+  
+
+@扩展成当前规则的目的文件名，@扩展成当前规则的目的文件名， <   扩展成依靠列表中的第一个依靠文件（如foo.o   :   foo.c   foo.h   bar.h ，则$<代表foo.c），而   $^   扩展成整个依靠的列表（除掉了里面所有重复的文件名）。利用这些变量，我们可以把上面的   makefile   写成： 
+
+```cpp
+===   makefile   开始   === OBJS   =   foo.o   bar.o CC   =   gcc CFLAGS   =   -Wall   -O   -g myprog   :   $(OBJS)     $(CC)   $^   -o   $@              //此时，$^代表整个依靠的列表，是foo.c,bar.c(隐规则）？？？  $@代表myprog吧foo.o   :   foo.c   foo.h   bar.h     $(CC)   $(CFLAGS)   -c   $ <   -o   $@        //{1}lt;代表foo.c,&@代表foo.obar.o   :   bar.c   bar.h     $(CC)   $(CFLAGS)   -c   $ <   -o   $@ ===   makefile   结束   === 
+```
+
+$@表示一个目标的集合（一个判断特征：多目标），可以理解为C中的数组，依次取出目标，并执行命令。
+
+请看示例2：
+
+```cpp
+bigoutput littleoutput : text.g  generate text.g -$(subst output,,$@)//上述规则等价于bigoutput : text.g  generate text.g -big > bigoutput littleoutput : text.g  generate text.g -little > littleoutput 
+```
+
+**2.关键字**
+
+1)wildcard:
+
+比较：objects = \*.o  //不展开
+
+            objects := $(wildcard \*.o) //展开. 让objects的值是所有.o文件的集合
+
+在 GNU Make 里有一个叫 ’wildcard’ 的函 数，它有一个参数，功能是展开成一列所有符合由其参数描述的文件名，文件间以空格间隔。你可以像下面所示使用这个命令：          SOURCES = $(wildcard \*.c)          这行会产生一个所有以 ".c" 结尾的文件的列表，然后存入变量 SOURCES 里。当然你不需要一定要把结果存入一个变量。 
+
+**3.伪目标.PHONY,clean,all**
+
+all     : (𝑂𝑈𝑇𝐷𝐼𝑅)(OUTDIR)(OUTDIR)/$(OUTBINNAME).PHONY : all
+
+\===============================温馨提示：伪目标=======================================
+
+```cpp
+all : prog1 prog2 prog3 .PHONY : all prog1 : prog1.o utils.o  cc -o prog1 prog1.o utils.o prog2 : prog2.o  cc -o prog2 prog2.o prog3 : prog3.o sort.o utils.o  cc -o prog3 prog3.o sort.o utils.o 
+```
+
+由于伪目标的特性，总是被执行的。所以，all,prog1,prog2,prog3都是可执行文件。
+
+\====================================================================================
+
+**3.标签label**
+
+**4..PHONY : clean**     //代表clean是个伪目标文件
+
+**5.环境变量MAKEFILES：**建议不用，因为它类似于全局变量，会使你所有的Makefile都受其影响。当你的makefile出现怪事时，可以检查环境变量中是否有它。
+
+**6.-M选项**：自动生成依赖性，自动包含头文件。
+
+    如我们执行命令：  cc -M main.c    
+    输出：main.o : main.c defs.h 
+
+7.可执行文件。如exec:
+
+## 二、变量定义
+
+这里的变量就像C语言中的宏定义。
+
+```cpp
+#方式一：定义多行变量define variablevaluevalueendef#方式二：variable = value#方式三：variable := value#方式四：variable += value#方式五：variable ?= value
+```
+```cpp
+=   ：从后往前定义，后面的值决定最终。这种方式要小心使用。还是使用：=为妙啊。当然简单的情况下还是使用这个好。:=+=  ：追加?=  ： 
+```
+
+```cpp
+
+```
+**三、通配符**
+
+```cpp
+*?...~%
+```
+  
+
+注意：若文件句中有\*，则可以加上转义字符\\\*
+
+\===========     实例解析   ==============
+
+1）\*.c与%.c是同义吗？
+
+\===================================
+
+**四、使用函数**
+
+**1. $(subst <from>,<to>,<text>)** 
+
+把字串text中的from替换成to
+
+**2.$(patsubst <pattern>,<replacement>,<text>)** 
+
+模式字串替换函数：pattern（模式）
+
+示例：    $(patsubst %.c,%.o,x.c.c bar.c)   把 x.c.c bar.c符合模式%.c替换成%.o，替换结果为x.c.o bar.
+
+**3.filter函数**
+
+```cpp
+files = foo.elc bar.o lose.o $(filter %.o,$(files)): %. %.c   //filter表示过滤取出files集合中后缀为%.o的文件$(CC) -c $(CFLAGS) {1}lt; -o $@ $(filter %.elc,$(files)): %.elc: %.el  emacs -f batch-byte-compile {1}lt; 
+```
+**4.****foreach 函数**
+
+foreach 函数和别的函数非常的不一样。因为这个函数是用来做循环用的，Makefile中的foreach函数几乎是仿照于Unix标准Shell （/bin/sh）中的for语句，或是C-Shell（/bin/csh）中的foreach语句而构建的。它的语法是：  
+ $(foreach <var>;,<list>;,<text>;)
+
+这个函数的意思是，把参数<list>;中的单词逐一取出放到参数<var>;所指定的变量中，然后再执行< text>;所包含的表达式。每一次<text>;会返回一个字符串，循环过程中，<text>;的所返回的每个字符串会 以空格分隔，最后当整个循环结束时，<text>;所返回的每个字符串所组成的整个字符串（以空格分隔）将会是foreach函数的返回值。  
+所以，<var>;最好是一个变量名，<list>;可以是一个表达式，而<text>;中一般会使用<var>;这个参数来依次枚举<list>;中的单词。举个例子：  
+
+```cpp
+names := a b c dfiles := $(foreach n,$(names),$(n).o)
+```
+上面的例子中，(𝑛𝑎𝑚𝑒)中的单词会被挨个取出，并存到变量“𝑛”中，“(name)中的单词会被挨个取出，并存到变量“n”中，“(n).o”每次根据“(𝑛)”计算出一个值，这些值以空格分隔，最后作为𝑓𝑜𝑟𝑒𝑎𝑐ℎ函数的返回，所以，(n)”计算出一个值，这些值以空格分隔，最后作为foreach函数的返回，所以，(files)的值是“a.o b.o c.o d.o”。
+
+注意，foreach中的<var>;参数是一个临时的局部变量，foreach函数执行完后，参数<var>;的变量将不在作用，其作用域只在foreach函数当中。
+
+  
+
+**五、静态模式**
+
+**六、Makefile规则**
+
+target ... : prerequisites ...   
+            command  
+
+target:是一个目标文件，可以是object file（多个文件）,也可以是执行文件，还可以是标签。
+
+prerequisites：是生成 target所需要的文件或目标
+
+\======================  温馨提示  ===============================
+
+```cpp
+edit : main.o kbd.o command.o display.o insert.o search.o files.o utils.o  cc -o edit main.o kbd.o command.o display.o  insert.o search.o files.o utils.o             //小心观察比较，这里的CC跟的是-o,后面跟的是edit,main.o等。下面的CC跟的是-c,其后                                                                                                                                                         //跟的是.cmain.o : main.c defs.h  cc -c main.c 
+```
+
+\==============================================================
+
+**七、 让make自动推导**
+
+1.只要makefile看到.o文件它就会自动推导找到生成自己的.c文件
+
+自动推导文件及文件所依赖的命令
+
+  
+
+**八、其它** 
+
+**1.文件搜寻**
+
+1）
+
+```cpp
+VPATH = src:../headers
+```
+
+上面指令指定 了两个目录“src”和“../headers”，当然当前目录永远是最先搜索的对象。目录由“：”分开。  
+
+2）
+
+```cpp
+   vpath %.c foo    vpath %.c blish    vpath %.c bar 
+```
+
+上面指令表示先在foo目录中搜索.c文件，然后依次在blish目录，bar目录搜索。
+
+3）
+
+vpath %.h ../headers  
+
+上面是模式搜索
+
+**九、实例分析**
+
+```cpp
+[root@localhost new2416]# make CC=arm-linux-gccmkdir   obj arm-linux-gcc -c -O2 -o  obj/main.o main.c arm-linux-gcc -c -O2 -o  obj/bmp.o bmp/bmp.carm-linux-gcc -c -O2 -o  obj/lcddriver.o lcddriver/lcddriver.carm-linux-gcc -c -O2 -o  obj/disp.o disp/disp.carm-linux-gcc -c -O2 -o  obj/zklib.o zklib/zklib.carm-linux-gcc -c -O2 -o  obj/gps.o gps/gps.carm-linux-gcc -c -O2 -o  obj/usb.o usb/usb.carm-linux-gcc -c -O2 -o  obj/timer.o timer/timer.carm-linux-gcc -c -O2 -o  obj/anet.o anet/anet.carm-linux-gcc -c -O2 -o  obj/omc.o omc/omc.carm-linux-gcc -o  obj/go obj/main.o  obj/bmp.o  obj/lcddriver.o  obj/disp.o  obj/zklib.o  obj/gps.o  obj/usb.o  obj/timer.o  obj/anet.o  obj/omc.o  -lpthread  -lmFinished!Binfile is obj/go!
+```
+上例一个难点是从相应目录中找到.c文件生成.o文件。
+
+  
+
+**十、隐晦规则**
+
+1.$(objects) : defs.h
+
+  
+
+**十一、注意事项**
+
+1.命令一定要以Tab键开头，否则不会被执行

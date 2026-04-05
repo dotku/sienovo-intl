@@ -1,0 +1,31 @@
+---
+title: "__read_mostly变量含义（LINUX)"
+date: "2012-02-29"
+slug: "7307326"
+tags: ["#linux", "#linux内核", "#cache", "#平台"]
+source: "https://blog.csdn.net/yeyuangen/article/details/7307326"
+---
+
+ 
+
+\_\_read\_mostly原语将定义为存放在.data.read\_mostly段中
+
+  include/asm/cache.h
+
+#define \_\_read\_mostly \_\_attribute\_\_((\_\_section\_\_(".data.read\_mostly")))  
+
+    由此可见,我们可以将经常需要被读取的数据定义为 \_\_read\_mostly类型, 这样Linux内核被加载时,该数据将自动被存放到Cache中,以提高整个系统的执行效率.
+
+   另一方面,如果所在的平台没有Cache,或者虽然有Cache,但并不提供存放数据的接口,(也就是并不允许人工放置数据在Cache中), 这样定义为 \_\_read\_mostly类型的数据将不能存放在Linux内核中,甚至也不能够被加载到系统内存去执行,将造成Linux 内核启动失败.
+
+   解决的方法有两种:
+
+   修改include/asm/cache.h中的\_\_ready\_mostly定义为:
+
+   #define \_\_read\_mostly
+
+   或者修改arch/xxx/kernel/vmlinux.S
+
+   修改.data.read\_mostly段的位置到实际内存空间中去,例如放置在 .data段之后等等
+
+  原文地址:   [http://blog.chinaunix.net/u2/85263/showart\_1743693.html](http://blog.chinaunix.net/u2/85263/showart_1743693.html)

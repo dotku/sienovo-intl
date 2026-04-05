@@ -1,0 +1,47 @@
+---
+title: "STDIN_FILENO的作用及与stdin 的区别"
+date: "2011-09-16"
+slug: "6781999"
+tags: ["#file", "#api", "#手机", "#buffer", "#终端", "#网络"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6781999"
+---
+
+ 
+
+1.STDIN\_FILENO的作用  
+
+STDIN\_FILENO属于系统API接口库，其声明为 int 型，是一个打开文件句柄，对应的函数主要包括 open/read/write/close 等系统级调用。
+
+操作系统一级提供的文件API都是以文件描述符来表示文件。STDIN\_FILENO就是标准输入设备（一般是键盘）的文件描述符。
+
+  
+
+2.区别
+
+1）数据类型不一致：  
+stdin类型为 FILE\*  
+STDIN\_FILENO类型为 int  
+使用stdin的函数主要有：fread、fwrite、fclose等，基本上都以f开头  
+使用STDIN\_FILENO的函数有：read、write、close等  
+
+2）stdin等是FILE \*类型，属于标准I/O，高级的输入输出函数。在<stdio.h>。  
+STDIN\_FILENO等是文件描述符，是非负整数，一般定义为0, 1, 2，属于没有buffer的I/O，直接调用系统调用，在<unistd.h>。
+
+3）STDIN\_FILENO 是标准输入的文件描述符  
+详见/usr/include/unistd.h  
+代码:  
+/\* Standard file descriptors. \*/  
+#define STDIN\_FILENO 0 /\* Standard input. \*/  
+#define STDOUT\_FILENO 1 /\* Standard output. \*/  
+#define STDERR\_FILENO 2 /\* Standard error output. \*/
+
+4）层次不一样。STDIN 属于标准库处理的输入流，其声明为 FILE 型的，对应的函数前面都有f开头，如fopen/fread/fwrite/fclose 标准库调用等  
+STDIN\_FILENO属于系统API接口库，其声明为 int 型，是一个打开文件句柄，对应的函数主要包括 open/read/write/close 等系统级调用。  
+  
+标准库内封装了系统 API 调用，如 fread 内部实现调用 read。
+
+5）操作系统一级提供的文件API都是以文件描述符来表示文件。STDIN\_FILENO就是标准输入设备（一般是键盘）的文件描述符。
+
+6）曾经很纳闷，为什么一个整形fd（STDIN\_FILENO=0）就可以代表一个打开的文件呢？  
+后来明白了，和我们的手机号是类似的，手机号只是一个9位数的整形，但是在移动通话网络里，它就可以用来区分不同的手机终端。  
+标准C++一级提供的文件操作函数库都是用FILE\*来表示文件，stdin就是指向标准输入设备文件的FILE\*。

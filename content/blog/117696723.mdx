@@ -1,0 +1,316 @@
+---
+title: "基于AM5728 linux开源ethercat运动控制一体机解决方案"
+date: "2022-02-21"
+slug: "117696723"
+tags: ["#AM5728", "#LINUX", "#开源", "#运动控制", "#DSP+ARM"]
+source: "https://blog.csdn.net/yeyuangen/article/details/117696723"
+---
+
+ 
+
+ 信迈ethercat主站 FPGA 高实时带加密实现32轴
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/01_073c3c79f809e50a1cf62c33769a7f50.png)
+
+**性能优势**
+
+1.  更快的循环周期，可以达到31.25us
+2.  更低的抖动，抖动时间小于0.004us
+3.  同步性能好，主站和各个从站设备可以达到远小于1us的时钟同步精度（4轴实测50ns）
+
+**性能对比：**
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/02_189d758fec4b5baf792b6af757282279.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/03_46a68ecebeac947c57b0ab2dfa34b24c.png)
+
+**更多性能对比总结：**
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/04_422024ab63dd3fc67f7597d8fd4423f0.png)
+
+XM5728-ETH 总线控制器集成了千 M 以太网以及 USB3.0 接口（支持多种工业相 机），支持 EtherCAT 总线、 CAN 、232、485、编码器手轮接口，还带有 16 入、 16 出共 32 路本体数字 IO。
+
+各种复杂的运动控制与第三方视觉应用  
+灵活的系统架构与广泛的应用领域  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/18_59139e2b008509e9691ec0b68c8c8a9c.png)适用 IoT 与工业4.0解决方案  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/18_59139e2b008509e9691ec0b68c8c8a9c.png)支持自由添加Linux平台下的应用软件  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/18_59139e2b008509e9691ec0b68c8c8a9c.png)支持Qt开发人机交互用户界面  
+内部本地化接口，直接内存交互，通讯速率更快  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/18_59139e2b008509e9691ec0b68c8c8a9c.png)最多达 32 轴运动控制(EtherCAT 轴/编码器轴/虚拟轴)。  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/18_59139e2b008509e9691ec0b68c8c8a9c.png)编码器接口支持编码器位置测量，可以配置为手轮输入模式。  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/18_59139e2b008509e9691ec0b68c8c8a9c.png)16 路 NPN 通用输出，其中 12 路高速输出，4 路低速输出，输出口最大 输出电流可达 300mA，可直接驱动部分电磁阀。  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/18_59139e2b008509e9691ec0b68c8c8a9c.png)16 路 NPN 型通用输入，其中 2 路高速输入，12 路低速输入，高速输入 可配置为锁存信号使用。  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/18_59139e2b008509e9691ec0b68c8c8a9c.png)通过 EtherCAT 总线，最多可扩展到 4096 个隔离输入或输出口。  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/18_59139e2b008509e9691ec0b68c8c8a9c.png)4 个 USB(其中 2 个 USB3.0)接口、1 个 RS485 接口、1 个 232 接口、2 个 千 M 以太网接口,1 个百 M EtherCAT 接口。  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/18_59139e2b008509e9691ec0b68c8c8a9c.png)支持最多达 16 轴直线插补、任意空间圆弧插补、螺旋插补、样条插补。  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/18_59139e2b008509e9691ec0b68c8c8a9c.png)支持电子凸轮、电子齿轮、位置锁存、同步跟随、虚拟轴等功能。  
+支持硬件比较输出(HW\_PSWITCH2),硬件定时器,运动中精准输出。  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/18_59139e2b008509e9691ec0b68c8c8a9c.png)支持脉冲闭环，螺距补偿等功能。  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/18_59139e2b008509e9691ec0b68c8c8a9c.png)支持 ZBasic 多文件多任务编程。  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/18_59139e2b008509e9691ec0b68c8c8a9c.png)多种程序加密手段，保护客户的知识产权。
+
+**1** **开发****套件****简介**
+
+*   基于 TI AM5728 浮点双 DSP C66x +双 ARM Cortex-A15 工业控制及高性能音视频处理器；
+*   多核异构 CPU，集成双核 Cortex-A15、双核 C66x 浮点 DSP、双核PRU-ICSS、双核 Cortex-M4 IPU、双核 GPU 等处理单元，支持 OpenCL、OpenMP、SysLink IPC多核开发；
+*   强劲的视频编解码能力，支持 2kP30或1 路 1080P60 或 2 路 720P60 或 4 路 720P30 视频硬件编解码，支持H.265视频软解码；
+*   支持高达 1 路 1080P60 全高清视频输入和 1 路 LCD + 1 路 HDMI 1.4a 输出；
+*   双核 PRU-ICSS 工业实时控制子系统，支持 EtherCAT、EtherNet/IP、PROFIBUS等工业协议；
+*   高性能GPU，双核SGX544 3D 加速器和 GC320 2D 图形加速引擎，支持OpenGL ES2.0；
+*   外设接口丰富，集成双千兆网、PCIe、GPMC、USB 2.0、UART、SPI、QSPI、SATA 2.0、I2C、DCAN 等工业控制总线和接口，支持极速接口 USB 3.0；
+*   开发板引出 V-PORT 视频接口，可以灵活接入视频输入模块；
+*   体积极小，大小仅 86.5mm\*60.5mm；
+*   工业级精密 B2B 连接器，0.5mm 间距，稳定，易插拔，防反插，关键大数据接口使用高速连接器，保证信号完整性。
+
+XM5728-IDK-V3是一款深圳信迈基于 TI AM5728（浮点双 DSP C66x +双 ARM Cortex-A15）XM5728-SOM核心板设计的开发板，它为用户提供了XM5728-SOM核心板的测试平台，用于快速评估 XM5728-SOM 核心板的整体性能。
+
+XM5728-IDK-V3底板采用沉金无铅工艺的4层板设计，不仅为客户提供丰富的 AM5728入门教程，还协助客户进行底板的开发，提供长期、全面的技术支持，帮助客户以最快的速度进行产品的 二次开发 ，实现产品的快速上市。不仅提供丰富的 Demo 程序，还提供 DSP+ARM 多核通信开发教程，全面的技术支持，协助用户进行底板设计和调试以及 DSP+ARM 软件开发。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/19_c4ebe255a8cd6b276b216bf623cc498f.png)
+
+图1开发套件图
+
+**2** **典型运用领域**
+
+*   工业 PC&HMI
+*   工业机器人
+*   机器视觉
+*   医疗影像
+*   电力自动化
+*   EtherCAT 主/从控制器
+*   工业多协议智能网关
+*   高端数控系统
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/20_c1623e9117a137353453f5413dd7b336.png)
+
+****电力巡检机器人/AGV物流小车****
+
+**3** **软硬件参数**
+
+**硬件框图**
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/21_14f98ebf38a9db35a13c7329dc5d25f6.png)
+
+**表1**
+
+**SoC/CPU**
+
+TI AM5728，浮点双 DSP C66x @750MHz +双 ARM Cortex-A15@1.5GHz
+
+2 x IPU (Imaging Processing Unit) 用于图像加速，每个IPU是由两个ARM Coretex-M4组成，共4个ARM Coretex-M4
+
+2 x PRU-ICSS，每个PRU-ICSS包含一对PRU (Programming Real-time Unit)，共4个IPU，支持ETHERCAT等实时工业总线协议
+
+1 x IVA-HD Video codec，支持一路1080P 60fps H.264视频硬件编解码
+
+2 x SGX544 GPU 3D图形加速器
+
+1 x GC320 2D图形加速器
+
+**On-Chip** **L2 Cache**
+
+ARM Cortex-A15：1MByte
+
+C66x：288KByte
+
+**On-Chip** **L3 RAM**
+
+2.5MByte
+
+**ROM**
+
+4/8GByte eMMC
+
+**RAM**
+
+1/2GByte DDR3
+
+**Temperature Sensor**
+
+1x TMP102AIDRLT
+
+**B2B Connector**
+
+2x 100pin 公座 B2B，2x 100pin 母座 B2B，间距 0.5mm，合高 5.0mm，共 400pin
+
+**IO** **EXTENSION**
+
+2x 简易牛角座（2x 25pin 规格），间距 2.54mm，包含 GPMC、SPI、I2C、PWM、TIMER、UART、eQEP、eCAP 等拓展信号
+
+**KEY**
+
+1x冷复位按键
+
+1x热复位按键
+
+3x可编程输入按键（含1个非屏蔽中断按键）
+
+**JTAG**
+
+1x14pin TI Rev B JTAG 接口，间距 2.54mm
+
+**DISPLAY****（****可选模块）**
+
+1x 7寸电容屏，40pin FP母座，间距0.5mm
+
+**BOOT** **SET**
+
+1x5bit 启动方式拨码开关
+
+**SD**
+
+1x Micro SD 接口
+
+**RTC**
+
+1x CR1220，3V77-LOIH
+
+**Ethernet**
+
+2x RGMI，RJ45 接口，10/100/1000M 自适应
+
+2x PRU MII，RJ45 接口，10/100M 自适应，支持ETHERCAT等工业总线协议
+
+**USB**
+
+2x USB 2.0 接口
+
+1x USB 3.0 接口
+
+**CAN**
+
+1x 3pin 3.81mm 凤凰端子
+
+**PROFIBUS**
+
+1x 3pin 3.81mm凤凰端子
+
+**UART**
+
+1x UART0转Micro USB 接口，全双工模式
+
+1x RS232 串口（UART1），全双工模式
+
+1x RS485 串口（复用 UART1），半双工模式
+
+**PCIe**
+
+1x PCIe Gen2，单端口双通道，每通道最高通信速率 5GBaud
+
+**SATA**
+
+1x 7pin SATA 硬盘接口
+
+**HDMI OUT**
+
+1x HDMI 1.4a 接口
+
+**Camera** **Module****（****可选模块****）**
+
+1x VIP 摄像头并行接口
+
+**LED**
+
+2x 供电指示灯（底板 1 个，核心板 1 个）
+
+5x 可编程指示灯（底板 3 个，核心板 2 个）
+
+**FAN**
+
+1x3pin 5V 风扇插座
+
+**POWER**
+
+1x 12V 2A 直流输入 DC417 电源接口，外径 4.0mm，内径 1.7mm
+
+**3软件参数**
+
+表 2
+
+**ARM** **端软件支持**
+
+Linux-4.4.19，RT-Linux-4.4.19，TI-RTOS
+
+**DSP** **端软件支持**
+
+TI-RTOS
+
+**CCS** **版本号**
+
+CCS7.0
+
+**图形界面开发工具**
+
+Qt
+
+**双核通信组件支持**
+
+IPC核间通信
+
+**软件开发套件提供**
+
+Processor-SDK Linux、Processor-SDK RT-Linux、Processor-SDK TI-RTOS
+
+**Linux** **驱动支持**
+
+Camera
+
+DDR3
+
+PCIe/PCIe 2.0
+
+eMMC
+
+MMC/SD
+
+USB 2.0/USB 3.0
+
+LED
+
+BUTTON
+
+RS232
+
+RS485
+
+HDMI OUT
+
+DCAN
+
+SATA
+
+RTC
+
+PROFIBUS
+
+7 inch Touch Screen LCD(Res)
+
+SPI
+
+AUDIO
+
+UART
+
+JTAG
+
+EMCRYDTIC
+
+TEMPERATURE SENSOR
+
+KBD
+
+HDQ
+
+NMI
+
+SYS INT
+
+eCAP
+
+I2C
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/22_e41f4dcc9d6921b76a9b6e9125ca49e8.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/23_8d423b96e005e5cfe0ea10d819ceff25.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/24_7d3ef3283277f55aac945299ca7964b3.png)

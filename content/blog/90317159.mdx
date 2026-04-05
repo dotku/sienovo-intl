@@ -1,0 +1,98 @@
+---
+title: "浅谈AM5728裸板调试"
+date: "2019-05-18"
+slug: "90317159"
+tags: ["#AM5728", "#裸板启动", "#JTAG调试"]
+source: "https://blog.csdn.net/yeyuangen/article/details/90317159"
+---
+
+ 
+
+## 一、浅谈ARM裸板调试
+
+1. 连接仿真器，读写寄存器  
+将硬件仿真器插到ARM板的JTAG口上，然后连接PC，现在的ARM仿真器好像都是通过USB和PC相连了。连接好后，就给板子上电，然后打开PC端的调试软件，我在这里用的是ARM11的仿真器，调试软件用AXD。如果AXD识别出ARM处理器表示连接成功，如果没识别出来就是有问题了。  
+(1) 确认ARM处理器的所有供电是否正确  
+(2) 确认ARM处理器的RESET管脚  
+(3) 确认ARM处理器的晶振是否震动  
+(4) 确认JTAG接口是否正确  
+如果上面这4条都正常，仿真器就应该可以找到ARM。  
+   
+2. 通过脚本初始化ARM处理器及DRAM  
+由于是裸板，所以ARM上电以后没有做过任何的初始化。一般会通过执行一个脚本来对ARM做一个基本的初始化。脚本一般就是一个txt文件，例如：  
+setmem 0x36001004 0x4      32  
+setmem 0x36001010 0x40d  32  
+setmem 0x36001014 0x6      32  
+setmem 0x36001018 0x3      32  
+setmem 0x3600101c 0xf       32  
+setmem 0x36001020 0xf       32  
+setmem 0x36001024 0xf       32  
+mem 0x36001000 +1            32  
+mem 0x36001004 +1            32  
+mem 0x36001008 +1            32  
+mem 0x3600100c +1            32  
+….  
+上面的脚本命令是用于AXD软件的，其中“setmem”命令表示设置某个值到某个地址上，而“mem”命令表示从某个地址读一个值并打印出来。通过这两条命令，可以设置ARM内部的寄存器，也可以读出寄存器的值。脚本的作用主要是对ARM做初始化，一般包括关闭Interrupt和watchdog，配置clock，配置GPIO，配置DRAM控制器。  
+如何在AXD中运行脚本呢？首先在AXD菜单中选择”System Views”，然后选择”Command Line Interface”，会弹出一个窗口，在窗口中输入如下命令：  
+ob c:/ init .txt
+
+脚本运行完成以后，板子上的ARM和DRAM就应该已经被初始化好了。这时候可以做读写Memory的测试，在菜单中选择”Process Views”，然后选择”Memory”，输入DRAM的地址，然后修改一些地址上面的值，被改变后的值会变成红色，如果可以修改，表示DRAM应该工作正常了
+
+3. 通过AXD下载程序到DRAM中运行  
+  
+接下来就是下载程序到DRAM中运行了，主要目的是通过该程序来 烧录 bootloader。现在的ARM处理器都很强大，支持多种启动模式。根据不同的启动模式，要将bootloader烧到不同的介质当中。在AXD菜单中选择”File”，然后选择”Load Memory from File…”，会弹出一个窗口，如下：  
+  
+   
+   
+如图要在”Address”输入下载的地址，这个地址就是Loader\_RAM.bin的运行地址。下载成功以后，打开串口，然后在AXD的”Command Line Interface”中输入命令”setpc 0x50000000”，将PC指针指到0x50000000地址上，然后输入命令”go”开始运行。  
+   
+4. 烧录bootloader，启动ARM板  
+被下载的程序运行以后，就可以通过该程序将bootloader烧录到Nandflash，NORflash或者SD卡中，具体取决于板子所支持的启动模式。这个程序可以通过串口下载bootloader。还有一种方法就是在AXD中暂停程序运行，然后通过仿真器下载bootloader到DRAM中，然后再在AXD中恢复程序运行，通过最开始下载的程序将下载的bootloader烧到flash或者SD卡当中。  
+烧录成功以后，关电，拔掉仿真器的JTAG，重新上电，这个时候ARM板中的bootloader就可以运行了。  
+   
+bootloader运行后，工作就容易了。现在的bootloader都很强大，Linux有uboot，WinCE有Eboot，都能支持烧录，下载等功能。一般如果是买的开发板，都会提供烧录工具。不过在更换了DRAM和Nandflash以后，烧录工具可能也需要重新调试了。而且使用的bootloader也需要做改动。
+
+参考：[http://www.eeworld.com.cn/mcu/article\_2016042525926.html](http://www.eeworld.com.cn/mcu/article_2016042525926.html)
+
+## 二、使用JTAG调试器
+
+JTAG用于芯片的测试与程序调试,JTAG位于 CPU 内部,当CPU收发引脚上的数据时,都会通过JTAG单元,而**JTAG单元会从CPU内部引出TMS，TCK，TDI，TDO，四个引脚,**便可以通过OpenJTAG调试器连接电脑USB,而另一端连接这些JTAG脚来控制CPU。
+
+在裸板2440中,当我们使用nand启动时,2440会自动将前4k字节复制到内部sram中。
+
+然而此时的SDRAM、nandflash的控制时序等都还没初始化,所以我们就只能使用前0~4095地址,在前4k地址里来初始化SDRAM,nandflash,初始化完成后,才能将nandflash的4096至后面的地址内容存放到SDRAM里去.
+
+## 三、FPGA上电配置以及初始化
+
+FPGA的AS配置过程主要分为3个过程：复位、配置、和初始化过程。在配置之前，还有一个**POR(上电复位)过程，即一上电FPGA经过一个POR后才开始整个配置流程**。而POR的时间可以控制，**通过控制PORSEL引脚控制POR的时间**，当PORSEL接高电平时POR的时间大约是12ms,当PORSEL接低电平时POR的时间大约是100ms。
+
+POR的时候nconfig和nstatus均为低电平，进入复位过程，POR结束后FPGA释放nconfig信号，nconfig信号被外部上拉电阻拉高，由此进入配置过程。
+
+FPGA在配置过程阶段会产生DCLK时钟，在该时钟的同步下FPGA向配置芯片发送配置命令或地址以及读取配置数据。而DCLK可以有两种速度，一种20MHZ，一种40MHZ，对应的配置方式分别叫AS和Fast AS，只有容量EPCS16及以上的配置芯片支持Fast AS。
+
+当所有的配置数据传输完毕以后，FPGA释放config\_done信号，该 引脚 被外部10k电阻上拉到高电平，FPGA在检测到config\_done为高电平后进入到初始化过程。
+
+3.1 FPGA上电启动  
+FPGA工作的第一步就是给器件加电。**Xilinx要求VCCINT（核心电压）先动，然后再是VCCO（I/O电压），最坏情况是它们之间不能相差1s以上。**在并行配置模式下，VCCO\_2 要求参考电压必须和PROM参考电压相同，上电的过程如图2所示。其中，TPOR（Power-on-Reset）为5~30ms，T（PL）（Program Latency）为Maｘ 4ms，T（icck）（CCLK （output delay）为Min500ns。
+
+![图２ ＦＰＧＡ上电时序](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/90317159/02_5475c25d69f131312488163e90beefde.jpeg)
+
+在系统正常上电或者PROG-B是一个低脉冲时，FPGA开始配置寄存器空间。这段时间除定义好的配置管脚外，其他I/O 管脚均被设置为高阻态（High-Z）。经多次测试，这个阶段需要30ms左右的时间。
+
+FPGA启动阶段最后一步就是配置启动模式。在PROG-B变高时，FPGA 开始采集配置方式引脚（M3、M2、M1），并同时驱动CCLK输出。在这个阶段，有两种方法可以延迟FPGA的配置时序，一种是拉低INIT-B管脚，这是由于FPGA检测到自身还没有初始化完毕，不会进行接下来的操作步骤，直到INIT-B管脚变高。另一种就是拉低PROG-B管脚，使FPGA还处于等待配置状态。
+
+3.2 FPGA数据加载  
+FPGA 正常数据加载前，需要做一个器件与PROM之间的同步检查。方法是传输一个特殊的32位数值（0ｘAA995566）到FPGA中，提示FPGA下面开始传输的是配置数据。这个步骤对用户来说是透明的，因为在Xilinx ISE Bitstream Generator 中生成的．bit文件中已经自动加入了这个校验码。
+
+在做完配置前的通信同步后，FPGA 与PROM之间还无法识别相互间是个什么器件，于是Xilinx 就给每一个型号的FPGA 设计了一个唯一的器件ID号，这个ID号可以在Xilinx 配置手册中查到。如上述例子中用到的XC4VS35，其ＩＤ 号为0ｘ02088093。FPGA需要从PROM中读出这个器件号和自身比对，如果相同就继续下面的步骤，不同的话，配置失败，并打印出配置故障信息。
+
+所有准备工作正常完成后，FPGA 开始载入配置文件。这一步对大多数用户也是透明的，由器件自行完成。这也是配置过程中最耗时的步骤，时间从100ms到几秒不等。这个过程中，FPGA 的所有可配置I/O根据HSWAPEN管脚的设置变为弱上拉（HSWAPE=1）或者高阻态（HSWAPE=0）。这个阶段的I/O管脚还没有变为用户需要的状态，也最有可能影响到其他外围电路的上电时序和运行。设计硬件电路时要特别注意并采取必要措施，如加入上下拉电阻，改变器件加电顺序等来尽量避免或减少FPGA配置时对电路其他器件的影响。
+
+配置文件载入完成后，为了验证数据的正确性，FPGA还自动设置了CRC校验（这个在ISE配置选项中也可以去掉，但是为了确保载入数据的正确性，这个是必须选择的）。如果CRC 校验不正确，FPGA会自动把INIT-B拉低，放弃这次配置。用户必须把PROG-B引脚拉低，才能进行重新配置。
+
+3.3 启动序列  
+CRC校验正确后，FPGA不会马上执行用户的逻辑，它还要进行一些自身内部电路的配置，如DCM锁定（DCMs to Lock）、全局写信号使能（Global Write Enable）等，这些信号的启动顺序也是在ISE配置选项中设置的。必须的启动序列为：释放DONE引脚；释放GTS信号，激活IO管脚；设置全局读写使能，使能内部RAM和FIFOAssert；结束上电配置。
+
+从上面论述可知，整个FPGA 的上电配置正常时序如图3所示。
+
+![图３ ＦＰＧＡ配置时序](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/90317159/03_9824d1d4e1f39a4fb2db37982505dac1.jpeg)

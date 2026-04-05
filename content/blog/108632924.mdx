@@ -1,0 +1,71 @@
+---
+title: "AM5728 Opencv4.4成功移植经验分享"
+date: "2020-09-16"
+slug: "108632924"
+tags: ["#AM5728", "#OPENCV", "#移植", "#opencv4.4", "#信迈开发板"]
+source: "https://blog.csdn.net/yeyuangen/article/details/108632924"
+---
+
+ 
+
+本次移植采用的是信迈AM5728 IDK开发板。公司项目用于电力工况环境监测，需要用到高清图像。项目基于AM5728 + Lattice FPGA。
+
+Opencv4.4支持三维图像分析，而TI SDK自带的opencv3.1只能支持二维图像。
+
+1.复制opencv\-4.4.0-bin.tar.gz 传到开发板 （可以用U盘/sd卡） 此文件云盘提供
+
+tar -zxf opencv-4.4.0-bin.tar.gz
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108632924/01_5937f49c02e0f194764fabe398359d33.png)
+
+2.配置opencv-4.4.0 库
+
+   先备份
+
+ mv  /usr/lib/libopencv\*  /usr/lib\_bk/
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108632924/02_b4422b61d6557869c3f46aa50697bfbf.png)
+
+拷lib 下的文件到系统
+
+cp ./\*  /usr/lib/  -r
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108632924/03_2174c8085468c8dcdcee1db698b510e9.png)
+
+cp -r  include/\* /usr/include/
+
+cp bin/\* /usr/bin/
+
+cp -r share/\* /usr/share/
+
+3.查看版本
+
+./opencv\_version
+
+  ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108632924/04_579efe0ea690fd8f1fb68372eb47f180.png)
+
+4.运行效果
+
+复制opencv4-example-gray可执行文件以及Exam.cpp程序所需的一张图片到arm平台的一个目录下，这里用到的图片名称为1.jpg
+
+复制so文件到arm平台的/lib文件夹下。
+
+进入opencv4-example-gray可执行文件和图片所在的目录，执行命令，就会生成一张gray.png图片：
+
+./opencv4-example-gray
+
+ ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108632924/05_bc02c019499758b0ecfefd94915700f9.png)
+
+查看依赖库存
+
+arm-linux\-gnueabihf-readelf -a opencv4-example-gray  |  grep "Shared library:"
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108632924/06_fcece2505bfcd92b52af95ab0c83a8ea.png)
+
+电脑上显示 图片
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108632924/07_6a2a95a202af383bb148bccd9c153f4c.png)
+
+欢迎技术交流，weixin联系13670212541
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108632924/08_1ce06d7a215e401f6e7247df957c200d.png)

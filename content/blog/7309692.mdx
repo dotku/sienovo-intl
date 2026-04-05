@@ -1,0 +1,80 @@
+---
+title: "SYSCALL_DEFINE含义"
+date: "2012-03-01"
+slug: "7309692"
+tags: ["#汇编", "#user", "#table", "#2010", "#c"]
+source: "https://blog.csdn.net/yeyuangen/article/details/7309692"
+---
+
+ 
+
+ 
+
+CVE\-2010-3301是其中一个。这个漏洞的成因是，在64位的内核上执行32位的系统调用时，作为传递系统调用号的%rax高32位未被清零处理，而且在进行比较的时候直接使用的%eax，导致高32位被忽略：
+
+cmpl $(IA32\_NR\_syscalls-1),%eax ja ia32\_badsys ia32\_do\_call: IA32\_ARG\_FIXUP call \*ia32\_sys\_call\_table(,%rax,8)
+
+这样以来，通过静心构造的%rax就可以跳转到它想要的位置去！在[这个exploit](http://blog.chinaunix.net/link.php?url=http://sota.gen.nz%2Fcompat2%2Frobert_you_suck.c)中，它就利用ptrace()来跟踪系统调用，并把计算好的想要跳转地址的偏移传递到%rax中，然后执行事先放置好的代码来提升权限！
+
+修复方法很简单，要么把%rax的高位清零，要么比较的时候使用%rax。修复这个问题的commit是：
+
+http://git.kernel.org/linus/36d001c70d8a0144ac1d038f6876c484849a74de
+
+http://git.kernel.org/linus/eefdca043e8391dcd719711716492063030b55ac
+
+和这个问题类似的问题之前也曾出现过，CVE-2009-0029，问题更严重，涉及很多的系统调用。不同的是，这个涉及64位的内核和64位的用户空间，来自用户空间的传递系统调用参数的寄存器的高32位同样没被清零，而带32位参数（比如int）的系统调用就会有问题，内核代码只会检查对它有意义的低32位，高32位就被忽略而直接传递到后面去了，这就会带来问题了。
+
+问题的解决方法也很简单，就是要把这些寄存器高位清零。说起来简单，做起来难。要是和上面一样直接用汇编处理的话，参数的类型的信息就丢失了，因为你汇编里分不清它到底是32位还是64位；而如果用C处理的话，有那么多系统调用，一个一个处理？那不符合Linus的作风！他是怎么做的呢？用宏！而且用强制转化，把所有的32位参数声明为long，然后再强制转化成实际的类型，比如int。去看看\_\_SC\_CASTx()和\_\_SC\_LONGx()的定义就知道了：
+
+[PLAIN TEXT](http://blog.chinaunix.net/space.php?uid=9185047&do=blog&id=445212#)
+
+C:
+
+1.  #define \_\_SC\_CAST1(t1, a1)      (t1) a1
+    
+2.  #define \_\_SC\_LONG1(t1, a1)      long a1
+    
+
+4.  #define \_\_SYSCALL\_DEFINEx(x, name, ...)                                 \\
+    
+5.          asmlinkage   long  sys ##name(\_\_SC\_DECL##x(\_\_VA\_ARGS\_\_));           \\
+    
+6.            static   inline   long  SYSC ##name(\_\_SC\_DECL##x(\_\_VA\_ARGS\_\_));       \\
+    
+7.          asmlinkage   long  SyS ##name(\_\_SC\_LONG##x(\_\_VA\_ARGS\_\_))            \\
+    
+8.            {                                                                \\
+    
+9.                  \_\_SC\_TEST ##x(\_\_VA\_ARGS\_\_);                              \\
+    
+10.                    return   ( long )  SYSC ##name(\_\_SC\_CAST##x(\_\_VA\_ARGS\_\_));    \\
+     
+11.            }                                                                \\
+     
+12.          SYSCALL\_ALIAS (sys ##name, SyS##name);                            \\
+     
+13.            static   inline   long  SYSC ##name(\_\_SC\_DECL##x(\_\_VA\_ARGS\_\_))
+     
+
+可见Linus大神把宏用到了何等出神入化的地步。:-) 这也是为什么你在内核中看到系统调用都是用SYSCALL\_DEFINEx()来定义了。
+
+#define SYSCALL\_DEFINE3(name, ...) SYSCALL\_DEFINEx(3, \_##name, \_\_VA\_ARGS\_\_)  
+  
+#define SYSCALL\_DEFINEx(x, sname, ...)                                \\  
+        \_\_SYSCALL\_DEFINEx(x, sname, \_\_VA\_ARGS\_\_)  
+  
+#define \_\_SYSCALL\_DEFINEx(x, name, ...)                                        \\  
+        asmlinkage long sys##name(\_\_SC\_DECL##x(\_\_VA\_ARGS\_\_))
+
+#define SYSCALL\_DEFINE1(name, ...) SYSCALL\_DEFINEx(1, \_##name, \_\_VA\_ARGS\_\_)  
+#define SYSCALL\_DEFINE2(name, ...) SYSCALL\_DEFINEx(2, \_##name, \_\_VA\_ARGS\_\_)  
+#define SYSCALL\_DEFINE3(name, ...) SYSCALL\_DEFINEx(3, \_##name, \_\_VA\_ARGS\_\_)  
+#define SYSCALL\_DEFINE4(name, ...) SYSCALL\_DEFINEx(4, \_##name, \_\_VA\_ARGS\_\_)  
+#define SYSCALL\_DEFINE5(name, ...) SYSCALL\_DEFINEx(5, \_##name, \_\_VA\_ARGS\_\_)  
+#define SYSCALL\_DEFINE6(name, ...) SYSCALL\_DEFINEx(6, \_##name, \_\_VA\_ARGS\_\_)  
+  
+看这个更直接一点，2.6.35中有这样的宏定义
+
+mount系统调用  
+在fs/namespace.c中，有  
+SYSCALL\_DEFINE5(mount, char \_\_user \*, dev\_name, char \_\_user \*, dir\_name,

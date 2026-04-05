@@ -1,0 +1,445 @@
+---
+title: "信迈TI OMAP-L138（定点/浮点DSP C674x+ARM9） + Xilinx Spartan-6 FPGA开发板规格书"
+date: "2021-06-24"
+slug: "118175339"
+tags: ["#OMAPL138", "#C6748", "#DSP+ARM", "#SPARTAN6", "#数据采集"]
+source: "https://blog.csdn.net/yeyuangen/article/details/118175339"
+---
+
+ 
+
+### **1 评估板简介**
+
+*   基于TI OMAP-L138（定点/浮点 DSP C674x+ARM9）+ Xilinx Spartan-6 FPGA处理器；
+*   OMAP-L138 FPGA 通过uPP、EMIFA、I2C总线连接，通信速度可高达 228MByte/s；OMAP-L138主频456MHz，高达3648MIPS和2746MFLOPS的运算能力；
+*   FPGA 兼容 Xilinx Spartan-6 XC6SLX9/16/25/45，平台升级能力强；
+*   开发板引出丰富的外设，包含千兆网口、SATA、EMIFA、uPP、USB 2.0 等高速数据传输接口，同时也引出 GPIO、I2C、RS232、PWM、McBSP 等常见接口；
+*   通过高低温测试认证，适合各种恶劣的工作环境；
+*   DSP+ARM+FPGA三核核心板，尺寸为 66mm\*38.6mm，采用工业级B2B连接器，保证信号完整性； Ø
+*   支持裸机、SYS/BIOS 操作系统、Linux 操作系统。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118175339/01_f2305acb97c88f07727d928f5610cad9.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118175339/02_8a788f33c6a2193ce043131caf03238e.png)
+
+图1 开发板正面和侧视图
+
+XM138F-IDK-V3.0 是一款基于深圳信迈XM138-SP6-SOM核心板设计的开发板，采用沉金无铅工艺的4层板设计，它为用户提供了 XM138-SP6-SOM核心板的测试平台，用于快速评估XM138-SP6-SOM核心板的整体性能。
+
+XM138-SP6-SOM引出CPU全部资源信号引脚，二次开发极其容易，客户只需要专注上层应用，大大降低了开发难度和时间成本，让产品快速上市，及时抢占市场先机。不仅提供丰富的 Demo 程序，还提供详细的开发教程，全面的技术支持，协助客户进行底板设计、调试以及软件开发。
+
+### **2 典型运用领域**
+
+*   数据采集处理显示系统
+*   智能电力系统
+*   图像处理设备
+*   高精度仪器仪表
+*   中高端数控系统
+*   通信设备
+*   音视频数据处理
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118175339/03_c63279af5287cdf2ce31a0e11f2ae245.png)
+
+图2 典型应用领域
+
+### **3 软硬件参数**
+
+开发板外设资源框图示意图
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118175339/04_c1851d85638831ba9ddadf3be83ae57f.png)
+
+图3 开发板接口示意图
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118175339/05_fadc796c741812c97771df03819d097d.png)
+
+图4 开发板接口示意图
+
+表1 硬件资源
+
+**CPU**
+
+TI OMAP-L138，定点/浮点 DSP C674x+ARM9，双核主频 456MHz
+
+Xilinx Spartan-6 XC6SLX9/16/25/45 FPGA
+
+**ROM**
+
+OMAP-L138 端：128/256/512MByte NAND FLASH
+
+Spartan-6 端：64Mbit SPI FLASH
+
+**RAM**
+
+OMAP-L138 端：128/256MByte DDR2
+
+**B2B Connector**
+
+2x 80pin 公座 B2B，2x 80pin 母座 B2B，间距 0.5mm，共 320pin
+
+**IO**
+
+2x 25pin IDC3 简易牛角座，间距 2.54mm，EMIFA 拓展信号
+
+2x 25pin IDC3 简易牛角座，间距 2.54mm，FPGA GPIO 拓展信号
+
+2x 15pin 排针，间距 2.54mm，含 I2C、McBSP、PWM、FPGA 差分 IO 等拓展信号
+
+**LED**
+
+2x 供电指示灯（底板 1 个，核心板 1 个）
+
+5x 可编程指示灯（底板 3 个，核心板 2 个）
+
+5x 可编程指示灯（底板 3 个，核心板 2 个，FPGA 端）
+
+**KEY**
+
+1x 系统复位按键
+
+3x 可编程输入按键（含 1 个非屏蔽中断按键）
+
+5x 可编程指示灯（底板 3 个，核心板 2 个，FPGA 端）
+
+**JTAG**
+
+1x 14pin TI Rev B JTAG 接口，间距 2.54mm
+
+1x 14pin FPGA JTAG 接口，间距 2.00mm
+
+**LCD**
+
+1x LCD 触摸屏接口
+
+**BOOT SET**
+
+1x 5bit 启动方式选择拨码开关
+
+**SD**
+
+1x Micro SD 卡接口
+
+**RTC**
+
+1x RC1220 RTC 座，3V 电压值
+
+**SATA**
+
+1x 7pin SATA 硬盘接口
+
+**Ethernet**
+
+1x RJ45 以太网口，10/100M 自适应
+
+**USB**
+
+1x Micro USB 2.0 OTG 接口
+
+1x USB 1.1 HOST 接口
+
+**UART**
+
+2x RS232 串口，其中 UART2 使用 Micro USB 接口，UART1 使用 DB9 接口，并引出 4 线 TTL 排针（TXD、RXD、3V3、GND）
+
+**SWITCH**
+
+1x 电源拨码开关
+
+**POWER**
+
+1x 12V 2A 直流输入 DC417 电源接口，外径 4.4mm，内径 1.65mm；
+
+表2 软件资源
+
+**ARM** **端软件支持**
+
+裸机、Linux 操作系统(Linux-3.3、Linux-2.6.37、Linux-2.6.33)
+
+**DSP** **端软件支持**
+
+裸机、SYS/BIOS 操作系统
+
+**CCS** **版本号**
+
+CCS5.5
+
+**图形界面开发工具**
+
+Qt
+
+**双核通信组件支持**
+
+SysLink、DSPLink
+
+**软件开发套件提供**
+
+MCSDK、DVSDK
+
+**ISE****版本号**
+
+ISE 14.7
+
+**Linux****驱动支持**
+
+NAND FLASH、DDR2、SPI FLASH、I2C EEPROM、MMC/SD、SATA、USB 2.0 HOST、USB 2.0 OTG、LED、BUTTON、RS232、RS485、UART TL16C754C、CAN MCP2515、AUDIO TLV320AIC3106、Ethernet LAN8710 MII、Ethernet LAN8720 RMII、Ethernet LAN9221 EMIFA、7in Touch Screen LCD、VGA CS7123、RTC、ADC AD7606、ADC AD7656、ADC ADS8568、DAC AD5724、CMOS Sensor OV2640、Video Decoder TVP5147、USB 3G ZTE MC2716、USB WIFI RTL8188、USB Mouse、USB Keyboard
+
+### **4 开发资料**
+
+（1） 提供核心板引脚定义、可编辑底板原理图、可编辑底板PCB、芯片 Datasheet、缩短硬件设计周期；
+
+（2）提供系统烧写镜像、内核驱动源码、文件系统源码，以及丰富的Demo 程序；
+
+（3）提供完整的平台开发包、入门教程，节省软件整理时间，上手容易；
+
+（4）提供丰富的入门教程、开发案例，含OMAP-L138与FPGA 通信例程；
+
+（5） 提供详细的DSP+ARM双核通信教程，完美解决双核开发瓶颈；
+
+（6） 提供基于 Qt 的图形界面开发教程。
+
+深圳信迈提供了大量的开发资料、视频教程和中文数据手册，创造了OMAP-L138 平台开发的新局面，引领 OMAP-L138 + Spartan-6 DSP+ARM+FPGA 三核学习热潮。
+
+部分开发例程详见附录 A，开发例程主要包括：
+
+*   基于ARM端的裸机开发例程
+*   基于ARM端的Linux开发例程
+*   基于 DSP 端的裸机开发例程
+*   基于 DSP 端的SYS/BIOS开发例程
+*   基于SYSLINK的双核开发例程
+*   基于DSPLINK的双核开发例程
+*   基于XM\_IPC的双核开发例程
+*   基于PRU的汇编开发例程
+*   基于FPGA端的开发例程
+
+### **5 电气特性**
+
+****核心板工作环境****
+
+表 3
+
+环境参数
+
+最小值
+
+典型值
+
+最大值
+
+商业级温度   
+
+0°C
+
+/
+
+70°C
+
+工业级温度
+
+\-40°C
+
+/
+
+ 85°C
+
+工作电压
+
+/
+
+3.3V
+
+/
+
+****功耗测试****
+
+表 4
+
+类别  
+
+典型值电压
+
+典型值电流
+
+典型值功耗
+
+核心板
+
+3.3V
+
+74mA
+
+0.24W
+
+整板
+
+12.01V
+
+100mA
+
+1.20W
+
+备注：功耗测试基于深圳信迈XM138F-IDK-V3开发板进行。
+
+### **6 机械尺寸**
+
+表 5
+
+核心板
+
+开发板
+
+PCB 尺寸
+
+66mm\*38.6mm
+
+165mm\*110mm
+
+安装孔数量
+
+4 个
+
+12 个
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118175339/06_a5e058e27a50510ffe61291541dd76cb.png)
+
+### 
+
+图5 核心板机械尺寸图
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118175339/07_d2ec6e445c0025179cf7f8e7fb551ef9.png)
+
+图5 评估板机械尺寸图
+
+### **7** **产品订购型号**
+
+表 6
+
+型号
+
+CPU主频
+
+NAND FLASH
+
+DDR2
+
+SPI FLASH
+
+FPGA型号
+
+温度级别
+
+SOM-XM138F-4-4GN1GD2S16-I
+
+456MHz
+
+512MB
+
+128MB
+
+64Mbit
+
+XC6SLX16
+
+工业级
+
+SOM-XM138F-4-4GN2GD2S16-I      
+
+456MHz
+
+512MB
+
+256MB
+
+64Mbit
+
+XC6SLX16
+
+工业级
+
+SOM-XM138F-4-4GN1GD2S45-I
+
+456MHz
+
+512MB
+
+128MB
+
+64Mbit
+
+XC6SLX45
+
+工业级
+
+SOM-XM138F-4-4GN2GD2S45-I
+
+456MHz
+
+512MB
+
+256MB
+
+64Mbit
+
+XC6SLX45
+
+工业级
+
+备注：标配为 SOM-XM138F-4-4GN1GD2S16-I，其他型号请与相关销售人员联系。
+
+### **8** **开发板套件清单**
+
+表 7
+
+名称
+
+数量
+
+XM138F-IDK-V3开发板（含核心板）
+
+1块
+
+12V/2A 电源适配器
+
+1个
+
+资料光盘
+
+1套
+
+Micro SD 系统卡
+
+1个
+
+SD卡读卡器
+
+1个
+
+直连网线
+
+1条
+
+Micro USB数据线
+
+1条
+
+### **9** **技术支持**
+
+（1） 协助底板设计和测试，减少硬件设计失误；
+
+（2） 协助解决按照用户手册操作出现的异常问题；
+
+（3） 协助产品故障判定；
+
+（4） 协助正确编译与运行所提供的源代码；
+
+（5） 协助进行产品二次开发；
+
+（6） 提供长期的售后服务。
+
+### **1****0** **增值服务**
+
+*   主板定制设计
+*   核心板定制设计
+*   嵌入式软件开发
+*   项目合作开发
+*   技术培训
+
+###

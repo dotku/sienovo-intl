@@ -1,0 +1,92 @@
+---
+title: "Linux进程切换以及内核线程的返回值"
+date: "2011-09-09"
+slug: "6763073"
+tags: ["#linux", "#struct", "#thread", "#嵌入式", "#汇编", "#null"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6763073"
+---
+
+ 
+
+linux中的进程是个最基本的概念，进程从运行队列到开始运行有两个开始的地方，一个就是switch\_to宏中的标号1："1:/t"，另 一个就是ret\_form\_fork，只要不是新创建的进程，几乎都是从上面的那个标号1开始的，而switch\_to宏则是除了内核本身，所有的进程要 想运行都要经过的地方，这样看来，虽然linux的进程体系以及进程调度非常复杂，但是总体看来就是一个沙漏状，而switch\_to宏就是沙漏中间那个 最细的地方，想从一端到另一端，必然要经过那个地方，在非新创建的进程的情况下，所有进程都是从标号1开始，让我们先看一下这是怎么回事：   
+#define switch\_to(prev,next,last) do {                            /   
+         unsigned long esi,edi;                                          /   
+         asm volatile("pushfl/n/t"                                      /   
+                      "pushl %%ebp/n/t"                                 /   
+                      "movl %%esp,%0/n/t"        /\* save ESP \*/          /   
+                      "movl %5,%%esp/n/t"        /\* restore ESP \*/       /   //注意这里已经切换到了新的内核栈，故原来的栈中的局部变量全部失效，因而想得到其值就必须想办法保存它们，为了效率，这里将prev保存在寄存器中， 以便善后使用   
+                      "movl $1f,%1/n/t"          /\* save EIP \*/          /   //这里，只要是曾经在这里被切换出去的进程都会将标号1作为再回来时的eip   
+                      "pushl %6/n/t"             /\* restore EIP \*/       /   //将新进程的eip压入栈中，因为下面是个jmp，而且jmp到的函数最后有一个return，那么按照return的语义，就可以从栈取出eip载入 eip寄存器了，实际上这个对\_\_switch\_to的jmp调用就是一个手动的call调用，很巧妙   
+                      "jmp \_\_switch\_to/n"                                /   //\_\_switch\_to是个FASTCALL的函数，eax/ebx寄存器传参数   
+                      "1:/t"                                             /   //标号1的指令，很简单，但是就是这个简单成全了整体架构的简单   
+                      "popl %%ebp/n/t"                                   /   
+                      "popfl"                                            /   
+                      :"=m" (prev->thread.esp),"=m" (prev->thread.eip),  /   
+                       "=a" (last),"=S" (esi),"=D" (edi)                 /   
+                      :"m" (next->thread.esp),"m" (next->thread.eip),    /   
+                       "2" (prev), "d" (next));                          /   
+} while (0)   
+linux 之所以实现上述的单点切换就是为了降低复杂度，其实很多操作系统内核都是这么做的，这里的单点并不是指switch\_to这个单点，而是保存/恢复eip 这个寄存器从而保证所有切换回来的进程都从一个地方开始，但是有点美中不足的就是linux并没有将所有的进程从就绪到开始执行都从标号1开始，看看 do\_fork的实现就知道，其实新创建的进程是不这么做的，新创建的进程的eip是ret\_from\_fork而不是标号1，这个原因是什么？新创建进 程的时候要手工指定一个开始的地址，毕竟它要开始就要有个起点，那么起点在哪里好呢（千万不要和regs.eip相混淆，那个是正常执行时的eip，属于 进程的，创建进程是一个系统调用，系统调用的话就是请求系统内核帮忙做事，然而做事之前要保存自己的当前状态，regs.eip就是属于这个状态的，而这 里的起点是操作系统内核管理进程用的，和进程或者内核线程没有关系的）？最好是模拟该进程和别的已有进程一样是重新开始运行的，这样比较统一又便于管理， 然后将这个开始地址也指为标号1，但是这时标号1在哪里，是标号1在嵌入式汇编宏中导致标号1的地址不好取到吗，如果真的因为这的话，完全可以将标号1分 离出来放到一个地方，然后不管是已经有的进程还是新创建的进程都从这个固定的分离出来标号1的地址处取指令不就可以了吗？内核的设计者不可能还没有我聪 明，那样的话会浪费取指令的时间和空间的，来个间接引用肯定没有嵌入式汇编标号直接，而且还有一个原因，用ret\_from\_fork完全可以做到和既有 进程的标号1一样的好，我们看看进程切换函数的设计，既有进程的切换都是在schedule里面进入switch\_to从而找到标号1的，而在 switch\_to之后就剩下一个finish\_task\_switch和判断重新调度标志了，我们看看ret\_from\_fork：   
+ENTRY(ret\_from\_fork)   
+         pushl %eax      //注意刚从switch\_to调用的\_\_switch\_to中ret回来，正好ret到了ret\_from\_fork（注意switch\_to中jmp 指令前的push），而那个函数返回的就是prev，将其放到了eax中，故这里schedule\_tail的参数就是prev，也就是切换出去的进程。   
+         call schedule\_tail   
+         GET\_THREAD\_INFO(%ebp)   
+         popl %eax   
+         jmp syscall\_exit   
+上 面看到ret\_from\_fork调用的schedule\_tail参数是切换出去的进程，而后者马上调用finish\_task\_switch，这样就 和schedule中的switch\_to之后的逻辑对上了，而且参数也没有什么问题，那么finish\_task\_switch之后的逻辑呢，比如判断 重新调度标志怎么办？那就看看ret\_from\_fork中的syscall\_exit吧，那里面做了判断，如果需要调度，那就会进入正常的 schedule流程，十分正确。其实就是这个finish\_task\_switch善后惹的祸，不过它的设计也是一个很巧妙的看点，它主要判断原先的进 程是否还有存在的必要，如果已经dead了，那么就是在这里彻底释放其task\_struct的，因此必须保存prev的值，因为prev是 schedule的局部变量在prev的内核栈中，在切换到新的内核栈后（schedule函数用到了两个内核栈），prev失效，因此才要保存的。在 do\_exit中，即使exit的进程已经没有引用了其task\_struct也不能释放，因为linux中没有专门的调度管理器可以发现这一点然后自动 切换到别的进程，最终必须靠退出的进程自己schedule掉才行，而它自己调用schedule的时候它就是current，current最终成了 prev，整个切换过程都需要退出进程的task\_struct结构，只有在switch\_to到新进程了，才可以将再也没有用的退出进程的 task\_struct释放掉。可见进程退出也设计的很好，linux中没有专门的调度管理线程虽然咋一看很不美观，但是它毕竟不是微内核结构，大内核的 优点就是高效，直接让需要切换的进程自己调用切换代码另外别的进程就绪后告诉正运行的进程有切换需要然后着手调度，这种方式肯定最高效，如果设置了调度管 理线程，需要调度时还要通知这个管理器，很多切换很低效，但是却很美观。这一点上，linux中的调度是和谐自发的抢占式协作，而带有调度管理器的内核对 于调度则是强行的管制。   
+asmlinkage void schedule\_tail(task\_t \*prev)   
+{   
+         finish\_task\_switch(prev);   
+         if (current->set\_child\_tid)   
+                 put\_user(current->pid, current->set\_child\_tid);   
+}   
+到 此为止，linux的进程切换还是在内核进程管理的代码下，还没有开始和用户进程相关的行为，也就是说regs保存的寄存器还没有起作用，只有内核判断内 核的事情已经完了，没有什么遗漏了才会开始进程本身的工作，也就是RESTORE\_ALL的逻辑了。新创建的进程用松散的代码和紧凑的schedule逻 辑达成了一致，然后只要这个新进程开始了，那么它就会进入那个巨大的linux进程切换沙漏从而进入了正常的单点切换流程。   
+最后我们看一下内核线程的返回值，也就是kernel\_thread的返回值问题。其实可以这么理解：根本就不应该这么设计内核线程。 kernel\_thread的实现可以看出，内核主要借用了用户进程的创建方式创建了内核线程。在用户空间，进程创建是copy-on-write的，但 是内核线程却没有这一说，而且unix的进程创建就是复制父进程的地址空间而没有任何子进程的特殊策略，特殊行为策略需要以后的exec或者别的方式设 置，而且子进程如何运行需要在父进程的程序源代码中判断fork函数的返回值后加以指定。之所以用户进程创建函数fork的返回值那么重要就是因为父子共 享一个地址空间然后copy-on-write，通过fork的返回值区别父子进程。而内核线程虽然也是do\_fork实现，但是它一开始就指定了子进程 的运行函数也就是子进程的行为策略，如此一来do\_fork的返回值就显得不是那么重要了，其实在内核中创建内核线程时，根本就不返回0，也没有什么返回 0就是子进程之说，实际上即使在用户空间fork函数调用时，返回的0也不是内核的do\_fork返回的，do\_fork只会返回新进程的pid，而 fork的0返回值是内核在ret\_from\_fork之后进入用户空间前RESTORE\_ALL的时候pop到eax中的，然后库实现的fork将 eax作为返回值，实际上，fork的子进程在进入用户空间前从来不经过do\_fork这条路，可以看看它的thread的eip是 ret\_from\_fork，也就是只要开始运行子进程，就在switch\_to中会执行ret\_from\_fork，而从ret\_from\_fork顺 着看，一直就到了RESTORE\_ALL从而返回用户空间。对于内核线程，根本就没有子进程返回这一说，子进程也就是新创建的内核线程直接运行，完事了就 直接退出，这样的原因就是在创建子进程时就已经给了它运行策略，如此一来就不需要返回原点来靠返回值分辨父子进程，但是内核线程确实是按照用户进程的那一 套机制创建的啊，子进程也在copy\_process复制父进程，这没有什么不同啊，如此怎么能不返回原点呢？其实linux使用了一个骗术，它在创建内 核线程时伪造了一个父进程的现场：   
+int kernel\_thread(int (\*fn)(void \*), void \* arg, unsigned long flags)   
+{   
+         struct pt\_regs regs;                //伪造的父进程现场，下面按照内核的机制填充   
+         memset(&regs, 0, sizeof(regs));   
+         regs.ebx = (unsigned long) fn;      //子进程也就是内核线程要执行的行为策略   
+         regs.edx = (unsigned long) arg;     //参数   
+...   
+         regs.eip = (unsigned long) kernel\_thread\_helper;     //这个函数管理了子进程的运行到退出   
+...   
+         return do\_fork(flags | CLONE\_VM | CLONE\_UNTRACED, 0, &regs, 0, NULL, NULL);  //实际创建子进程   
+}   
+\_\_asm\_\_(".section .text/n"   
+         ".align 4/n"   
+         "kernel\_thread\_helper:/n/t"  //这个标号函数管理了内核子进程   
+         "movl %edx,%eax/n/t"     //这里事实上冲掉了在copy\_thread中被置为0的eax，如此看出eax根本就没有像用户进程创建那样保持为0   
+         "pushl %edx/n/t"   //edx里面是内核线程函数的参数   
+         "call \*%ebx/n/t"   //ebx里面就是内核线程函数指针   
+         "pushl %eax/n/t"   //内核线程函数的返回值   
+         "call do\_exit/n"   //以内核函数返回值作为参数调用do\_exit   
+         ".previous");   
+在 创建内核线程的时候将伪造的regs的eip设置为kernel\_thread\_helper而不是直接设置为要执行的函数是有原因的，总的来 说，kernel\_thread\_helper为内核子进程提供了一个完整的进程环境，和流程，包括最后退出，如果直接设置为要调用的函数的话，那么就要 该函数自己处理退出，进程创建和退出应该是进程运行的机制，机制就不应该让创建者负责，创建者只管策略，机制应该由内核框架提供。另外可以看到在 do\_fork中有一个CLONE\_VM标志，难道内核线程还有地址空间不成，其实是没有的，设置那个标志就是为了效率，看过代码就知道，linux在切 换task\_struct时，共享VM的不用切换cr3寄存器（当然是在x86上），而内核线程因为没有mm\_struct，因此为了使用这个高效的策 略，它就使用一个active\_mm字段，本质上就是借用上一个进程的mm，所有mm映射的内核部分都是一样的，而内核线程使用的就是只有内核部分，这样 就不用切换cr3了，然后处理器进入懒惰模式，只有到了那个被借用进程的tlb被刷新的时候才将cr3切换到swapper\_pg\_dir的物理地址，其 实这个swapper\_pg\_dir就是所有内核线程们本来应该使用的页目录，这个意义上可以将整个内核线程看作是属于一个内核进程，这个内核进程就是以 swapper\_pg\_dir为页目录的进程，事实上进程就是一个拥有独立的页目录的执行绪，为了效率才有了借用用户空间进程的mm\_struct这件 事，除了swapper\_pg\_dir是内核线程标准的页目录外不应该为之再新分配任何新的pgd，因此就用了CLONE\_VM标志，这样就不会再分配 mm\_struct从而也不会分配pgd了，而和原来父进程共享mm的问题可以通过释放掉老mm切换到init\_mm来解决，另外正如下面要说的，由于内 核的页映射一样，完全可以借用任何进程的mm从而使内核工作更高效。   
+     tlb懒惰模式可以参考我的《tlb刷新的懒惰模式》一文，大致意思就是，在单cpu下，刷新tlb是一个主动的过程，因此没有什么要说的，主动的过程往往行为很确定，但是smp下就复杂多了，可以简单看一下：   
+static inline task\_t \* context\_switch(runqueue\_t \*rq, task\_t \*prev, task\_t \*next)   
+{   
+         struct mm\_struct \*mm = next->mm;   
+         struct mm\_struct \*oldmm = prev->active\_mm;   
+         if (unlikely(!mm)) {             //内核线程   
+                 next->active\_mm = oldmm;   
+                 atomic\_inc(&oldmm->mm\_count);   
+                 enter\_lazy\_tlb(oldmm, next);  //单处理器下什么也不做   
+         } else   
+                 switch\_mm(oldmm, mm, next);    //切换   
+         if (unlikely(!prev->mm)) {   
+                 prev->active\_mm = NULL;   
+                 WARN\_ON(rq->prev\_mm);   
+                 rq->prev\_mm = oldmm;   
+         }   
+...   
+}   
+static inline void enter\_lazy\_tlb(struct mm\_struct \*mm, struct task\_struct \*tsk)   
+{   
+#ifdef CONFIG\_SMP   
+         unsigned cpu = smp\_processor\_id();   
+         if (per\_cpu(cpu\_tlbstate, cpu).state == TLBSTATE\_OK)   
+                 per\_cpu(cpu\_tlbstate, cpu).state = TLBSTATE\_LAZY;   //将本cpu的cpu\_tlbstate的状态设置为lazy状态   
+#endif   
+}   
+在 smp中，每当要刷新tlb的时候都要往各个处理器上发送处理器间中断--IPI，一旦是lazy状态的cpu接收到了刷新tlb的ipi，那么它就将它 自己从它的cpu\_tlbstate的active\_mm->cpu\_vm\_mask掩码中清除，指示以后不要再向它这个cpu发送刷新tlb的 ipi了，因为在lazy模式的cpu当前运行的都是内核线程，所有进程的内核空间都是一样的，因此内核线程用谁的都一样，但是却不很合理，比如一个内核 线程正在用着借来的mm，恰在此时，这个进程在别的cpu上被释放了，当然其mm也被释放了，即使在进入lazy模式前靠 atomic\_inc(&oldmm->mm\_count)增加了这个mm的计数，那么延迟释放它也是不好的，毕竟有自己的 swapper\_pg\_dir不用，却非要用别人的mm，其实内容都一样，用别人的mm只会占用内存，因此在一个进入lazy模式的cpu第一次接收到刷 新tlb的ipi时将它的页目录加载为一个安全的值，然后再宣布不接受刷新tlb的ipi，这个安全的值就是内核线程公用而且任何时候都不会释放的 swapper\_pg\_dir。记住，一旦开始执行非内核线程，那么必须接收刷新tlb的ipi，也就是将cpu的lazy模式清除。

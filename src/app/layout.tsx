@@ -28,6 +28,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <link rel="alternate" type="application/rss+xml" title="Sienovo Blog" href="/blog/rss.xml" />
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-S6MJ5ZRH0E"
           strategy="afterInteractive"

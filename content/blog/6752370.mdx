@@ -1,0 +1,18 @@
+---
+title: "主线程，工作线程关系"
+date: "2011-09-06"
+slug: "6752370"
+tags: ["#工作"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6752370"
+---
+
+ 
+
+一、主线程和工作线程的关系
+
+1.主线程结束前向工作线程发送结束消息，通知工作线程退出。 
+
+2.主线程立即进入等待工作线程死亡状态WaitforSingleObject,WaitforMultipleObjects....   
+3.工作线程收到退出消息，退出(因为工作在一个大的WairforSingleObject(退出通知）中)。   
+4.主线程等烦了（等待超时），直接杀死工作线程。   
+5.程序退出。

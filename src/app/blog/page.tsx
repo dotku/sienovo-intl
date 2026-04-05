@@ -25,14 +25,28 @@ export default async function BlogPage({
       <main className="min-h-screen bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           {/* Page header */}
-          <div className="mb-10">
-            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
-              Blog
-            </h1>
-            <p className="text-gray-500">
-              {totalPosts} articles on embedded systems, edge AI, and industrial
-              computing
-            </p>
+          <div className="mb-10 flex items-start justify-between">
+            <div>
+              <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
+                Blog
+              </h1>
+              <p className="text-gray-500">
+                {totalPosts} articles on embedded systems, edge AI, and industrial
+                computing
+              </p>
+            </div>
+            <a
+              href="/blog/rss.xml"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-accent transition-colors mt-2 shrink-0"
+              title="RSS Feed"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M6.18 15.64a2.18 2.18 0 0 1 2.18 2.18C8.36 19 7.38 20 6.18 20C5 20 4 19 4 17.82a2.18 2.18 0 0 1 2.18-2.18M4 4.44A15.56 15.56 0 0 1 19.56 20h-2.83A12.73 12.73 0 0 0 4 7.27V4.44m0 5.66a9.9 9.9 0 0 1 9.9 9.9h-2.83A7.07 7.07 0 0 0 4 12.93V10.1z"/>
+              </svg>
+              RSS
+            </a>
           </div>
 
           {/* Article grid */}

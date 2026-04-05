@@ -1,0 +1,31 @@
+---
+title: "RK3588+FPGA视频实时处理与双屏显示、存储解决方案"
+date: "2023-07-17"
+slug: "131759080"
+tags: ["#fpga开发"]
+source: "https://blog.csdn.net/yeyuangen/article/details/131759080"
+---
+
+ 
+
+主板平台的主要功能电路示意图
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131759080/01_6cf5ba0adbad0b49ee72c955d48c6248.png)
+
+在ARM端:  
+脚踏开关是电平输入10 口，双路。  
+触摸面板与主板的连接方式为 UART 外加12V 电源。  
+键盘为自开发产品，通过USB透传 UART，并传递12V电源USB、千兆网络为主板上的接口，USB 为3.0版本host 接口  
+SSD 为内置硬盘。  
+图像输出视频接口主要包含 HDMI、DVI、DP、SDI、模拟 RGB、CVBS、Svideo，其中 HDMI、在FPGA端:图像输入接口包括SDI和MIPl，SDI输入支持1080P60FPS，主要应用场景为外部对接外部系DP、SDI支持 4K 60fps。统实现画中画显示多设备的影像数据，而MIPI为镜体的信号接口，最多支持4Lane4K60FPSRAW数据输入。  
+ARM搭载 Linux系统工作, Linux 系统裁多余的部分使系统启动时间最优化。ARM与FPGA之前通过 PCIE 接口传输视频流。ARM 系统可以对从 FPGA 传过来的实时视频流进行存图或者录像操作，回放时，ARM 系统保存的图像反传到FPGA进行处理后显示。  
+主板上电后自启动，并立即配置各个视频接口芯片，使系统在上电之后3秒钟内出现开机画面，开机画面由 FPGA系统提供。  
+系统启动之后，ARM系统提供的 UI界面 在 FPGA端与实时图像合成，组成完整的内窥镜系统画面。
+
+FPGA的PS端负责对镜体的操控，包括镜体插入的检测与上电控制，镜体上电配置，镜体按键消息的接收与处理，镜体信息的收发与验证。  
+Linux系统设计需求:外围设备驱动:(1) MIPI DSI(2)MIPI CSI(3)PCIE输入输出(4) HDMI(5)12C(6) SPI (7)SSD硬盘存储(8) SD卡(9)EMMC闪存(10)DDR内存(11)USB3.0/2.0 键鼠，U盘等(12) GPIO(13)以太网，TCP/IP协议(14) RTC(15)UART软件环境(16)Linux内核5.x  
+(17)Gnome或Unity GUI组件  
+(18)移植 Qt5.11及以上  
+(19)支持双屏异显  
+(20)硬件编码器、解码器，gstreamer  
+(21)所有外围驱动提供设备节点，软件只需简单的 write read ioctrl等操作

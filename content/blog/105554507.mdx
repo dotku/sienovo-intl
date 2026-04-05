@@ -1,0 +1,322 @@
+---
+title: "AM335X 、AM5728 NOR flash启动"
+date: "2020-04-16"
+slug: "105554507"
+tags: ["#AM5728", "#NOR启动"]
+source: "https://blog.csdn.net/yeyuangen/article/details/105554507"
+---
+
+ 
+
+现在AM335X上设计nor flash启动的相关要点总结如下，供大家参考。
+
+1\. 关于nor flash启动的信息
+
+可以参考TRM的26.1.7.2 XIP Memory章节，在这里就不详述了。
+
+2\. 设计时注意点
+
+由于AM335X的管脚有限，所以在应用中许多客户会考虑采用GPMC数据线/地址线复用的方式连接外部的nor flash。这样可以将GPMC\_AD\[15:0\]即作为16bit数据线，又作为低16bit的地址线。
+
+那在这种情况下，针对具体设计，需要注意哪些地方？
+
+在上述应用中，GPMC\_AD会从即作为16bit数据线，又作为低16bit的地址线；从TRM的Table 7-5. GPMC Pin Multiplexing Options表格中可以知道，GPMC\_A\[10:1\]会作为nor flash的高位地址线。而GPMC\_A\[10:1\]存在两种复用方式，即可以将AM335X的pinmux mode0的这一组pin复用为GPMC\_A\[10:1\]，也可以将另一组复用为GPMC\_A\[10:1\]。
+
+Signal
+
+ZCZ Pin Map(Pinmux mode0 )
+
+ZCZ Pin Map (Pinmux mode1 )
+
+GPMC\_A1
+
+V14
+
+R2
+
+GPMC\_A2
+
+U14
+
+R3
+
+GPMC\_A3
+
+T14
+
+R4
+
+GPMC\_A4
+
+R14
+
+T1
+
+GPMC\_A5
+
+V15
+
+T2
+
+GPMC\_A6
+
+U15
+
+T3
+
+GPMC\_A7
+
+T15
+
+T4
+
+GPMC\_A8
+
+V16
+
+U5
+
+GPMC\_A9
+
+U16
+
+R5
+
+GPMC\_A10
+
+T16
+
+V5
+
+针对上述的两种连接，设计原理图时，需注意。
+
+（1）采用pinmux mode0组的连接时，需注意
+
+    （a）latch需要采用上升沿锁存的，而不能使用电平锁存的。这是由于AM335x内的ROM CODE在nor flash启动时，有一组固定的GPMC时序。
+
+    （b）高位地址线需要作下拉处理。由于ROM CODE在nor flash启动时，只对GPMC\_AD\[15:0\]进行了初始化，而未对GPMC\_A\[10:1\]进行。如果需要ROM CODE在启动初期时能够正确看到nor flash的地址空间，需要对高位地址线作下拉处理。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/105554507/01_7e28062f01bc2db8ce8c7467dcde1796.png)
+
+（2） 采用pinmux mode1的连接时，需注意
+
+由于此时GPMC\_A\[10:1\]与LCD\_DATA复用，而LCD\_DATA又在启动初期作为SYSBOOT管脚使用，在其管脚上会根据启动序列的选择存在相应的上下拉。这就与（1）中要求的nor flash启动初期需要对GPMC\_A\[10:1\]一直保持下拉存在冲突。所以在这种应用下，需要增加一个bus transceiver对两者进行隔离。见下图。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/105554507/02_c797dd02dc1f720c4e4480a6d6abdcbc.png)
+
+由于SYSBOOT的管脚状态只有在PORz的上升沿才会读取。而warm reset的输入管脚nRESET\_OUT会在PORz完成后持续一段时间低电平，可参考TRM的Figure 8-19. PORz。所以可以通过此信号来作为Bus transceiver的控制信号。当nRESET\_OUT为低时，根据[SN74AVC32T245](http://www.ti.com.cn/product/cn/SN74AVC32T245)的逻辑，连接在总线上的信号会是A到B，期间PORz信号的上升沿触发时段，可以读取SYSBOOT的管脚状态。当nRESET\_OUT持续一段时间低电平后，其电平会变为高，此时Bus transceiver则会将A侧的GPMC\_A\[10:1\]与B侧SYSBOOT的上下拉隔离开。
+
+ 
+
+软件方面：
+
+在SDK-05.06.00.00及之后的版本的U-boot中已经添加了Nor flash启动的代码。在使用时，需要注意
+
+nor flash为XIP memory，其启动时不需要将SPL拷贝到RAM中运行，而可以直接在nor flash进行。由于nor flash启动，ROM CODE只对低16位地址进行了初始化，所以启动时只能访问0x08000000起始的64K x 16bit的地址空间。在此初始化中，u-boot.bin会执行对nor flash高位地址的初始化，以便后续AM335X能访问nor flash的整个地址空间。
+
+在u-boot/board/ti/am335x/board.c中的s\_init函数中有对高地址线进行初始化的代码：
+
+ 
+
+#ifdef CONFIG\_NOR\_BOOT
+
+asm("stmfd      sp!, {r2 - r4}");
+
+asm("movw       r4, #**0x8A4**");
+
+asm("movw       r3, #0x44E1");
+
+asm("orr        r4, r4, r3, lsl #16");
+
+asm("mov        r2, **#9**");
+
+asm("mov        r3, **#8**");
+
+asm("gpmc\_mux:  str     r2, \[r4\], #4");
+
+asm("subs       r3, r3, #1");
+
+asm("bne        gpmc\_mux");
+
+asm("ldmfd      sp!, {r2 - r4}");
+
+#endif
+
+ 
+
+在选择上述表中的pinmux mode 1时，即nor flash的高位地址线连接的GPMC\_A\[10:1\]是pinmux mode1组对应的管脚，则u-boot中不需要做修改。而如果连接的是表中的pinmux mode 0组对应的管脚，即需要修改代码如下：
+
+#ifdef CONFIG\_NOR\_BOOT
+
+asm("stmfd      sp!, {r2 - r4}");
+
+asm("movw       r4, #**0x844**"); Start point Change from LCD\_DATA1 to GPMC\_A1
+
+asm("movw       r3, #0x44E1");
+
+asm("orr        r4, r4, r3, lsl #16");
+
+asm("mov        r2, **#8**"); Change #9 to #8, GPMC\_A1 to GPMC\_A11 as mode0
+
+asm("mov        r3, **#11**"); Change #8 to #11, because there are 11 lines.
+
+asm("gpmc\_mux:  str     r2, \[r4\], #4");
+
+asm("subs       r3, r3, #1");
+
+asm("bne        gpmc\_mux");
+
+asm("ldmfd      sp!, {r2 - r4}");
+
+#endif
+
+ 
+
+另外，对应上述两组不同的连接时，SYSBOOT对应的设置也不相同。如选择pinmux mode0组的连接，则需要配置SYSBOOT，选择XIP(mux1)或者XIP(mux1) w/WAIT0启动。而选择pinmux mode1时，则需要配置SYSBOOT，选择XIP(mux2)或者XIP(mux2) w/WAIT0启动。
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+针对上述的两种连接，设计原理图时，需注意。
+
+（1）采用pinmux mode0组的连接时，需注意
+
+    （a）latch需要采用上升沿锁存的，而不能使用电平锁存的。这是由于AM335x内的ROM CODE在nor flash启动时，有一组固定的GPMC时序。
+
+    （b）高位地址线需要作下拉处理。由于ROM CODE在nor flash启动时，只对GPMC\_AD\[15:0\]进行了初始化，而未对GPMC\_A\[10:1\]进行。如果需要ROM CODE在启动初期时能够正确看到nor flash的地址空间，需要对高位地址线作下拉处理。
+
+![1325.11.png](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/105554507/05_721dcf9f7bcd6e8227ce89459d8c0c48.png)![uploading.4e448015.gif](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/105554507/07_d12faba5ad1b3bc665e4e15b307496c5.gif)转存失败重新上传取消
+
+（2） 采用pinmux mode1的连接时，需注意
+
+由于此时GPMC\_A\[10:1\]与LCD\_DATA复用，而LCD\_DATA又在启动初期作为SYSBOOT管脚使用，在其管脚上会根据启动序列的选择存在相应的上下拉。这就与（1）中要求的nor flash启动初期需要对GPMC\_A\[10:1\]一直保持下拉存在冲突。所以在这种应用下，需要增加一个bus transceiver对两者进行隔离。见下图。
+
+![2553.22.png](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/105554507/08_0b8e3530db6bb8202bdf0fc6c9327d88.png)![uploading.4e448015.gif](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/105554507/07_d12faba5ad1b3bc665e4e15b307496c5.gif)转存失败重新上传取消
+
+由于SYSBOOT的管脚状态只有在PORz的上升沿才会读取。而warm reset的输入管脚nRESET\_OUT会在PORz完成后持续一段时间低电平，可参考TRM的Figure 8-19. PORz。所以可以通过此信号来作为Bus transceiver的控制信号。当nRESET\_OUT为低时，根据SN74AVC32T245的逻辑，连接在总线上的信号会是A到B，期间PORz信号的上升沿触发时段，可以读取SYSBOOT的管脚状态。当nRESET\_OUT持续一段时间低电平后，其电平会变为高，此时Bus transceiver则会将A侧的GPMC\_A\[10:1\]与B侧SYSBOOT的上下拉隔离开。
+
+  
+ 
+
+软件方面：
+
+在SDK-05.06.00.00及之后的版本的U-boot中已经添加了Nor flash启动的代码。在使用时，需要注意
+
+nor flash为XIP memory，其启动时不需要将SPL拷贝到RAM中运行，而可以直接在nor flash进行。由于nor flash启动，ROM CODE只对低16位地址进行了初始化，所以启动时只能访问0x08000000起始的64K x 16bit的地址空间。在此初始化中，u-boot.bin会执行对nor flash高位地址的初始化，以便后续AM335X能访问nor flash的整个地址空间。
+
+在u-boot/board/ti/am335x/board.c中的s\_init函数中有对高地址线进行初始化的代码：
+
+#ifdef CONFIG\_NOR\_BOOT
+
+asm("stmfd      sp!, {r2 - r4}");
+
+asm("movw       r4, #**0x8A4**");
+
+asm("movw       r3, #0x44E1");
+
+asm("orr        r4, r4, r3, lsl #16");
+
+asm("mov        r2, **#9**");
+
+asm("mov        r3, **#8**");
+
+asm("gpmc\_mux:  str     r2, \[r4\], #4");
+
+asm("subs       r3, r3, #1");
+
+asm("bne        gpmc\_mux");
+
+asm("ldmfd      sp!, {r2 - r4}");
+
+#endif
+
+在选择上述表中的pinmux mode 1时，即nor flash的高位地址线连接的GPMC\_A\[10:1\]是pinmux mode1组对应的管脚，则u-boot中不需要做修改。而如果连接的是表中的pinmux mode 0组对应的管脚，即需要修改代码如下：
+
+#ifdef CONFIG\_NOR\_BOOT
+
+asm("stmfd      sp!, {r2 - r4}");
+
+asm("movw       r4, #**0x844**"); Start point Change from LCD\_DATA1 to GPMC\_A1
+
+asm("movw       r3, #0x44E1");
+
+asm("orr        r4, r4, r3, lsl #16");
+
+asm("mov        r2, **#8**"); Change #9 to #8, GPMC\_A1 to GPMC\_A11 as mode0
+
+asm("mov        r3, **#11**"); Change #8 to #11, because there are 11 lines.
+
+asm("gpmc\_mux:  str     r2, \[r4\], #4");
+
+asm("subs       r3, r3, #1");
+
+asm("bne        gpmc\_mux");
+
+asm("ldmfd      sp!, {r2 - r4}");
+
+#endif
+
+另外，对应上述两组不同的连接时，SYSBOOT对应的设置也不相同。如选择pinmux mode0组的连接，则需要配置SYSBOOT，选择XIP(mux1)或者XIP(mux1) w/WAIT0启动。而选择pinmux mode1时，则需要配置SYSBOOT，选择XIP(mux2)或者XIP(mux2) w/WAIT0启动。
+
+AM5728技术交流，请加wx:13670212541

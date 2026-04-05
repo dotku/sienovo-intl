@@ -1,0 +1,40 @@
+---
+title: "Linux下的shell工作原理是什么？"
+date: "2011-10-10"
+slug: "6858062"
+tags: ["#shell", "#linux", "#工作", "#linux内核", "#终端", "#语言"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6858062"
+---
+
+ 
+
+Linux系统提供给用户的最重要的系统程序是Shell命令语言[解释程序](http://wenwen.soso.com/z/Search.e?sp=S%E8%A7%A3%E9%87%8A%E7%A8%8B%E5%BA%8F&ch=w.search.yjjlink&cid=w.search.yjjlink)。它不属于内核部分，而是在核心之外，以用户态方式运行。其基本功能是解释并执行用户打入的各种命令，实现用户与Linux核心的接口。系统初启后，核心为每个[终端用户](http://wenwen.soso.com/z/Search.e?sp=S%E7%BB%88%E7%AB%AF%E7%94%A8%E6%88%B7&ch=w.search.yjjlink&cid=w.search.yjjlink)建立一个进程去执行Shell解释程序。它的执行过程基本上按如下步骤： 
+(1)读取用户由[键盘](http://wenwen.soso.com/z/Search.e?sp=S%E9%94%AE%E7%9B%98&ch=w.search.yjjlink&cid=w.search.yjjlink)输入的命令行。 
+
+(2)分析命令，以命令名作为文件名，并将其它参数改造为[系统调用](http://wenwen.soso.com/z/Search.e?sp=S%E7%B3%BB%E7%BB%9F%E8%B0%83%E7%94%A8&ch=w.search.yjjlink&cid=w.search.yjjlink)execve( )内部处理所要求的形式。 
+
+(3)终端进程调用fork( )建立一个子进程。 
+
+(4)终端进程本身用系统调用wait4( )来等待子进程完成（如果是后台命令，则不等待）。当子进程运行时调用execve( )，子进程根据文件名（即命令名）到目录中查找有关文件（这是[命令解释程序](http://wenwen.soso.com/z/Search.e?sp=S%E5%91%BD%E4%BB%A4%E8%A7%A3%E9%87%8A%E7%A8%8B%E5%BA%8F&ch=w.search.yjjlink&cid=w.search.yjjlink)构成的文件），将它调入内存，执行这个程序（解释这条命令）。 
+
+(5)如果命令末尾有&号（后台命令符号），则终端进程不用系统调用wait4( )等待，立即发提示符，让用户输入下一个命令，转⑴。如果命令末尾没有&号，则终端进程要一直等待，当子进程（即[运行命令](http://wenwen.soso.com/z/Search.e?sp=S%E8%BF%90%E8%A1%8C%E5%91%BD%E4%BB%A4&ch=w.search.yjjlink&cid=w.search.yjjlink)的进程）完成处理后终止，向父进程（终端进程）报告，此时终端进程醒来，在做必要的判别等工作后，终端进程发提示符，让用户输入新的命令，重复上述处理过程。
+
+\---------------------------------------------------------------------------------------------------------------------------
+
+Linux系统的shell作为[操作系统](http://wenwen.soso.com/z/Search.e?sp=S%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F&ch=w.search.yjjlink&cid=w.search.yjjlink)的外壳，为用户提供使用操作系统的接口。它是命令语言、[命令解释程序](http://wenwen.soso.com/z/Search.e?sp=S%E5%91%BD%E4%BB%A4%E8%A7%A3%E9%87%8A%E7%A8%8B%E5%BA%8F&ch=w.search.yjjlink&cid=w.search.yjjlink)及[程序设计语言](http://wenwen.soso.com/z/Search.e?sp=S%E7%A8%8B%E5%BA%8F%E8%AE%BE%E8%AE%A1%E8%AF%AD%E8%A8%80&ch=w.search.yjjlink&cid=w.search.yjjlink)的统称。 
+
+shell是用户和Linux内核之间的接口程序，如果把Linux内核想象成一个[球体](http://wenwen.soso.com/z/Search.e?sp=S%E7%90%83%E4%BD%93&ch=w.search.yjjlink&cid=w.search.yjjlink)的中心，shell就是围绕内核的外层。当从shell或其他程序向Linux传递命令时，内核会做出相应的反应。 
+
+shell是一个命令语言[解释器](http://wenwen.soso.com/z/Search.e?sp=S%E8%A7%A3%E9%87%8A%E5%99%A8&ch=w.search.yjjlink&cid=w.search.yjjlink)，它拥有自己内建的shell命令集，shell也能被系统中其他应用程序所调用。用户在提示符下输入的命令都由shell先解释然后传给Linux核心。 
+
+有一些命令，比如改变工作目录命令cd，是包含在shell内部的。还有一些命令，例如拷贝命令cp和移动命令rm，是存在于[文件系统](http://wenwen.soso.com/z/Search.e?sp=S%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F&ch=w.search.yjjlink&cid=w.search.yjjlink)中某个目录下的单独的程序。对用户而言，不必关心一个命令是建立在shell内部还是一个单独的程序。 
+
+shell首先检查命令是否是[内部命令](http://wenwen.soso.com/z/Search.e?sp=S%E5%86%85%E9%83%A8%E5%91%BD%E4%BB%A4&ch=w.search.yjjlink&cid=w.search.yjjlink)，若不是再检查是否是一个应用程序（这里的应用程序可以是Linux本身的实用程序，如ls和rm，也可以是购买的商业程序，如xv，或者是[自由软件](http://wenwen.soso.com/z/Search.e?sp=S%E8%87%AA%E7%94%B1%E8%BD%AF%E4%BB%B6&ch=w.search.yjjlink&cid=w.search.yjjlink)，如emacs）。然后shell在搜索路径里寻找这些应用程序（搜索路径就是一个能找到[可执行程序](http://wenwen.soso.com/z/Search.e?sp=S%E5%8F%AF%E6%89%A7%E8%A1%8C%E7%A8%8B%E5%BA%8F&ch=w.search.yjjlink&cid=w.search.yjjlink)的目录列表）。如果键入的命令不是一个内部命令并且在路径里没有找到这个可执行文件，将会显示一条错误信息。如果能够成功找到命令，该内部命令或应用程序将被分解为[系统调用](http://wenwen.soso.com/z/Search.e?sp=S%E7%B3%BB%E7%BB%9F%E8%B0%83%E7%94%A8&ch=w.search.yjjlink&cid=w.search.yjjlink)并传给Linux内核。 
+
+shell的另一个重要特性是它自身就是一个解释型的程序设计语言，[shell程序](http://wenwen.soso.com/z/Search.e?sp=Sshell%E7%A8%8B%E5%BA%8F&ch=w.search.yjjlink&cid=w.search.yjjlink)设计语言支持绝大多数在[高级语言](http://wenwen.soso.com/z/Search.e?sp=S%E9%AB%98%E7%BA%A7%E8%AF%AD%E8%A8%80&ch=w.search.yjjlink&cid=w.search.yjjlink)中能见到的程序元素，如函数、变量、[数组](http://wenwen.soso.com/z/Search.e?sp=S%E6%95%B0%E7%BB%84&ch=w.search.yjjlink&cid=w.search.yjjlink)和程序控制结构。shell[编程语言](http://wenwen.soso.com/z/Search.e?sp=S%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80&ch=w.search.yjjlink&cid=w.search.yjjlink)简单易学，任何在提示符中能键入的命令都能放到一个可执行的shell程序中。 
+
+当普通用户成功登录，系统将执行一个称为shell的程序。正是shell进程提供了命令行提示符。作为默认值（TurboLinux系统默认的shell是BASH），对普通用户用“$”作提示符，对超级用户（root）用“#”作提示符。 
+
+一旦出现了shell提示符，就可以键入命令名称及命令所需要的参数。shell将执行这些命令。如果一条命令花费了很长的时间来运行，或者在屏幕上产生了大量的输出，可以从[键盘](http://wenwen.soso.com/z/Search.e?sp=S%E9%94%AE%E7%9B%98&ch=w.search.yjjlink&cid=w.search.yjjlink)上按ctrl+c发出中断信号来中断它（在正常结束之前，中止它的执行）。 
+
+当用户准备结束登录对话进程时，可以键入logout命令、exit命令或文件结束符（EOF）（按ctrl+d实现），结束登录。

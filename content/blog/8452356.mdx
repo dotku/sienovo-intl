@@ -1,0 +1,414 @@
+---
+title: "Mediator模式"
+date: "2012-12-30"
+slug: "8452356"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/8452356"
+---
+
+ 
+
+  
+Mediator模式
+
+面向对象 设计追求的目标是高内聚、低耦合，最终是为了开发出易维护、易扩展、可复用的软件。所以我们在进行软件概要设计、搭建软件 架构 时要有意识地降低各个类间的耦合性，减少类间的交互。当我们刚开始接触面向对象开发时，由于知识水平以及经验的欠缺，总是以实现功能为第一目标，而忽视了对软件结构的考虑。在代码中总是充斥着太多A类头文件中包含B类指针，B类头文件中又包含A类指针，类似这种操作将导致A类和B类的耦合性太强，我们需要减少A类和B类的交互，Mediator模式可以帮助我们降低类间的耦合性。
+
+首先我们先看看一个耦合性很强的 程序 ：
+
+//类A头文件
+
+class B;
+
+class C;
+
+class A
+
+{
+
+public:
+
+   void    SetInfo(B\* pB,C\* pC);
+
+   void  ACallB();
+
+   void  ACallC();
+
+   void  Function();
+
+private:
+
+   B \*m\_pB;
+
+   C \*m\_pC;
+
+};
+
+//类A源文件
+
+void  A::SetInfo(B\* pB,C\* pC)
+
+{
+
+   m\_pB=pB;
+
+   m\_pC=pC;
+
+}
+
+void  A::ACallB()
+
+{
+
+   m\_pB->Function();
+
+}
+
+void  A::ACallC()
+
+{
+
+   m\_pC->Function();
+
+}
+
+void  A::Function()
+
+{
+
+}
+
+//类B头文件
+
+class B
+
+{
+
+public:
+
+   void    SetInfo(A\* pA,C\* pC);
+
+   void  BCallA();
+
+   void  BCallC();
+
+   void  Function();
+
+private:
+
+   A \*m\_pA;
+
+   C \*m\_pC;
+
+};
+
+//类B源文件
+
+void  B::SetInfo(A\* pA,C\* pC)
+
+{
+
+   m\_pA=pA;
+
+   m\_pC=pC;
+
+}
+
+void  B::BCallA()
+
+{
+
+   m\_pA->Function();
+
+}
+
+void  B::BCallC()
+
+{
+
+   m\_pC->Function();
+
+}
+
+void  B::Function()
+
+{
+
+}
+
+//类C头文件
+
+class C
+
+{
+
+public:
+
+   void    SetInfo(A\* pA,B\* pB);
+
+   void  CCallA();
+
+   void  CCallB();
+
+   void  Function();
+
+private:
+
+   A \*m\_pA;
+
+   B \*m\_pB;
+
+};
+
+//类C源文件
+
+void  C::SetInfo(A\* pA,B\* pB)
+
+{
+
+   m\_pA=pA;
+
+   m\_pB=pB;
+
+}
+
+void  C::CCallA()
+
+{
+
+   m\_pA->Function();
+
+}
+
+void  C::CCallB()
+
+{
+
+   m\_pB->Function();
+
+}
+
+void  C::Function()
+
+{
+
+}
+
+//
+
+void main()
+
+{
+
+   A a;
+
+   B b;
+
+   C c;
+
+   a.SetInfo(&b,&c);
+
+   a.ACallB();
+
+   a.ACallC();
+
+   b.SetInfo(&a,&c);
+
+   b.BCallA();
+
+   b.BCallC();
+
+   c.SetInfo(&a,&c);
+
+   c.CCallA();
+
+   c.CCallB();
+
+}
+
+在上述程序中A、B、C间互相调用，导致类间的耦合性大大增强，这样子不利于软件的扩展和复用。为降低耦合性，我们可以采用Mediator模式，创建一个中间类，使得A、B、C与该中间类进行通讯，而该中间类负责完成最终的调用，这样子可以避免A、B、C间直接发生调用。
+
+class Mediator
+
+{
+
+public:
+
+   void  SetInfo(A\* pA,B\* pB,C\* pC);
+
+   void  ACallB();
+
+   void  ACallC();
+
+   void  BCallA();
+
+   void  BCallC();
+
+   void  CCallA();
+
+   void  CCallB();
+
+private:
+
+   A \*m\_pA;
+
+   B \*m\_pB;
+
+   C \*m\_pC;
+
+};
+
+void  Mediator::SetInfo(A\* pA,B\* pB,C\* pC)
+
+{
+
+   m\_pA=pA;
+
+   m\_pB=pB;
+
+   m\_pC=pC;
+
+}
+
+void  Mediator::CCallA()
+
+{
+
+   m\_pA->Function();
+
+}
+
+void  Mediator::CCallB()
+
+{
+
+   m\_pB->Function();
+
+}
+
+void  Mediator::BCallA()
+
+{
+
+   m\_pA->Function();
+
+}
+
+void  Mediator::BCallC()
+
+{
+
+   m\_pC->Function();
+
+}
+
+void  Mediator::ACallB()
+
+{
+
+   m\_pB->Function();
+
+}
+
+void  Mediator::ACallC()
+
+{
+
+   m\_pC->Function();
+
+}
+
+同时修改A、B、C三个类的设计
+
+//类A头文件
+
+class B;
+
+class C;
+
+class A
+
+{
+
+public:
+
+   void    SetInfo(Mediator \*pMediator);
+
+   void  ACallB();
+
+   void  ACallC();
+
+   void  Function();
+
+private:
+
+   Mediator \*m\_ pMediator;
+
+};
+
+//类A源文件
+
+void  A:: SetInfo(Mediator \*pMediator)
+
+{
+
+   m\_ pMediator = pMediator;
+
+}
+
+void  A::ACallB()
+
+{
+
+   m\_ pMediator -> ACallB();
+
+}
+
+void  A::ACallC()
+
+{
+
+   m\_ pMediator -> ACallC ();
+
+}
+
+void  A::Function()
+
+{
+
+}
+
+//类B和类C修改同于类A，略
+
+void main()
+
+{
+
+   A a;
+
+   B b;
+
+   C c;
+
+Mediator mt(&a,&b,&c);
+
+a. SetInfo（&mt）；
+
+b. SetInfo（&mt）；
+
+c. SetInfo（&mt）；
+
+   a.ACallB();
+
+   a.ACallC();
+
+   b.BCallA();
+
+   b.BCallC();
+
+   c.CCallA();
+
+   c.CCallB();
+
+}
+
+     上面通过一个简单的小例子介绍了如何利用Mediator模式降低类间关联的方法，我们在设计软件的过程中，实现功能固然重要，但开发出符合面向对象精神的程序同样重要。只要我们对各种设计模式用心体会，大胆使用，随着经验的积累，相信我们开发的软件质量会越来越高。

@@ -1,0 +1,572 @@
+---
+title: "socket,端口，进程问答（收集整理）"
+date: "2011-09-22"
+slug: "6799417"
+tags: ["#socket", "#attributes", "#file", "#网络", "#struct", "#windows"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6799417"
+---
+
+ 
+
+**一、一台计算机有几个端口，分别是什么？作用呢？**  
+
+端口可分为3大类：  
+1） 公认端口（Well Known Ports）：从0到1023，它们紧密绑定于一些服务。通常这些端口的通讯明确表明了某种服务的协议。例如：80端口实际上总是 HTTP 通讯。  
+  
+2） 注册端口（Registered Ports）：从1024到49151。它们松散地绑定于一些服务。也就是说有许多服务绑定于这些端口，这些端口同样用于许多其它目的。例如：许多系统处理动态端口从1024左右开始。  
+  
+3） 动态和/或私有端口（Dynamic and/or Private Ports）：从49152到65535。理论上，不应为服务分配这些端口。实际上，机器通常从1024起分配动态端口。但也有例外：SUN的RPC端口从32768开始。  
+
+  
+
+\----------------------------------------------------------------------------------------------------------------------------------
+
+**二、一台电脑有且仅有一个IP，但有多个不同的端口**
+
+1.因为 IP地址 是有来标识主机的，IP地址相同说明可能是同一台计算机。 
+
+端口是用来标识进程的，同一台 计算 机上两个进程绝对不能占用同一个端口，所以不可能是同一台计算机。
+
+2.直接上网端口以     4000   起的
+
+3.如在同一台机器上开两个qq，那么端口一般为4000和4001 
+
+\--------------------------------------------------------------------------
+
+三、进程和端口
+
+1）端口定义
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/6799417/01_0_1316656161q8Up.gif)  
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/6799417/02_0_1316656806x9P5.gif)  
+
+2）
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/6799417/03_0_1316656371114y.gif)
+
+3)端口
+
+    网络中可以被命名和寻址的通信端口，是 操作系统 可分配的一种资源。
+
+    按照OSI七层协议的描述，传输层与网络层在功能上的最大区别是传输层提供进程通信能力。从这个意义上讲，网络通信的最终地址就不仅仅是主机地址了，还包括可以描述进程的某种标识符。为此，TCP/IP协议提出了协议端口（protocol port，简称端口）的概念，用于标识通信的进程。
+
+    端口是一种抽象的软件结构（包括一些数据结构和I/O缓冲区）。应用程序（即进程）通过系统调用与某端口建立连接（binding）后，传输层传给该端口的数据都被相应进程所接收，相应进程发给传输层的数据都通过该端口输出。在TCP/IP协议的实现中，端靠纪纪作类似于一般的I/O操作，进程获取一个端口，相当于获取本地唯一的I/O文件，可以用一般的读写原语访问之。
+
+    类似于文件描述符，每个端口都拥有一个叫端口号（port number）的整数型标识符，用于区别不同端口。由于TCP/IP传输层的两个协议TCP和 UDP 是完全独立的两个软件模块，因此各自的端口号也相互独立，如TCP有一个255号端口，UDP也可以有一个255号端口，二者并不冲突。
+
+    端口号的分配是一个重要问题。有两种基本分配方式：第一种叫全局分配，这是一种集中控制方式，由一个公认的中央机构根据用户需要进行统一分配，并将结果公布于众。第二种是本地分配，又称动态连接，即进程需要访问传输层服务时，向本地操作系统提出申请，操作系统返回一个本地唯一的端口号，进程再通过合适的系统调用将自己与该端口号联系起来（绑扎）。TCP/IP端口号的分配中综合了上述两种方式。TCP/IP将端口号分为两部分，少量的作为保留端口，以全局方式分配给服务进程。因此，每一个标准[服务器](http://server.chinaitlab.com/)都拥有一个全局公认的端口（即周知口，well-known port），即使钥纪纪同机器上，其端口号也相同。剩余的为自由端口，以本地方式进行分配。TCP和UDP均规定，小于256的端口号才能作保留端口。
+
+    地址
+
+    网络通信中通信的两个进程分别钥纪纪同的机器上。在互连网络中，两台机器可能位涌纪纪同的网络，这些网络通过网络互连设备（网关，网桥，[路由](http://cisco.chinaitlab.com/List_6.html)器等）连接。因此需要三级寻址：
+
+    1. 某一主机可与多个网络相连，必须指定一特定网络地址；
+
+    2. 网络上每一台主机应有其唯一的地址；
+
+    3. 每一主机上的每一进程应有在该主机上的唯一标识符。
+
+    通常主机地址由网络ID和主机ID组成，在TCP/IP协议中用32位整数值表示；TCP和UDP均使用16位端口号标识用户进程。
+
+    网络字节顺序
+
+    不同的计算机存放多字节值的顺序不同，有的机器在起始地址存放低位字节（低价先存），有的存高位字节（高价先存）。为保证数据的正确性，在网络协议中须指定网络字节顺序。TCP/IP协议使用16位整数和32位整数的高价先存格式，它们均含在协议头文件中。
+
+    连接
+
+    两个进程间的通信链路称为连接。连接在目纪纪表现为一些缓冲区和一组协议机制，在外部表现出比无连接高的可靠性。
+
+    半相关
+
+    综上所述，网络中用一个三 元组 可以在全局唯一标志一个进程：
+
+    （协议，本地地址，本地端口号）
+
+    这样一个三元组，叫做一个半相关（half-association），它指定连接的每半部分。
+
+    全相关
+
+    一个完整的网间进程通信需要由两个进程组成，并且只能使用同一种高层协议。也就是说，不可能通信的一端用TCP协议，而另一端用UDP协议。因此一个完整的网间通信需要一个五元组来标识：
+
+    （协议，本地地址，本地端口号，远地地址，远地端口号）
+
+    这样一个五元组，叫做一个相关（association），即两个协议相同的半相关才能组合成一个合适的相关，或完全指定组成一连接。
+
+  
+
+\------------------------------------------------------------------------------------------------
+
+四、**再谈进程与端口的映射**
+
+  
+创建时间：2002-02-05  
+文章属性：原创  
+文章来源：[www.whitecell.org](http://www.whitecell.org/)  
+文章提交：[ILSY](https://www.xfocus.net/bbs/index.php?lang=cn&act=Profile&do=03&MID=3079) (masteruser\_at\_263.net)  
+  
+Author  : ilsy  
+Email   : ilsy@whitecell.org  
+HomePage: [http://www.whitecell.org](http://www.whitecell.org/)  
+  
+日  期：2002-02-06  
+类  别：安全  
+关键字：进程 PDE PTE 分页 内核对象 线性地址 物理地址  
+  
+  
+    关于进程与端口映射的文章已经有很多了,我把我对fport的分析也写出来,让大家知道fport是如何工作的.  
+fport.exe是由foundstone team出品的免费软件,可以列出系统中所有开放的端口都是由那些进程打开的.而下  
+面所描述的方法是基于fport v1.33的,如果和你机器上的fport有出入,请检查fport版本.  
+  
+    首先,它检测当前用户是否拥有管理员权限(通过读取当前进程的令牌可知当前用户是否具有管理权限,请参考  
+相关历程),如果没有,打印一句提示后退出,然后设置当前进程的令牌,接着,用ZwOpenSection函数打开内核对象  
+\\Device\\PhysicalMemory,这个对象用于对系统物理内存的访问.ZwOpenSection函数的原型如下:  
+  
+NTSYSAPI  
+NTSTSTUS  
+NTAPI  
+ZwOpenSection(  
+    Out PHANDLE sectionHandle;  
+    IN ACCESS\_MASK DesiredAccess;  
+    IN POBJECT\_ATTRIBUTES ObjectAttributes  
+    };  
+(见ntddk.h)  
+  
+第一个参数得到函数执行成功后的句柄  
+第二个参数DesiredAccess为一个常数,可以是下列值:  
+    #define SECTION\_QUERY       0x0001  
+    #define SECTION\_MAP\_WRITE   0x0002  
+    #define SECTION\_MAP\_READ    0x0004  
+    #define SECTION\_MAP\_EXECUTE 0x0008  
+    #define SECTION\_EXTEND\_SIZE 0x0010  
+  
+    #define SECTION\_ALL\_ACCESS (STANDARD\_RIGHTS\_REQUIRED|SECTION\_QUERY|\\  
+                            SECTION\_MAP\_WRITE |      \\  
+                            SECTION\_MAP\_READ |       \\  
+                            SECTION\_MAP\_EXECUTE |    \\  
+                            SECTION\_EXTEND\_SIZE)  
+    (见ntddk.h)  
+第三个参数是一个结构,包含要打开的对象类型等信息,结构定义如下:  
+    typedef struct \_OBJECT\_ATTRIBUTES {  
+        ULONG Length;  
+        HANDLE RootDirectory;  
+        PUNICODE\_STRING ObjectName;  
+        ULONG Attributes;  
+        PVOID SecurityDescriptor;        // Points to type SECURITY\_DESCRIPTOR  
+        PVOID SecurityQualityOfService;  // Points to type SECURITY\_QUALITY\_OF\_SERVICE  
+    } OBJECT\_ATTRIBUTES;  
+    typedef OBJECT\_ATTRIBUTES \*POBJECT\_ATTRIBUTES;  
+    (见ntdef.h)  
+对于这个结构的初始化用一个宏完成:  
+    #define InitializeObjectAttributes( p, n, a, r, s ) { \\  
+        (p)->Length = sizeof( OBJECT\_ATTRIBUTES );          \\  
+        (p)->RootDirectory = r;                             \\  
+        (p)->Attributes = a;                                \\  
+        (p)->ObjectName = n;                                \\  
+        (p)->SecurityDescriptor = s;                        \\  
+        (p)->SecurityQualityOfService = NULL;               \\  
+        }  
+    (见ntdef.h)  
+那么,打开内核对象\\Device\\PhysicalMemory的语句如下:  
+WCHAR    PhysmemName\[\] =        L"\\\\Device\\\\PhysicalMemory";  
+void \*  pMapPhysicalMemory;  
+HANDLE  pHandle;  
+  
+bool    OpenPhysicalMemory()  
+{  
+    NTSTATUS    status;  
+    UNICODE\_STRING    physmemString;  
+    OBJECT\_ATTRIBUTES attributes;  
+    RtlInitUnicodeString( &physmemString, PhysmemName ); //初始化Unicode字符串,函数原型见ntddk.h      
+    InitializeObjectAttributes( &attributes, &physmemString,  
+                     OBJ\_CASE\_INSENSITIVE, NULL, NULL ); //初始化OBJECT\_ATTRIBUTES结构  
+    status = ZwOpenSection(pHandle, SECTION\_MAP\_READ, &attributes ); //打开内核对象\\Device\\PhysicalMemory,获得句柄  
+    if( !NT\_SUCCESS( status ))  
+        return false;  
+    pMapPhysicalMemory=MapViewOfFile(pHandle,FILE\_MAP\_READ,  
+                           0,0x30000,0x1000);  
+    //从内存地址0x30000开始映射0x1000个字节  
+    if( GetLastError()!=0)  
+        return false;                       
+    return true;  
+}  
+  
+    为什么要从0x30000开始映射呢,是这样,我们知道,在Windows NT/2000下,系统分为内核模式和用户模式,也就是我们  
+所说的Ring0和Ring3,在Windows NT/2000下,我们所能够看到的进程都运行在Ring3下,一般情况下,系统进程(也就是System  
+进程)的页目录(PDE)所在物理地址地址为0x30000,或者说,系统中最小的页目录所在的物理地址为0x30000.而页目录(PDE)由  
+1024项组成,每项均指向一页表(PTE),每一页表也由1024个页组成,而每页的大小为4K,1024\*4=4096(0x1000),所以,上面从物  
+理地址0x30000开始映射了0x1000个字节.(具体描述见WebCrazy的文章<<小议Windows NT/2000的分页机制>>)  
+  
+    程序打开打开内核对象\\Device\\PhysicalMemory后,继续用函数ZwOpenFile打开内核对象\\Device\\Tcp和Device\\Udp,ZwOpenFile  
+函数的原型如下:  
+NTSYSAPI  
+NTSTATUS  
+NTAPI  
+ZwOpenFile(  
+    OUT PHANDLE FileHandle,  
+    IN ACCESS\_MASK DesiredAccess,  
+    IN POBJECT\_ATTRIBUTES ObjectAttributes,  
+    OUT PIO\_STATUS\_BLOCK IoStatusBlock,  
+    IN ULONG ShareAccess,  
+    IN ULONG OpenOptions  
+    );  
+(见ntddk.h)  
+  
+第一个参数返回打开对象的句柄  
+第二个参数DesiredAccess为一个常数,可以是下列值:  
+    #define FILE\_READ\_DATA            ( 0x0001 )    // file & pipe  
+    #define FILE\_LIST\_DIRECTORY       ( 0x0001 )    // directory  
+    #define FILE\_WRITE\_DATA           ( 0x0002 )    // file & pipe  
+    #define FILE\_ADD\_FILE             ( 0x0002 )    // directory  
+    #define FILE\_APPEND\_DATA          ( 0x0004 )    // file  
+    #define FILE\_ADD\_SUBDIRECTORY     ( 0x0004 )    // directory  
+    #define FILE\_CREATE\_PIPE\_INSTANCE ( 0x0004 )    // named pipe  
+    #define FILE\_READ\_EA              ( 0x0008 )    // file & directory  
+    #define FILE\_WRITE\_EA             ( 0x0010 )    // file & directory  
+    #define FILE\_EXECUTE              ( 0x0020 )    // file  
+    #define FILE\_TRAVERSE             ( 0x0020 )    // directory  
+    #define FILE\_DELETE\_CHILD         ( 0x0040 )    // directory  
+    #define FILE\_READ\_ATTRIBUTES      ( 0x0080 )    // all  
+    #define FILE\_WRITE\_ATTRIBUTES     ( 0x0100 )    // all  
+    #define FILE\_ALL\_ACCESS (STANDARD\_RIGHTS\_REQUIRED | SYNCHRONIZE | 0x1FF)  
+    #define FILE\_GENERIC\_READ         (STANDARD\_RIGHTS\_READ     |\\  
+                                       FILE\_READ\_DATA           |\\  
+                                       FILE\_READ\_ATTRIBUTES     |\\  
+                                       FILE\_READ\_EA             |\\  
+                                       SYNCHRONIZE)  
+    #define FILE\_GENERIC\_WRITE        (STANDARD\_RIGHTS\_WRITE    |\\  
+                                       FILE\_WRITE\_DATA          |\\  
+                                       FILE\_WRITE\_ATTRIBUTES    |\\  
+                                       FILE\_WRITE\_EA            |\\  
+                                       FILE\_APPEND\_DATA         |\\  
+                                       SYNCHRONIZE)  
+    #define FILE\_GENERIC\_EXECUTE      (STANDARD\_RIGHTS\_EXECUTE  |\\  
+                                       FILE\_READ\_ATTRIBUTES     |\\  
+                                       FILE\_EXECUTE             |\\  
+                                       SYNCHRONIZE)  
+        (见ntdef.h)  
+第三个参数是一个结构,包含要打开的对象类型等信息,结构定义见上面所述  
+第四个参数返回打开对象的属性,是一个结构,定义如下:  
+    typedef struct \_IO\_STATUS\_BLOCK {  
+        union {  
+            NTSTATUS Status;  
+            PVOID Pointer;  
+        };  
+  
+        ULONG\_PTR Information;  
+    } IO\_STATUS\_BLOCK, \*PIO\_STATUS\_BLOCK;  
+  
+    #if defined(\_WIN64)  
+    typedef struct \_IO\_STATUS\_BLOCK32 {  
+        NTSTATUS Status;  
+        ULONG Information;  
+    } IO\_STATUS\_BLOCK32, \*PIO\_STATUS\_BLOCK32;  
+    #endif  
+    (见ntddk.h)  
+第五个参数ShareAccess是一个常数,可以是下列值:  
+    #define FILE\_SHARE\_READ                 0x00000001  // winnt  
+    #define FILE\_SHARE\_WRITE                0x00000002  // winnt  
+    #define FILE\_SHARE\_DELETE               0x00000004  // winnt  
+    (见ntddk.h)  
+第六个参数OpenOptions也是一个常数,可以是下列的值:  
+    #define FILE\_DIRECTORY\_FILE                     0x00000001  
+    #define FILE\_WRITE\_THROUGH                      0x00000002  
+    #define FILE\_SEQUENTIAL\_ONLY                    0x00000004  
+    #define FILE\_NO\_INTERMEDIATE\_BUFFERING          0x00000008  
+    #define FILE\_SYNCHRONOUS\_IO\_ALERT               0x00000010  
+    #define FILE\_SYNCHRONOUS\_IO\_NONALERT            0x00000020  
+    #define FILE\_NON\_DIRECTORY\_FILE                 0x00000040  
+    #define FILE\_CREATE\_TREE\_CONNECTION             0x00000080  
+    #define FILE\_COMPLETE\_IF\_OPLOCKED               0x00000100  
+    #define FILE\_NO\_EA\_KNOWLEDGE                    0x00000200  
+    #define FILE\_OPEN\_FOR\_RECOVERY                  0x00000400  
+    #define FILE\_RANDOM\_ACCESS                      0x00000800  
+    #define FILE\_DELETE\_ON\_CLOSE                    0x00001000  
+    #define FILE\_OPEN\_BY\_FILE\_ID                    0x00002000  
+    #define FILE\_OPEN\_FOR\_BACKUP\_INTENT             0x00004000  
+    #define FILE\_NO\_COMPRESSION                     0x00008000  
+    #define FILE\_RESERVE\_OPFILTER                   0x00100000  
+    #define FILE\_OPEN\_REPARSE\_POINT                 0x00200000  
+    #define FILE\_OPEN\_NO\_RECALL                     0x00400000  
+    #define FILE\_OPEN\_FOR\_FREE\_SPACE\_QUERY          0x00800000  
+    #define FILE\_COPY\_STRUCTURED\_STORAGE            0x00000041  
+    #define FILE\_STRUCTURED\_STORAGE                 0x00000441  
+    #define FILE\_VALID\_OPTION\_FLAGS                 0x00ffffff  
+    #define FILE\_VALID\_PIPE\_OPTION\_FLAGS            0x00000032  
+    #define FILE\_VALID\_MAILSLOT\_OPTION\_FLAGS        0x00000032  
+    #define FILE\_VALID\_SET\_FLAGS                    0x00000036  
+    (见ntddk.h)  
+          
+那么,打开内核对象\\Device\\Tcp和\\Device\\Udp的语句如下:      
+WCHAR physmemNameTcp\[\]=L"\\\\Device\\\\TCP";  
+WCHAR physmemNameUdp\[\]=L"\\\\Device\\\\UDP";  
+HANDLE pTcpHandle;  
+HANDLE pUdpHandle;  
+  
+HANDLE OpenDeviceTcpUdp(WCHAR \* deviceName)  
+{  
+    NTSTATUS    status;  
+    UNICODE\_STRING    physmemString;  
+    OBJECT\_ATTRIBUTES attributes;  
+    IO\_STATUS\_BLOCK iosb;  
+    HANDLE pDeviceHandle;  
+  
+    RtlInitUnicodeString(&physmemString, deviceName);      
+    if(GetLastError()!=0)  
+        return NULL;  
+    InitializeObjectAttributes( &attributes,&physmemString,  
+                            OBJ\_CASE\_INSENSITIVE,0, NULL );  
+    status = ZwOpenFile ( &pDeviceHandle,0x100000, &attributes, &iosb, 3,0);  
+    if( !NT\_SUCCESS( status ))  
+        return NULL;  
+}  
+  
+    接着,程序用ZwQuerySystemInformation函数获得系统当前所以进程的所建立的句柄及其相关信息,函数的原型如下:  
+NTSYSAPI  
+NTSTATUS  
+NTAPI  
+ZwQuerySystemInformation(  
+    IN SYSTEM\_INFORMATION\_CLASS SystemInformationClass,  
+    IN OUT PVOID SystemInformation,  
+    IN ULONG SystemInformationLength,  
+    OUT PULONG ReturnLength OPTIONAL  
+    };  
+(这个函数结构Microsoft没有公开,参见Gary Nebbett<<Windows NT/2000 Native API Reference>>)  
+  
+第一个参数是一个枚举常数,设置要查询的系统信息类型,ZwQuerySystemInformation支持54个系统信息的查询,我们要用到的  
+是它的第16号功能,进行SystemHandleInformation查询.  
+SYSTEM\_HANDLE\_INFORMATION结构定义如下:  
+    typedef struct \_SYSTEM\_HANDLE\_INFORMATION{  
+        ULONG ProcessID;        //进程的标识ID  
+        UCHAR ObjectTypeNumber;        //对象类型  
+        UCHAR Flags;             //0x01 = PROTECT\_FROM\_CLOSE,0x02 = INHERIT  
+        USHORT Handle;             //对象句柄的数值  
+        PVOID  Object;            //对象句柄所指的内核对象地址  
+        ACCESS\_MASK GrantedAccess;      //创建句柄时所准许的对象的访问权  
+    }SYSTEM\_HANDLE\_INFORMATION, \* PSYSTEM\_HANDLE\_INFORMATION;  
+    (这个函数结构Microsoft没有公开,参见Gary Nebbett<<Windows NT/2000 Native API Reference>>)  
+第二个参数输出查询的结果  
+第三个参数设置缓冲区的长度  
+第四个参数返回函数正确执行需要的缓冲区的大小  
+代码如下:  
+#define SystemHandleInformation 16  
+PULONG GetHandleList()  
+{  
+    ULONG cbBuffer = 0x1000;    //先设定一个较小的缓冲空间  
+    PULONG pBuffer = new ULONG\[cbBuffer\]; //分配内存  
+    NTSTATUS Status;  
+  
+    do  
+        {  
+        Status = ZwQuerySystemInformation(  
+                    SystemHandleInformation,  
+                    pBuffer, cbBuffer \* sizeof \* pBuffer, NULL);  
+  
+        if (Status == STATUS\_INFO\_LENGTH\_MISMATCH)  
+        {  
+            //如果返回的错误信息为缓冲区长度不够,那么重新分配内存  
+            delete \[\] pBuffer;  
+            pBuffer = new ULONG\[cbBuffer \*= 2\];  
+        }  
+        else if (!NT\_SUCCESS(Status))  
+        {  
+            //如果是其他错误信息,返回  
+            delete \[\] pBuffer;  
+            return false;  
+        }  
+        }  
+        while (Status == STATUS\_INFO\_LENGTH\_MISMATCH);  
+    return pBuffer;  
+}  
+  
+因为如果一个进程打开了端口,那么它肯定会建立类型为\\Device\\Tcp和\\Device\\Udp的内核对象,所以,我们在当前进程中打开  
+上述的两个内核对象,在打开的同时保存了打开的句柄,这样,我们可以在上面获得的句柄列表中的当前进程中查找对象句柄的  
+数值和我们保存的两个打开的内核对象的句柄数值相同的句柄,并得到其句柄所指向的内核对象的地址.代码如下:  
+DWORD TcpHandle;  
+DWORD UdpHandle;  
+DWORD GetTcpUdpObject(PULONG pBuffer,HANDLE pHandle,DWORD ProcessId)  
+{  
+    DWORD objTYPE1,objTYPE2,HandleObject;  
+  
+    PSYSTEM\_HANDLE\_INFORMATION pProcesses = (PSYSTEM\_HANDLE\_INFORMATION)(pBuffer+1);  
+    
+    for (i=0;i< \* pBuffer;i++)  
+    {  
+        if ((pProcesses\[i\].ProcessID) == ProcessId)  
+        {  
+            objTYPE1 = (DWORD)hDeviceTcpUdp;  
+            objTYPE2 = (DWORD)pProcesses\[i\].Handle;  
+            if(objTYPE1==objTYPE2)  
+            {  
+                HandleObject = (DWORD)pProcesses.Object;  
+                return HandleObject;  
+        }  
+    }  
+    return 0;  
+}  
+  
+这个内核对象地址是一个线性地址,我们需要把这个地址转换为物理地址,并得到一些相关的数据.在fport中,换算是这样进行的:  
+(具体描述见WebCrazy的文章<<小议Windows NT/2000的分页机制>>)  
+void \* NewmapPhy;  
+  
+void GetPTE(DWORD objAddress)  
+{  
+    DWORD physmemBuff;  
+    DWORD newAddress1,newAddress2,newAddress3,newAddress4;  
+    DWORD \* newAddress;  
+  
+    physmemBuff = (DWORD)pMapPhysicalMemory;  
+    newAddress1 = physmemBuff+(objAddress>>0x16)\*4;  
+    newAddress = (DWORD \*)newAddress1;  
+    newAddress1 = \* newAddress;  
+    newAddress2 = objAddress & 0x3FF000;  
+    newAddress3 = newAddress1 & 0x0FFFFF000;  
+    newAddress4 = newAddress2 + newAddress3;  
+    NewmapPhy = MapViewOfFile(ghPhysicalMemory,FILE\_MAP\_READ,0,newAddress4,0x1000);  
+    //重新映射物理内存,得到当前线性地址所指向的PTE的物理地址内容  
+}  
+  
+然后在根据内核对象的线性地址得到这个地址所指向的物理页,得到体现当前内核对象内容的页,其结构如下:  
+typedef struct {  
+    ULONG Present;  
+    ULONG WriteTable;  
+    ULONG User;  
+    ULONG WriteThru;  
+    ULONG NoCache;  
+    ULONG Accessed;  
+    ULONG Dirty;  
+    ULONG PageSize;  
+    ULONG Global;  
+    ULONG Available;  
+    ULONG Pfn;  
+} PTE, \*PPTE;  
+(注:我不能保证这个结构的正确性,但我们只会用到其中的两个值,对程序来说,这个结构是可以工作的,^\_^)  
+代码如下:  
+ULONG CurrWriteTable;  
+ULONG NoCache;  
+  
+void GetMustPar(DWORD objAddress)  
+{  
+    DWORD CurrAddress;  
+    CurrAddress = objAddress & 0xFFF;  
+    PPTE pte = (PPTE)(VOID \*)((DWORD)NewmapPhy+CurrAddress);  
+    CurrWriteTable = pte->WriteTable;  
+    CurrNoCache = Pte->NoCache;  
+}  
+  
+好了,我们现在想要得到的都已经得到了,下面需要做的是遍历进程,用每一个进程中的每一个句柄(呵呵,不是每一个句柄,  
+在Windows NT下,\\Device\\Tcp和\\Device\\Udp的句柄类型值为0x16,在Windows 2000下这个值为0x1A)的核心地址用上面所描  
+述的办法得到其PTE内容,得到其WriteTable值,如果与内核对象\\Device\\Tcp和\\Device\\Udp相等,那么这个句柄就有可能打开  
+了一个端口,再对这个句柄进行确认,就可以了.确认的代码如下:  
+typedef struct \_TDI\_CONNECTION\_INFO {  
+    ULONG          State;  
+    ULONG          Event;  
+    ULONG          TransmittedTsdus;  
+    ULONG          ReceivedTsdus;  
+    ULONG          TransmissionErrors;  
+    ULONG          ReceiveErrors;  
+    LARGE\_INTEGER  Throughput;  
+    LARGE\_INTEGER  Delay;  
+    ULONG          SendBufferSize;  
+    ULONG          ReceiveBufferSize;  
+    BOOLEAN        Unreliable;  
+} TDI\_CONNECTION\_INFO, \*PTDI\_CONNECTION\_INFO;  
+  
+typedef struct \_TDI\_CONNECTION\_INFORMATION {  
+    LONG   UserDataLength;  
+    PVOID  UserData;  
+    LONG   OptionsLength;  
+    PVOID  Options;  
+    LONG   RemoteAddressLength;  
+    PVOID  RemoteAddress;  
+} TDI\_CONNECTION\_INFORMATION, \*PTDI\_CONNECTION\_INFORMATION;  
+(以上结构见tdi.h)  
+  
+void GetOpenPort(DWORD dwProcessesID,USHORT Handle,int NoCache)  
+//dwProcessesID为进程标识ID  
+//Handle为进程打开的句柄,并且经过比较为\\Device\\Tcp或\\Device\\Udp类型  
+//NoCache为PTE结构中的一个值  
+{  
+    HANDLE hProc,DupHandle=NULL;  
+    HANDLE hEven=NULL;  
+        OVERLAPPED overlap;  
+    u\_short openport;  
+    int i=0;  
+    char procName\[256\]={0};  
+    int  portflag=0;  
+  
+    overlap.Internal = 0;  
+    overlap.InternalHigh = 0;  
+    overlap.Offset = 0;  
+    overlap.OffsetHigh = 0;  
+    hEven=CreateEvent(0,1,0,0);  
+    overlap.hEvent = hEven;  
+  
+    hProc = OpenProcess(PROCESS\_DUP\_HANDLE,  
+                        0,  
+                        dwProcessesID);  
+    if(hProc)  
+    {  
+        DuplicateHandle(hProc,  
+                        (HANDLE)Handle,  
+                        GetCurrentProcess(),  
+                        &DupHandle,  
+                        0,  
+                        FALSE,  
+                        2);  
+        CloseHandle( hProc );  
+        if(DupHandle)  
+        {  
+            TDI\_CONNECTION\_INFO    TdiConnInfo={0};  
+            TDI\_CONNECTION\_INFORMATION TdiConnInformation={0};  
+            DWORD dwRetu=0;      
+  
+            if(NoCache==0x2)  
+            {  
+                TdiConnInformation.RemoteAddressLength= 4;  
+                if(DeviceIoControl(DupHandle,0x210012,  
+                            &TdiConnInformation,sizeof(TdiConnInformation),  
+                            &TdiConnInfo,sizeof(TdiConnInfo),  
+                            0,&overlap))  
+                //进行TDI查询,得到连接的相关信息  
+                {  
+                    openport = ntohs((u\_short)TdiConnInfo.ReceivedTsdus);  
+                    procname = GetProcName(dwProcessesID);  //得到进程标识ID的进程名称  
+                    printf("PID = %4d ProcessName = %15s PORT = %4d\\n",dwProcessesID,procName,openport);  
+                }  
+            }  
+            if(NoCache==0x1)  
+            {  
+                TdiConnInformation.RemoteAddressLength= 3;  
+                if(DeviceIoControl(DupHandle,0x210012,  
+                            &TdiConnInformation,sizeof(TdiConnInformation),  
+                            &TdiConnInfo,sizeof(TdiConnInfo),  
+                            0,&overlap))  
+                //进行TDI查询,得到连接的相关信息  
+                {  
+                    openport = ntohs((u\_short)TdiConnInfo.ReceivedTsdus);  
+                    procname = GetProcName(dwProcessesID);  //得到进程标识ID的进程名称  
+                    printf("PID = %4d ProcessName = %15s PORT = %4d\\n",dwProcessesID,procName,openport);  
+                }  
+            }  
+        }  
+    }  
+    CloseHandle(hEven);  
+    CloseHandle(DupHandle);  
+}  
+  
+以上是我对fport.exe的分析及其实现代码,演示程序可以从whitecell.org下载,如果你发现有问题,请通知我,^\_^  
+  
+参考:  
+  
+fport.exe  
+Gary Nebbett<<Windows NT/2000 Native API Reference>>  
+WebCrazy<<小议Windows NT/2000分页机制>>  
+NTDDK  
+  
+关于我们：  
+  
+WSS(Whitecell Security Systems)，一个非营利性民间技术组织，致力于各种系统安全技术的研究。坚持传统的hacker精神，追求技术的精纯。  
+  
+WSS 主页：[http://www.whitecell.org/](http://www.whitecell.org/)  
+WSS 论坛：[http://www.whitecell.org/forum/](http://www.whitecell.org/forum/)

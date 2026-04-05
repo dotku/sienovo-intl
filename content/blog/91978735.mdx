@@ -1,0 +1,43 @@
+---
+title: "AM5728 linux内核编译方法"
+date: "2019-06-14"
+slug: "91978735"
+tags: ["#AM5728", "#内核", "#编译", "#linux"]
+source: "https://blog.csdn.net/yeyuangen/article/details/91978735"
+---
+
+ 
+
+一、编译 Linux 内核
+
+在 Linux 内核源码安装目录下，执行如下命令编译 Linux 内核：
+
+```hljs
+Host# make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- zImage -j 32
+```
+
+“-j 32”是一个编译选项，告诉 操作系统 用 32 个线程去编译，加快编译速度。  
+编译完成后， 会在 Linux 内核源码安装目录“arch/arm/boot”路径下生成内核镜像文件zImage。 可将编译出来的内核 镜像文件 ，替换开发板文件系统中的内核镜像文件。  
+使用 SD 系统启动卡启动系统时， 如需替换内核镜像，有如下方法：
+
+*   使用新的内核镜像文件， 保持文件名与原文件一致，替换 SD 系统启动卡 rootfs 分区“/boot”目录下的对应文件。
+*   使用新的内核镜像文件， 保持文件名与原文件一致，替换 SD 系统启动卡制作文件目录下的对应文件，然后重新制作 SD 系统启动卡。
+
+二、编译模块 modules  
+在 Linux 内核源码安装目录下， 执行如下指令编译内核配置中选中的模块：
+
+```hljs
+Host# make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- modules -j 32
+```
+
+将 SD 系统启动卡插入 PC 机，并将其成功挂载到 Ubuntu。执行如下命令， 将编译的模块安装到系统卡 rootfs 分区：
+
+```hljs
+Host# make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- modules_install INSTALL_MOD_PATH=/media/rootfs/
+```
+
+  
+“/media/rootfs/”为 SD 卡文件系统在 Ubuntu 的挂载路径。
+
+开发板文件系统下执行如下指令，查看安装的驱动模块：  
+Host# lsmod

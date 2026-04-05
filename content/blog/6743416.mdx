@@ -1,0 +1,53 @@
+---
+title: "fflush(stdin)和fflush(stdout)"
+date: "2011-09-02"
+slug: "6743416"
+tags: ["#input", "#多线程", "#平台", "#windows", "#编程", "#网络"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6743416"
+---
+
+ 
+
+ fflush(stdin)比较容易理解，即清理标准输入流，把多余的仍未被保存的数据丢掉。
+
+比如，下面这个小程序：
+
+void main()
+
+{
+
+        int a;
+
+        char str\[10\];
+
+        cin>>a;
+
+        cout<<a<<endl;
+
+        cin>>str;
+
+        cout<<str<<endl;
+
+}
+
+目地很简单：从stdin获得一个整数存入a，接着立马打印出来；从stdin获得一个字符串存入str，也立马打印出来。但是下面这种可能需要特别考虑：在首行输入了两个整数，在cin\>>a之后，stdin缓冲还有一个整数没被读取。接下来，不等输入字符串，就直接把上面多出来的数字存入到str中去并打印。
+
+某种程度上这是操作不规范造成的，但是程序应该要有健壮性，程序员应该提前预防这种不规范的操作。可以在程序界面上提示“请输入1个整数”，甚至有时候不厌其烦的强调和警告也必要。当然，本例为求简单，并不在UI友好方面做文章。这时，可以在cin>>str语句前插入fflush(stdin)，如此一来就可以清空标准输入缓冲里多余的数据。
+
+fflush(stdout)跟fflush(stdin)类似，是对标准输出流的清理，但是它并不是把数据丢掉，而是及时地打印数据到屏幕上。为了更好的理解它，需要知道一个事实：标准输出是以『行』为单位进行的，也即碰到\\n才打印数据到屏幕。这就可能造成延时，如下面这几行代码：
+
+int a;
+
+printf\_s("input one number:");
+
+fflush(stdout);\\\\#1
+
+scanf\_s("%d",&a);
+
+如果没有#1那行代码，在某些平台上就可能迟迟看不到"input one number"被打印到屏幕上来，因为它没有回车。这时候，fflush(stdout)就起到及时输出的作用。
+
+但是在Windows平台上，似乎并看不出差别来。也即MSFT已经将stdout的输出改成及时生效了。
+
+fflush函数被广泛使用在多线程、网络编程的消息处理中。
+
+fflush(stdout)：清空输出缓冲区，并把缓冲区内容输出

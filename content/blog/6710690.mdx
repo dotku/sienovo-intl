@@ -1,0 +1,47 @@
+---
+title: "LCD屏幕驱动解析（一）如何在LCD屏幕上画出点和线"
+date: "2011-08-23"
+slug: "6710690"
+tags: ["#makefile", "#byte", "#化工", "#编程", "#测试", "#工作"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6710690"
+---
+
+ 
+
+\=============  目标  =====================
+
+如何在LCD屏幕上画出点和线
+
+\=======================================
+
+**一、学习体悟**
+
+1.如何编写测试程序？如何与makefile综合起来，编译一个程序（只弄有用的出来，自己建个工程）  
+1） LCDSetColor(WHITE,UNSET);  //设置颜色是基本工作。包括线条颜色、字体颜色、背景颜色等  
+2） DispSetPointDirect(6, 10); //设置位置  
+3）LCDSetLine()  
+2.我要弄个makefile,还要弄个main.c  
+关键是初始化工作。初始化的顺序。  
+3.瞎试不行了。要理解。要尝试。  
+我现在想弄明白xadd(),yadd()  
+4.其实是搞不明白其运行原理
+
+5.终于醒悟：刚开始不能那么复杂，三维数组<屏幕上画点和线，汉字库，bmp图片>【简化】，三者组合起来，就是一个屏幕 驱动 啦。入门应将其拆解。
+
+学习方法：定下明确目标（比如完成画点和线，完成汉字显示），以最快速度实现（搜索的方式，追求的是速度，而不是面面俱到）+理论上在大脑运行得通
+
+  
+
+**二、问题集锦：**
+
+```cpp
+1.//LightAdjust颜色调整 取值范围-16(to ColorR)~+16(to ColorL), 0为保持原色。void LCDSetColorAdjust(char *cBGRPix,int ColorAdjust)  以上正负16何解？2.void Lcd_Test(void){   int i;    Xadd(0x00,0x7F);                        //Xadd(startx,endx)是指从startx,endx画线吗？                                                //编程验证下	Yadd(0x00,0x7F);	LCDCOM_MASTER(0x2C);    for(i=0;i<128*128;i++)                 //为什么是128*128，而不是用for的双重循环？  	{                                  //难道是会自动换行？	    LCDDATA_MASTER(0x00);	    LCDDATA_MASTER(0x1f);  	}} 【问】：我如何在主程序main.c中调用lcd_test呢？ 3.LCDSetButton(0,16,128,112,0,TRANSB);  //这个函数有什么用呢？没看到屏幕上有按钮啊4.void Xadd(char startx,char endx)      //是理解成两点一线吗？还是理解成坐标上的一个点。{    LCDCOM_MASTER(0x2A);    LCDDATA_MASTER(startx);    LCDDATA_MASTER(endx);} void Yadd(char starty, char endy){    LCDCOM_MASTER(0x2B);    LCDDATA_MASTER(starty);                   //这个函数要研究下，它应该是跟硬件打交道的极    LCDDATA_MASTER(endy);                     //少函数之一。直接写入，剩下是硬件在干活吧？}5.colorl,colorm,colorr何义？
+```
+```cpp
+6.BYTE cDispBatCap[MAXBATCAPNUM][32]        //什么作用？在disp.cBYTE cDispSigValue[MAXSIGNUM][32] 7.Lcddata_masder(0)什么意思？
+```
+  
+
+欢迎交流！
+
+1.\*追加一个16x16\*/void DispAddChinesCharFuSe(DWORD dwQuNum,DWORD dwWeiNum) //Fuse是什么意思？qu,wei什么意思{ //GBquwei\[\]何用？ unsigned int uiCurrentXY,i; DWORD dwPotsIndex; if(dwQuNum > 15) { dwPotsIndex = ((dwQuNum - 2) \* 94 + dwWeiNum - 1) \* 32; //此索引计算公式何来？ } else { dwPotsIndex = ((dwQuNum - 1) \* 94 + dwWeiNum - 1) \* 32; } for(i = 0; i < 32;i++) { cChineseFuSe\[i\] = ~(hanzi1616\[dwPotsIndex + i\]); //这里还有char16\*8fuse\[\] } uiCurrentXY = LCDdisplay1616((BYTE)(dwDispCurrentX),(BYTE)(dwDispCurrentY),cChineseFuSe); dwDispCurrentY = (DWORD)(uiCurrentXY & 0xff); //为什么是取低16位？ dwDispCurrentX = ((DWORD)(uiCurrentXY >> 8) & 0xff); //为什么是向左偏移后再 }2.计算位置相关函数，常见运算的数字 dwDispCurrentY -= 2; dwDispCurrentX = 112; setpoint()

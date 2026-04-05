@@ -1,0 +1,122 @@
+---
+title: "EXPORT_SYMBOL含义及用法"
+date: "2012-02-29"
+slug: "7307320"
+tags: ["#module", "#shell"]
+source: "https://blog.csdn.net/yeyuangen/article/details/7307320"
+---
+
+ 
+
+一个模块mod1中定义一个函数func1；在另外一个模块mod2中定义一个函数func2，func2调用func1。  
+在模块mod1中，EXPORT\_SYMBOL(func1);  
+在模块mod2中，extern int func1();  
+就可以在mod2中调用func1了。  
+  
+参考：  
+http://topic.csdn.net/u/20070910/09/ee2cff13-9179-41e3-9292-4fd73261f709.html  
+http://www.dev-archive.com/msdn-archive/524/kernel-driver-5244619.shtm  
+  
+mod1.c  
+#include<linux/init.h>  
+#include<linux/module.h>  
+#include<linux/kernel.h>  
+  
+static int func1(void)  
+{  
+        printk("In Func: %s.../n",\_\_func\_\_);  
+        return 0;  
+}  
+  
+EXPORT\_SYMBOL(func1);  
+  
+static int \_\_init hello\_init(void)  
+{  
+        printk("Module 1,Init!/n");  
+        return 0;  
+}  
+  
+static void \_\_exit hello\_exit(void)  
+{  
+        printk("Module 1,Exit!/n");  
+}  
+  
+module\_init(hello\_init);  
+module\_exit(hello\_exit);  
+  
+  
+#############################################################  
+mod2.c  
+#include<linux/init.h>  
+#include<linux/kernel.h>  
+#include<linux/module.h>  
+  
+static int func2(void)  
+{  
+        extern int func1(void);  
+        func1();  
+        printk("In Func: %s.../n",\_\_func\_\_);  
+        return 0;  
+}  
+  
+static int \_\_init hello\_init(void)  
+{  
+        printk("Module 2,Init!/n");  
+        func2();  
+        return 0;  
+}  
+  
+static void \_\_exit hello\_exit(void)  
+{  
+        printk("Module 2,Exit!/n");  
+}  
+  
+module\_init(hello\_init);  
+module\_exit(hello\_exit);  
+  
+################################################################  
+Makefile  
+ifneq ($(KERNELRELEASE),)  
+obj-m   := XXXX.o  
+else  
+KDIR    := /lib/modules/$(shell uname -r)/build  
+PWD             := $(shell pwd)  
+  
+default:  
+        (𝑀𝐴𝐾𝐸)−𝐶(MAKE)−C(KDIR) SUBDIRS=$(PWD) modules  
+  
+clean:  
+        rm -rf Module.symvers \*.ko \*.o \*.mod.c .\*.cmd .tmp\_versions  
+  
+endif  
+  
+################################################################  
+  
+#insmod ./mod1.ko  
+#insmod ./mod2.ko  
+#rmmod mod2  
+#rmmod mod1  
+  
+Jan 11 11:59:17 wangyao-desktop kernel: \[ 9886.801010\] Module 2,Exit!  
+Jan 11 11:59:21 wangyao-desktop kernel: \[ 9891.450214\] Module 1,Exit!  
+Jan 11 12:05:29 wangyao-desktop kernel: \[10258.385014\] Module 1,Init!  
+Jan 11 12:05:38 wangyao-desktop kernel: \[10267.465923\] Module 2,Init!  
+Jan 11 12:05:38 wangyao-desktop kernel: \[10267.465928\] In Func: func1...  
+Jan 11 12:05:38 wangyao-desktop kernel: \[10267.465930\] In Func: func2...  
+Jan 11 12:05:50 wangyao-desktop kernel: \[10280.091755\] Module 2,Exit!  
+Jan 11 12:05:57 wangyao-desktop kernel: \[10287.332596\] Module 1,Exit!  
+  
+可见，在mod2中的func2函数成功的调用了mod1中的func1函数。  
+  
+注意：  
+在编译mod2的时候，出现一个WARNING：  
+root@wangyao-desktop:~/modules/export\_symbol/mod2# make  
+make -C /lib/modules/2.6.22-14-generic/build SUBDIRS=/root/modules/export\_symbol/mod2 modules  
+make\[1\]: Entering directory \`/usr/src/linux-headers-2.6.22-14-generic'  
+  Building modules, stage 2.  
+  MODPOST 1 modules  
+WARNING: "func1" \[/root/modules/export\_symbol/mod2/mod2.ko\] undefined!  
+make\[1\]: Leaving directory \`/usr/src/linux-headers-2.6.22-14-generic'  
+  
+  
+这主要是因为在编译连接的时候还没有和内核打交道，当然找不到symbol了，但是由于你生成的是一个内核模块，所以LD不提示error，而是给出一个warning，寄希望于在insmod的时候，内核能够把这个symbol连接上。

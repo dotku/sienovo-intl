@@ -1,0 +1,21 @@
+---
+title: "socket连接和TCP连接的关系"
+date: "2014-08-07"
+slug: "38426135"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/38426135"
+---
+
+ 
+
+我们在传输数据时，可以只使用（传输层）TCP/IP协议，但是那样的话，如果没有应用层，便无法识别数据内容，如果想要使传输的数据有意义，则必须使用到应用层协议，应用层协议有很多，比如HTTP、FTP、TELNET等，也可以自己定义应用层协议。WEB使用HTTP协议作应用层协议，以封装HTTP文本信息，然后使用TCP/IP做传输层协议将它发到网络上。
+
+1)Socket是一个针对TCP和UDP编程的接口，你可以借助它建立TCP连接等等。而TCP和UDP 协议 属于传输层 。
+
+  而http是个应用层的协议，它实际上也建立在TCP协议之上。 
+
+ (HTTP是轿车，提供了封装或者显示数据的具体形式；Socket是发动机，提供了网络通信的能力。)
+
+2）Socket是对TCP/ IP 协议的封装，Socket本身并不是协议，而是一个调用接口（API），通过Socket，我们才能使用TCP/IP协议。Socket的出现只是使得程序员更方便地使用TCP/IP协议栈而已，是对TCP/IP协议的抽象，从而形成了我们知道的一些最基本的函数接口。
+
+#### [SOCKET API和TCP STATE的对应关系\_\_三次握手(listen,accept,connect)\_\_四次挥手close及TCP延迟确认(调用一次setsockopt函数，设置TCP\_QUICKACK)\_\_长连接API小心“窜包”问题](http://blog.163.com/xychenbaihu@yeah/blog/static/13222965520118139252103/)

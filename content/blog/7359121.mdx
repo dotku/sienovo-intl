@@ -1,0 +1,64 @@
+---
+title: "将二叉树的两个孩子换位置，即左变右，右变左。（递规与非递规两种方法）"
+date: "2012-03-15"
+slug: "7359121"
+tags: ["#null", "#算法"]
+source: "https://blog.csdn.net/yeyuangen/article/details/7359121"
+---
+
+ 
+
+将二叉树的两个孩子换位置，即左变右，右变左。(用递归和非递归两种方法)
+
+2011-10-14 8:35
+
+将二叉树的两个孩子换位置，即左变右，右变左。(用递归和非递归两种方法)
+
+递归的版本：
+
+void change( BTree \* pTree )  
+{  
+if( NULL == pTree )  
+return;  
+BTree \* pTemp = pTree.left;  
+pTree-> left = pTree-> right;  
+pTree-> right= pTemp;  
+change( pTree-> left );  
+change( pTree-> right );  
+}  
+＝＝＝＝＝＝＝＝＝＝＝＝＝使用队列＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
+
+算法思想：
+
+1、根结点入队列，即放入列尾。
+
+2、从队列中取出一个结点，即从队列头部取出一个元素。
+
+3、将取出来的结点的左右儿子交换，然后依次放入队列尾部。
+
+4、如果队列不为空，循环执行第2、3步。
+
+作者：刘华喜
+
+迭代版的如下，使用了队列  
+void change( BTree \* pTree )  
+{  
+if( NULL == pTree )  
+return;  
+queue <BTree\*> qu;  
+qu.push(pTree);  
+BTree\*pTree2 = null;  
+while(!qu.empty(){  
+pTree2= qu.front( );  
+qu.pop();  
+BTree \* pTemp = pTree2-> left;  
+pTree2-> left = pTree2-> right;  
+pTree2-> right= pTemp;  
+if(pTree2-> left!=null)  
+qu.push(pTree2-> left);  
+if(pTree2-> right!=null)  
+qu.push(pTree2-> right);  
+  
+}  
+  
+}

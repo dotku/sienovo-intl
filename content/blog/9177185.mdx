@@ -1,0 +1,139 @@
+---
+title: "智能指针(auto_ptr 和 shared_ptr)"
+date: "2013-06-26"
+slug: "9177185"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/9177185"
+---
+
+ 
+
+### [智能指针(auto\_ptr 和 shared\_ptr)](http://www.cppblog.com/expter/archive/2009/03/29/78270.html)
+
+都是这周看书以及代码的总结：  
+    
+    Stl  中 auto\_ptr只是众多可能的智能指针之一，auto\_ptr所做的事情，就是动态分配对象以及当对象不再需要时自动执行清理。  
+    这里是一个简单的代码示例，如果没有auto\_ptr,  
+      
+   
+
+ 1 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/29_None.gif) void ProcessAdoption(istream &data)  
+ 2 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/30_ExpandedBlockStart.gif) {  
+ 3![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/37_InBlock.gif)   
+ 4![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/37_InBlock.gif)    while (data)                            // 如果还有数据  
+ 5![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/33_ExpandedSubBlockStart.gif)    {  
+ 6![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/37_InBlock.gif)        ALA   \*pa = readALAData(data);      // 取出下一个数据  
+ 7![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/37_InBlock.gif)        pa->DealProcessAdoption(data);        // 处理  
+ 8![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/37_InBlock.gif)   
+ 9![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/37_InBlock.gif)        delete pa;                          // 释放资源  
+10![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/36_ExpandedSubBlockEnd.gif)    }  
+11![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/37_InBlock.gif)    return;  
+12![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/38_ExpandedBlockEnd.gif)}
+
+  
+     如果在DealProcessAdoption有一个exception,会发生什么事情，因为ProcessAdoption不能捕获他，所以这段代码很危险，所以DealProcessAdoption后面的代码可能会跳过，造成内存泄露。  
+如果利用try catch去捕获他，会搞得代码很乱，又缺少美观性。
+
+所以Stl提供了一个智能指针来解决这个问题，我们可以先模拟实现一个智能指针的类实现。  
+
+ 1 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/29_None.gif) //  关于一个智能指针的定义  
+ 2 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/29_None.gif)template<typename Type>  
+ 3 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/29_None.gif) class auto\_ptr  
+ 4 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/30_ExpandedBlockStart.gif) {  
+ 5![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/37_InBlock.gif)public:  
+ 6![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/37_InBlock.gif)    auto\_ptr(T \*p =NULL) :Ptr(p)  
+ 7![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/33_ExpandedSubBlockStart.gif)    {     }  
+ 8![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/37_InBlock.gif)    ~auto\_ptr()  
+ 9![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/33_ExpandedSubBlockStart.gif)    {  
+10![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/37_InBlock.gif)        delete Ptr;  
+11![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/36_ExpandedSubBlockEnd.gif)    }  
+12![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/37_InBlock.gif)private:  
+13![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/37_InBlock.gif)    Type \*Ptr;  
+14![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/38_ExpandedBlockEnd.gif)};  
+15 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/29_None.gif)  
+16 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/29_None.gif)  
+17 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/29_None.gif) void ProcessAdoption(istream &data)  
+18 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/30_ExpandedBlockStart.gif) {  
+19![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/37_InBlock.gif)  
+20![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/37_InBlock.gif)    while (data)                            // 如果还有数据  
+21![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/33_ExpandedSubBlockStart.gif)    {  
+22![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/37_InBlock.gif)        auto\_ptr<ALA> pa(readALADara(data));  
+23![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/37_InBlock.gif)        pa->DealProcessAdoption(data);  
+24![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/36_ExpandedSubBlockEnd.gif)    }  
+25![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/37_InBlock.gif)    return;  
+26![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/38_ExpandedBlockEnd.gif)}
+
+  
+这个版本和原先版本的差异只有二处，  
+第一pa是一智能指针的对象，不是ALA\*  
+第二不用自己去释放delete
+
+然后我看到Effective STL的条款  
+8：永不建立auto\_ptr的容器  
+关于此可以看的Effective STL的条款8
+
+因为auto\_ptr并不是完美无缺的，它的确很方便，但也有缺陷，在使用时要注意避免。首先，不要将auto\_ptr对象作为STL容器的元素。C++标准明确禁止这样做，否则可能会碰到不可预见的结果
+
+auto\_ptr的另一个缺陷是将数组作为auto\_ptr的参数： auto\_ptr<char>  pstr (new char\[12\] ); //数组；为定义  
+然后释放资源的时候不知道到底是利用delete pstr,还是 delete\[\] pstr;
+
+然后收集了关于auto\_ptr的几种注意事项：  
+1、auto\_ptr不能共享所有权。  
+2、auto\_ptr不能指向数组  
+3、auto\_ptr不能作为容器的成员。  
+4、不能通过赋值操作来初始化auto\_ptr  
+std::auto\_ptr<int> p(new int(42));     //OK  
+std::auto\_ptr<int> p = new int(42);    //ERROR  
+这是因为auto\_ptr 的构造函数被定义为了explicit  
+5、不要把auto\_ptr放入容器
+
+然后笔者从而推荐的是boost的shared\_ptr，然后看完shared\_ptr关于智能指针的介绍与例子。  
+5种针对auto\_ptr不足的指针如下：需要详细了解可以去查看相当文档，与测试新代码。  
+
+**scoped\_ptr**
+
+<boost/scoped\_ptr.hpp>
+
+简单的单一对象的唯一所有权。不可拷贝。
+
+**scoped\_array**
+
+<boost/scoped\_array.hpp>
+
+简单的数组的唯一所有权。不可拷贝。
+
+**shared\_ptr**
+
+<boost/shared\_ptr.hpp>
+
+在多个指针间共享的对象所有权。
+
+**shared\_array**
+
+<boost/shared\_array.hpp>
+
+在多个指针间共享的数组所有权。
+
+**weak\_ptr**
+
+<boost/weak\_ptr.hpp>
+
+一个属于 **shared\_ptr** 的对象的无所有权的观察者。
+
+**intrusive\_ptr**
+
+<boost/intrusive\_ptr.hpp>
+
+带有一个侵入式引用计数的对象的共享所有权。
+
+  
+1\. shared\_ptr是Boost库所提供的一个智能指针的实现,shared\_ptr就是为了解决auto\_ptr在对象所有权上的局限性（auto\_ptr是独占的），在使用引用计数的机制上提供了可以共享所有权的智能指针.  
+2\. shared\_ptr比auto\_ptr更安全  
+3\. shared\_ptr是可以拷贝和赋值的，拷贝行为也是等价的，并且可以被比较，这意味这它可被放入标准库的一般容器（vector，list）和关联容器中（map）。
+
+关于shared\_ptr的使用其实和auto\_ptr差不多，只是实现上有差别，关于shared\_ptr的定义就不贴代码了，以为内开源，可以网上找  
+1、shared\_ptr<T> p(new Y);
+
+  
+要了解更多关于auto\_ptr的信息，可以查看more effective c++ 的p158页条款28  
+要了解shared\_ptr 类模板信息，可以查看boost 1.37.0中文文档,而且支持数组的shared\_array 类模板

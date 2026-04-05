@@ -1,0 +1,30 @@
+---
+title: "Xilinx Zynq 7045实现支持29种CMOS传感器的Xinmai ISP IP"
+date: "2022-05-10"
+slug: "124699927"
+tags: ["#ZYNQ", "#ISP核"]
+source: "https://blog.csdn.net/yeyuangen/article/details/124699927"
+---
+
+ 
+
+**背景：**  
+据了解，信迈科技设计的Denali-MC IP目前已经可以在包括Xilinx的Zynq 7045 FPGA芯片在内的多款可编程芯片产品中实现，比如可以用在具有DSP和SoC+ DSP架构的产品中（包括TI和Qualcomm的相关产品）。还了解到Denali-MC monitor的ISP的核心是一个基于超级算法的内核，这个算法core不仅可以为HDR动作产品在图像补偿时提供最大可能HDR，还可以提供一个end-to-end的全相机ISP，而拥有这两个优势对于一个相机系统是十分有意义的，因为它们可以在相机试图捕捉一天中任何时间任何场景下的可用视频和最大可能识别视频点发挥重要作用。下面对Denali-MC的详细情况作一点简单说明。
+
+ **Denali-MC：**  
+在Denali-MC IP平台中嵌入了一个Sony的IMX290LQR传感器，同时还可用通过Xilinx Zynq 7045 FPGA芯片内部的可编程部分实现多种帧设置的输出和Sony 的DOL HDR模式驱动。基于此，Pinnacle成像系统的Denali-MC HDR 视频和HDR still ISP（图像信号处理器）IP变得动态可配置，最吸引人之处在于它现在可以支持29种不同的具有HDR渲染能力的图像传感器，其中包括九种Aption/ON Semi的产品，六种Omnivison产品，以及十一种Sony索尼传感器，同时通过一个16位的处理器还支持十二种不同级别的像素增强和HDR帧设置方法。鉴于这款图片处理IP的强大兼容性，它具有广泛的应用场景，其中包括以下几种应用（但绝不仅仅限于这几种）：
+
+*   监控/公共安全
+*   ADAS/自动驾驶
+*   智能交通系统
+*   随身相机
+*   机器视觉
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/124699927/01_89b83083ff513a0a6ae857682b6bc363.png)
+
+**图：Denali-MC图像信号处理器核心框图**
+
+前面已经提到信迈科技已经可以在Xilinx的Zynq Z-7045 SoC芯片上实现它的Denali-MC IP，不过后来了解到也可通过一个Xilinx Zynq ZC706 Eval Kit 作为实现工具来实现，如果手边刚好有这款板子的话不妨一试。
+
+**总结：**  
+通过以上简单说明知道Denali-MC IP最大亮点在于它可以支持多达29款不同厂商的图像传感器，兼容性可谓十分强大，为开发者提供了相当多的选择，这么多选择在之前接触的IP中可谓很少见到，而这一优势的实现离开FPGA这一可编程部分是完全无法实现的，相信Xilinx FPGA芯片会在未来促进更多类似的产品的开发。

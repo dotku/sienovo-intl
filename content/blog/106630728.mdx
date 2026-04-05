@@ -1,0 +1,259 @@
+---
+title: "基于AM5728开发板进行二次开发经验分享"
+date: "2020-06-08"
+slug: "106630728"
+tags: ["#AM5728", "#板卡定制", "#开发板", "#DSP", "#ARM"]
+source: "https://blog.csdn.net/yeyuangen/article/details/106630728"
+---
+
+ 
+
+基于信迈XM5728-IDK-V3开发板进行模块开发和定制。
+
+功能介绍：
+
+*   基于 TI AM5728 浮点双 DSP C66x +双 ARM Cortex-A15 工业控制及高性能音视频处理器；
+*   多核异构 CPU，集成双核 Cortex-A15、双核 C66x 浮点 DSP、双核 PRU-ICSS、双核 Cortex-M4 IPU、双核 GPU 等处理单元，支持 OpenCL、OpenMP、SysLink IPC 多核开发；
+*   强劲的视频编解码能力，支持 1 路 1080P60 或 2 路 720P60 或 4 路 720P30 视频硬件编解码，支持 H.265 视频软解码；
+*   支持高达 1 路 1080P60 全高清视频输入和 1 路 LCD + 1 路 HDMI 1.4a 输出；
+*   双核 PRU-ICSS 工业实时控制子系统，支持 EtherCAT、EtherNet/IP、PROFIBUS 等工业协议；
+*   高性能 GPU，双核 SGX544 3D 加速器和 GC320 2D 图形加速引擎，支持 OpenGL ES2.0；
+*   外设接口丰富，集成双千兆网、PCIe、GPMC、USB 2.0、UART、SPI、QSPI、SATA 2.0、I2C、DCAN 等工业控制总线和接口，支持极速接口 USB 3.0；
+*   开发板引出 V-PORT 视频接口，可以灵活接入视频输入模块；
+*   体积极小，大小仅 86.5mm\*60.5mm；
+*   工业级精密 B2B 连接器，0.5mm 间距，稳定，易插拔，防反插，关键大数据接口使用高速连接器，保证信号完整性。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/106630728/01_66f8d75e6f5206030b67dd64fdcb0447.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/106630728/02_51c5ddb787a7b06c188fd2359efbb38a.png)
+
+二、典型 应用 领域
+
+*   工业 PC&HMI
+*   工业机器人
+*   机器视觉
+*   医疗影像
+*   电力自动化
+*   EtherCAT 主/从控制器
+*   工业多协议智能网关
+*   高端数控系统
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/106630728/03_4ee5c31aa9719d3db2c57eb88d61d832.png)
+
+****视频采集与编码例程****
+
+****例程****
+
+****功能****
+
+RTSP\_Server\_Launch
+
+H.264 编码视频流 RTSP 服务器
+
+TVP5158
+
+D1 视频采集
+
+RTSP Client
+
+网络摄像头采集显示和保存为 MP4
+
+jpegenc
+
+JPEG 编码
+
+ADV7611
+
+ADV7611 HDMI 采集
+
+TVP7002
+
+VGA 视频采集
+
+TW2867
+
+D1 视频采集
+
+rtsp\_dec\_a15gray\_enc\_save
+
+网络摄像头采集显示和保存为 H264
+
+多路 RTSP
+
+多路 RTSP 解码显示
+
+****基于**** ****CCS**** ****的**** ****RTOS**** ****开发例程****
+
+****例程****
+
+****功能****
+
+LED
+
+ARM/DSP/M4 对 LED 控制
+
+EMAC
+
+ARM/DSP 对两个网口数据收发测试
+
+I2C
+
+ARM/DSP/M4 读取温度值
+
+MMCSD
+
+ARM/DSP 对 SD 卡进行文件管理
+
+SPI
+
+ARM/DSP/M4 对 SP 总线读写操作
+
+UART
+
+ARM/DSP/M4 对 UART 读写操作
+
+USB
+
+ARM 对 U 盘文件进行管理
+
+PRU
+
+DSP 和 PRU 直接产生中断事件
+
+****PRU**** ****开发例程****
+
+****例程****
+
+****功能****
+
+PRU\_Led\_Blink
+
+PRU 点亮流水灯
+
+PRU\_Button
+
+PRU 实现按键控制
+
+****Qt**** ****开发例程****
+
+例程
+
+功能
+
+HelloWorld
+
+Qt 入门例程
+
+****OpenCL**** ****开发例程****
+
+****例程****
+
+****功能****
+
+vecadd
+
+向量相加
+
+vecadd\_openmp
+
+使用 OpenMP 并行进行向量相加
+
+float\_compute
+
+分别在 ARM 和 DSP 端进行浮点计算
+
+dsplib\_fft
+
+FFT 运算
+
+monte\_carlo
+
+蒙特卡洛法运算
+
+****OpenMP**** ****开发例程****
+
+****例程****
+
+****功能****
+
+dspheap
+
+在 DSP 上创建和使用堆
+
+vecadd
+
+向量的并行相加
+
+vecadd\_complex
+
+复数向量的并行相加
+
+其他
+
+包含在 SDK
+
+****OpenCV**** ****开发例程****
+
+****例程****
+
+****功能****
+
+TI 官方综合例程
+
+OpenCV+OpenCL+OpenGL运用
+
+Sobel
+
+边缘检测算法
+
+Canny
+
+边缘检测算法
+
+VideoCapture
+
+图像采集
+
+****IPC**** ****开发例程****
+
+****例程****
+
+****功能****
+
+ex02\_messageq
+
+核间传递数据的消息
+
+ex12\_mmrpc
+
+使用 MmRcp 模块调用远程函数
+
+ex41\_forwardmsg
+
+核间传递消息
+
+ex68\_power
+
+接收消息关闭
+
+MessageQApp
+
+测试 MessageQApp 组件
+
+共享内存
+
+DSP 与 ARM 共享内存
+
+其他
+
+包含在 SDK
+
+****EtherCAT********开发例程****
+
+****例程****
+
+****功能****
+
+基于 RT-Linux 的 EtherCAT 开发例程手册
+
+基于 RTOS 的 EtherCAT 开发例程手册

@@ -1,0 +1,117 @@
+---
+title: "基于FPGA状态机设计实现EtherCAT从站"
+date: "2022-12-27"
+slug: "128461175"
+tags: ["#fpga开发"]
+source: "https://blog.csdn.net/yeyuangen/article/details/128461175"
+---
+
+ 
+
+0 引言  
+EtherCAT是由BECKHOFF提出的在工业控制领域获得广泛应用的现场总线之一，该总线具备全双工工作模式，可基于主站（Master）和从站（Slave）连接的模式实现数据传递，且具有低延时、高安全性的特点。EtherCAT从站控制器ESC（EtherCAT Slave Controller）是从站模块实现EtherCAT通信协议的关键，目前国内基于EtherCAT协议的通信功能基本都采用ET1100/ET1200等从站芯片来实现\[1-4\]。然而，由于这类芯片除基本通信功能外，还具备大量其他功能，而此类额外通信机制并不对我国技术人员公开，造成对此类通信芯片还无法实现完全自主可控，采用有效的安全机制提升系统安全性更是无从谈起。随着工业控制领域的信息安全问题日益突出，此类不可自主可控通信芯片的应用给我国核心控制系统的运行引入一定安全风险。为了实现对控制系统用通信芯片的完全自主可控，基于FPGA实现EtherCAT通信协议的自主化开发显得非常必要，同时也是采用自主安全机制提升通信系统安全能力的重要前提。
+
+基本通信链路是实现收发EtherCAT协议数据的核心，因此，本研究基于EtherCAT协议特征及数据传递机制，设计关键通信节点的FPGA状态机，验证FPGA实现EtherCAT从站控制器基本通信链路功能的可行性，为完善EtherCAT其他通信功能及安全机制奠定重要基础。
+
+1 EtherCAT从站控制器框架  
+EtherCAT主站与各从站之间的通信链路如图1所示。通信过程中，数据帧遍历所有从站设备，数据帧通过某一从站时，从站设备根据报文命令分析寻址到本机报文并进行读/写数据到指定位置，数据帧到达最后一个从站后，该从站把处理后的数据帧发送给主站。主站收到此上行电报后处理返回数据，一次通信结束\[5-6\]。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128461175/01_aeb3bfa6d2edaf4e9eba6145b4c9a0a2.png)
+
+EtherCAT从站控制器主要包括数据帧处理单元、EBUS接口编码/解码模块、Auto\-forwarder模块、Loop-back funcTIon模块等。以ET1100/ET1200从站控制器为例，其内部框架如图2所示，主要包括MII、EBUS接口，EtherCAT数据帧处理单元，现场总线内存管理单元（FMMU，Fliedbus Memory Management Unit），存储同步管理通道（SM，SyncManager），分布时钟，PDI接口，ESC地址空间（包括寄存器和用户数据存储器），EEPROM控制，以及状态控制、中断、看门狗和物理层管理等部分。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128461175/02_2399440a345be4b594f03bd170fcd5df.png)
+
+其中，帧处理单元（EtherCAT Processing Unit）分析并处理EtherCAT数据流。现场总线内存管理单元（FMMU，Fliedbus Memory Management Unit）是EtherCAT从站控制IP核中的核心模块之一，用于实现主站对从站的逻辑寻址。存储同步管理通道（SM，SyncManager）实现主站和本地应用数据交换。Ethercat帧和PDI接口都必须轮询处理器来判断另一端是否完成访问。PDI接口模块是ESC芯片的应用数据接口。
+
+在FPGA实现EtherCAT从站控制器的过程中，如果能实现数据链路的通路，数据帧能够通过EBUS、MII接口传输到FPGA中，FPGA将数据帧进行识别并进行CRC校验，解包出EtherCAT的帧格式和协议命令，并通过端口连接状态将数据帧发送。那么，可以说明EtherCAT从站控制器是可以在FPGA中进行自主开发实现。在以上的数据链路中，EBUS接口涉及到EBUS模块，EBUS模块主要对EBUS协议进行解析，通过曼彻斯特编码/解码接收或发送数据；FPGA将数据帧进行识别并进行CRC校验是Auto-Forwarder模块；通过Loop-back funcTIon模块将数据帧发送。以下分别介绍上述各模块的实现过程。
+
+2 各模块实现逻辑  
+2.1 EBUS编码/解码模块  
+对于EBUS实现方式，EBUS接口的LVDS信号数据率是100 Mb/s，EBUS接口是利用曼彻斯特编码/解码（Manchester encoded）通过LVDS方式实现。
+
+在实现EBUS部分时，根据EBUS协议要求，需要实现曼彻斯特解码和曼彻斯特波编码。其中“0”用“01”表示，“1”用“10”表示。EBUS协议中分为idle标识符、开始帧标识符（SOF）、结束帧标识符（EOF）。Idle标识符为“0”，开始帧标识符为连续3个时钟（200 MHz）连续的1，结束帧标识符为连续3个时钟（200 MHz）连续的0。EBUS协议如图3所示。
+
+曼彻斯特编码状态机如图4所示，曼彻斯特编码的状态机共分为8个状态，分别为初始1状态（IDLE\_1C）、初始2状态（IDLE\_2C）、帧开始1状态（SOFR\_1C）、帧开始2状态（SOFR\_2C）、编码1状态（ENCO\_1C）、编码2状态（ENCO\_2C）、结束帧1状态（EOFR\_1C）、结束帧2状态（EOFR\_2C），处理时钟为200 MHz。
+
+各状态说明如下：
+
+IDLE\_1C为初始1状态，对应发送EBUS协议的idle标识符，发送的数据为‘0’。下一时钟即进入IDLE\_2C状态。
+
+IDLE\_2C为初始2状态，对应发送EBUS协议的idle标识符，发送的数据为‘1’。当发送数据有效时进入SOFR\_1C状态，否则进入IDLE\_1C状态。
+
+SOFR\_1C为帧开始1状态，对应的发送EBUS协议的开始帧标识符，下一时钟进入SOFR\_1C状态。
+
+SOFR\_2C为帧开始2状态，对应的发送EBUS协议的开始帧标识符，下一时钟进入ENCO\_1C状态。
+
+ENCO\_1C为编码1状态，对应发送帧数据，下一时钟进入ENCO\_2C。
+
+ENCO\_2C为编码2状态，对应发送帧数据，当发送数据无效时进入EOFR\_1C状态，否则进入ENCO\_1C状态。
+
+EOFR\_1C为结束帧1状态，对应发送帧结束标识符，下一时钟进入ENCO\_2C状态。
+
+EOFR\_2C为结束帧2状态，对应发送帧结束标识符，此时一帧数据发送完毕，下一时钟回到IDLE\_1C状态。
+
+曼彻斯特解码状态机如图5所示，曼彻斯特解码的状态机共分为5个状态，分别为初始状态（IDLE）、帧开始状态（SOFR）、编码1状态（ENCO\_1C）、编码2状态（ENCO\_2C）、结束帧状态（EOFR），处理时钟为200 MHz。
+
+各状态说明如下：
+
+IDLE为初始状态，对应接收EBUS协议的idle标识符，下一时钟即进入SODR状态。
+
+SOFR为帧开始状态，对应的接收EBUS协议的开始帧标识符，当接收到连续3个‘1’即rx\_sof\_dv为1时，下一时钟进入ENCO\_1C状态，否则进入IDLE状态。
+
+ENCO\_1C为编码1状态，对应接收帧数据，下一时钟进入ENCO\_2C。
+
+ENCO\_2C为编码2状态，对应接收帧数据，当接收到连续3个‘0’时，进入EOFR状态，否则进入ENCO\_1C状态。
+
+EOFR\_1C为结束帧状态，此时已经接收到完整的EtherCAT帧，下一时钟进入IDLE状态。
+
+2.2 Auto-forwarder模块  
+Auto-forwarder模块是MII和EBUS模块进入IPCORE的第一个处理模块，主要实现MII/EBUS数据缓存、检测帧导码、错误检测、将数据发送到自动回环（Loop-back funcTIon）和帧处理单元（EtherCAT Processing Unit）。Auto-forwarder模块实现MII/EBUS数据缓存功能是将EtherCAT帧数据存到FIFO中，并经过IPCORE处理时钟（25 MHz）数据读出，实现帧数据与IPCORE时钟同步，再进入到下一模块处理。检测帧导码是在数据帧数据有效后，通过检测帧导码（0x55555555555555555D）,从而确定此帧为以太网帧。数据检测主要检测3种错误：物理层错误（RX错误）、数据帧错误、CRC错误。在数据经过FIFO同步后，在以太网帧的条件下，进行CRC校验，如果CRC校验正确，把帧数据发送到自动回环或帧处理单元中；如果CRC校验错误，将此帧丢弃。将数据发送到自动回环和帧处理单元是在CRC校验正确和无其他错误的条件下，将帧数据发送到自动回环和帧处理单元中。Auto-forwarder模块的状态机如图6所示。
+
+Auto-forwarder模块的状态机共分为5个状态，分别为初始状态(IDLE)、检测前导码状态(DETECT\_PREAM)、检测前导码开始状态(DETECT\_START)、帧开始状态(FRAME\_START)、帧处理状态(FRAME\_PROC)。处理时钟为25 MHz。各状态说明如下：
+
+IDLE为初始状态，当没有帧数据时，状态处于IDLE状态。当检测到帧数据为5时，进入到DETECT\_PREAM状态。
+
+DETECT\_PREAM 为检测前导码状态，帧接收帧导码5，当检测到D时，进入到DETECT\_START状态。
+
+DETECT\_START为检测帧导码开始状态，在下一时钟进入到FRAME\_START状态。
+
+FRAME\_START为帧开始状态，开始接收帧数据，在下一时钟进入到FRAME\_PROC状态。
+
+FRAME\_PROC为帧处理状态，正式处理帧数据，当没有帧数据时就进入IDLE状态。
+
+2.3 Loop-back function模块  
+自动回环（Loop-back function）是根据端口打开状态确定数据帧转发状态，IP共有4个端口，如果当前端口处于闭合或未建立连接状态，则回环功能转发EtherCAT帧到下一个逻辑端后，端口0（PORT0）的回环功能会转发帧数据到数据帧处理单元。端口状态分别为：自动闭合、手动打开。不同端口数据帧的处理顺序如下：
+
+(1)0→EtherCAT Processing Unit→0
+
+(2)0→EtherCAT Processing Unit→1 / 1→0
+
+(3)0→EtherCAT Processing Unit→1 / 1→2 / 2→0 (log. ports 0,1, and 2)or0→EtherCATProcessing Unit→3 / 3→1 / 1→0 (log. ports 0,1, and 3)
+
+(4)0→EtherCAT Processing Unit→3 / 3→1 / 1→2 / 2→0
+
+为便于验证及测试，本文重点探讨双端口情况下的数据转发功能及测试。
+
+3 功能测试  
+为了对基于FPGA的通信链路进行系统测试，搭建如图7所示的测试环境。
+
+其中，EtherCAT主站是指倍福EtherCAT主站，可以将指定EtherCAT帧发送到从站中；EtherCAT从站（ASIC）是指倍福的以ET1100芯片为核心的EtherCAT从站，ETherCAT主站通过MII信号将EtherCAT帧发送到EtherCAT从站（ASIC）中，EtherCAT从站（ASIC）将EtherCAT帧转换成EBUS信号，将数据传输到EtherCAT测试板中；EtherCAT测试板是以FPGA为核心的测试板。
+
+在测试中，测试板通过EBUS接口，将数据帧传输到FPGA中，FPGA通过EBUS解码得到数据帧，数据帧到FPGA将进行识别并进行CRC校验，解包出EtherCAT帧格式和协议命令。通过MII转发到PC上，PC通过wireshark进行抓包验证数据帧的正确性。
+
+3.1 解码状态测试  
+解码状态测试结果如图8所示，其中rx\_data\_interal为EBUS差分转单端信号，current\_state为状态机信号，rx\_dv为数据有效信号，rx\_data为接收数据。可以看出，EBUS协议的LVDS信号通过差分转单端后，通过状态机处理，得到帧数据。
+
+3.2 编码状态测试  
+编码状态测试结果如图9所示，tx\_data\_interal为单端信号转EBUS差分信号，current\_state为状态机信号，tx\_dv为数据有效信号，tx\_data为接收数据。可以看出，发送数据有效后，通过状态机将数据单端转差分发送出去。
+
+3.3 Auto-forwarder数据状态  
+经过Auto-forwarder状态的数据如图10所示，其中frame为帧数据，fifo为帧数据通过数据同步后的数据，state为状态机信号，frame\_done为数据帧结束信号，frame\_start为帧开始信号，frame\_data\_valid为数据帧有效信号，frame\_crc\_err为帧错误信号。结果表明，数据帧可以正确识别并进行解析，在帧结束后，可以看到frame\_crc\_err有一拍为低。
+
+3.4 数据帧验证  
+用wireshark抓取的数据结果表明，数据帧可以由FPGA正确处理，wireshark抓取报文正确接收到EtherCAT类型的转发报文，说明数据链路已打通。
+
+4 结论  
+本文通过解析各阶段数据结果，验证了关键通信链路上EBUS编码/解码、Auto-forwarder、Loop-back function模块的FPGA状态机的正确性，说明FPGA实现EtherCAT从站基本通信链路是完全可行的，为开发完善的ESC从站控制器创造了条件。

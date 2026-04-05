@@ -1,0 +1,209 @@
+---
+title: "TI AM5728 CPSW网口调试笔记"
+date: "2019-12-06"
+slug: "103429756"
+tags: ["#AM5728", "#CPSW", "#网口"]
+source: "https://blog.csdn.net/yeyuangen/article/details/103429756"
+---
+
+ 
+
+1.调试过程遇到千兆网口起不来的问题，后来发现是phy地址不对应导致；
+
+2.百兆网口起不来，而且整个主板有4个网口，一直显示只有两个网口硬件。目前还在排查原因。
+
+对于设备数的语法网上已经有很多了，但是懂了语法之后可能还是不太理解具体设备树的工作原理，这里以ti的CPSW为例说明设备树与内核的 驱动 之家的微妙关系。
+
+cpsw就是ti公司的Common Platform Ethernet Switch 的缩写，CPSW为三端口调换器（three port switch ），一个cpu端口，两个外部端口。CPSW或者说以太网调换驱动遵循标准的[Linux](http://lib.csdn.net/base/linux)网络接口构造。
+
+对于TI的am335x的CPSW的设备树来说，其定义在am33x.dtsi文件中，内容如下：
+
+mac:ethernet@4a100000 {
+
+                     compatible ="ti,cpsw";
+
+       属性，这是跟驱动函数的匹配字符串，要跟驱动中一直。必须为“ti,cpsw“
+
+                     ti,hwmods ="cpgmac0";
+
+       可选属性：对硬件模块的配置，为了跟驱动，必须是"cpgmac0"
+
+                     clocks =<&cpsw\_125mhz\_gclk>, <&cpsw\_cpts\_rft\_clk>;
+
+       指定时钟，其定义在 am33xx-clocks.dtsi文件中
+
+                     clock-names ="fck", "cpts";
+
+                     cpdma\_channels = <8>;
+
+       cpdma（common platformdma）的通道数
+
+                     ale\_entries= <1024>;
+
+       制定ALE条目
+
+                     bd\_ram\_size =<0x2000>;
+
+       描述内部ram的大小
+
+                     no\_bd\_ram = <0>;
+
+       设置 HW descriptor 是否在内部 bd ram，只能是0或者1
+
+                     rx\_descs = <64>;
+
+       制定RX描述符的个数
+
+                     mac\_control = <0x20>;
+
+       制定默认MAC控制寄存器的内容
+
+                     slaves = <2>;
+
+       从站数量
+
+                     active\_slave = <0>;
+
+                     cpts\_clock\_mult =<0x80000000>;
+
+       时钟周期转换ns系数的分子
+
+                     cpts\_clock\_shift =<29>;
+
+       时钟周期转换ns系数的分母
+
+                     reg = <0x4a100000 0x800
+
+                            0x4a101200 0x100>;
+
+       cpsw寄存器映射地址
+
+                     #address\-cells = <1>;
+
+                     #size-cells = <1>;
+
+                     interrupt-parent =<&intc>;
+
+       父中断控制器
+
+                     /\*
+
+                      \* c0\_rx\_thresh\_pend
+
+                      \* c0\_rx\_pend
+
+                      \* c0\_tx\_pend
+
+                      \* c0\_misc\_pend
+
+                      \*/
+
+                     interrupts = <40 41 4243>;
+
+       描述中断号
+
+                     ranges;
+
+                     davinci\_mdio: mdio@4a101000{
+
+                            compatible ="ti,davinci\_mdio";
+
+                            #address-cells =<1>;
+
+                            #size-cells =<0>;
+
+                            ti,hwmods ="davinci\_mdio";
+
+                            bus\_freq =<1000000>;
+
+                            reg = <0x4a1010000x100>;
+
+                     };
+
+                     cpsw\_emac0: slave@4a100200{
+
+       以太网控制器
+
+                            /\* Filled in byU-Boot \*/
+
+                            mac-address = \[ 0000 00 00 00 00 \];
+
+                     };
+
+                     cpsw\_emac1: slave@4a100300{
+
+                            /\* Filled in byU-Boot \*/
+
+                            mac-address = \[ 0000 00 00 00 00 \];
+
+                     };
+
+                     phy\_sel:cpsw-phy-sel@44e10650 {
+
+                            compatible ="ti,am3352-cpsw-phy-sel";
+
+                            reg= <0x44e106500x4>;
+
+       phy寄存器的基地址和寄存器大小
+
+                            reg-names ="gmii-sel";
+
+                     };
+
+              };
+
+接下来看一下内核是如何调用这些参数的：
+
+首先在文件Cpsw.c (drivers\\net\\ethernet\\ti)中的平台驱动结构体中有of\_match\_table匹配函数:
+
+static structplatform\_driver cpsw\_driver = {
+
+       .driver = {
+
+              .name      = "cpsw",
+
+              .owner    = THIS\_MODULE,
+
+              .pm  = &cpsw\_pm\_ops,
+
+              .of\_match\_table= cpsw\_of\_mtable,
+
+       },
+
+       ………………
+
+};
+
+驱动是否执行probe函数就是通过上面的函数判断的，就本例而言，首先会通过of\_match\_table进行判断是否在设备树种可以找到配对资源信息，假如在dtb文件中找不到其次判断是否在平台设备中是否有name为”cpsw”的设备，假如有的话则获取设备信息，然后执行驱动函数。但是，显然之前没有对platform\_devicecpsw\_device进行设置，因此一般情况下无法配对成功。
+
+进一步展开of\_match\_table函数可得：
+
+static conststruct of\_device\_id cpsw\_of\_mtable\[\] = {
+
+       { .compatible ="ti,cpsw", },
+
+       { /\* sentinel \*/ },
+
+};
+
+结构体中.compatible = "ti,cpsw",正好跟设备树中的cpsw节点属性一致。于是会匹配成功，进而执行probe函数。
+
+在probe函数中，驱动为了获取dts中设置的参数，其调用了cpsw\_probe\_dt。该函数的主要获取数据的函数有：
+
+of\_property\_read\_u32(node,"slaves", &prop)
+
+获取在dts文件中的slaves的个数：slaves = <2>;
+
+of\_property\_read\_u32(node,"active\_slave", &prop)
+
+获取设定的active\_slave的参数：active\_slave= <0>;
+
+of\_property\_read\_u32(node,"cpts\_clock\_mult", &prop)
+
+获取设定的cpts\_clock\_mult的参数：cpts\_clock\_mult = <0x80000000>;
+
+后面的很多也很类似，不再一一列出。
+
+就这样吧，内核启动就把dts中的信息读出来然后为之后的驱动程序提供数据。
+
+参考：[https://blog.csdn.net/wxxgoodjob/article/details/77893303](https://blog.csdn.net/wxxgoodjob/article/details/77893303)

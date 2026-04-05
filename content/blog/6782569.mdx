@@ -1,0 +1,320 @@
+---
+title: "Linux进程间通信之消息队列"
+date: "2011-09-16"
+slug: "6782569"
+tags: ["#linux", "#system", "#struct", "#数据结构", "#通讯", "#null"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6782569"
+---
+
+ 
+
+消息队列：  
+  
+  
+使用消息队列的好处：可以给消息附加特定的消息类型。消息队列用于同一台计算机的进程间的通信。  
+  
+  
+相关的系统函数：  
+  
+  
+       #include <sys/types.h>  
+  
+  
+       #include <sys/ipc.h>   
+  
+  
+  
+  
+       key\_t ftok(const char \*pathname, int proj\_id);  
+  
+  
+该函数根据文件名生成一个ID，系统建立IPC通讯 （消息队列、信号量和共享内存） 时必须指定一个ID值。  
+  
+  
+   
+  
+  
+      #include <sys/types.h>  
+  
+  
+       #include <sys/ipc.h>  
+  
+  
+       #include <sys/msg.h>  
+  
+  
+       int msgget(key\_t key, int msgflg);  
+  
+  
+该函数的作用为：创建一个新的消息队列，或者获取一个已经存在的消息队列  
+  
+  
+       #include <sys/types.h>  
+  
+  
+       #include <sys/ipc.h>  
+  
+  
+       #include <sys/msg.h>  
+  
+  
+      int msgsnd(int msqid, const void \*msgp, size\_t msgsz, int msgflg);  
+  
+  
+该函数为向消息队列中传输一个消息，其中msqid为消息队列id，msgp为自定义的消息数据类型，msgsz为消息附加信息size，msgflg为消息标志  
+  
+  
+      ssize\_t msgrcv(int msqid, void \*msgp, size\_t msgsz, long msgtyp,  
+  
+  
+                      int msgflg);  
+  
+  
+Msqid为消息队列id；msgp为指向消息数据结构的指针；msgsz为消息数据的长度；  
+  
+  
+type == 0   返回队列中的第一个消息。  
+  
+  
+type > 0   返回队列中消息类型为t y p e的第一个消息。  
+  
+  
+type  < 0   返回队列中消息类型值小于或等于t y p e绝对值。  
+  
+  
+msgflg的值可以设置为IPC\_NOWAIT或者0。当设置为IPC\_NOWAIT时，若当前队列没有消息，则msgrcv会立即返回；若设置为0，当队列没有消息时，会一直阻塞，直到有了指定的消息或者消息队列被删除了  
+  
+  
+send.c函数  
+  
+  
+#include<stdio.h>  
+  
+  
+#include<stdlib.h>  
+  
+  
+#include<string.h>  
+  
+  
+#include<sys/types.h>  
+  
+  
+#include<sys/ipc.h>  
+  
+  
+#include<sys/msg.h>  
+  
+  
+struct my\_msg{  
+  
+  
+long type;  
+  
+  
+char mtext\[512\];  
+  
+  
+};  
+  
+  
+int main()  
+  
+  
+{  
+  
+  
+        struct my\_msg my\_msg;  
+  
+  
+        int msg\_id;  
+  
+  
+        key\_t key;  
+  
+  
+        key = ftok("/usr/local", 1);  
+  
+  
+        if(key == -1)  
+  
+  
+                key = 1234;  
+  
+  
+        msg\_id = msgget(key, IPC\_CREAT|0600);  
+  
+  
+        if(msg\_id == -1)  
+  
+  
+        {  
+  
+  
+                perror("error msgget\\n");  
+  
+  
+                return -1;  
+  
+  
+        }  
+  
+  
+        my\_msg.type = 1;  
+  
+  
+        memset(my\_msg.mtext, 0, sizeof(my\_msg.mtext));  
+  
+  
+        strcpy(my\_msg.mtext, "write someting about my\_msg.type=1");  
+  
+  
+        if(msgsnd(msg\_id, (void \*)&my\_msg, (size\_t)strlen(my\_msg.mtext), IPC\_NOWAIT))  
+  
+  
+        {  
+  
+  
+                perror("error msgsnd\\n");  
+  
+  
+                return  -1;  
+  
+  
+        }  
+  
+  
+        system("ipcs -q");  
+  
+  
+        sleep(20);  
+  
+  
+        msgctl(msg\_id, IPC\_RMID, NULL);  
+  
+  
+        return 0;  
+  
+  
+}  
+  
+  
+   
+  
+  
+  
+  
+recv.c函数  
+  
+  
+#include<stdio.h>  
+  
+  
+#include<stdlib.h>  
+  
+  
+#include<string.h>  
+  
+  
+#include<sys/types.h>  
+  
+  
+#include<sys/ipc.h>  
+  
+  
+#include<sys/msg.h>  
+  
+  
+struct my\_msg{  
+  
+  
+long type;  
+  
+  
+char mtext\[512\];  
+  
+  
+};  
+  
+  
+int main()  
+  
+  
+{  
+  
+  
+        struct my\_msg my\_msg;  
+  
+  
+        int msg\_id;  
+  
+  
+        key\_t key;  
+  
+  
+        int len;  
+  
+  
+        key = ftok("/usr/local", 1);  
+  
+  
+        if(key == -1)  
+  
+  
+                key = 1234;  
+  
+  
+        msg\_id = msgget(key, IPC\_CREAT|0600);  
+  
+  
+        if(msg\_id == -1)  
+  
+  
+        {  
+  
+  
+                perror("msgget error\\n");  
+  
+  
+                return -1;  
+  
+  
+        }  
+  
+  
+        len = msgrcv(msg\_id, (void \*)&my\_msg, sizeof(my\_msg.mtext), 0, 0);  
+  
+  
+        if(len ==-1)  
+  
+  
+        {  
+  
+  
+                perror("error msgrcv\\n");  
+  
+  
+        }  
+  
+  
+        printf("type is %ld \\nmtext is %s\\n", my\_msg.type, my\_msg.mtext);  
+  
+  
+        system("ipcs -q");  
+  
+  
+        sleep(20);  
+  
+  
+        system("ipcs -q");  
+  
+  
+        return 0;  
+  
+  
+}  
+  
+  
+  
+  
+本篇文章来源于 Linux公社网站(www.linuxidc.com)  原文链接：http://www.linuxidc.com/Linux/2011-09/42429.htm

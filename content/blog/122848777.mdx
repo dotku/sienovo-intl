@@ -1,0 +1,509 @@
+---
+title: "Zynq FPGA低时延H.264设计方案（编码+解码＜ 1ms）"
+date: "2022-06-01"
+slug: "122848777"
+tags: ["#ZYNQ", "#H264", "#低延时", "#FPGA", "#无线图传"]
+source: "https://blog.csdn.net/yeyuangen/article/details/122848777"
+---
+
+ 
+
+信迈科技以逻辑语言为基础编写的H.264视频编解码，以IP核的形式，在[FPGA](http://bbs.eetop.cn/forum-5-1.html "FPGA")器件上运行，基于FPGA的解决方案使用FPGA为核心器件，实现H.264编解码的IP核，此解决方案为纯硬件的解决方案，启动时间可以忽略，编码延迟为0.5ms.
+
+ASSP架构不灵活，而基于[FPGA](http://www.eepw.com.cn/news/listbylabel/label/FPGA "FPGA")微处理器组合的系统虽然尺寸大但较为灵活，一直以来设计人员为创建PCB占位面积小的基于IP的流式视频系统，除了在这两者之间反复权衡外别无他选。将软核微处理器集成到[FPGA](http://www.eepw.com.cn/news/listbylabel/label/FPGA "FPGA"),就无需单独的处理器和DRAM，但最终系统的性能可能无法与以外部ARM®处理器为核心且可能还包括USB、以太网及其它有用外设构建的解决方案所提供的性能相媲美。随着[赛灵思](http://www.eepw.com.cn/news/listbylabel/label/%E8%B5%9B%E7%81%B5%E6%80%9D "赛灵思")[Zynq](http://www.eepw.com.cn/news/listbylabel/label/Zynq "Zynq")®-7000 All Programmable [SoC](http://www.eepw.com.cn/news/listbylabel/label/SoC "SoC") 和小型[H.264](http://www.eepw.com.cn/news/listbylabel/label/H.264 "H.264")核的问世，现在仅用一组DRAM就可在超小型PCB板上构建出一个具有用多条高速AXI4总线连接起来的ARM双核和高速外设所实现的高性能的系统(见图1)。
+
+　　虽然针对[FPGA](http://www.eepw.com.cn/news/listbylabel/label/FPGA "FPGA")的[H.264](http://www.eepw.com.cn/news/listbylabel/label/H.264 "H.264")核问世已有相当长的一段时间，但至今仍没有一款H.264核够快够小，能够达到足以转换1080p30帧视频的水平，而且仍旧适用于小型低成本器件。将Xinmai Technologies公司的最新微型H.264核与[Zynq](http://www.eepw.com.cn/news/listbylabel/label/Zynq "Zynq") [SoC](http://www.eepw.com.cn/news/listbylabel/label/SoC "SoC")结合使用，可构建一种低时延系统，该系统能够以15-60fps的不同帧速率对720p-4K之间的多种视频流进行编/解码。将Xinmai Technologies H.264核集成到Zynq SoC器件中，可大幅缩减板级空间并明显减少组件数，同时在Zynq SoC集成ARM双核还可避免使用单独的微处理器及其必须连接的存储体。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/122848777/01_20e4646927ff9f7cafb7ef87878b1bc4.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/122848777/02_9086de6e68c11ca5ae1bcf944b554e9f.png)
+
+　　图1 - 基于单芯片 Zynq SoC的视频压缩系统 (上)与基于双芯片处理器和FPGA的视频压缩系统对比
+
+　　这样可以构建出一个以Linux驱动程序和实时流协议(RTSP)服务器为核心的完整流式视频系统，该系统能够对来自两个摄像头的1080p30帧视频进行压缩，且端到端时延约为10毫秒。Xinmai Technologies H.264核提供纯编码版和编/解码版两个版本。此外，还有一款低时延版本，可将编码时延降至5毫秒以下。1080p30纯编码版需要10000个查找表(LUT)，或者说会占用Zynq Z7020 FPGA架构25%左右的资源，而编/解码版则需要11,000个查找表。
+
+　　**基于SOC-FPGA的系统**
+
+　　基于Zynq SoC的产品比采用特定应用标准产品(ASSP)构建的产品灵活性更高。例如，通过在FPGA架构中内置4个H.264核，并将每个摄像头输入端连接到FPGA，就可以很容易构建一个支持1080p30输入的系统。许多ASSP产品只有两个输入端，这让设计人员不得不想办法多路复用若干视频流到一个输入端。每个Xinmai Technologies H.264核能够处理六个VGA分辨率摄像头或一个1080p30分辨率摄像头。因此，有可能构建一个双核系统，以便对来自12个VGA摄像头输入的视频进行压缩。
+
+　　ASSP产品通常仅对已解码视频提供屏幕视控(OSD)功能，这迫使设计人员将OSD信息作为元数据发送或使用ARM内核测定视频帧时间并以编程方式将OSD数据写入视频缓冲区。在FPGA中，在进行视频压缩前添加OSD如同访问IP模块一样简单。同时在压缩引擎前添加鱼眼镜头校正等其它处理模块，也相对容易。此外，FPGA还支持功能的现场与未来升级，例如添加H.265 压缩功能。图2是带有两个1080p30摄像头输入的H.264压缩引擎方框图，其中OSD适用于未压缩图像。
+
+　　**如何应对延时**
+
+　　某些应用程序，如遥控飞行器(RPV)的控制，是基于遥控装置发回的流媒体图像反馈。为了控制遥控装置，从传感器发送视频至压缩引擎到解码图像显示(称为“玻璃对玻璃”)之间的时延通常要小于100毫秒。一些设计人员将时延规定在50毫秒内。总时延是如下几项的和：
+
+　　视频处理时间(ISP、鱼眼镜头校正等)
+
+　　•填充帧缓冲的延迟
+
+　　•压缩时间
+
+　　•发送数据包引起的软件延迟
+
+　　•网络延迟
+
+　　•接收数据包引起的软件延迟
+
+　　•视频解码时间
+
+　　许多系统采用硬件对视频进行编码，但最终却采用标准的视频播放器进行解码，如在PC上运行的VLC。即使媒体播放器的缓冲延迟可从一般的500-1000毫秒大幅减少，但时延仍然远远超过50毫秒。要真正控制时延并保持在绝对最低水平，就需要对已压缩视频流进行硬件解码，而且要求缓冲最小。
+
+　　H.264编码器时延通常以帧来表示，如一般在压缩开始前必须缓冲一个完整帧的时间。假设编码器速度可以提高，那么仅通过帧速率加倍即可降低编码时延，也就是说，帧速率为30fps时每帧时延为33毫秒，而帧速率为60fps时每帧时延则为16.5毫秒。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/122848777/03_97a3097c1ab178813ec08f7699ba2407.png)
+
+很多时候，由于摄像机和编码器的性能限制该方案无法实施。因此，该解决方案是专门设计用于低延编码器。而最新Xinmai Technologies低延时编码器只有16个视频线才需要在压缩开始前进行缓冲。对于1080p30视频流而言，时延不足500微秒(µs)。而对于480p30视频流而言，时延则低于1毫秒。设计人员采用这种低时延编码器可构建出时延可预测且很低的系统。
+
+　　为使总时延最小化，必须同时最大限度地降低编码侧和解码侧上缓冲、网络协议栈、RTSP服务器/客户端等引起的时延，因为软件路径会产生很长的时延，而在这种情况下采用低时延编码器毫无意义。RTSP服务器通常用来在服务器(摄像头)与客户端(解码/记录)设备之间创建流式视频连接。连接建立后，RTSP服务器会将压缩的视频传送至客户端以供显示或存储。
+
+　　**延时最小低化时延**
+
+　　通常情况下，服务器和客户端的软件组件只要求与带宽匹配，方便传送压缩视频，而不是为了最小化时延。而如Linux之类的非实时操作系统则很难保证时延。典型的解决方案就是为服务器和客户端创建低时延自定义协议。但这种方法的不足之处就是不符合行业标准。另一种方法是采用一种类似RTSP的标准，通过对软件的低层进行修改来最小化时延，同时保证符合各项标准。
+
+　　然而，也可采取措施尽量减少内核与用户空间之间的拷贝操作，从而减少相关时延。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/122848777/04_6cbaa9d566456a81db4b6d86f18521e2.png)
+
+　　图3  完整编/解码系统方框图
+
+　　而就整个软件路径而言，要减少时延，就需要将RTSP服务器和压缩信息转发任务分离，从而用Linux驱动程序替代RTSP服务器执行发送任务。
+
+　　为了降低时延，我们对Xinmai Technologies低时延RTSP服务器进行了两处修改。首先，移除转发路径上的RTSP服务器。RTSP服务器仍采用实时控制协议(RTCP)维护统计数据，并随网络目标地址(即IP或MAC目的地地址)的变动定期(或异步)更新内核驱动。第二，内核驱动程序附加必要数据头(基于RTSP服务器提供的信息)，通过直接输入网络驱动程序(例如udp\_send)立即转发数据包，从而无需在内核和用户空间之间进行内存拷贝。
+
+　　图3 显示了基于[H.264](http://www.eepw.com.cn/news/listbylabel/label/H.264 "H.264") IP的完整编/解码系统，总时延不足50毫秒。该系统是根据[Zynq](http://www.eepw.com.cn/news/listbylabel/label/Zynq "Zynq") [SoC](http://www.eepw.com.cn/news/listbylabel/label/SoC "SoC")、Xinmai Technologies低时延[H.264](http://www.eepw.com.cn/news/listbylabel/label/H.264 "H.264")编/解码器与Xinmai Technologies 低时延RTSP服务器/客户端而建立的。需要注意的是，从硬件角度来看，编码与解码系统之间唯一真正的区别在于，编码侧必须连接到摄像头/传感器，而解码侧则必须能够为平板显示提供驱动。您可以轻松地设计一个具备编码与解码所需的所有必备硬件功能的电路板。
+
+　　为尽量减少实时控制应用中视频压缩/解压缩的时延，设计人员需要特殊编码器和优化的软件。利用[赛灵思](http://www.eepw.com.cn/news/listbylabel/label/%E8%B5%9B%E7%81%B5%E6%80%9D "赛灵思")的[Zynq](http://www.eepw.com.cn/news/listbylabel/label/Zynq "Zynq") [SoC](http://www.eepw.com.cn/news/listbylabel/label/SoC "SoC")和 Xinmai Technologies的[H.264](http://www.eepw.com.cn/news/listbylabel/label/H.264 "H.264")低时延编码器与以及优化的RTSP 服务器/客户端，可在小型PCB板上创建一个时延极低、高度可配置的系统。
+
+### **1 评估板简介**
+
+信迈科技 XM-ZYNQ7045-EVM 是一款基Xilinx Zynq-7000 系列 XC7Z045/XC7Z100 高性能处理器设计的高端异构多核 SoC 评估板，处理器集成 PS 端双核 ARM Cortex-A9 + PL 端 Kintex-7 架构 28nm 可编程逻辑资源，评估板由核心板与评估底板组成。核心板经过专业的 PCB Layout 和高低温测试验证，稳定可靠，可满足各种工业应用环境。
+
+评估板接口资源丰富，引出双路千兆网口、四路 SFP+光口、CameraLink、HDMI、F
+
+MC HPC、GTX、PCIe、USB、Micro SD 等接口，方便用户快速进行产品方案评估与技术
+
+预研。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/122848777/05_10e9e04058d14383029b67e4e7c25283.png)
+
+图 1 Xilinx Zynq-7000 处理器功能框图
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/122848777/06_d176325daf225e0cc82bae6a7a17d966.png)
+
+图2
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/122848777/07_b16e6be6a69b40e52c85396b05b0ad30.png)
+
+图3
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/122848777/08_208bbe92ea2ea912df280abfaaedeeaa.png)
+
+图4
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/122848777/09_ba44f01db498f6ee54789e5677fe64ca.png)
+
+ 图5
+
+### **2** **典型应用领域**
+
+*   软件无线电
+*   雷达探测
+*   光电探测
+*   视频追踪
+*   图像处理
+*   水下探测
+*   定位导航
+*   深度学习
+
+### **3 软硬件参数**
+
+****3.1**** ****硬件参数****
+
+表1
+
+CPU
+
+CPU：Xilinx Zynq-7000 XC7Z045/XC7Z100-2FFG900I
+
+2x ARM Cortex-A9，主频 800MHz，2.5DMIPS/MHz Per Core
+
+1x Kintex-7 架构可编程逻辑资源
+
+ROM
+
+PS 端：8GByte eMMC
+
+PS 端：128/256Mbit SPI NOR FLASH
+
+RAM
+
+PS：单通道 32bit DDR 总线，1GByte DDR3
+
+PL：单通道 32bit DDR 总线，1/2GByte DDR3
+
+Logic Cell
+
+XC7Z045：350K，XC7Z100：444K
+
+OSC
+
+PS 端：33.33MHz
+
+B2B Connector
+
+2x 140pin 公座高速 B2B 连接器，2x 140pin 母座高速 B2B 连接器，共 560pin，
+
+间距 0.5mm，合高 7.0mm
+
+LED
+
+2x 电源指示灯（核心板 1 个，评估底板 1 个）
+
+1x PL 端 DONE 灯（核心板 1 个）
+
+3x PS 端用户可编程指示灯（核心板 2 个，评估底板 1 个）
+
+2x PL 端用户可编程指示灯（评估底板 2 个）
+
+KEY
+
+1x 电源复位按键
+
+1x 系统复位按键
+
+1x PS 端用户输入按键
+
+1x PL 端用户输入按键
+
+SD
+
+1x Micro SD 接口（PS 端）
+
+XADC
+
+1x 排针接口，2x 2pin 规格，2.54mm 间距，单通道专用差分输入，1MSPS
+
+Ethernet
+
+1x PS RGMII，RJ45 接口，10/100/1000M 自适应（PHY 位于核心板上）
+
+1x PL RGMII，RJ45 接口，10/100/1000M 自适应
+
+Watchdog
+
+1x Watchdog，3pin 排针方式，2.54mm 间距，通过跳线帽配置
+
+UART
+
+1x Debug UART，Micro USB 接口（PS 端）
+
+1x RS232 UART，DB9 接口（PL 端）
+
+1x RS485 UART，3pin 3.81mm 绿色端子方式（PL 端）
+
+CAN
+
+2x CAN，3pin 3.81mm 绿色端子方式（PL 端）
+
+USB
+
+4x USB 2.0 HOST 接口，使用 HUB 扩展（PHY 位于核心板上）
+
+PCIe
+
+1x PCIe，由两组 GTX 引出，共两通道，x4 金手指连接方式（PL 端）
+
+IO
+
+1x 400pin FMC 连接器，1.27mm 间距，HPC 标准
+
+SATA
+
+1x 7pin SATA 接口，150MHz LVDS 差分时钟（PL 端）
+
+HDMI
+
+1x HDMI OUT（PL 端）
+
+1x HDMI IN（PL 端）
+
+DISPLAY
+
+1x LCD RES 电阻触摸屏，40pin FFC 连接器，间距 0.5mm（PL 端）
+
+CAMERA
+
+2x CAMERA，2x 10pin 排母方式，间距 2.54mm（PL 端）
+
+CameraLink
+
+2x CameraLink Base 接口，支持 Full 模式（PL 端）
+
+SFP+
+
+4x SFP+光口，支持万兆光模块，由高速串行收发器(GTX)引出
+
+LVDS
+
+1x 排针接口，2x 15pin 规格，可接通用 LVDS 显示屏，间距 2.00mm（PL 端）
+
+SMA
+
+1x GTX CLK
+
+1x GTX RX
+
+1x GTX TX
+
+RTC
+
+1x RTC 座，适配纽扣电池 ML2032（3V 可充）、CR2032（3V 不可充）
+
+FAN
+
+1x FAN，3pin 排针端子，12V 供电，间距 2.54mm
+
+JTAG
+
+1x 14pin JTAG 接口，间距 2.0mm
+
+BOOT SET
+
+1x 6bit 启动方式选择拨码开关
+
+SWITCH
+
+1x 电源摆动开关
+
+POWER
+
+1x 12V6A 直流输入 DC-005 电源接口，可接外径 5.5mm、内径 2.1mm 电源插头
+
+****3.2**** ****软件参数****
+
+表 2
+
+ARM 端软件支持
+
+裸机，FreeRTOS，Linux-4.9.0
+
+Vivado 版本号
+
+2017.4
+
+软件开发套件提供
+
+PetaLinux-2017.4，Xilinx SDK 2017.4，Xilinx HLS 2017.4
+
+驱动支持
+
+SPI NOR FLASH
+
+DDR3
+
+USB 2.0
+
+eMMC
+
+LED
+
+KEY
+
+RS485
+
+MMC/SD
+
+Ethernet
+
+CAN
+
+7in Touch Screen LCD(Res)
+
+XADC
+
+I2C
+
+USB 4G
+
+USB WIFI
+
+RS232
+
+### **4 开发资料**
+
+（1）提供核心板引脚定义、可编辑底板原理图、可编辑底板 PCB、芯片 Datasheet，缩短
+
+硬件设计周期；
+
+（2）提供系统固化镜像、内核驱动源码、文件系统源码，以及丰富的 Demo 程序；
+
+（3）提供完整的平台开发包、入门教程，节省软件整理时间，让应用开发更简单；
+
+（4）提供详细的 PS + PL SoC 架构通信教程，完美解决异构多核开发瓶颈。
+
+开发案例主要包括： Ø
+
+*   基于 Linux 的开发例程
+*   基于裸机的开发案例
+*   基于 FreeRTOS 的开发案例
+*   基于 PS + PL 的异构多核开发案例
+*   基于 OpenAMP 的 Linux + 裸机/FreeRTOS 双核 ARM 通信开发案例
+*   基于 PL 端的 HDL、HLS 开发案例
+*   Qt 开发案例
+*   CameraLink、SDI、HDMI、PAL 视频输入/输出案例
+*   高速 AD(AD9613)采集 + 高速 DA(AD9706)输出案例
+*   AD9361 软件无线电案例
+*   UDP(10G)光口通信案例
+*   Aurora 光口通信案例
+*   PCIe 通信案例
+
+### **5 电气特性**
+
+工作环境
+
+环境参数
+
+最小值
+
+典型值
+
+最大值
+
+核心板工作温度
+
+\-40°C
+
+/
+
+85°C
+
+核心板工作电压
+
+/
+
+5.0V
+
+/
+
+评估板工作电压
+
+/
+
+12.0V
+
+/
+
+功耗测试
+
+类别
+
+工作状态
+
+电压典型值
+
+电流典型值
+
+功耗典型值
+
+核心板
+
+状态 1
+
+5.0v
+
+0.40A
+
+2.00W
+
+状态 2
+
+5.0v
+
+1.85A
+
+9.25W
+
+评估板
+
+状态 1
+
+12.0v
+
+0.43A
+
+5.16W
+
+状态 2
+
+12.0v
+
+1.19A
+
+14.28W
+
+备注：功耗基于 CPU 为 XC7Z045 的核心板测得。功耗测试数据与具体应用场景有关，测试数据仅供参考。
+
+状态 1：评估板不接入外接模块，PS 端启动系统，不执行额外应用程序；PL 端运行 LED 测试程序。
+
+状态 2：评估板不接入外接模块，PS 端启动系统，运行 DDR 压力读写测试程序，2 个 ARM Cortex-A9核心的资源使用率约为 100%；PL 端运行 IFD 综合测试程序。
+
+图 11 状态 2 资源使用率
+
+### **6****机械尺寸**
+
+表 4
+
+核心板
+
+评估底板
+
+PCB 尺寸
+
+62mm\*100mm
+
+142.75mm\*260mm
+
+PCB 层数
+
+14 层
+
+8 层
+
+PCB 板厚
+
+1.6mm
+
+1.6mm
+
+安装孔数量
+
+4
+
+4
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/122848777/10_0ba1e5d6c075eca2ac3b001892cb9ebb.png)
+
+图 12 核心板机械尺寸图
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/122848777/11_d47494c29fa9b5f49065eea09e292e71.png)
+
+图 13 评估底板机械尺寸图
+
+### **7技术服务**
+
+1.  协助底板设计和测试，减少硬件设计失误；
+2.  协助解决按照用户手册操作出现的异常问题；
+3.  协助产品故障判定；
+4.  协助正确编译与运行所提供的源代码；
+5.  协助进行产品二次开发；
+6.  提供长期的售后服务。
+
+### **8增值服务**
+
+*   主板定制设计
+*   核心板定制设计
+*   嵌入式软件开发
+*   项目合作开发
+*   技术培训
+
+ 更多信息，请联系深圳信迈科技。

@@ -1,0 +1,136 @@
+---
+title: "LINUX聊天室50问"
+date: "2011-09-01"
+slug: "6739193"
+tags: ["#聊天", "#linux", "#socket", "#服务器", "#sockets", "#thread"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6739193"
+---
+
+ 
+
+ ====================================  
+       LINUX聊天室50问  
+\====================================
+
+  
+1.问题：怎么实现多个终端？监听？
+
+2.一个聊天室程序，到底会分解成哪一些步骤呢？
+
+3.开启一个 Socket，绑定到另一个端口，并且一直监听此端口。
+
+4.服务器是得有很多个SOCKET，还是一个socket，而有很多个port?  
+答：是有很多个socket，并用数组管理
+
+5.服务器（SOCKET数组）：基本上是多线程:一个线程监听,Accept之后创建一个线程处理请求
+
+————————————————————————————————————  
+思路：  
+1：服务器端有个Listener线程，用来监听。  
+2：服务器端再来个server   socket线程，用来和客户端连接。  
+3：当监听到客户连接时，创建server   socket线程，独立和客户端连接。  
+4：服务器端要有一个结构来保存客户端信息。可以自己写一个类来封装。如用户ip等。  
+——————————————————————————————————————
+
+6.当监听到客户连接时，创建server   socket线程，独立和客户端连接。  
+这么说，socket是可以动态创建的。
+
+7.监听listening和connect之间，是一个配对的关系。
+
+8.那么请问bind呢？socket和port与bind?  
+答：估计是将创建的socket与本地IP绑定起来。
+
+9.想想看，QQ有几亿个用户，他是怎么管理的？如何回快QQ的登陆呢？  
+我想问一下，终端侦听的客户端有限制么？是不是客户端越多，开的线程就越多，程序处理速度就越慢
+
+呢？我要做的至少要连接500个客户端，进行数据的交互，会不会有问题呢。再顶下自己～～
+
+10.ServerSocket.vb  
+负责监听是否有客户端连接,开线程接受客户端Socket
+
+————————————————————————————————————  
+        Public   Svr   As   IPEndPoint                   '服务器地址簇  
+        Public   SvrListenSocket   As   Socket   '服务器侦听socket  
+        Public   SvrListener   As   Socket           '表示异步操作的状态  
+        Public   SvrListenThread   As   Thread   '服务器侦听线程  
+        Public   Done   As   New   ManualResetEvent(True)   '通知一个或多个正在等待的线程已
+
+发生事件  
+Public   alsock   As   New   ArrayList       '放置socket的队列  
+——————————————————————————————————————
+
+11.  '侦听50个客户端   并启动线程  
+ '开始一个异步操作来接受一个传入的连接尝试  
+                                SvrListenSocket.BeginAccept(New   AsyncCallback(AddressOf  
+
+AcceptCallback),   SvrListenSocket)
+
+12.当发现一个连接后，建立一个线程，然后处理，当另外一个来后，重新创建！  
+public   sealed   class   Sockets  
+{  
+      private   Sockets()  
+      {  
+              //在这里可以建立连接  
+      }
+
+      public   static   Sockets   GetInstance(IPEndPoint   point)  
+      {  
+              //在这里可以建立线程并连接  
+      }  
+}
+
+  
+13.我的那个例程是用进程还是线程实现通信的？不知啊。是socket。但是？
+
+14.建立多个线程就ok了 为每一个连接 创建一个线程去处理  
+      while (true)  
+            {  
+                // 得到包含客户端信息的套接字  
+                Socket client = server.Accept();
+
+                //创建消息服务线程对象  
+                ClientThread newclient = new ClientThread(client);
+
+                //把ClientThread 类的ClientService方法委托给线程  
+                Thread newthread = new Thread(new ThreadStart(newclient.ClientService));
+
+                // 启动消息服务线程  
+                newthread.Start();  
+            }
+
+15.客户端在通信时，需要知道服务器的IP地址。属于主动的一方  
+16.客户端在向服务器（系统）请求一个临时端口，用完后释放端口，断开链接。需要时再重新连上。  
+那请问，QQ打开一个窗口时，是一直连接着吗？（应该是的。如果没有打开窗口，那就没连接。只是跟
+
+服务器连接着）
+
+17.服务器端，在通信时一般属于被动方，不知客户端的IP和端口信息。
+
+18.用connect将客户端套接字与服务器特定地址进行绑定连接
+
+19.将socket连接到远程主机（client. c)或者本地IP（server.c)
+
+20.按要求通过socket接收和发送数据
+
+21.端口地址是以进程为单位分配的。发送和接收必须使用同一端口。
+
+22.为什么在一个服务器对多个客户端情况下，进程会阻塞，而线程就不阻塞了呢？  
+每个客户端对应两个线程（收发各一个）；而客户端本身呢，只需要有两个。
+
+23.发送请求过程  
+1）利用gethostbyname()获取主机信息  
+2）初始化socket端口  
+3）利用connect函数将自己的ip地址等信息发送给主机，等待主机调用accept函数来接受请求。
+
+24.主机接收请求，进行数据通信  
+1）主机用accept接收请求  
+2）创建子线程，显示欢迎信息  
+3）接收返回信息，显示连接成功  
+4）关闭客户端socket  
+5）关闭服务端socket，结束子线程。
+
+24.define BACKLOG 10  这个有何用？
+
+25.那我Lisent只能监听一个啊？那么多个客户端，怎么办呢？怎么实现并发监听呢？
+
+未完待续。。。

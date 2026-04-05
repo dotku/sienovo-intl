@@ -1,0 +1,125 @@
+---
+title: "pthread_create传递参数"
+date: "2011-09-07"
+slug: "6757525"
+tags: ["#thread", "#struct", "#casting", "#null", "#function", "#integer"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6757525"
+---
+
+ 
+
+  
+
+#include <iostream>
+
+#include <pthread.h>  
+  
+using namespace std;  
+  
+pthread\_t thread;  
+  
+void \*fn(void \*arg)  
+{  
+    int i = \*(int \*)arg;  
+    cout<<"i = "<<i<<endl;  
+  
+    return ((void \*)0);  
+}  
+  
+int main()  
+{  
+    int err1;  
+    int i=10;  
+  
+    err1 = pthread\_create(&thread, NULL, &fn, &i);  
+    pthread\_join(thread, NULL);  
+
+}
+
+————————————————————————————————
+
+线程创建函数：  
+int pthread\_create(pthread\_t \*tid, const pthread\_attr\_t \*attr, void \* (\*func)(void \*), void \*arg);  
+参数func 表示代一个参数void \*，返回值也为void \*;  
+对于void \*arg,参数传入，在gcc 3.2.2条件下，以下面两种方式传入都可编译通过。  
+int ssock;  
+int TCPechod(int fd);  
+1.pthread\_create(&th, &ta, (void \*(\*)(void \*))TCPechod, (void \*)ssock);  
+2.pthread\_create(&th, &ta, (void \*(\*)(void \*))&TCPechod, (void \*)&ssock);  
+  
+  
+**本文来自ChinaUnix博客，如果查看原文请点：**[http://blog.chinaunix.net/u/9643/showart\_49987.html](http://blog.chinaunix.net/u/9643/showart_49987.html)
+
+pthread\_create(&tid,&attr,&func,(void)arg)只能传递一个参数给func，要是要传一个以上的参数呢？请指教
+
+### 定义一个结构然后传这个结构　
+
+**pthread\_create时，能否向thread\_function传递多个参数？**
+
+CODE:
+
+typedef union {  
+   size\_t arg\_cnt;  
+   any\_possible\_arg\_types;  
+} arg\_type;  
+  
+arg\_type args\[ARG\_NUM + 1\];  
+args\[0\].arg\_cnt = ARG\_NUM;  
+args\[1\].xxx = ...;  
+  
+pthread\_create (..., ..., thread\_function, **&args\[0\]**);
+
+进去了自己解析。。
+
+\-------------------------
+
+#### [pthread\_create 傳遞參數的用法](http://pccts.blogspot.com/2007/11/pthreadcreate.html)
+
+最近,又開始寫 socket 的程式.  
+有別於以前用 select 或最早的 heavy-weight 的 fork 方式.  
+這次改用 pthread 來 handle server 端所收到的 request .  
+不過, 有一個問題, 如何傳參數給 thread 的 handler  
+man pthread\_create 可以看到只有 4th argument 可以應用.  
+至於怎麼用. 找了以前的 sample code, 原來,做 casting 就可以.  
+  
+string 沒問題, 如果是傳 integer 就這樣寫..  
+  
+void pfunc ( void \*data)  
+{  
+int i = (int)data;  
+...  
+}  
+  
+main()  
+{  
+int ival=100;  
+pthread\_t th;  
+...  
+pthread\_create( &th, NULL, pfunc, (void \*) ival );  
+}  
+  
+如遇到多個參數. 就包成 struct , 傳 pointer 過去吧 ~  
+  
+struct test  
+{  
+int no;  
+char name\[80\];  
+};  
+  
+void pfunc ( void \*data)  
+{  
+struct test tt = (struct test\*)data;  
+...  
+}  
+  
+main()  
+{  
+struct test itest;  
+pthread\_t th;  
+...  
+itest.no=100;  
+strcpy(itest.name,"Hello");  
+...  
+pthread\_create( &th, NULL, pfunc, (void \*)& itest );  
+..  
+}

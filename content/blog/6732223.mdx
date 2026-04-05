@@ -1,0 +1,58 @@
+---
+title: "linux socket网络编程：fcntl  select（多个客户端连接服务器端情形）"
+date: "2011-08-30"
+slug: "6732223"
+tags: ["#socket", "#服务器", "#linux", "#编程", "#网络", "#struct"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6732223"
+---
+
+ 
+
+**一、引言**
+
+    在实际情况中，人们往往遇到**_多个客户端连接服务器端的情况_**。由于之前介绍的函数如connect,recv,send等都是阻塞性函数，若资源没有充分准备好，则调用该函数的进程将进入睡眠状态，这样就无法处理I/O多路复用的情况了。
+
+    本文给出_**两种I/O多路复用的方法：fcntl(),select()**_。可以看到，由于Linux中把socket当作一种特殊的文件描述符，这给用户的处理带来很大方便。
+
+**二、fcntl**
+
+fcntl()函数有如下特性：
+
+1）非阻塞I/O： 可将cmd 设为F\_SETFL,将lock设为O\_NONBLOCK
+
+2)信号 驱动 I/O：可将cmd设为F\_SETFL,将lock设为O\_ASYNC.
+
+例程：
+
+```cpp
+#include <sys/types.h>#include <sys/socket.h>#include <sys/wait.h>#include <stdio.h>#include <stdlib.h>#include <errno.h>#include <string.h>#include <sys/un.h>#include <sys/time.h>#include <sys/ioctl.h>#include <unistd.h>#include <netinet/in.h>#include <fcntl.h>#include <unistd.h> #define SERVPORT 3333#define BACKLOG 10#define MAX_CONNECTED_NO 10#define MAXDATASIZE 100 int main(){	struct sockaddr_in server_sockaddr,client_sockaddr;	int sin_size,recvbytes,flags;	int sockfd,client_fd;	char buf[MAXDATASIZE];/*创建socket*/	if((sockfd = socket(AF_INET,SOCK_STREAM,0))==-1){		perror("socket");		exit(1);	}	printf("socket success!,sockfd=%d\n",sockfd); /*设置sockaddr结构*/	server_sockaddr.sin_family=AF_INET;	server_sockaddr.sin_port=htons(SERVPORT);	server_sockaddr.sin_addr.s_addr=INADDR_ANY;	bzero(&(server_sockaddr.sin_zero),8); /*将本地ip地址绑定端口号*/	if(bind(sockfd,(struct sockaddr *)&server_sockaddr,sizeof(struct sockaddr))==-1){		perror("bind");		exit(1);	}	printf("bind success!\n"); /*监听*/	if(listen(sockfd,BACKLOG)==-1){		perror("listen");		exit(1);	}	printf("listening....\n"); /*fcntl()函数，处理多路复用I/O*/	if((flags=fcntl( sockfd, F_SETFL, 0))<0)			perror("fcntl F_SETFL");		flags |= O_NONBLOCK;		if(fcntl( sockfd, F_SETFL,flags)<0)			perror("fcntl");	while(1){		sin_size=sizeof(struct sockaddr_in);		if((client_fd=accept(sockfd,(struct sockaddr*)&client_sockaddr,&sin_size))==-1){  //服务器接受客户端的请求，返回一个新的文件描述符			perror("accept");			exit(1);		}		if((recvbytes=recv(client_fd,buf,MAXDATASIZE,0))==-1){			perror("recv");			exit(1);		}		if(read(client_fd,buf,MAXDATASIZE)<0){			perror("read");			exit(1);		}		printf("received a connection :%s",buf); /*关闭连接*/	close(client_fd);	exit(1);	}/*while*/}
+```
+  
+  
+
+运行该程序：  
+
+```cpp
+[root@localhost net]# ./fcntlsocket success!,sockfd=3bind success!listening....accept: Resource temporarily unavailable
+```
+可以看到，当accept的资源不可用时，程序会自动返回。  
+
+若将红色加粗代码替换为：
+
+```cpp
+	if((flags=fcntl( sockfd, F_SETFL, 0))<0)			perror("fcntl F_SETFL");		flags |= O_ASYNC;		if(fcntl( sockfd, F_SETFL,flags)<0)			perror("fcntl");
+```
+运行结果如下：
+
+```cpp
+[root@localhost net]# ./fcntl1socket success!,sockfd = 3bind success!listening...  
+```
+可以看到，进程一直处于等待中，直到另一相关信号驱动它为止。
+
+**三、select**
+
+```cpp
+#include <sys/types.h>#include <sys/socket.h>#include <sys/wait.h>#include <stdio.h>#include <stdlib.h>#include <errno.h>#include <string.h>#include <sys/un.h>#include <sys/time.h>#include <sys/ioctl.h>#include <unistd.h>#include <netinet/in.h>#define SERVPORT 3333#define BACKLOG 10#define MAX_CONNECTED_NO 10#define MAXDATASIZE 100int main(){	struct sockaddr_in server_sockaddr,client_sockaddr;	int sin_size,recvbytes;	fd_set readfd;	fd_set writefd;	int sockfd,client_fd;	char buf[MAXDATASIZE];/*创建socket*/	if((sockfd = socket(AF_INET,SOCK_STREAM,0))==-1){		perror("socket");		exit(1);	}	printf("socket success!,sockfd=%d\n",sockfd);/*设置sockaddr结构*/	server_sockaddr.sin_family=AF_INET;	server_sockaddr.sin_port=htons(SERVPORT);	server_sockaddr.sin_addr.s_addr=INADDR_ANY;	bzero(&(server_sockaddr.sin_zero),8);/*将本地ip地址绑定端口号*/	if(bind(sockfd,(struct sockaddr *)&server_sockaddr,sizeof(struct sockaddr))==-1){		perror("bind");		exit(1);	}	printf("bind success!\n");/*监听*/	if(listen(sockfd,BACKLOG)==-1){		perror("listen");		exit(1);	}	printf("listening....\n");/*select*/	FD_ZERO(&readfd);              // 将readfd 清空 FD_SET(sockfd,&readfd);         //将sockfd加入到readfd集合中	while(1){	sin_size=sizeof(struct sockaddr_in);	if(select(MAX_CONNECTED_NO,&readfd,NULL,NULL,(struct timeval *)0)>0){  //第一个参数是0和sockfd的最大值加1，第二个参数是读集，第三、四个参数是写集                                                                                //和异常集		if(FD_ISSET(sockfd,&readfd)>0){         // FD_ISSET 这个宏判断 sockfd 是否属于可读的文件描述符。从 sockfd 中读入, 输出到标准输出上去.			if((client_fd=accept(sockfd,(struct sockaddr *)&client_sockaddr,&sin_size))==-1){   //client_sockaddr：客户端地址				perror("accept");				exit(1);			}			if((recvbytes=recv(client_fd,buf,MAXDATASIZE,0))==-1){				perror("recv");				exit(1);			}			if(read(client_fd,buf,MAXDATASIZE)<0){				perror("read");				exit(1);			}			printf("received a connection :%s",buf);		}/*if*/		close(client_fd);		}/*select*/	}/*while*/}运行结果如下：[root@localhost net]#  gcc select1.c -o select1[root@localhost net]# ./select1socket create success!bind success!listening...
+```
+
+**四、思考**

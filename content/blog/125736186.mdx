@@ -1,0 +1,110 @@
+---
+title: "TMS320C6678 + XC7K160T DSP+FPGA+ AD 24bit 国产高精度高性能主板设计方案"
+date: "2022-09-13"
+slug: "125736186"
+tags: ["#国产AD", "#C6678+AD"]
+source: "https://blog.csdn.net/yeyuangen/article/details/125736186"
+---
+
+ 
+
+最近在开发一款产品时，用到了一颗国产高精度[ADC](http://www.elecfans.com/tags/adc/ "ADC")， 原子[半导体](https://www.hqchip.com/gongsi.html "半导体")的AS1412，了解到该产品的一些优势，不仅精度高、线性度好，功耗还低，能够满足很多力的传感[测量](http://www.hqchip.com/app/851 "测量")，比如各种秤的应用、工业设备、仪器仪表等。
+
+　　从下面这幅图中可以看出AS1412的主要构成和特点。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/125736186/01_d00658c793d55da193ac024e387d8dbd.png)
+
+　　这颗器件内部主要集成了：1）MUX多路复用开关用于设置采样外部信号或者内部[温度传感器](http://www.hqchip.com/app/951 "温度传感器")； 2）PGA可以设置增益为×1、×2、×64、×128；3）[AD](https://dfm.elecfans.com/uploads/software/hqdfm.zip?neilian "AD")C内核及后续的数字处理单元，过采样之后可以输出10Hz-1.25kHz的转换数据；4）内部温度传感器经2点校准可以达到+/-1℃的精度； 5）带隙基准源、[时钟](http://www.hqchip.com/app/1045 "时钟")等辅助[电路](https://bbs.elecfans.com/zhuti_dianlu_1.html "电路")单元。
+
+　　以下是AS1412用于称重测力的示意图，ADC可以直接采样[传感器](http://www.elecfans.com/tags/%E4%BC%A0%E6%84%9F%E5%99%A8/ "传感器")的差分输出信号，传感器激励与ADC基准采用相同的电压源以降低系统成本，也可以采用恒流驱动传感器以提高抗干扰性能。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/125736186/02_8be35d6d182393df084def77e3c25936.png)
+
+　　AS1412芯片较高的集成度使得整个应用电路非常简洁。[软件](https://yingsheng.elecfans.com/app "软件")方面，[MCU](http://www.elecfans.com/tags/mcu/ "MCU")可以通过DOUT和SCLK直接读取ADC转换数据进行后续的处理。
+
+•
+
+AI边缘计算、视觉基础平台的研发，以FPGA、DSP、ARM为处理器，形态包括
+
+VPX、CPCI-E，主要专注于边缘AI、嵌入式系统、3D视觉、异构计算，光纤通信、高速成像
+
+系统等关键技术的研究与创新，提供可深度定制化、软/硬件一体化的智能边缘计算产
+
+品和解决方案,如：定制多层高速板卡、FPGA/GPU/DSP并行计算软件、操作系统移植优化、
+
+融合传感设备等，致力于降低边缘智能的研发门槛、优化信息系统的构成、节约项目成本、
+
+加速各领域智能应用的产业化进程，协助科研院所、高校重点实验室、大型上市公司完整硬
+
+件方案定制开发和软件开发，提高设备国产化比例。
+
+TMS320C6678 + XC7K160T嵌入式单板计算机
+
+C6678\_DDR3\_6UVPX高速信号处理板板为基于TI多核DSP TMS320C6678的通用处理板卡，
+
+符合VITA 65系统规范板，卡集成四片TI高性能八核信号处理器TMS320C6678和一片
+
+XILINX k7的FPGA **。**
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/125736186/03_0edf6b8cb40da7959f19958c939e0374.png)
+
+TMS320C6678 资料：
+
+是TI公司最新一代  Multicore Fixed and Floating-Point Digital Signal Processor。
+
+基于TI's KeyStone multicore architecture。
+
+TMS320C6678具有8个TMS320C66x™ DSP Core ，每个核可以运行在1.0 GHz或 1.25 GHz或 1.4 GHz。
+
+每个核具有 40 GMAC定点运算能力（ 1.25 GHz）
+
+每个核具有20 GFLOP浮点运算能力（ 1.25 GHz）
+
+每个核具有：
+
+›32K Byte L1P cache Per Core。
+
+›32K Byte L1D cache  Per Core。
+
+›512K Byte Local L2 cache  Per Core。
+
+› 8个核共享4Mbyte SRAM。
+
+功耗小于10W，工作温度： -40℃～+85℃。并有扩展温度级别-55℃～+115℃芯片供应。
+
+以下是TI官方资料：
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/125736186/04_bdf9c2023037a416d411bca075910184.jpeg)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/125736186/05_849941cbc0b326603ec83f82d8b04fb5.jpeg)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/125736186/06_3a1bf35ca938461dd1ffcdfce824d486.jpeg)
+
+板载： 
+
+ · 1024 MB DDR3-1600存储器。  
+ · 64MB EMIF NAND Flash存储器。  
+ · 16MB SPI NOR Flash存储器。  
+ · 128KB I2C EEPROM存储器。
+
+  
+FPGA部份：可以选装XC7K160T-2FFG676   也可以用XC7K325T-2FFG676
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/125736186/07_cdf563b49f2857c4ee82fd0da75b0078.jpeg)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/125736186/08_9ee4673ce97c8abba3a1f356f53a29b9.jpeg)  
+板载：
+
+· XilinxXC7K160T-2FFG676orXC7K325T-2FFG676   FPGA。
+
+· DDR3-1600SDRAM，2GB byte。
+
+· 128 MB of Configuration/UserData Flash。
+
+· 16MB SPI NOR Flash。
+
+· 200 MHz LVDS Oscillator(system clock)。
+
+· 156.25MHz LVCMOS ConfigurationOscillator。
+
+· 50 MHz LVCMOS Oscillator 。

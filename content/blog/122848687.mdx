@@ -1,0 +1,471 @@
+---
+title: "Zynq LTE基站设计与实现"
+date: "2022-02-09"
+slug: "122848687"
+tags: ["#DSP+FPGA", "#ZYNQ", "#LTE"]
+source: "https://blog.csdn.net/yeyuangen/article/details/122848687"
+---
+
+ 
+
+采用[赛灵思](http://www.elecfans.com/tags/%E8%B5%9B%E7%81%B5%E6%80%9D/ "赛灵思")Zynq\-7000 All Prog[ram](http://www.elecfans.com/tags/ram/ "ram")malbe SoC能让毫微微、微微以及其他小型蜂窝基站设计的集成度、 灵活性 和低功耗达到全新的高度。
+
+小型蜂窝属于低功率无线基站，运行于授权频谱范围内，并由移动网络运营商进行管理。小型蜂窝基站的 类 型囊括毫微微(Femtocell)、微微([Pi](http://www.elecfans.com/tags/pi/ "Pi")cocell)、微蜂窝([Mi](http://www.hqpcb.com/zhuoluye11/?tid=26&plan=fashaoyou "Mi")crocell)和多载波基站(Metrocell)，覆盖范围从一百米到数百米不等。如今，小型蜂窝系统的[电子](http://www.elecfans.com/soft/special/ "电子")核心组件包括[FPGA](http://www.elecfans.com/tags/fpga/ "FPGA")、[DSP](http://www.elecfans.com/tags/dsp/ "DSP")器件以及网络和主机处理器，这些组件都要满足不断发展演进的无线标准要求。然而，新一代小型蜂窝系统正在快速高度集成化，将以上这些元件集成到单个片上系统(SoC)内。
+
+**ZYNQ SoC是LTE小型蜂窝基站的理想选择**  
+Zynq SoC的高性能可编程逻辑和[ARM](http://www.elecfans.com/tags/arm/ "ARM")处理器可让客户打造出能够满足当前及新一代无线设备不断提高的传输带宽需求的设计方案。设计团队可在Zynq SoC的处理系统中实现协议栈，并观察其运行情况。如果太过缓慢，可利用Viv[ad](https://dfm.elecfans.com/uploads/software/hqdfm.zip?neilian "ad")o®设计[套件](http://www.hqchip.com/app/842 "套件")高层次综合(HLS)工具将代码转换为[Verilog](http://www.elecfans.com/tags/verilog/ "Verilog")或VHDL格式，以便在Zynq SoC可编程逻辑中运行。这样可以将一些功能代码的运行速度提高700倍，同时释放处理器以更快地执行其他任务，从而提升整体系统性能。
+
+很多小型蜂窝基站必须在无制冷风扇的条件下运行，因此对散热提出了较高要求。Zynq SoC的功耗极低，这样不仅可在系统中避免使用风扇，而且也不必安装昂贵的散热片。
+
+很多小型蜂窝基站必须在无制冷风扇的条件下运行，因此对散热提出了较高要求。Zynq SoC的功耗极低，这样不仅可在系统中避免使用风扇，而且也不必安装昂贵的散热片。赛灵思还提供用来提高功率[放大器](http://www.elecfans.com/tags/%E6%94%BE%E5%A4%A7%E5%99%A8/ "放大器")效率的无线IP，这种IP有助于设计团队进一步降低小型蜂窝基站的耗电量。
+
+异构网路(HetNet)需要连接大量采用不同操作系统和协议的[计算机](http://www.hqchip.com/app/873 "计算机")和设备，为此，赛灵思推出了极富吸引力的All Programmable器件组合。这些产品具备最大的设计灵活性，仅单个可重配置器件即可满足HetNet的多标准与多频带需求。无论客户设计的是小型蜂窝还是传统的宏蜂窝架构，都可以找到合适的赛灵思器件。赛灵思的Zynq SoC器件相对于任何其他器件而言，能够提供更高的系统集成度，因此特别适用于小型蜂窝HetNet系统。双核ARM® Cortex™-A9处理器能够实时处理任务。其中的一个Cortex-A9处理器运行实时操作系统并负责处理L1控制任务，而另一个Cortex-A9则运行部分或全部更高层功能。
+
+重负荷用户层处理任务最好在硬件中完成。与多核SoC相比，结合使用赛灵思丰富的最佳LTE基带功能集，集成的7系列FPGA架构能够以更低的功耗实现卓越的实时性能。FPGA架构还可用来加速L2用户层功能，从而减轻ARM处理器的负载，这样设计人员就能够灵活地加速架构中的硬件，从而提高更高层的性能。该架构还允许集成数字上变频和下变频(DUC/DDC)、可选峰值因数抑制(CFR)以及数字预失真(DPD)等数字前端(DFE)功能。这种高集成度可进一步降低功耗，并有助于减少LTE基站设计中非常重要的整体端对端时延问题。
+
+**小型蜂窝基站的灵活性**  
+赛灵思提供一个与赛灵思LET基带配套的基于Zynq SoC的LTE小型蜂窝基站参考设计，当然客户也可以集成自己的LET基带。另外，赛灵思还提供包括LTE协议栈、RAN安全、回程IPSec、时序与同步以及稳健报头压缩(RoHC)等在内的综合而全面的软件解决方案。
+
+针对低容量和中等容量的小型蜂窝基站，赛灵思采用Zynq SoC实现了一款具备集成物理层的高集成度解决方案。该物理层包括在可编程逻辑(PL)中实现的无线电+L1基带，以及在处理系统(PS)中实现的更高层协议栈、回程传输管理和物理层时序与控制。可编程逻辑还可以为一些更高层功能提供硬件加速，从而使容量最大化（这是与同类竞争产品拉开距离的重要因素）。Zynq SoC系列通过单芯片实现方案可满足多种部署情况。
+
+考虑到目前Zynq SoC系列的处理能力，对于很高容量的小型蜂窝基站而言，赛灵思建议在可编程逻辑中实现无线电+L1基带，在处理系统中实现相关时序与控制。可以采用辅助处理器来处理更高层协议栈和回程传输管理任务。
+
+图1中的上图是典型的2X2 (2T2R) LTE小型蜂窝基站设计。此类设计的典型材料清单(BOM)一般包含三颗芯片：多核SoC、ASSP（用于数字前端）和小型FPGA（用于剩余的逻辑和[存储器](http://www.hqchip.com/app/724 "存储器")）。下图将这些芯片都集中到了单个Zynq SoC器件中（例如Z-7045），其中双核ARM Cortex-A9负责运行LTE L2/L3协议栈。LTE L1被集成到FPGA架构中，并为L2提供硬件加速，以分担IPSec、加密和RoHC等处理任务。FPGA架构还包含数字前端(DPD、DUC、DDC、CFR)。采用单芯片设计不仅能降低芯片间时延，实现最佳包处理能力，而且还可将材料成本降低25%，系统性能提高一倍，总功耗降低35%。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/122848687/01_d819fd35d9711edf6c1b17f079f72069.png)
+
+LTE小型蜂窝基站设计要求实现低成本、低功耗、高集成度和高可靠性。全集成、可扩展性和灵活性是实现上述目标的关键。Zynq-7000 All Programmable SoC具备双核ARM处理器子系统、高系统性能和低功耗可编程逻辑，是一款能够满足当前及未来小型蜂窝基站需求的低成本解决方案。
+
+### **1 评估板简介**
+
+信迈科技 XM-ZYNQ7045-EVM 是一款基Xilinx Zynq-7000 系列 XC7Z045/XC7Z100 高性能处理器设计的高端异构多核 SoC 评估板，处理器集成 PS 端双核 ARM Cortex-A9 + PL 端 Kintex-7 架构 28nm 可编程逻辑资源，评估板由核心板与评估底板组成。核心板经过专业的 PCB Layout 和高低温测试验证，稳定可靠，可满足各种工业应用环境。
+
+评估板接口资源丰富，引出双路千兆网口、四路 SFP+光口、CameraLink、HDMI、F
+
+MC HPC、GTX、PCIe、USB、Micro SD 等接口，方便用户快速进行产品方案评估与技术
+
+预研。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/122848687/02_10e9e04058d14383029b67e4e7c25283.png)
+
+图 1 Xilinx Zynq-7000 处理器功能框图
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/122848687/03_d176325daf225e0cc82bae6a7a17d966.png)
+
+图2
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/122848687/04_b16e6be6a69b40e52c85396b05b0ad30.png)
+
+图3
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/122848687/05_208bbe92ea2ea912df280abfaaedeeaa.png)
+
+图4
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/122848687/06_ba44f01db498f6ee54789e5677fe64ca.png)
+
+ 图5
+
+### **2** **典型应用领域**
+
+*   软件无线电
+*   雷达探测
+*   光电探测
+*   视频追踪
+*   图像处理
+*   水下探测
+*   定位导航
+*   深度学习
+
+### **3 软硬件参数**
+
+****3.1**** ****硬件参数****
+
+表1
+
+CPU
+
+CPU：Xilinx Zynq-7000 XC7Z045/XC7Z100-2FFG900I
+
+2x ARM Cortex-A9，主频 800MHz，2.5DMIPS/MHz Per Core
+
+1x Kintex-7 架构可编程逻辑资源
+
+ROM
+
+PS 端：8GByte eMMC
+
+PS 端：128/256Mbit SPI NOR FLASH
+
+RAM
+
+PS：单通道 32bit DDR 总线，1GByte DDR3
+
+PL：单通道 32bit DDR 总线，1/2GByte DDR3
+
+Logic Cell
+
+XC7Z045：350K，XC7Z100：444K
+
+OSC
+
+PS 端：33.33MHz
+
+B2B Connector
+
+2x 140pin 公座高速 B2B 连接器，2x 140pin 母座高速 B2B 连接器，共 560pin，
+
+间距 0.5mm，合高 7.0mm
+
+LED
+
+2x 电源指示灯（核心板 1 个，评估底板 1 个）
+
+1x PL 端 DONE 灯（核心板 1 个）
+
+3x PS 端用户可编程指示灯（核心板 2 个，评估底板 1 个）
+
+2x PL 端用户可编程指示灯（评估底板 2 个）
+
+KEY
+
+1x 电源复位按键
+
+1x 系统复位按键
+
+1x PS 端用户输入按键
+
+1x PL 端用户输入按键
+
+SD
+
+1x Micro SD 接口（PS 端）
+
+XADC
+
+1x 排针接口，2x 2pin 规格，2.54mm 间距，单通道专用差分输入，1MSPS
+
+Ethernet
+
+1x PS RGMII，RJ45 接口，10/100/1000M 自适应（PHY 位于核心板上）
+
+1x PL RGMII，RJ45 接口，10/100/1000M 自适应
+
+Watchdog
+
+1x Watchdog，3pin 排针方式，2.54mm 间距，通过跳线帽配置
+
+UART
+
+1x Debug UART，Micro USB 接口（PS 端）
+
+1x RS232 UART，DB9 接口（PL 端）
+
+1x RS485 UART，3pin 3.81mm 绿色端子方式（PL 端）
+
+CAN
+
+2x CAN，3pin 3.81mm 绿色端子方式（PL 端）
+
+USB
+
+4x USB 2.0 HOST 接口，使用 HUB 扩展（PHY 位于核心板上）
+
+PCIe
+
+1x PCIe，由两组 GTX 引出，共两通道，x4 金手指连接方式（PL 端）
+
+IO
+
+1x 400pin FMC 连接器，1.27mm 间距，HPC 标准
+
+SATA
+
+1x 7pin SATA 接口，150MHz LVDS 差分时钟（PL 端）
+
+HDMI
+
+1x HDMI OUT（PL 端）
+
+1x HDMI IN（PL 端）
+
+DISPLAY
+
+1x LCD RES 电阻触摸屏，40pin FFC 连接器，间距 0.5mm（PL 端）
+
+CAMERA
+
+2x CAMERA，2x 10pin 排母方式，间距 2.54mm（PL 端）
+
+CameraLink
+
+2x CameraLink Base 接口，支持 Full 模式（PL 端）
+
+SFP+
+
+4x SFP+光口，支持万兆光模块，由高速串行收发器(GTX)引出
+
+LVDS
+
+1x 排针接口，2x 15pin 规格，可接通用 LVDS 显示屏，间距 2.00mm（PL 端）
+
+SMA
+
+1x GTX CLK
+
+1x GTX RX
+
+1x GTX TX
+
+RTC
+
+1x RTC 座，适配纽扣电池 ML2032（3V 可充）、CR2032（3V 不可充）
+
+FAN
+
+1x FAN，3pin 排针端子，12V 供电，间距 2.54mm
+
+JTAG
+
+1x 14pin JTAG 接口，间距 2.0mm
+
+BOOT SET
+
+1x 6bit 启动方式选择拨码开关
+
+SWITCH
+
+1x 电源摆动开关
+
+POWER
+
+1x 12V6A 直流输入 DC-005 电源接口，可接外径 5.5mm、内径 2.1mm 电源插头
+
+****3.2**** ****软件参数****
+
+表 2
+
+ARM 端软件支持
+
+裸机，FreeRTOS，Linux-4.9.0
+
+Vivado 版本号
+
+2017.4
+
+软件开发套件提供
+
+PetaLinux-2017.4，Xilinx SDK 2017.4，Xilinx HLS 2017.4
+
+驱动支持
+
+SPI NOR FLASH
+
+DDR3
+
+USB 2.0
+
+eMMC
+
+LED
+
+KEY
+
+RS485
+
+MMC/SD
+
+Ethernet
+
+CAN
+
+7in Touch Screen LCD(Res)
+
+XADC
+
+I2C
+
+USB 4G
+
+USB WIFI
+
+RS232
+
+### **4 开发资料**
+
+（1）提供核心板引脚定义、可编辑底板原理图、可编辑底板 PCB、芯片 Datasheet，缩短
+
+硬件设计周期；
+
+（2）提供系统固化镜像、内核驱动源码、文件系统源码，以及丰富的 Demo 程序；
+
+（3）提供完整的平台开发包、入门教程，节省软件整理时间，让应用开发更简单；
+
+（4）提供详细的 PS + PL SoC 架构通信教程，完美解决异构多核开发瓶颈。
+
+开发案例主要包括： Ø
+
+*   基于 Linux 的开发例程
+*   基于裸机的开发案例
+*   基于 FreeRTOS 的开发案例
+*   基于 PS + PL 的异构多核开发案例
+*   基于 OpenAMP 的 Linux + 裸机/FreeRTOS 双核 ARM 通信开发案例
+*   基于 PL 端的 HDL、HLS 开发案例
+*   Qt 开发案例
+*   CameraLink、SDI、HDMI、PAL 视频输入/输出案例
+*   高速 AD(AD9613)采集 + 高速 DA(AD9706)输出案例
+*   AD9361 软件无线电案例
+*   UDP(10G)光口通信案例
+*   Aurora 光口通信案例
+*   PCIe 通信案例
+
+### **5 电气特性**
+
+工作环境
+
+环境参数
+
+最小值
+
+典型值
+
+最大值
+
+核心板工作温度
+
+\-40°C
+
+/
+
+85°C
+
+核心板工作电压
+
+/
+
+5.0V
+
+/
+
+评估板工作电压
+
+/
+
+12.0V
+
+/
+
+功耗测试
+
+类别
+
+工作状态
+
+电压典型值
+
+电流典型值
+
+功耗典型值
+
+核心板
+
+状态 1
+
+5.0v
+
+0.40A
+
+2.00W
+
+状态 2
+
+5.0v
+
+1.85A
+
+9.25W
+
+评估板
+
+状态 1
+
+12.0v
+
+0.43A
+
+5.16W
+
+状态 2
+
+12.0v
+
+1.19A
+
+14.28W
+
+备注：功耗基于 CPU 为 XC7Z045 的核心板测得。功耗测试数据与具体应用场景有关，测试数据仅供参考。
+
+状态 1：评估板不接入外接模块，PS 端启动系统，不执行额外应用程序；PL 端运行 LED 测试程序。
+
+状态 2：评估板不接入外接模块，PS 端启动系统，运行 DDR 压力读写测试程序，2 个 ARM Cortex-A9核心的资源使用率约为 100%；PL 端运行 IFD 综合测试程序。
+
+图 11 状态 2 资源使用率
+
+### **6****机械尺寸**
+
+表 4
+
+核心板
+
+评估底板
+
+PCB 尺寸
+
+62mm\*100mm
+
+142.75mm\*260mm
+
+PCB 层数
+
+14 层
+
+8 层
+
+PCB 板厚
+
+1.6mm
+
+1.6mm
+
+安装孔数量
+
+4
+
+4
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/122848687/07_0ba1e5d6c075eca2ac3b001892cb9ebb.png)
+
+图 12 核心板机械尺寸图
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/122848687/08_d47494c29fa9b5f49065eea09e292e71.png)
+
+图 13 评估底板机械尺寸图
+
+### **7技术服务**
+
+1.  协助底板设计和测试，减少硬件设计失误；
+2.  协助解决按照用户手册操作出现的异常问题；
+3.  协助产品故障判定；
+4.  协助正确编译与运行所提供的源代码；
+5.  协助进行产品二次开发；
+6.  提供长期的售后服务。
+
+### **8增值服务**
+
+*   主板定制设计
+*   核心板定制设计
+*   嵌入式软件开发
+*   项目合作开发
+*   技术培训
+
+ 更多信息，请联系深圳信迈科技。

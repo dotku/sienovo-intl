@@ -1,0 +1,201 @@
+---
+title: "RK3568+CODESYS Runtime：智能自动化的运行时软件系统"
+date: "2024-05-28"
+slug: "139253094"
+tags: ["#自动化", "#运维", "#Codesys", "#软PLC"]
+source: "https://blog.csdn.net/yeyuangen/article/details/139253094"
+---
+
+ 
+
+**CODESYS Runtime概述**
+
+为了使硬件设备可以使用基于IEC 61131-3标准的编程环境CODESYS IDE进行编程，必须在对应的硬件设备中移植CODESYS Runtime System。CODESYS Runtime System为工业级的实时操作系统内核，通过在硬件平台上移植CODESYS Runtime System，可以将任何嵌入式设备或基于PC的设备转变为符合IEC 61131-3标准的工业控制器。
+
+CODESYS代码执行机制为编译执行，即在CODESYS IDE中编写的IEC代码，通过集成的编译器编译为机器代码，再通过网线或串口下载到CODESYS Runtime 里。CODESYS Runtime可以调动硬件平台的资源（如时钟资源、内存资源等）来处理这些指令。CODESYS公司的技术工程师负责将CODESYS Runtime部署到客户选用的硬件平台上，并且我们开放CODESYS Runtime接口，支持用户作二次开发。
+
+CODESYS Runtime 可完成以下主要任务
+
+1.下载和执行基于 IEC 61131-3 的应用程序
+
+2.应用程序的调试和监控
+
+3.执行对I/O的操作
+
+4.与CODESYS 编程系统通信
+
+5.与其他控制器设备通信
+
+6.路由控制器网络中的数据信息
+
+此外，该实时运行系统还包含重要的附加组件，如现场总线、运动控制、可视化等，以便您的控制器可以与工业现场中的其他组件进行通信或实现其他复杂的功能。
+
+CODESYS Runtime可跨平台运行，即可部署到不同架构和不同操作系统的硬件平台上。
+
+CODESYS Runtime 支持的一些标准的CPU包括
+
+① Intel 80x86；Pentium， Atom（32位或64位）等；
+
+② ARM Based CPU（ ARM v6-v9架 构 ，如 ARM 7， ARM 9， ARM 11等 ）；
+
+③ ）ARM Cortex CPUs（ Thumb2指令集: Mx, Ax, Rx，如 M3/M4/M7，A8/A9，A15，A53等 ）；
+
+④ PowerPC；
+
+⑤龙芯CPU、天津飞腾CPU等国产CPU。
+
+CODESYS Runtime 也可部署到以下目标设备中
+
+*   Infineon TriCore
+    
+*   Renesas RZ/N1， RX
+    
+
+*   Analog Devices Blackfin
+    
+*   NXP (Freescale) Cold Fire
+    
+
+*   Texas Instruments DSP C2xxx / 28x
+    
+
+CODESYS Runtime 支持的操作系统包括
+
+*   Windows 7/8/10/Embedded (32/64 Bit)；
+    
+*   WinCE；
+    
+
+*   Linux (OSADL real-time extension)；
+    
+*   VxWorks；
+    
+*   QNX；
+    
+
+*   无操作系统或微型操作系统（如uCOS，eCOS，freeRTOS）；
+    
+*   国产操作系统。
+    
+
+**CODESYS Runtime Toolkit**
+
+CODESYS Runtime Toolkit 是一个全面的可编程控制器软件开发工具包。CODESYS Runtime可以将任何嵌入式平台或工业PC转化为基于IEC 61131-3标准的控制器，并且开放Runtime接口，用户可以根据行业需求及功能需要进行二次化开发。因此，CODESYS Runtime Toolkit支持用户开发出具有自主知识产权的控制器产品。
+
+对于最终用户来说，可以直接使用基于CODESYS Runtime开发的控制器，并使用CODESYS IDE（集成开发环境）进行项目应用。对于OEM客户来说，可以使用CODESYS Runtime Toolkit 工具包 基于多种平台和需求开发自己品牌的控制器，并支持定制化开发需要的功能。
+
+CODESYS Runtime Toolkit工具包的供货范围
+
+*   CODESYS Runtime（实时运行系统）的源代码或部分源代码，具体取决于用户所选用的硬件平台
+    
+*   I/O驱动程序和库的源代码示例
+    
+*   有关CODESYS Runtime移植到目标系统的完整文档
+    
+*   特定的硬件设备的实时运行系统所需的基本组件和附件组件
+    
+*   由我们经验丰富的工程师进行培训，以帮助客户将CODESYS实时运行系统移植到目标设备上
+    
+
+CODESYS Runtime移植过程如下
+
+*   安装带有可用的基本组件和附加组件的CODESYS实时运行系统工具包
+    
+*   通过引导工具配置和选择实时运行系统所需功能的组件
+    
+*   配置操作系统接口，实现定制驱动程序或集成的附加功能（外部库），连接外部系统等
+    
+*   将所有组件链接和编译到可执行的实时运行系统，并在目标设备上实现运行
+    
+*   在CODESYS IDE中提供用于设备使用的驱动程序（设备描述文件）
+    
+
+**CODESYS PLCHandler**
+
+PLCHandler为第三方的客户端和基于CODESYS开发的PLC之间建立通讯，PLCHandler封装了完整的底层通信协议，并提供了一个API接口。该API接口提供对所有可用功能和服务的访问。
+
+PLCHandler提供以下功能和服务
+
+①建立或终止与PLC的通信。
+
+②读取PLC的变量列表。
+
+③循环读取PLC变量。
+
+④同步读取PLC变量值。
+
+⑤同步将变量值写入PLC。
+
+⑥实现与多个PLC同时通信。
+
+⑦断开连接后自动重新连接PLC。
+
+⑧程序从CODESYS下载到PLC后自动重启。
+
+⑨将信号事件（数据更改，状态更改）发送给客户端。
+
+⑩获取、设置PLC应用程序的状态。
+
+⑪访问PLC底层文件系统。
+
+PLCHandler作为一个软件开发工具包（SDK），包含所有C/C ++头文件，PLCHandler库，示例配置文件和演示源代码等。
+
+典型的PLCHandler库作为静态链接库（例如WIN32系统下：PLCHandlerLink.lib或者PLCHandlerLinkMFC.lib），封装了C++类以及附加的C的接口。对于WINDOWS平台，PLCHandler也提供动态链接库（PLCHandlerDll.dll）和ActiveX-Control（PLCHandlerX.ocx）插件。
+
+PLCHandler和API接口的内部结构
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/139253094/01_b44afa8ada637e8b60f064a293da8e4d.png)
+
+**CODESYS OPC UA Server**
+
+OPC UA是实现智能化工厂和工业4.0的标准接口。OPC UA（统一架构）是OPC标准下的新一代技术，它不仅允许机器和工厂间进行数据的传输，也支持以机器可读取的方式进行对这些数据的描述。OPC UA是基于TCP标准的独立的平台。协议栈可以用于OPC组织的所有成员。
+
+基于CODESYS Runtime组件化架构，CODESYS OPC UA Server 可作为附加组件移植到CODESYS Runtime里。因此，CODESYS OPC UA Server几乎可以集成到所有基于CODESYS 开发的设备中，并与TCP/IP和实时时钟的表现相当。为了可以在CODESYS Runtime里部署OPC UA Server，设备制造商必须从OPC组织获得协议栈的源代码。
+
+OPC UA Server接收来自CODESYS上位开发环境的数据，并与OPC UA的Client端进行通讯。
+
+OPC UA 的功能及特点
+
+*   自动建立与客户端通信
+    
+*   当数据值和数据状态发生变化时自动触发
+    
+*   浏览变量列表
+    
+*   管理数据缓存项
+    
+*   直接访问控制器中的项目（无缓存）
+    
+*   可以与CODESYS V2.3版本进行OPC通信
+    
+
+**CODESYS Redundancy**
+
+基于IEC 61131-3标准的上位开发环境下的冗余功能的扩展，支持用户开发一款属于自己的冗余控制器。两个独立的工业控制器在不间断和同步的情况下，同时执行一个IEC 61131-3应用程序。一旦出现意外状况，冗余控制器自动切换为主控制器，且控制不会因此而中断或者暂停。但仅有主动控制器与I/O系统进行通讯。
+
+冗余功能
+
+*   两个控制器同时启动机制
+    
+*   配置IP地址和控制器超时
+    
+*   自动同步和更新冗余控制器，即使一个控制器被另外一个控制器所取代
+    
+*   对IEC 61131-3应用程序中的错误做出反应
+    
+*   通过IEC应用程序函数调用或者OEM运行系统组件（例如当监视温度的进程、现场总线错误诊断或通过可视化手动切换）来在控制器之间进行切换
+    
+
+## **XM3568-SOM+Codesys核心板**
+
+1 核心板简介
+
+XM3568\-SOM 是一款基于瑞芯微 RK3568J/RK3568B2 处理器设计的四核 ARM Cortex-A55 全国产工业核心板，主频高达 1.8GHz/2.0GHz。核心板 CPU 、ROM 、RAM、电 源、晶振、连接器等所有元器件均采用国产工业级方案，国产化率 100%。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/139253094/02_79772437b095c2e493ca71df90c59a0f.png)
+
+核心板通过工业级 B2B 连接器引出 GMAC 、USB 、SATA 、PCIe 、HDMI 、LVDS 、RGB、 MIPI 、SDIO 、CAN 、UART 、SPI 、PDM 、eDP 等接口，支持多屏异显、Mali-G52-2EE  GPU、 1080P@60fps  H.265/H.264 视频编码、4K@60fps  H.265/H.264 视频解码，并且内置 1TOPS  算力 NPU 。核心板经过专业的 PCB  Layout 和高低温测试验证，质量稳定可靠，可满足各 种工业应用环境要求。
+
+用户使用核心板进行二次开发时，仅需专注上层运用，可快速进行产品方案验证，降 低开发难度、缩短研发周期，从而降低综合成本、抢占市场先机。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/139253094/03_c4d4fd8e4243b1c6887ba9521ebbb7a6.png)

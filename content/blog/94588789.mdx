@@ -1,0 +1,224 @@
+---
+title: "信迈AM5728 CAN总线测试及SDK升级，linux can 调试命令"
+date: "2019-07-03"
+slug: "94588789"
+tags: ["#AM5728", "#CAN", "#DCAN", "#SDK升级", "#移植"]
+source: "https://blog.csdn.net/yeyuangen/article/details/94588789"
+---
+
+ 
+
+一、AM5728 CAN总线测试
+
+开发板文件系统下执行如下指令，配置 CAN0 总线（软件上的 CAN0 对应为硬件上的
+
+CAN1）比特率为 1MHz，并启动 CAN 总线：
+
+Target# canconfig can0 bitrate 1000000
+
+Target# canconfig can0 start
+
+执行如下指令，监控接收 PC 端发送的数据：
+
+Target# candump can0
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/94588789/01_d27c4021eabe94d16c7d73c8e567a4a2.png)
+
+PC上自动安装驱动
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/94588789/02_28421cebc8effcca51909b0e904111a1.png)
+
+再打开调试仪器软件
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/94588789/03_15e311b557ac44e5cba3b063a72bbce9.png)
+
+一．先设置 com端，比特率为 1MHz，
+
+二．任选数据 点发送 或循环发送
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/94588789/04_38c1c9dcc34f0305fb74d7fc8658e2a0.png)
+
+### 二、设备树升级移植
+
+can 在ti am5728 Linux 里面是作为一个网络设备存在的，记录一下 canconfig 移植过程。
+
+*   *   *   *   一、 下载 canutils 和 libsocketcan
+
+    libsocketcan 地址：  http://public.pengutronix.de/software/libsocketcan/
+
+    canutils 地址 ： http://public.pengutronix.de/software/socket-can/canutils/v4.0/
+
+    // 下载最新的 canutils-4.0.6.tar.bz2 以及 libsocketcan-0.0.10.tar.bz2
+
+*   *   *   *   二、 下载完先编译 libsocketcan 库。
+
+    // 解压
+
+    tar -xvf  canutils-4.0.6.tar.bz2
+
+    cd  libsocketcan-0.0.10/
+
+    mkdir  out
+
+    // 默认已经配置了交叉编译器。
+
+ye@ye-ThinkPad-E420:~/Downloads/libsocketcan-0.0.11$ source ~/ti-processor-sdk-linux-am57xx-evm-05.01.00.11/linux-devkit/environment-setup
+
+\[linux-devkit\]:~/Downloads/libsocketcan-0.0.11> ./configure --prefix=/home/ye/Downloads/libsocketcan-0.0.11/out  --host=arm-none-linux-gnueabi
+
+\[linux-devkit\]:~/Downloads/libsocketcan-0.0.11> make
+
+\[linux-devkit\]:~/Downloads/libsocketcan-0.0.11> make install
+
+\[linux-devkit\]:~/Downloads/libsocketcan-0.0.11/out/lib> ls
+
+libsocketcan.a   libsocketcan.so    libsocketcan.so.2.3.0
+
+libsocketcan.la  libsocketcan.so.2  pkgconfig
+
+    // 将这些生成的库复制到你板子的文件系统内，放在 lib 目录下也行，放在 usr/lib 里面也可以
+
+*   *   *   *   三、 再进行编译canconfig
+
+    // 先将 libsocketcan 里面的头文件 libsocketcan.h   can\_netlink.h 复制到 canutils 的 include 里面
+
+    tar -xvf canutils-4.0.6.tar.bz2
+
+    cd  canutils-4.0.6/
+
+    mkdir out
+
+     chmod 777 . -R
+
+    // 配置
+
+   \[linux-devkit\]:~/Downloads/canutils-4.0.6>  ./configure --host=arm-none-linux-gnueabi --prefix=/home/ye/Downloads/canutils-4.0.6/out libsocketcan\_  LIBS=-lsocketcan LDFLAGS="-L/home/ye/Downloads/libsocketcan-0.0.11/out/lib"      libsocketcan\_CFLAGS="-I/home/ye/Downloads/libsocketcan-0.0.11/out/include"      
+
+    make
+
+    make install
+
+    // 最后在 out/sbin  下能见到 canconfig 命令。
+
+   \[linux-devkit\]:~/Downloads/canutils-4.0.6> ls out/sbin/
+
+canconfig
+
+Copy Canconfig 到板子的/sbin/目录 下
+
+chmod 777 /sbin/ canconfig
+
+板子出现 错误
+
+root@am57xx-evm:/run/media/sda2/can/out/lib# canconfig can0 bitrate 1000000
+
+canconfig: error while loading shared libraries: /lib/libsocketcan.so.2: file too short
+
+解决方法：
+
+root@am57xx-evm:/run/media/sda2/can/out/lib# rm  /lib/libsocketcan.so.2       
+
+ root@am57xx-evm:/run/media/sda2/can/out/lib# ln -s /lib/libsocketcan.so.2.3.0
+
+测试运行：
+
+root@am57xx-evm:/run/media/sda2/can/out/lib# canconfig can0 bitrate 1000000
+
+can0 bitrate: 1000000, sample-point: 0.750
+
+root@am57xx-evm:/run/media/sda2/can/out/lib# canconfig can0 start
+
+\[  402.704469\] c\_can\_platform 4ae3c000.can can0: setting BTR=4d00 BRPE=0000
+
+can0 state: ERROR-ACTIVE
+
+root@am57xx-evm:~# candump can0
+
+\[  666.993280\] can: controller area network core (rev 20170425 abi 9)
+
+\[  666.999568\] NET: Registered protocol family 29
+
+\[  667.012032\] can: raw protocol (rev 20170425)
+
+  can0  666   \[8\]  01 02 0A 0B 0C 0D 0E 0F
+
+  can0  0AA   \[8\]  01 02 0A 0B 0C 0D 0E 0F
+
+  can0  0BB   \[8\]  01 02 0A 0B 0C 0D 0E 0F
+
+  can0  0CC   \[8\]  01 02 0A 0B 0C 0D 0E 0F
+
+  can0  0DD   \[8\]  01 02 0A 0B 0C 0D 0E 0F
+
+参考文章：[https://www.cnblogs.com/chenfulin5/p/6797756.html](https://www.cnblogs.com/chenfulin5/p/6797756.html)
+
+\===================linux can 调试命令=========================
+
+**CAN总线在嵌入式Linux下驱动程序的实现**
+
+http://www.21ic.com/app/embed/200911/49216.htm
+
+**Socke Can设置波特率**
+
+找到其中一个方法使用IP命令，BUSYBOX制作的IP好像不支持对socketcan的设置，必须要自己去下载iproute2的源代码自己编译。得到IP命令，拷贝到自己系统的bin目录下。  
+ip link set can0 type can bitrate 250000  
+设置CNA0的波特率为250K，在设置前需要先把CAN0关闭了，ip set can0 down  
+可以结贴了，！！！！！！！！！！！！
+
+**[linux can 总线socket接口测试使用，解释了为什么会从字符设备升级到socket设备](http://blog.chinaunix.net/uid-26119896-id-3452315.html)**
+
+http://blog.chinaunix.net/uid-26119896-id-3452315.html
+
+http://www.cnblogs.com/zym0805/p/4345175.html
+
+**dmesg | grep can**
+
+root@imx\_mfgtools\_nogpu:~# dmesg | grep can  
+can-3v3: 3300 mV  
+flexcan 2090000.can: device registered (reg\_base=a0968000, irq=142)  
+flexcan 2094000.can: device registered (reg\_base=a0970000, irq=143)  
+can: controller area network core (rev 20120528 abi 9)  
+can: raw protocol (rev 20120528)  
+can: broadcast manager protocol (rev 20120528 t)  
+can: netlink gateway (rev 20130117) max\_hops=1  
+can-3v3: disabling
+
+**ifconfig -a**
+
+can0      Link encap:UNSPEC  HWaddr 00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00    
+          NOARP  MTU:16  Metric:1  
+          RX packets:0 errors:0 dropped:0 overruns:0 frame:0  
+          TX packets:0 errors:0 dropped:0 overruns:0 carrier:0  
+          collisions:0 txqueuelen:10  
+          RX bytes:0 (0.0 B)  TX bytes:0 (0.0 B)  
+          Interrupt:142  
+  
+can1      Link encap:UNSPEC  HWaddr 00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00    
+          NOARP  MTU:16  Metric:1  
+          RX packets:0 errors:0 dropped:0 overruns:0 frame:0  
+          TX packets:0 errors:0 dropped:0 overruns:0 carrier:0  
+          collisions:0 txqueuelen:10  
+          RX bytes:0 (0.0 B)  TX bytes:0 (0.0 B)  
+          Interrupt:143
+
+**ip -details link show can0**
+
+root@imx\_mfgtools\_nogpu:~# ip -details link show can0  
+2: can0: <NOARP,ECHO> mtu 16 qdisc noop state DOWN mode DEFAULT group default qlen 10  
+    link/can  promiscuity 0  
+    can state STOPPED (berr-counter tx 0 rx 0) restart-ms 0  
+          bitrate 0 sample-point 0.000  
+          tq 0 prop-seg 0 phase-seg1 0 phase-seg2 0 sjw 0  
+          flexcan: tseg1 4..16 tseg2 2..8 sjw 1..4 brp 1..256 brp-inc 1  
+          clock 30000000  
+ 
+
+ip -details link show can0  // 查看
+
+ifconfig can0 down  // 关闭
+
+ip link set can0 up type can // 打开
+
+./candump can0  // 接受数据
+
+./cansend   can0 -e 0x11 0x22 0x33 0x44 0x55 0x66 0x77 0x88  // 发送数据

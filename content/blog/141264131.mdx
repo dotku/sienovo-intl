@@ -1,0 +1,57 @@
+---
+title: "TI AM64x+FPGA解决方案，适用于PLC、电机驱动器、工业机器人，支持定制"
+date: "2024-08-16"
+slug: "141264131"
+tags: ["#fpga开发", "#机器人"]
+source: "https://blog.csdn.net/yeyuangen/article/details/141264131"
+---
+
+ 
+
+TI公司（Texas Instruments 德州仪器公司）的AM64x是一个具有安全功能设计的 64 位 Arm 系列处理器，它适用于可编程逻辑控制器 ( PLC )、电机驱动器、远程 I/O 和工业机器人。该系列的高端处理器 AM6442 具有七个内核，包括两个 Cortex-A53 应用内核、四个 Cortex-R5F 实时内核和一个 Cortex-M4F 独立内核。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141264131/01_507feb8ae6c54a15b096679a1c9053af.png)
+
+据我所知，该处理器的文档出现日期是 2021 年 1 月。之后，TI公司在 2 月份的一篇博客文章中也宣布了该处理器，不过，其标题却含糊不清。直到 5 月初它才被国际最大的电子工程社区 **Embedded Computing** 首次采用。除了处理器本身，TI 公司还提供了一个 AM64x入门套件和一个全功能的 AM64x 评估套件。而且，现在已经有几家公司在准备 开发板 和模块了，我将在下文中进一步介绍。
+
+### 
+
+### TI AM64x 处理器
+
+TI AM64x规格参数
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141264131/02_443b0d42eed44125b8d6557a890f8746.png)
+
+AM64x 主要特性和规格：
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141264131/03_588ecd420f6a461ba7efbae4b834cfad.png)
+
+处理器有相当多的启动选项包括 UART、I2C、OSPI/QSPI 闪存、 SPI 闪存、并行 NOR 闪存、并行 NAND 闪存、SD、eMMC、USB 2.0、PCIe 和以太网接口。
+
+AM64x 六个部件的参数图
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141264131/04_b2afddf69779414d9350278522d85df1.png)
+
+现在有六个 AM64x 部件，分别是 AM6442、AM6441、AM6422、AM6421、AM6412、AM6411，它们似乎都是引脚对引脚兼容的，唯一不同的是：在 Cortex-A53 /Cortex-R5F 内核、TCM 内存量、CAN-FD、工业通信子系统等支持方面有所不同。
+
+你可以在**252 页的数据表**中找到更多的技术细节，以及指向各个部件的链接。
+
+### AM64x 评估板
+
+正如开头介绍的一样，TI公司提供了两个开发平台，一个是入门套件，另一个是具有更多功能和接口的评估板。节虾类，我们来快速浏览一下。
+
+AM64x入门套件(SK-AM64x)
+
+AM64x的主板搭载了7核的AM64x处理器（具体应该是AM6442）、2GB LPDDR2、16MB OSPI、一个microSD卡槽、一个双频Wi-Fi\*蓝牙5.1模块（WiLink 8 WL1837MOD）、两个RJ-45千兆以太网端口、一个 USB 3.1端口、一个用于串行的微型 USB 端口（3x UART）、一个 JTAG 仿真器、一个40针 树莓派 扩展接头以及 PRU、实时 I/O 和 TI-MCU 接头。
+
+AM64x GP EVM 开发平台 (TMDS64GPEVM)
+
+该评估套件还具有许多相同的功能，比如都带有一个 16GB eMMC 闪存、三个 RJ45 100/1000M 以太网端口、一个 1 英寸显示屏、一个 4 通道 PCIe 连接器、一个用于连接 C2000 MCU 的 FSI 接口、板载测量功能等。不过，它没有无线模块。
+
+​![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141264131/05_bd40453be90d432785c4634712cc68c6.png)
+
+AM6442 评估套件
+
+这两个套件都由TI的处理器 SDK支持，且都带有Linux/ RT Linux内核、Yocto 文件系统 和开箱演示。
+
+信迈提供AM62X+FPGA定制方案。

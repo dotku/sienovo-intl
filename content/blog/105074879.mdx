@@ -1,0 +1,50 @@
+---
+title: "TI AM5728 DSP+ARM+FPGA多核异构工业控制处理器"
+date: "2020-03-24"
+slug: "105074879"
+tags: ["#AM5728", "#DSP+ARM+FPGA", "#多核异构", "#工业控制", "#数据采集"]
+source: "https://blog.csdn.net/yeyuangen/article/details/105074879"
+---
+
+ 
+
+TI AM5728 DSP+ARM+FPGA多核异构工业控制处理器。
+
+DSP用于复杂算法处理，ARM用于通用事务管理，FPGA用于高速信号采集，是个完美的高性能嵌入式工业主板组合。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/105074879/01_fb43383426a4de606a70d5215003dae3.jpeg)
+
+#### DSP算法开发
+
+对于DSP算法，处理算法性能和效率外，从算法的集成需要让ARM可以通过Codec Engine来调用DSP算的算法。因而需要1）、熟悉xDAIS和xDM标准。需要先了解xDAIS，xDM只是xDAIS的扩展。xDAIS 6.10及其以后的版本，包含了一个工具QualiTI，可以检查您的DSP算法是否满足xDAIS标准（但不会检查是否满足xDM）。具体请参考：http://processors.wiki.ti.com/index.php?title=QualiTI\_XDAIS\_Compliance\_Tool 。2）、熟悉Framework Components。 Framework Components主要包括两个模块DSKT2和DMAN3，它们分别负责DSP侧的memory 和EDMA资源管理。DSP算法使用的memory必须是先向DSKT2提出申请并由DSKT2分配得到的。同样DSP算法使用的EDMA通道也是向DMAN3申请并由DMAN3分配得到的。而关于QDMA的操作，是通过ACPY3这个模块实现的。这样的好处是很容易对DSP侧不同的算法做整合，不同的算法之间不用担心资源（Memory和EDMA）的冲突问题。Codec Engine DSP侧会涉及到Cache一致性的问题。请参考：http://wiki.davincidsp.com/index.php?title=Cache\_Management 
+
+#### DSP系统集成
+
+通常DSP算法工程师都会把自己的符合xDM标准算法编成一个.lib文件（或 .a64P），供DSP系统工程师调用。DSP系统工程师最终build出一个DSP Server（也就是DSP的可执行程序.x64P，和CCS下编译生成的.out类似）。（参考http://focus.ti.com/lit/ug/sprued5b/sprued5b.pdf ，这个文档会讲到.xdc和.bld等文件，Codec Engine1.20及以上版本的用户可以先不细究，后面介绍工具帮您自动生成这些文件。）
+
+1） 如果现在有一个.lib文件（或 .a64P）（算法必须符合xDM标准），如何生成自己的DSP Server呢？下面URL有详细的关于RTSC Codec and Server Package Wizard工具介绍，教您如何把一个.lib文件封装成RTSC Codec 包和RTSC DSP Server包，并最终build出DSP的可执行程序.x64P。
+
+[http://processors.wiki.ti.com/index.php?title=RTSC\_Codec\_And\_Server\_Package\_Wizards](http://processors.wiki.ti.com/index.php?title=RTSC_Codec_And_Server_Package_Wizards)    
+http://processors.wiki.ti.com/index.php?title=I\_just\_want\_my\_video\_codec\_to\_work\_with\_the\_DVSDK
+
+2） 如果您使用的是Codec Engine 1.20以前的版本，请参考Codec Engine安装路径下examples/servers/video\_copy这个例子。这时就需要搞清楚sprued6c.pdf和sprued5b.pdf中提到的.xdc和.xs等文件的功能，也可以在video\_copy中的相关文件的基础上修改手动创建出自己的RTSC Codec包和RTSC DSP server包。
+
+3） 创建好RTSC Codec 和RTSC DSP Server包之后，就是如何build出.x64P的问题了。其中关键是修改user.bld和xdcpaths.mak文件，设置Codec Engine依赖的其它软件模块和工具的正确路径。
+
+4） 如果自己的硬件DDR2大小和例子中的256Mbytes不一致，需要修改DSP的.tcf文件和其他配置。还有些工程师不清楚如何分配memory及如何决定具体段，如：DDRALGHEAP和DDR的大小，以及如何配置./loadmodules里的参数都请参考： [http://wiki.davincidsp.com/index.php?title=Changing\_the\_DVEVM\_memory\_map](http://wiki.davincidsp.com/index.php?title=Changing_the_DVEVM_memory_map%E3%80%82)。
+
+#### ARM端应用程序开发
+
+ARM应用工程师需要调用Codec Engine的VISA API，最终编出ARM侧的可执行程序，因此，必须根据自己的应用学习相关的VISA API、如何创建应用侧Codec Engine的package及配置文件。（参考http://focus.ti.com/lit/ug/sprue67d/sprue67d.pdf ，这个文档也涉及到如何调试Codec Engine的内容）。
+
+1）了解ARM应用程序调用Codec Engine的流程、VISA API和其他Codec Engine API。可以参考Codec Engine安装路径下examples/apps/video\_copy的例子（较简单）或者DVSDK安装路径下demos里的encode/decode/encodedecode例子（较复杂）。  
+[http://wiki.davincidsp.com/index.php?title=Configuring\_Codec\_Engine\_in\_Arm\_apps\_with\_createFromServer](http://wiki.davincidsp.com/index.php?title=Configuring_Codec_Engine_in_Arm_apps_with_createFromServer)
+
+2） 了解ceapp.cfg文件。sprue67d.pdf有相关介绍，可以先读懂examples/apps/video\_copy/ceapp.cfg。
+
+3） 用4.2 3)中提到的方法学习如何build ARM侧的可执行程序。
+
+4） 如何在多线程中调用codec engine，参考：  
+[http://wiki.davincidsp.com/index.php?title=Multiple\_Threads\_using\_Codec\_Engine\_Handle](http://wiki.davincidsp.com/index.php?title=Multiple_Threads_using_Codec_Engine_Handle)
+
+5）还可以参考以下三个文档了解更多TI demo的ARM应用程序的结构、线程调度等具体的问题。

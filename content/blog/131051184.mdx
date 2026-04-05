@@ -1,0 +1,62 @@
+---
+title: "RK3588+FPGA+Cameralink高速相机解决方案"
+date: "2023-06-05"
+slug: "131051184"
+tags: ["#fpga开发", "#RK3588", "#图像处理"]
+source: "https://blog.csdn.net/yeyuangen/article/details/131051184"
+---
+
+ 
+
+1\. 视频接入，其中可见使用LVDS，红外使用cameralink
+
+2\. H264低倍率压缩编码本地 存储
+
+3\. H264压缩使用同步422接口或者网口UDP协议输出实时码流
+
+4\. 使用 串口 进行通讯，进行类似于可见、红外或者激光器或者地面控制软件等之间的通讯
+
+5\. 使用网络连接基于UDP协议的通讯 控制
+
+6\. 集成相关 光 电载荷常用算法
+
+        a. 目标定位、目标测速测向
+
+        b. 目标跟踪
+
+        c. 动 目标检测
+
+        d. 电子稳像
+
+        e. 目标检测
+
+        f. ... ...
+
+7\. 预计添加伺服控制算法，采用 spi 或者串口等接口接入编码器、陀螺等数据，进行伺服控制(下一阶段完成)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131051184/01_9961cadb56ac22f883824fc66d9c82ce.png)  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131051184/02_3f153d67b36da660946d876ea5a707bf.png)
+
+ ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131051184/03_f3d7096c48968b415a7eb936cbc365d4.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131051184/04_d04aa2a59259d6791a559f5bb74fdc57.png)
+
+RK3588+FPGA高速图像处理通信处理机解决方案.
+
+（1）基于 RK3588 + Xilinx Artix-7 FPGA 处理器；  
+（2）RK3588 EVB搭载RK3588芯片,采用8nm制程工艺,四核ARM Corte A76+四核ARM Corte A55 CPU,内置6Tops 独立NPU,运用RK806-2双PMIC供电方案,支持LPDDR4X/eMMC存储,拥有HDMI、MIPI、VGA、SATA等10余个外设接口,具有集成度高、性能强、扩展能力强等特点,满足各 类 行业AIoT终端设备对产品的需求。  
+（3）RK3588 与 FPGA 通过 uPP、EMIF、I2C、PCIe、SRIO 等通讯接口连接，其中 PCIe、 SRIO 每路传输速度最高可达到 5 GBaud；   
+（4） FPGA 采集卡支持双通道 250MSPS\*12Bit 高速高精度 ADC，一路 175MSPS\*12Bit 高速高精度 DAC，满足多种数据采集需求；  
+（5）支持千兆网口，可接工业网络摄像机，同时支持 I2C、SPI、UART、McBSP 等常见接口；   
+（6）支持 CameraLink 输入输出、VGA 输出等拓展模块；  
+ 
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131051184/05_b292cadabcf42f8d730be1926c918b66.jpeg)
+
+近日,瑞芯微发布了基于旗舰芯片RK3588的2个开发平台——RK3588 EVB及RK3588S EVB,前者适用于ARM PC、NVR、服务器、IPC、大屏显示设备等AIoT行业类应用产品,后者适用于高端平板、AR/VR、个人移动互联网设备等产品。
+
+RK3588 EVB搭载RK3588芯片,采用8nm制程工艺,四核ARM Corte A76+四核ARM Corte A55 CPU,内置6Tops 独立NPU,运用RK806-2双PMIC供电方案,支持LPDDR4X/eMMC存储,拥有HDMI、MIPI、VGA、SATA等10余个外设接口,具有集成度高、性能强、扩展能力强等特点,满足各类行业AIoT终端设备对产品的需求。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131051184/06_1a89519067b3a2ea564b739c2cc46903.jpeg)
+
+RK3588S EVB搭载RK3588S芯片,针对不同应用市场,精简了部分接口,适用于高端平板、AR/VR、个人移动互联网设备等消费类电子产品对轻薄、便携性的需求。

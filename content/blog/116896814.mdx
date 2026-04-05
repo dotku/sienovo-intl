@@ -1,0 +1,165 @@
+---
+title: "基于AM5728 DSP JTAG连接调试方法"
+date: "2021-05-16"
+slug: "116896814"
+tags: ["#AM5728", "#DSP", "#JTAG"]
+source: "https://blog.csdn.net/yeyuangen/article/details/116896814"
+---
+
+ 
+
+**1 适用性说明**
+
+本例程主要演示使用仿真器通过 JTAG 接口连接 DSP 核。例程演示基于信迈XM138-IDK-V3 AM5728开发板进行。
+
+## **2 Debug 模式下仿真器连接 DSP**
+
+1.  ****实验步骤********：****
+
+*   依照软件安装手册里的文档提示安装 CCS6.1.3，注意按照文档更新相关的仿真器驱动
+*   开发板选择 Debug 启动方式，将拨码开关拨到 11111，连接仿真器到 JTAG 接口。
+
+如使用的仿真器 类 型为 XDS200、XDS560V2，注意更新仿真器固件和驱动
+
+*   打开 CCS,配置文件，连接 ARM 核，然后连接 DSP 核
+
+在 CCS 界面下，点击 View 后，点击 Target Configurations。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/116896814/01_8d14e2316d0ab855dceaea4138fa4c3b.png)
+
+图 1
+
+在弹出的目标配置窗口单击右键，新建一个配置。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/116896814/02_896dba6e97c80627c0cfbef781d041fd.png)
+
+图 2
+
+修改目标 配置文件 名称，便于确认，如 AM5728.ccxml 或者 AM57xx.ccxml。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/116896814/03_e0be5d40f6688c65105f49a189e07dc6.png)
+
+图 3
+
+点击 Finish 进入目标配置。选择对应的仿真器型号，本次实验使用 XDS100V3 仿真器，
+
+如果使用 XDS200 仿真器选择 选项；芯片
+
+型号选择 GPEVM\_AM572x，该配置将自动加载 TI 官方的 gel 文件。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/116896814/04_2da8bd1a725a9f5341d4be276e0a6d3c.png)
+
+图 4
+
+点击 save 后，点击 Test Connection 测试连接，所得结果如同下图所示则测试连接成
+
+功。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/116896814/05_46cf9b822e9b37b32dbcf26e9bc274be.png)
+
+图 5
+
+在仿真器配置窗口，选中完成配置后的目标配置，单击右键，点击 Launch Selected
+
+Configuration 。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/116896814/06_96dbdb34992a0770afd1fed5d094193b.png)
+
+图 6
+
+进入 Debug 界面，在 Debug 窗口选中 CortexA15\_0 核单击右键，点击 Connect Target，
+
+显示如下图所示。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/116896814/07_cdf5e65fac2ab0955f94c0ee1c1b8acd.png)
+
+图 7
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/116896814/08_4e7f270a6cdf598318505fd50943f818.png)
+
+图 8
+
+选中 C66xx\_DSP1 核单击右键，点击 Connect Target，显示如下图所示。DSP 核的连接
+
+需先连接 ARM 核初始化使能 DSP 核，然后再连接 DSP 核，才能成功连接上 DSP 核。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/116896814/09_37a9c0519f008a7c5c1d8176381359a7.png)
+
+图 9
+
+## **3 Linux 系统下仿真器连接 DSP**
+
+1.  ****实验步骤****
+
+*   依照软件安装手册里的文档提示安装 CCS6.1.3，注意按照文档更新相关的仿真器驱动
+*   开发板选择 SD 卡启动方式，将拨码开关拨到 01000，连接仿真器到 JTAG 接口，
+
+如使用的仿真器类型为 XDS200、XDS560V2，注意更新仿真器固件和驱动
+
+*   打开 CCS,配置文件
+*   打开串口窗口
+*   在 CCS 中连接 DSP1
+
+在 CCS 界面下，点击 View 后，点击 Target Configurations。
+
+图 10
+
+在弹出的目标配置窗口单击右键，新建一个配置。
+
+图 11
+
+修改目标配置文件名称，便于确认，如 AM5728.ccxml 或者 AM57xx.ccxml。
+
+图 12
+
+点击 Finish 进入目标配置。选择对应的仿真器型号，本次实验使用 XDS100V3 仿真器，
+
+如果使用 XDS200 仿真器选择 选项；芯片
+
+型号选择 AM5728。
+
+图 13
+
+点击 save 后，点击 Test Connection 测试连接，所得结果如同下图所示则测试连接成
+
+功。
+
+图 14
+
+在仿真器配置窗口，选中完成配置后的目标配置，单击右键，点击 Launch Selected
+
+Configuration。
+
+图 15
+
+点击 Launch Selected Configuration 后，进入如下界面。
+
+图 16
+
+打开串口窗口，输入如下命令：
+
+****Target****\# echo "on" > /sys/ bus /platform/devices/40800000.dsp/power/control
+
+图 17
+
+回到 CCS 的 Debug 界面，在 Debug 窗口选中 C66xx\_DSP1 核单击右键，点击 Connect
+
+Target，显示如下图所示。
+
+图 18
+
+DSP 核 连 接 后 为 下 图 所 示 。 将 位 于 “\\Demo\\RTOS\\c66\\led\\bin\\” 的
+
+GPIO\_LedBlink\_evmAM572x\_c66xTestProject.out 文件复制到一个非 中文 路径，然后按下红
+
+框中的 load 按键，上传已编译完成的 GPIO\_LedBlink\_evmAM572x\_c66xTestProject.out 文 件，选择路径完成后，点击 OK 进行上传。
+
+图 19
+
+图 20
+
+上传完成后，如下图所示，可通过 CCS 对该程序进行调试。
+
+图 21
+
+##

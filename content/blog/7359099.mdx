@@ -1,0 +1,111 @@
+---
+title: "链表逆序"
+date: "2012-03-15"
+slug: "7359099"
+tags: ["#null", "#list", "#测试", "#qq"]
+source: "https://blog.csdn.net/yeyuangen/article/details/7359099"
+---
+
+ 
+
+设 链表 节点为
+
+**\[cpp\]**  [view plain](http://blog.csdn.net/niuer09/article/details/5961004# "view plain") [copy](http://blog.csdn.net/niuer09/article/details/5961004# "copy")
+
+1.  typedef struct tagListNode{  
+2.      int data;  
+3.      struct tagListNode\* next;  
+4.  }ListNode, \*List;  
+
+要求将一带链表头List head的单向链表逆序。
+
+分析：
+
+  1). 若链表为空或只有一个元素，则直接返回；
+
+  2). 设置两个前后相邻的 指针 p,q. 将p所指向的节点作为q指向节点的后继；
+
+  3). 重复2),直到q为空
+
+  4). 调整链表头和链表尾
+
+示例：以逆序A->B->C->D为例，图示如下
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/7359099/01_0_1287825676duab.gif)
+
+实现及测试 代码 如下：
+
+**\[cpp:nogutter\]**  [view plain](http://blog.csdn.net/niuer09/article/details/5961004# "view plain") [copy](http://blog.csdn.net/niuer09/article/details/5961004# "copy")
+
+1.  #include <stdio.h>  
+2.  #include <stdlib.h>  
+
+4.  typedef struct tagListNode{  
+5.      int data;  
+6.      struct tagListNode\* next;  
+7.  }ListNode, \*List;  
+
+9.  void PrintList(List head);  
+10.  List ReverseList(List head);  
+
+12.  int main()  
+13.  {  
+14.      //分配链表头结点  
+15.      ListNode \*head;  
+16.      head = (ListNode\*)malloc(sizeof(ListNode));  
+17.      head->next = NULL;  
+18.      head->data = -1;  
+
+20.      //将\[1,10\]加入链表  
+21.      int i;  
+22.      ListNode \*p, \*q;  
+23.      p = head;  
+24.      for(int i = 1; i <= 10; i++)  
+25.      {  
+26.          q = (ListNode \*)malloc(sizeof(ListNode));  
+27.          q->data = i;  
+28.          q->next = NULL;  
+29.          p->next = q;  
+30.          p = q;          
+31.      }  
+
+33.      PrintList(head);           /\*输出原始链表\*/  
+34.      head = ReverseList(head);  /\*逆序链表\*/  
+35.      PrintList(head);           /\*输出逆序后的链表\*/  
+36.      return 0;  
+37.  }  
+
+39.  List ReverseList(List head)  
+40.  {  
+41.      if(head->next == NULL || head->next->next == NULL)    
+42.      {  
+43.         return head;   /\*链表为空或只有一个元素则直接返回\*/  
+44.      }  
+
+46.      ListNode \*t = NULL,  
+47.               \*p = head->next,  
+48.               \*q = head->next->next;  
+49.      while(q != NULL)  
+50.      {          
+51.        t = q->next;  
+52.        q->next = p;  
+53.        p = q;  
+54.        q = t;  
+55.      }  
+
+57.      /\*此时q指向原始链表最后一个元素，也是逆转后的链表的表头元素\*/  
+58.      head->next->next = NULL;  /\*设置链表尾\*/  
+59.      head->next = p;           /\*调整链表头\*/  
+60.      return head;  
+61.  }  
+
+63.  void PrintList(List head)  
+64.  {  
+65.      ListNode\* p = head->next;  
+66.      while(p != NULL)  
+67.      {  
+68.          printf("%d ", p->data);  
+69.          p = p->next;  
+70.      }  
+71.      printf("/n");  
+72.  }

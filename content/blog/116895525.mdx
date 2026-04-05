@@ -1,0 +1,125 @@
+---
+title: "基于AM5728 Caffe 机器学习案例-darknet物体分类与人脸识别"
+date: "2021-05-16"
+slug: "116895525"
+tags: ["#AM5728", "#机器学习", "#YOLO", "#CAFFE", "#物体识别"]
+source: "https://blog.csdn.net/yeyuangen/article/details/116895525"
+---
+
+ 
+
+## **1 YOLO Darknet 移植与应用开发**
+
+YOLO 是基于 深度学习 方法的端到端实时目标检测系统，Darknet 是 YOLO 的实现，但Darknet 不仅包含 YOLO 的实现，还包括其它内容。
+
+本实验主要介绍将 YOLO Darknet 机器学习框架移植到 AM5728 平台的方法，并且演示一个图片信息识别的 darknet-maste 案例。为便于测试，信迈科技XM5728-IDK-V3开发板提供经验证的测试文件，位于光盘“Demo\\ app \\Yolo\_Darknet\\bin”目 录下。bin 文件夹含有：所需下载的 yolo.weights 文件，编译生成的 darknet 可执行文件，测试所需 cfg 文件夹（配置文件）以及 data 文件夹（图像数据）。以下提供 darknet-maste工程的具体编译方法。
+
+### **1.1 编译 darknet-master 工程**
+
+打开 Ubuntu，执行如下指令新建“home/tronlong/AM57xx/Yolo\_Darknet”工作目录。
+
+****Host****\# mkdir -p /home/xmtech/AM57xx/Yolo\_Darknet
+
+将光盘“Demo\\app\\Yolo\_Darknet\\src\\darknet-master.zip”工程源码压缩文件拷贝到
+
+“home/xmtech/AM57xx/Yolo\_Darknet”目录，并将其解压到当前目录。
+
+****Host****\# unzip darknet-master.zip
+
+进入 darknet-master 源码安装目录，修改 Makefile 文件，如下图所示：
+
+****Host****\# cd darknet-master/
+
+****Host****\# vi Makefile
+
+修改内容如下：
+
+CC=arm-linux-gnueabihf-gcc
+
+AR=arm-linux-gnueabihf-ar
+
+修改完 Makefile 文件保存，执行如下命令，使用对应平台的 Linux Processor-SDK 加载
+
+环境变量。Linux Processor-SDK 路径请根据实际情况修改。
+
+****Host****\# source /home/xmtech/ti-processor-sdk-linux-am57xx-evm-03.01.00.06/linuxdevkit/environment-setup
+
+执行 make 指令，编译 darknet-master 工程，编译完成后在当前目录下生成 darknet
+
+可执行文件和其他文件。
+
+****Host****\# make
+
+### **1.2 下载 YOLO 训练模型文件**
+
+在 darknet-master 目录下执行以下指令，下载 YOLO 训练模型文件到当前目录，文件
+
+名为 yolo.weights，如下图所示。
+
+****Host****\# wget [https://pjreddie.com/media/files/yolo.weights](https://pjreddie.com/media/files/yolo.weights)
+
+下载完成后，将编译过的整个 darknet-master 文件夹 拷贝到开发板文件系统
+
+“/home/root”目录下。
+
+### **1.3 开发板运行程序**
+
+开发板上电进入文件系统 darknet-master 目录，执行以下指令，运行程序，如下图所
+
+示：
+
+****Target****\# cd darknet-master/
+
+****Target****\# ./darknet detect cfg/yolov2.cfg yolo.weights data/dog.jpg
+
+程序运行完毕后，会在 darknet-master 目录下生成 predictions.png 文件，将
+
+predictions.png 文件拷贝到 PC 端查看，图片效果如下所示。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/116895525/01_1fc4fd41f7f7fd0695d2903f0fbe8520.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/116895525/02_9bfa40bcc5662dcc4fafb5016261125d.png)
+
+##  
+
+## **3 基于 Caffe 框架的人脸检测案例**
+
+本实验基于 Caffe 框架，实现人脸检测案例，进行本实验测试前，请参照前面步骤
+
+移植 Caffe 框架到信迈XM5728-IDK-V3开发板。
+
+由于例程源码中的 tmp.jpg 试验文件分辨率较大，使用开发板配套的 4.3 寸或者 7 寸 LCD 显示屏会导致图片显示不全，影响显示效果，因此使用 HDMI 显示屏配合本次实验效果更佳。
+
+### **3.1 编译 face\_detection**
+
+将光盘“Demo\\app\\caffe\_transplant\\caf\_face\_detection.zip”例程压缩源文件拷贝到开
+
+发板文件系统“/home/root”目录。执行以下指令，解压“caf\_face\_detection.zip”文件到当前目录。
+
+****Target****\# unzip caf\_face\_detection.zip
+
+执行以下指令，进入 caf\_face\_detection 源码目录，修改 Makefile 文件，如下图所示：
+
+****Target****\# cd caf\_face\_detection/caf\_face\_detection/integrated\_caffe/
+
+****Target****\# vi Makefile
+
+在打开的 Makefile 文件中，根据 Caffe 框架的实际移植安装目录，按照如下方法修改
+
+Makefile 文件相关参数路径。
+
+LIBS := -L/usr/lib/ -L/home/root/caffe-master/build/lib
+
+INCLUDE := -I. -I/home/root/caffe-master/include
+
+执行 make 指令，编译完成后在当前目录生成 face\_detection 可执行文件。
+
+### **3.2 人脸检测案例**
+
+确认将 HDMI 显示屏连接到开发板，执行如下指令运行 face\_detection 可执行文件，
+
+face\_detection 程序将检测该目录下的 tmp.jpg 文件，完成 tmp.jpg 文件的人脸检测。串口终端打印信息，HDMI 显示屏显示内容如下图所示：
+
+****Target****\# ./face\_detection
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/116895525/03_02c1bd6d85ca4ce0ba0ad7c547c14bd6.png)

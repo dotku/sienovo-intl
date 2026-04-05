@@ -1,0 +1,68 @@
+---
+title: "C实现bitmap位图"
+date: "2012-02-04"
+slug: "7233628"
+tags: ["#c", "#null", "#file", "#ini", "#测试"]
+source: "https://blog.csdn.net/yeyuangen/article/details/7233628"
+---
+
+ 
+
+事实上,我们是用每一个 元素表示一个32位的二进制字符串,这样这个元素可以保留相邻32个号码是否存在的信息,数组范围就下降到10000000/32了.例如对于号码 89256,由于89256 mod 32=2789…8,这样我们应该置a\[2789\]中32位字符串的第8位(从低位数起)为1.
+
+基本的操作：
+
+**\[cpp\]**  [view plain](http://blog.csdn.net/qibaoyuan/article/details/5914662# "view plain") [copy](http://blog.csdn.net/qibaoyuan/article/details/5914662# "copy")
+
+1.  #define WORD 32  
+2.  #define SHIFT 5 ////移动5个位,左移则相当于乘以32,右移相当于除以32取整  
+3.  #define MASK 0x1F //16进制下的31  
+4.  #define N 10000000  
+5.  int bitmap\[1 + N / WORD\];  
+6.  /\* 
+7.   \* 置位函数——用"|"操作符,i&MASK相当于mod操作 
+8.   \* m mod n 运算，当n = 2的X次幂的时候,m mod n = m&(n-1) 
+9.   \*/  
+10.  void set(int i) {  
+11.      bitmap\[i >> SHIFT\] |= (1 << (i & MASK));  
+12.  }  
+13.  /\* 清除位操作，用&~操作符 \*/  
+14.  void clear(int i) {  
+15.      bitmap\[i >> SHIFT\] &= ~(1 << (i & MASK));  
+16.  }  
+17.  /\* 测试位操作用&操作符 \*/  
+18.  int test(int i) {  
+19.      return bitmap\[i >> SHIFT\] & (1 << (i & MASK));  
+20.  }  
+
+实现排序（不能重复）：
+
+**\[cpp\]**  [view plain](http://blog.csdn.net/qibaoyuan/article/details/5914662# "view plain") [copy](http://blog.csdn.net/qibaoyuan/article/details/5914662# "copy")
+
+1.  int main(void) {  
+2.      FILE \*in = fopen("in.txt", "r");  
+3.      FILE \*out = fopen("out.txt", "w");  
+4.      if (in == NULL || out == NULL) {  
+5.          exit(-1);  
+6.      }  
+7.      int i = 0;  
+8.      int m;  
+9.      for (i = 0; i < N; i++) {  
+10.          clear(i);  
+11.      }  
+12.      while (!feof(in)) {  
+13.          fscanf(in, "%d", &m);  
+14.          printf("%d/n", m);  
+15.          set(m);  
+16.      }  
+17.      printf("abnother");  
+18.      for (i = 0; i < N; i++) {  
+19.          if (test(i)) {  
+20.              printf("%d/n", i);  
+21.              fprintf(out, "%d/n", i);  
+22.          }  
+23.      }  
+24.      fclose(in);  
+25.      fclose(out);  
+26.      return EXIT\_SUCCESS;  
+27.  }

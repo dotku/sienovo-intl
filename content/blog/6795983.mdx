@@ -1,0 +1,47 @@
+---
+title: "Linux操作系统下如何配置Qt(4.3.2)环境"
+date: "2011-09-21"
+slug: "6795983"
+tags: ["#linux", "#qt", "#library", "#path", "#windows", "#虚拟机"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6795983"
+---
+
+ 
+
+ **下载开源包：qt-x11-opensource-src-4.3.2.tar.gz 解压：gunzip qt-x11-opensource-src-4.3.2.tar.gz tar xvf qt-x11-opensource-src-4.3.2.tar 运行脚本：进入qt-x11-opensource-src-4.3.2文件夹，输入。/configure运行shell脚本程序，为软件安装测试当前系统。**
+
+下载开源包：qt-x11-opensource\-src-4.3.2.tar.gz  
+　  
+　　解压：gunzip qt-x11-opensource-src-4.3.2.tar.gz  
+　  
+　　tar xvf qt-x11-opensource-src-4.3.2.tar  
+　  
+　　运行脚本：进入qt-x11-opensource-src-4.3.2文件夹，输入。/configure运行shell脚本程序，为软件安装测试当前[系统](http://www.stuhack.com/safe/xitong/)的一些必要的配置信息  
+　  
+　　编译： gmake  
+　  
+　　安装：gmake install  
+　  
+　　环境变量： vi /etc/profile 在该文件的末尾加上：  
+　  
+　　PATH=/usr/local/Trolltech/Qt-4.3.2/bin：𝑃𝐴𝑇𝐻　　　𝑄𝑇𝐷𝐼𝑅\=/𝑢𝑠𝑟/𝑙𝑜𝑐𝑎𝑙/𝑇𝑟𝑜𝑙𝑙𝑡𝑒𝑐ℎ/𝑄𝑡−4.3.2　　　𝑀𝐴𝑁𝑃𝐴𝑇𝐻\=PATH　　　QTDIR\=/usr/local/Trolltech/Qt−4.3.2　　　MANPATH\=QTDIR/man：𝑀𝐴𝑁𝑃𝐴𝑇𝐻　　　𝐿𝐷𝐿𝐼𝐵𝑅𝐴𝑅𝑌𝑃𝐴𝑇𝐻\=MANPATH　　　LDLIBRARYPATH\=QTDIR/lib：$LD\_LIBRARY\_PATH  
+　  
+　　export PATH QTDIR MANPATH LD\_LIBRARY\_PATH  
+　  
+　　重启之后完成配置，写一个简单的HelloQt程序验证看是否配置成功，然后qmake -project 生成工程文件，qmake 该生成的工程文件（。pro）生成Makefile，最后make生成执行文件。  
+　  
+　　注：  
+　  
+　　1、gmake 过程中可能会报错，提示无法找到krb5.h，解决方法是：  
+　  
+　　ln -s /usr/kerberos/include/com\_err.h /usr/include/com\_err.h  
+　  
+　　ln -s /usr/kerberos/include/profile.h /usr/include/profile.h  
+　  
+　　ln -s /usr/kerberos/include/krb5.h /usr/include/krb5.h  
+　  
+　　2、如果[linux](http://www.stuhack.com/linux/)装在虚拟机上，貌似mount不能找到[windows](http://www.stuhack.com/windows/)下的硬盘，对于[linux](http://www.stuhack.com/linux/)文件和[windows](http://www.stuhack.com/windows/)文件系统的互拷，首先：虚拟机->安装VMware tools；然后cd /mnt/cdrom，执行。/vmware-install.pl文件；最后虚拟机->设置->选项->共享文件夹完成linux和windows共享文件夹（对应与linux下的/mnt/hgfs）的创建来相互拷贝文件。  
+  
+
+  
+本文地址： [http://www.stuhack.com/linux/system/29753.html](http://www.stuhack.com/linux/system/29753.html)

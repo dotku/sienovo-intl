@@ -1,0 +1,86 @@
+---
+title: "TI AM5728 DSP+ARM多核通信开发例程"
+date: "2019-07-03"
+slug: "94589325"
+tags: ["#AM5728", "#核间通信", "#多核通信", "#SYS\BIOS", "#共享内存"]
+source: "https://blog.csdn.net/yeyuangen/article/details/94589325"
+---
+
+ 
+
+核间通信方式有MailBox、OpenCL、DCE、IPC、Big Data IPC这几种方式，因为我们要使用SYS/BIOS，所以把MailBox排除了，然后我们不涉及多媒体信号的处理，所以DCE应该也不合适。我看使用OpenCL是不能控制 内存 来对DSP代码进行优化，因此把OpenCL也排除了，那现在看来只剩下IPC和Big Data IPC了。
+
+shared memory方式，有Big Data IPC例程。  
+processors.wiki.ti.com/.../Processor-sdk-MultiWay-of-ARM\-DSP-Communication
+
+### 1.通信原理示意图：
+
+Spartan-6 FPGA通过ADS8568进行AD数据采集，并将AD数据通过核心板内部与ARM端连接的GPMC高速并行接口传送到AM5728 ARM。ARM端运行 Qt 程序，将从GPMC接口读取的AD数据进行波形显示。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/94589325/01_8f210b57f234c7a1d92192744c1c6af9.png)
+
+### 2.硬件连接：
+
+本案例基于信迈科技的XM5728-IDK-V3 (AM5728 ARM + Spartan-6 FPGA)评估板和AD模块进行测试。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/94589325/02_99f3e191e706c6b5ab84f466be64bd41.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/94589325/03_4235fa91be499c9cfa4b563a136987a1.png)
+
+将TL8568P模块的任意通道正确连接信号发生器，并使信号发生器输出10Vpp、5KHz的正弦波。本案例支持8通道AD数据同时采集与显示，本次测试仅演示ADC\_V1通道AD数据的采集与显示。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/94589325/04_c394aafd6fb80ec802d7f622f6414d3f.png)
+
+按照用户手册操作步骤进行程序的加载，Qt程序运行后，LCD显示屏将显示AD数据的正弦波。点击屏幕上的pause按钮后，波形将暂停在某个状态，再点击start按钮，显示屏又将显示动态波形，点击Exit按钮可退出显示。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/94589325/05_c1d7f43ce7fbbc6780e3efd82a8f4dee.png)
+
+### 3\. 代码解释
+
+4.1  ARM端关键代码说明
+
+(1) 打开“/dev/mem”设备，并将GMPC地址空间映射到用户空间。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/94589325/06_316914c519aea0709eb7cdc867e6c2c1.png)
+
+src\\dialog. cpp
+
+(2) 初始化QWT图表。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/94589325/07_04dae0d6010ebda352fcbab6381025ef.png)
+
+src\\dialog.cpp
+
+(3) 绘制波形。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/94589325/08_1bbbb06332caef8f54b27fd6818548c0.png)
+
+src\\dialog.cpp
+
+4.2  FPGA端关键代码说明
+
+(1) 定义端口，采样率设置为510KSPS。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/94589325/09_77b5f1eb178613545d56cfe666f6880e.png)
+
+hdl\\gpmc\_ads8568.v
+
+(2) 调用ads8568模块，控制AD数据采集。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/94589325/10_98847820f9b0c588dd6a52228531fccd.png)
+
+ hdl\\gpmc\_ads8568.v
+
+(3) 调用gpmc模块，将ads8568模块的数据通过并口发送出去。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/94589325/11_a89a160f943846214a8544ddc8566567.png)
+
+hdl\\gpmc\_ads8568.v
+
+参考文章：\[问答\] 关于AM5728核间通信方式（共享内存）问题  
+
+[http://bbs.elecfans.com/jishu\_1586927\_1\_1.html](http://bbs.elecfans.com/jishu_1586927_1_1.html)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/94589325/12_04c99a508078dcef7581b5f4023c1605.jpeg)
+
+技术交流wx:13670212541

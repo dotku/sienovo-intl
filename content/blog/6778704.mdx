@@ -1,0 +1,316 @@
+---
+title: "Linux下的TCP/IP socket 文件传输"
+date: "2011-09-15"
+slug: "6778704"
+tags: ["#socket", "#linux", "#buffer", "#server", "#stream", "#服务器"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6778704"
+---
+
+ 
+
+////////////////////////////////////  
+//服务器代码   
+///////////////////////////////////  
+//本文件是服务器的代码  
+#include <netinet/in.h>    // for sockaddr\_in  
+#include <sys/types.h>    // for socket   
+  
+  
+#include <sys/socket.h>    // for socket  
+#include <stdio.h>        // for printf  
+#include <stdlib.h>        // for exit  
+#include <string.h>        // for bzero  
+#include <time.h>                //for time\_t and time  
+  
+  
+  
+  
+#define HELLO\_WORLD\_SERVER\_PORT 7754   
+#define LENGTH\_OF\_LISTEN\_QUEUE 20  
+#define BUFFER\_SIZE 1024  
+  
+  
+  
+  
+int main(int argc, char \*\*argv)  
+{  
+//设置一个socket地址结构server\_addr,代表服务器internet地址, 端口  
+struct sockaddr\_in server\_addr;  
+bzero(&server\_addr,sizeof(server\_addr)); //把一段内存区的内容全部设置为0  
+server\_addr.sin\_family = AF\_INET;  
+server\_addr.sin\_addr.s\_addr = htons(INADDR\_ANY);  
+server\_addr.sin\_port = htons(HELLO\_WORLD\_SERVER\_PORT);  
+// time\_t now;  
+FILE \*stream;  
+  
+  
+  
+  
+//创建用于internet的流协议(TCP)socket,用server\_socket代表服务器socket  
+int server\_socket = socket(AF\_INET,SOCK\_STREAM,0);  
+if( server\_socket < 0)  
+{  
+printf("Create Socket Failed!");  
+exit(1);  
+}  
+  
+  
+//把socket和socket地址结构联系起来  
+if( bind(server\_socket,(struct sockaddr\*)&server\_addr,sizeof(server\_addr)))  
+{  
+printf("Server Bind Port : %d Failed!", HELLO\_WORLD\_SERVER\_PORT);  
+exit(1);  
+}  
+  
+  
+//server\_socket用于监听  
+if ( listen(server\_socket, LENGTH\_OF\_LISTEN\_QUEUE) )  
+{  
+printf("Server Listen Failed!");  
+exit(1);  
+}  
+  
+  
+while (1) //服务器端要一直运行  
+{  
+  
+  
+struct sockaddr\_in client\_addr;  
+socklen\_t length = sizeof(client\_addr);  
+  
+  
+int new\_server\_socket = accept(server\_socket,(struct sockaddr\*)&client\_addr,&length);  
+if ( new\_server\_socket < 0)  
+{  
+printf("Server Accept Failed!\\n");  
+break;  
+}  
+  
+  
+char buffer\[BUFFER\_SIZE\];  
+bzero(buffer, BUFFER\_SIZE);  
+  
+  
+  
+  
+strcpy(buffer,"Hello,World! 从服务器来！");  
+strcat(buffer,"\\n"); //C语言字符串连接  
+  
+  
+  
+  
+send(new\_server\_socket,buffer,BUFFER\_SIZE,0);  
+  
+  
+  
+  
+bzero(buffer,BUFFER\_SIZE);  
+//接收客户端发送来的信息到buffer中  
+length = recv(new\_server\_socket,buffer,BUFFER\_SIZE,0);  
+  
+  
+if (length < 0)  
+{  
+printf("Server Recieve Data Failed!\\n");  
+exit(1);  
+}  
+printf("\\n%s",buffer);  
+  
+  
+  
+  
+if((stream = fopen("data1","r"))==NULL)  
+{  
+printf("The file 'data1' was not opened! \\n");  
+exit(1);  
+}  
+else  
+  
+  
+printf("The file 'filename' was opened! \\n");  
+bzero(buffer,BUFFER\_SIZE);  
+  
+  
+int lengsize = 0;  
+while((lengsize = fread(buffer,1,1024,stream)) > 0)  
+{  
+  
+  
+printf("lengsize = %d\\n",lengsize);  
+  
+  
+if(send(new\_server\_socket,buffer,lengsize,0)<0)  
+{  
+printf("Send File is Failed\\n");  
+break;  
+}  
+  
+  
+bzero(buffer, BUFFER\_SIZE);  
+  
+  
+   
+  
+  
+}  
+if(fclose(stream))  
+printf("The file 'data' was not closed! \\n");  
+exit(1);          
+  
+  
+//关闭与客户端的连接  
+close(new\_server\_socket);           
+}  
+//关闭监听用的socket  
+close(server\_socket);  
+return 0;  
+}  
+////////////////////////////////////  
+//客户端代码   
+///////////////////////////////////  
+  
+  
+//本文件是客户机的代码  
+#include <netinet/in.h>    // for sockaddr\_in  
+#include <sys/types.h>    // for socket  
+#include <sys/socket.h>    // for socket  
+#include <stdio.h>        // for printf  
+#include <stdlib.h>        // for exit  
+#include <string.h>        // for bzero  
+#include <time.h>                //for time\_t and time  
+#include <arpa/inet.h>  
+  
+  
+#define HELLO\_WORLD\_SERVER\_PORT    7754  
+#define BUFFER\_SIZE 1024  
+  
+  
+int main(int argc, char \*\*argv)  
+{  
+if (argc != 2)  
+{  
+printf("Usage: ./%s ServerIPAddress\\n",argv\[0\]);  
+exit(1);  
+}  
+  
+  
+//time\_t now;  
+FILE \*stream;  
+  
+  
+//设置一个socket地址结构client\_addr,代表客户机internet地址, 端口  
+struct sockaddr\_in client\_addr;  
+bzero(&client\_addr,sizeof(client\_addr)); //把一段内存区的内容全部设置为0  
+client\_addr.sin\_family = AF\_INET;    //internet协议族  
+client\_addr.sin\_addr.s\_addr = htons(INADDR\_ANY);//INADDR\_ANY表示自动获取本机地址  
+client\_addr.sin\_port = htons(0);    //0表示让系统自动分配一个空闲端口  
+//创建用于internet的流协议(TCP)socket,用client\_socket代表客户机socket  
+int client\_socket = socket(AF\_INET,SOCK\_STREAM,0);  
+if( client\_socket < 0)  
+{  
+printf("Create Socket Failed!\\n");  
+exit(1);  
+}  
+//把客户机的socket和客户机的socket地址结构联系起来  
+if( bind(client\_socket,(struct sockaddr\*)&client\_addr,sizeof(client\_addr)))  
+{  
+printf("Client Bind Port Failed!\\n");  
+exit(1);  
+}  
+  
+  
+//设置一个socket地址结构server\_addr,代表服务器的internet地址, 端口  
+struct sockaddr\_in server\_addr;  
+bzero(&server\_addr,sizeof(server\_addr));  
+server\_addr.sin\_family = AF\_INET;  
+if(inet\_aton(argv\[1\],&server\_addr.sin\_addr) == 0) //服务器的IP地址来自程序的参数  
+{  
+printf("Server IP Address Error!\\n");  
+exit(1);  
+}  
+server\_addr.sin\_port = htons(HELLO\_WORLD\_SERVER\_PORT);  
+socklen\_t server\_addr\_length = sizeof(server\_addr);  
+//向服务器发起连接,连接成功后client\_socket代表了客户机和服务器的一个socket连接  
+if(connect(client\_socket,(struct sockaddr\*)&server\_addr, server\_addr\_length) < 0)  
+{  
+printf("Can Not Connect To %s!\\n",argv\[1\]);  
+exit(1);  
+}  
+  
+  
+char buffer\[BUFFER\_SIZE\];  
+bzero(buffer,BUFFER\_SIZE);  
+  
+  
+  
+  
+//从服务器接收数据到buffer中  
+int length = recv(client\_socket,buffer,BUFFER\_SIZE,0);  
+  
+  
+if(length < 0)  
+{  
+printf("Recieve Data From Server %s Failed!\\n", argv\[1\]);  
+exit(1);  
+}  
+  
+  
+  
+  
+printf("\\n%s\\n",buffer);  
+  
+  
+bzero(buffer,BUFFER\_SIZE);  
+  
+  
+   
+  
+  
+bzero(buffer,BUFFER\_SIZE);  
+strcpy(buffer,"Hello, World! From Client\\n");  
+//向服务器发送buffer中的数据  
+send(client\_socket,buffer,BUFFER\_SIZE,0);  
+  
+  
+if((stream = fopen("data","w+t"))==NULL)  
+{  
+printf("The file 'data' was not opened! \\n");  
+}  
+  
+  
+else  
+bzero(buffer,BUFFER\_SIZE);  
+length = 0;  
+while( length = recv(client\_socket,buffer,BUFFER\_SIZE,0))  
+{  
+if(length < 0)  
+{  
+printf("Recieve Data From Server %s Failed!\\n", argv\[1\]);  
+break;  
+}  
+  
+  
+int write\_length = fwrite(buffer,sizeof(char),length,stream);  
+if (write\_length<length)  
+{  
+printf("File is Write Failed\\n");  
+break;  
+}  
+bzero(buffer,BUFFER\_SIZE);     
+}  
+printf("Recieve File From Server\[%s\] Finished\\n", argv\[1\]);  
+  
+  
+//关闭 文件   
+fclose(stream);  
+  
+  
+//关闭socket  
+close(client\_socket);  
+return 0;  
+}  
+  
+  
+  
+  
+本篇文章来源于 Linux公社网站(www.linuxidc.com)  原文链接：http://www.linuxidc.com/Linux/2010-12/30816.htm

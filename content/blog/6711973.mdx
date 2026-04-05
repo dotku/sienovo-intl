@@ -1,0 +1,123 @@
+---
+title: "LCD驱动(三)：bmp图片的显示方法"
+date: "2011-08-23"
+slug: "6711973"
+tags: ["#byte", "#visio", "#百度", "#c", "#存储", "#扩展"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6711973"
+---
+
+ 
+
+\====================== 目标 =====================
+
+在lcd屏幕上显示bmp图片
+
+\===============================================
+
+**一、问题解答**
+
+1.在计算机中图片是如何表示的？也就是用什么码来表示的？
+
+答：十六进制码。
+
+2.如何加载图片？
+
+用以指针定位到你存储图片的地方。图片的编码信息存储实质就是一数组。取点，然后显示即可。代码见后面。
+
+3.静态显示，动态显示
+
+答：静态显示已实现。类似于汉字显示，即点阵。数码管显示，玩过吧？
+
+动态显示，还没实现。
+
+4.图片作为背景及其它
+
+答：作为背景色，前景色，透明，实体等还有点不明白。
+
+5.没见到bmp图片啊，难道将其转化为编码了？
+
+答：是的，通过一个DOS软件可以将bmp图片转化为十六进制。如下图（部分）：
+
+```cpp
+#include "bmp.h"char cPicStart[MAXPIX128X128]={0xAB,0x42,0x34,0xAB,0x42,0x34,0xAA,0x41,0x33,0xA9,0x40,0x32,0xA9,0x40,0x32,0xA9,0x40,0x32,0xAA,0x41,0x33,0xAA,0x41,0x33,0xA9,0x40,0x32,0xA9,0x40,0x32,0xA9,0x40,0x32,0xA9,0x40,0x32,0xA9,0x40,0x32,0xA9,0x40,0x32,0xA9,0x40,0x32,0xA9,0x42,0x2F,0xAA,0x44,0x2D,0xAC,0x48,0x2C,0xAD,0x48,0x2F,0xAE,0x49,0x30,0xAD,0x47,0x31,0xAD,0x47,0x31,0xAF,0x48,0x35,0xB0,0x49,0x36,0xAE,0x47,0x34,0xAB,0x44,0x31,0xAA,0x44,0x2E,0xAD,0x47,0x30,0xAC,0x46,0x2F,0xAA,0x45,0x2C,0xAE,0x4A,0x2E,0xB5,0x51,0x34,0xAF,0x4D,0x2F,0xB6,0x57,0x36,0xBC,0x5F,0x40,0xB7,0x5C,0x3D,0xAC,0x50,0x33,0xA4,0x46,0x29,0xA3,0x42,0x28,0xA8,0x43,0x2A,0xB8,0x4C,0x34,0xBD,0x4F,0x37,0xC2,0x54,0x3A,0xC5,0x5A,0x3F,0xC7,0x63,0x47,0xCA,0x6C,0x4F,0xCA,0x70,0x51,0xC9,0x6F,0x50,0xC2,0x5D,0x3D,0xC4,0x5D,0x3D,0xC8,0x60,0x43,0xC7,0x63,0x46,0xBE,0x5D,0x43,0xB3,0x56,0x3C,0xB2,0x5A,0x42,0xB8,0x63,0x4D,0xB5,0x66,0x51,0xBF,0x73,0x60,0xCE,0x86,0x75,0xD5,0x90,0x7F,0xCE,0x8D,0x7F,0xC8,0x8B,0x7D,0xD6,0x98,0x8D,0xE5,0xAA,0xA0,0xEC,0xAF,0xAB,0xE9,0xB2,0xAF,0xE8,0xBB,0xB8,0xE6,0xC3,0xBF,0xDC,0xC3,0xBF,0xD0,0xC2,0xBC,0xD3,0xC8,0xC4,0xDC,0xD4,0xCD,0xE2,0xD6,0xD0,0xE4,0xCF,0xC7,0xCC,0xA8,0xA0,0xD2,0x9F,0x95,0xF3,0xAB,0xA3,0xD7,0x82,0x78,0xAD,0x4B,0x43,0xB6,0x4E,0x41,0xAE,0x47,0x34,0xAF,0x47,0x30,0xAD,0x45,0x2E,0xAB,0x43,0x2C,0xAA,0x42,0x2B,0xAA,0x42,0x2B,0xAB,0x43,0x2C,0xAB,0x43,0x2C,0xAE,0x47,0x2E,0xAE,0x47,0x2E,0xAE,0x47,0x2E,0xAD,0x46,0x2D,0xAD,0x46,0x2D,0xAC,0x45,0x2C,
+```
+
+6.如何用txt文本文件写一张图片?(就是说在txt里写图片编码,然后存为bmp图片).如何将bmp图片转化为txt文本文件？
+
+答：具体可看《bmp图片介绍》，百度下大把，有关于文件格式，信息头格式，调色板等的说明。
+
+7.txt文本文件的编码方式是怎样的？如何索引？显示点阵的方法（操作）？
+
+8.  
+
+**二、代码注释**
+
+1）bmp是以BGR888的格式存储的。若要在LCD上显示，则要将其转化为RGB565格式。具体函数如下：
+
+//将bgr888格式转换成rgb565格式，ColorAdjust颜色调节  
+//uctype为转换颜色类型，0为前景颜色，1为背景颜色  
+//lx-2011-7-19  
+void BGR888TRGB565(char \*cBGR888,int ColorAdjust,BYTE uctype)  
+{  
+    LCDSetColorAdjust(cBGR888,ColorAdjust);  
+    if(uctype==0)  
+    {  
+        ucFrontColorSet1= (cBGR888\[2\]+RedAdjust)&0xf8;  
+        ucFrontColorSet1+=(cBGR888\[1\]+GreenAdjust)>>5;  
+        ucFrontColorSet2=(cBGR888\[0\]+BlueAdjust)>>3;  
+        ucFrontColorSet2+=((cBGR888\[1\]+GreenAdjust)& 0x1c)<<3;  
+    }  
+    else if(uctype==1)  
+    {  
+        ucBackColorSet1= (cBGR888\[2\]+RedAdjust)&0xf8;   //移位操作，取BGR888\[2\]（代表RED)格式中的前5位，作为RGB格式set1字节R  
+        ucBackColorSet1+=(cBGR888\[1\]+GreenAdjust)>>5;   //  
+        ucBackColorSet2=(cBGR888\[0\]+BlueAdjust)>>3;  
+        ucBackColorSet2+=((cBGR888\[1\]+GreenAdjust)& 0x1c)<<3;  
+    }  
+}
+
+感想：发现用语言描述力不从心啊，下周装个visio才行，一张图明矣。
+
+2）
+
+```cpp
+//LightAdjust颜色调整 取值范围-16(to ColorR)~+16(to ColorL), 0为保持原色。void LCDSetColorAdjust(char *cBGRPix,int ColorAdjust)   {    if(ColorAdjust>0)    {        RedAdjust=ColorAdjust*(ColorL[2]-cBGRPix[2])/16;        GreenAdjust=ColorAdjust*(ColorL[1]-cBGRPix[1])/16;        BlueAdjust=ColorAdjust*(ColorL[0]-cBGRPix[0])/16;            }            else if(ColorAdjust<0)    {        RedAdjust=ColorAdjust*(cBGRPix[2]-ColorR[2])/16;        GreenAdjust=ColorAdjust*(cBGRPix[1]-ColorR[1])/16;        BlueAdjust=ColorAdjust*(cBGRPix[0]-ColorR[0])/16;    }        else if(ColorAdjust==0)    {        RedAdjust=0;        GreenAdjust=0;        BlueAdjust=0;    }   }
+```
+  
+
+3）看代码时，赋值实例分析是个好方法。减少抽象程度。请看以下代码：
+
+```cpp
+/*用以静态加载图像，并实现颜色渐变*/void LCDSetButton(BYTE ucStartx,BYTE ucStarty,BYTE ucLen,BYTE ucWidth,int ColorAdjust,BYTE ucType){    int i,k,step;     if(ucType==TRANS)    {         LCDShowPic(cPicmy1Start,ucStartx,ucStarty,ucLen,ucWidth,ColorAdjust);    }     else if(ucType==TRANSA)   //透明横向渐变    {        LCDSetAdjustColorScop(BLACK,BLUED,BLACK);        step=ucLen/32;        if(step>=1)            AColorAdjust=16;        else                    //uclen<32，取颜色渐变因子为8.否则是16        {            step=1;            AColorAdjust=8;        }                    for(i=0;i<ucLen;i++)        {            LCDShowPic(cPicBackGround,ucStartx+i,ucStarty,1,ucWidth,AColorAdjust); //以uc=32为界，调色因子在变化            if(i%step==0)                      //这句理论上不好分析。因为 step=ucLen/32;但假设ucLen=112,就清晰多了。            {                k++;                if(AColorAdjust>-16)                    AColorAdjust--;            }        }           LCDSetDefaultAdjustColor();    }        else if(ucType==TRANSB)   //透明纵向渐变    {        LCDSetAdjustColorScop(BLACK,BLUED,BLACK);        step=ucWidth/32;        if(step>=1)            AColorAdjust=16;        else        {            step=1;            AColorAdjust=8;        }        for(i=0;i<ucWidth;i++)        {            LCDShowPic(cPicmy1Start,ucStartx,ucStarty+i,ucLen,1,AColorAdjust);            if(i%step==0)            {                  if(AColorAdjust>-14)                    AColorAdjust--;            }        }           LCDSetDefaultAdjustColor();    }     else if(ucType==SOLIDA)   //非透明横向渐变    {        LCDSetAdjustColorScop(BLACK,ORANGE,BLACK);        step=ucLen/16;        AColorAdjust=8;        for(i=0;i<ucLen;i++)        {            LCDSetLine(ucStartx+i,ucStarty,ucWidth,LIGHTCHANGE,1);                      if(i%step==0)            {                k++;                AColorAdjust--;            }        }           LCDSetDefaultAdjustColor();    }     else if(ucType==SOLIDB)   //非透明纵向渐变    {        LCDSetAdjustColorScop(WHITE,BLUED,BLACK);        step=ucWidth/16;        AColorAdjust=8;        for(i=0;i<ucWidth;i++)        {            LCDSetLine(ucStartx,ucStarty+i,ucLen,LIGHTCHANGE,0);                      if(i%step==0)            {                AColorAdjust--;            }        }           LCDSetDefaultAdjustColor();    }       } 
+```
+  
+4）
+
+```cpp
+void LCDShowPic(char *cpBmp,BYTE ucStartx,BYTE ucStarty,BYTE ucLen,BYTE ucWidth,int ColorAdjust)  //用来显示静态bmp图片{    DWORD dwStartPix=0;    int i,j;       for(i=0;i<ucWidth;i++)    {        dwStartPix=((127-ucStarty-i)*128+ucStartx)*3;           //公式，但不明其义索引含义，有明白的告诉声啊。*3是因为BGR888格式每次要取3个字节。        for(j=0;j<ucLen;j++)        {            BGR888TRGB565(&cpBmp[dwStartPix],ColorAdjust,0);                 Xadd(ucStartx+j,ucStartx+j);        	Yadd(ucStarty+i,ucStarty+i);        	LCDCOM_MASTER(0x2C);            LCDDATA_MASTER(ucFrontColorSet1);            LCDDATA_MASTER(ucFrontColorSet2);            dwStartPix+=3;        }    }}
+```
+  
+
+**四、MIT方法实践**
+
+1.真他妈删得我烦啊。**C里能否建立个类，否则想扩展或裁判时，乱。这往往让人失去信心。问下高手如何管理这些类的？目的是为了便于调试，可是调试成功后我又不想要那些没用的注释的代码。**
+
+**\============================================**
+
+**乱无条理，让人失去信心，这是最可怕的**
+
+**\============================================**
+
+2.如何编写出没有压力的，健康健壮的程序？整洁干净的程序？易于裁减，易于扩展的程序？C++是解决之道吗？如何在C里实现呢？（多看LINUX源码，看人家是如何实现的？）
+
+3.知其所以然（必要够用为原则），清晰可视化地调试
+
+4.如何弄易于修改和维护呢？不然搞死人，累死人。会组织，随着工作你会越轻松，没管理没系统，很快将出现学习瓶颈。
+
+5.数组检索：线性代数，回去温习聆听下MIT（百度检索，学习下华工的百度师姐，人家20万年薪啊）
+
+抽象：偏移量
+
+**_有了数学的技巧（几何，代数）的技巧，助编程更简洁轻松_**
+
+**_6.全面细致地思考（一次性准确搞定，提高效率），在大脑里模拟运行先。而不只是胡乱在调试。_**

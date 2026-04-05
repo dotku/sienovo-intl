@@ -1,0 +1,516 @@
+---
+title: "gtk/glade程序开发(一)"
+date: "2011-09-21"
+slug: "6796201"
+tags: ["#程序开发", "#radiobutton", "#gtk", "#button", "#object", "#callback"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6796201"
+---
+
+ 
+
+转自 http://www.linuxforum.net/forum/gshowflat.php?Cat=&Board=kylix&Number=566950&page=0&view=collapsed&sb=4&o=all&fpart=all&vc=1   
+by [cuigf](http://www.linuxforum.net/forum/showprofile.php?Cat=&User=cuigf&Number=566950&Board=kylix&what=showflat&page=0&view=collapsed&sb=4&o=all&fpart=all&vc=1) 我已经安装好gtk2.0/glade2.10.0,系统环境 RH9准备用一个月的时间 对gtk编程做一个介绍，希望大家支持。   
+  
+在windows下做开发，把做成的程序转移到Linux.(源代码不做任何修改，只要重新编译、连接一次即可)   
+  
+需要的开发工具：   
+Dev-cpp 4.9.9.2 (进行C程序的编译、连接)   
+Glade (进行图形界面设计)   
+Gtk开发组件   
+  
+只需两个软件包：   
+devcpp-4.9.9.2\_setup   
+gtk-win32-devel-2.6.8-rc1(包含glade和gtk开发组件)   
+  
+下载网址：   
+[www.bloodshed.net](http://www.bloodshed.net/)   
+gladewin32.sourceforge.net,   
+  
+请按上面的版本下载，其它版本有bug。   
+  
+下载软件并安装(先装devcpp-4.9.9.2\_setup,再安装gtk-win32-devel-2.6.8-rc1,等出现dev-cpp选项时，选中它)，   
+  
+接下来，来运行我们的第一个程序。   
+  
+(点评:作者是在windows下开发移植到Linux下的,本人不推荐这种方法)  
+第二节 读懂Glade生成的代码(一)   
+  
+在glade的源文件目录src下有7个代码文件，它们分别是：   
+  
+1> callbacks.c Glade生成的大部分空的回调函数所在的文件，你自己往里面添加代码   
+2> callbacks.h (头文件)Glade生成的回调函数的定义文件   
+4> interface.c Glade生成的界面源代码文件   
+5> interface.h (头文件)Glade生成的界面的定义文件   
+6> main.c 主函数   
+7> support.c 支持文件   
+8> support.h (头文件)支持文件   
+  
+在galde生成的devcpp目录里有2个文件   
+1> config.h Glade 生成的配置文件   
+2>gtk1.dev Glade 生成的devcpp工程文件(就是你保存时启的那个名子)。   
+  
+不要被这么多的文件吓着，需要你自己编写代码的文件只有三个(其它文件不要动)，它们是：   
+main.c (一般只需做少量的修改)   
+callbacks.h (一般只需做少量的修改，甚至不作修改)   
+callbacks.c (函数的具体实现部分，你需要在这里编写一定量的代码)   
+  
+其中callbacks.c是你编写代码的主文件。   
+  
+下面我们来简单了解一下glade生成的界面文件interface.c   
+  
+GtkWidget\*   
+create\_window1 (void)   
+{   
+GtkWidget \*window1; /\*定义一个窗口构件\*/   
+GtkWidget \*fixed1; /\*定义一个固定容器构件，用于放置其它构件\*/   
+GtkWidget \*label1; /\*定义一个标签构件\*/   
+  
+window1 = gtk\_window\_new (GTK\_WINDOW\_TOPLEVEL); /\*新建一个窗口\*/   
+gtk\_window\_set\_title (GTK\_WINDOW (window1), \_("window1")); /\*设置窗口的标题\*/   
+gtk\_window\_set\_default\_size (GTK\_WINDOW (window1), 400, 300); /\*设置窗口的默认大小为400,300\*/   
+  
+fixed1 = gtk\_fixed\_new (); /\*新建一个固定容器\*/   
+gtk\_widget\_show (fixed1); /\*显示固定容器\*/   
+gtk\_container\_add (GTK\_CONTAINER (window1), fixed1); /\*添加固定容器到窗口\*/   
+  
+label1 = gtk\_label\_new (\_("/346/254/242/350/277/216/350/265/260/350/277/233GTK/347/232/204/344/270/226/347/225/214")); /\*新建一个标签\*/   
+gtk\_widget\_show (label1); /\*显示标签\*/   
+gtk\_fixed\_put (GTK\_FIXED (fixed1), label1, 120, 72); /\*把标签添加到固定容器中\*/   
+gtk\_widget\_set\_size\_request (label1, 136, 40); /\*设置标签的大小\*/   
+  
+/\* Store pointers to all widgets, for use by lookup\_widget(). \*/   
+GLADE\_HOOKUP\_OBJECT\_NO\_REF (window1, window1, "window1");   
+GLADE\_HOOKUP\_OBJECT (window1, fixed1, "fixed1");   
+GLADE\_HOOKUP\_OBJECT (window1, label1, "label1");   
+  
+return window1;   
+}   
+(点评:版本不一样,里面的代码可能有一些不同)  
+  
+(这部分内容，能理解多少，理解多少，看不懂也不要紧。)   
+文件：main.c   
+  
+只作部分解释，以后你水平高了，慢慢看吧!   
+以下代码节选自main.c   
+  
+int main (int argc, char \*argv\[\])   
+{   
+GtkWidget \*window1; /\*定义window1构件\*/   
+  
+gchar \*pixmap\_dir;   
+#ifdef G\_OS\_WIN32   
+package\_prefix = g\_win32\_get\_package\_installation\_directory (NULL, NULL);   
+package\_data\_dir = g\_build\_filename (package\_prefix, "share", NULL);   
+package\_locale\_dir = g\_build\_filename (package\_prefix, "share", "locale", NULL);   
+#endif   
+  
+#ifdef ENABLE\_NLS   
+bindtextdomain (GETTEXT\_PACKAGE, package\_locale\_dir);   
+bind\_textdomain\_codeset (GETTEXT\_PACKAGE, "UTF-8");   
+textdomain (GETTEXT\_PACKAGE);   
+#endif   
+  
+gtk\_set\_locale (); /\*通过调用这个函数才可显示中文\*/   
+gtk\_init (&argc, &argv); /\*GTK初始化\*/   
+  
+pixmap\_dir = g\_build\_filename (package\_data\_dir, PACKAGE, "pixmaps", NULL);   
+add\_pixmap\_directory (pixmap\_dir);   
+g\_free (pixmap\_dir);   
+  
+/\*   
+\* The following code was added by Glade to create one of each component   
+\* (except popup menus), just so that you see something after building   
+\* the project. Delete any components that you don't want shown initially.   
+\*/   
+window1 = create\_window1 (); /\*创建window1构件\*/   
+gtk\_widget\_show (window1); /\*\*显示window1构件/   
+g\_signal\_connect ((gpointer) window1, "destroy", G\_CALLBACK(gtk\_main\_quit),   
+NULL);   
+/\*为window1构件的“destroy”事件，关联函数,   
+也就是当单击window1的关闭按钮时，关闭window1,同时退出gtk\*/   
+gtk\_main (); /\*gtk主程序开始执行\*/   
+  
+#ifdef G\_OS\_WIN32   
+g\_free (package\_prefix);   
+g\_free (package\_data\_dir);   
+g\_free (package\_locale\_dir);   
+#endif   
+  
+return 0;   
+}  
+  
+**标签构件**   
+标签构件用到的有关函数   
+  
+**创建新标签：**   
+gtk\_label\_new(“label1”);   
+gtk\_label\_new\_with\_mnemonic(“label1”);   
+在字符串中放置换行符，可以创建多行标签。   
+  
+**改变标签的文本：**   
+gtk\_label\_set\_text(GTK\_LABEL(label1),”label2”);   
+  
+**取得标签的当前文本：**   
+gtk\_label\_get\_text(GTK\_LABEL(label1));   
+  
+**设置标签文本的对齐方式：**   
+gtk\_label\_set\_justify(GTK\_LABEL(label1),GTK\_JUSTIFY\_LEFT);   
+  
+GTK\_JUSTIFY\_LEFT /\*左对齐\*/   
+GTK\_JUSTIFY\_RIGHT /\*右对齐\*/   
+GTK\_JUSTIFY\_CENTER /\*居中对齐\*/   
+GTK\_JUSTIFY\_FILL /\*充满\*/   
+  
+**标签内的文本自动换行：**   
+gtk\_label\_set\_line\_wrap(GTK\_LABEL(label1),TRUE);   
+  
+注：标签不能引发信号，如需引发信号，需将标签放置在事件盒中。  
+  
+文本输入构件的常用函数：   
+  
+**创建文本输入构件：**   
+GtkWidget \*entry1;   
+entry1 = gtk\_entry\_new();   
+  
+**改变文本输入构件当前的文本内容：**   
+gtk\_entry\_set\_text(GTK\_ENTRY(entry1),"entry2");   
+  
+**取得文本输入构件当前的文本内容：**   
+const gchar \*text1;   
+text1 = gtk\_entry\_get\_text(GTK\_ENTRY(entry1));   
+  
+**下一节，通过一个例子来说明文本输入构件(text entry)的使用。** 
+
+文本输入构件 (二)   
+
+**一、用glade设计界面** 
+1、新建glade工程
+
+2、放置各种构件：新建window构件(window1)，在window1上放置固定容器构件(fixed positions),在固定容器构件上放置文本输入构件(entry1)。
+
+3、为文本输入构件entry1添加changed信号响应(其它程序设计语言中为事件响应)on\_entry1\_changed，**一定注意在signals选项卡中把object设置为entry1**。
+
+4、单击Build按钮生成源代码。
+
+**二、添加代码** 
+
+
+只需在callbacks.c中添加三行代码
+
+
+
+Callbacks.c
+
+void on\_entry1\_changed (GtkEditable \*editable,
+
+gpointer user\_data)
+
+{
+
+const gchar \*text1;
+
+text1 = gtk\_entry\_get\_text(GTK\_ENTRY(editable));
+
+printf("text entry : %s/n",text1);
+
+}
+
+**三、运行程序** 
+
+
+在编译程序之前，在devcpp中设置工程属性为“win32控制台程序”
+
+步骤：1、单击“工程”菜单下的“工程属性”子菜单。
+
+2、在“普通”选项卡中的“类型”中单击“win32控制台程序”。
+
+3、单击“确定”。
+
+编译、运行程序，在文本输入框内随变输入几个英文字母，看看运行效果。  
+注:在linux下,操作很简单,点击 glade 的 build 就会自动产生代码,然后运行改目录下的autogen.sh运行make ,就会在  
+src 目录下产生可执行的程序.
+
+组合框构件的常用函数： 
+
+
+新建组合框构件：
+
+comboboxentry1 = gtk\_combo\_box\_entry\_new\_text ();
+
+
+
+给组合框构件的下拉列表添加一个新的项目：
+
+gtk\_combo\_box\_append\_text (GTK\_COMBO\_BOX (comboboxentry1), \_("one"));
+
+
+
+读取组合构件里的文本内容：
+
+text1 = gtk\_combo\_box\_get\_active\_text(combobox);
+
+**例子： 
+
+
+一、用Glade设计界面** 
+步骤：1、新建Glade工程
+
+2、依次放置window构件(大小：400,300)、fixed positions(固定容器)构件、comboboxentry(组合框)构件。
+
+3、在属性面板中，设置comboboxentry1的Item属性为：one (按回车)、two (按回车)、three (按回车)、
+
+4、为comboboxentry1构件添加changed信号响应(注意：object后的文本框里填写comboboxentry1)。
+
+5、保存项目，生成代码。
+
+**二、编写代码** 
+
+
+编写代码以前，参照上节内容，设置工程属性为“win32控制台程序”。
+
+**callbacks.h** 
+
+
+void on\_comboboxentry1\_changed (GtkComboBox \*combobox,
+
+gpointer user\_data);
+
+**callbacks.c** 
+void on\_comboboxentry1\_changed (GtkComboBox \*combobox,
+
+gpointer user\_data)
+
+{
+
+gchar \*text1; 
+
+text1 = gtk\_combo\_box\_get\_active\_text(combobox);
+
+printf("The combo text is : %s /n",text1);
+
+}
+
+**三、运行程序，观看运行效果** 
+**开关按钮(toggle button)构件** 
+
+**常用函数： 
+
+
+创建一个新的开关按钮构件** 
+GtkWidget \*togglebutton1;
+
+togglebutton1 = gtk\_toggle\_button\_new();
+
+togglebutton1 = gtk\_toggle\_button\_new\_with\_label(“toggle button”);
+
+togglebutton1 = gtk\_toggle\_button\_new\_with\_mnemonic(“toggle button”);
+
+**读取开关按钮的状态** 
+gtk\_toggle\_button\_get\_active(GTK\_TOGGLE\_BUTTON(button))
+
+**设置开关按钮的状态** 
+gtk\_toggle\_button\_set\_active(GTK\_TOGGLE\_BUTTON(button), TRUE)
+
+gtk\_toggle\_button\_set\_active(GTK\_TOGGLE\_BUTTON(button), FALSE)
+
+**例子： 
+
+
+一、设计界面** 
+
+
+步骤：1、新建Glade工程
+
+2、依次放置window构件(大小：300,200)、fixed positions(固定容器)构件、toggle button(开关按钮)构件。
+
+3、在属性面板中，设置togglebutton1的 label 属性为“开关按钮” 。
+
+4、为togglebutton1构件添加clicked信号响应(**注意：object后的文本框里填写togglebutton1**)。
+
+5、保存项目，生成代码。
+
+**二、编写代码** 
+
+
+运行以前，设置工程属性为“win32控制台程序”。
+
+callbacks.c
+
+void on\_togglebutton1\_clicked (GtkButton \*button,
+
+gpointer user\_data)
+
+{
+
+if (gtk\_toggle\_button\_get\_active(GTK\_TOGGLE\_BUTTON(button)))
+
+{ printf("toggle button is on /n"); } 
+
+else 
+
+{ printf("toggle button is off /n"); } 
+
+}
+
+**三、运行调试
+单选按钮Radio Buttons构件** 
+
+单选按钮构件的常用函数:
+
+**创建单选按钮构件的代码:** 
+
+
+/\*以下代码节选自interface.c\*/
+
+**/\*定义构件\*/**\]
+
+GtkWidget \*radiobutton1;
+
+GSList \*radiobutton1\_group = NULL;
+
+GtkWidget \*radiobutton2;
+
+GtkWidget \*radiobutton3;
+
+
+
+/\* **创建构件的步骤,先定义一个radiobutton构件,
+
+再把这个radiobutton构件添加到组(radiobutton1\_group)中,
+
+这样，所有的radiobutton构件才能关联成一个整体。**\*/
+
+(注:该文写的不详细,应该是:1.创建一个radiobutton1.
+2.在 radiobutton1的属性栏中的最下方有个 编组 项,选择 radiobutton1.
+3.创建新的radiobutton,按照上面操作,加入 radiobutton1.
+)
+radiobutton1 = gtk\_radio\_button\_new\_with\_mnemonic (NULL, \_("radiobutton1"));
+
+gtk\_radio\_button\_set\_group (GTK\_RADIO\_BUTTON (radiobutton1), radiobutton1\_group);
+
+radiobutton1\_group = gtk\_radio\_button\_get\_group (GTK\_RADIO\_BUTTON (radiobutton1));
+
+
+
+radiobutton2 = gtk\_radio\_button\_new\_with\_mnemonic (NULL, \_("radiobutton2"));
+
+gtk\_radio\_button\_set\_group (GTK\_RADIO\_BUTTON (radiobutton2), radiobutton1\_group);
+
+radiobutton1\_group = gtk\_radio\_button\_get\_group (GTK\_RADIO\_BUTTON (radiobutton2));
+
+
+
+radiobutton3 = gtk\_radio\_button\_new\_with\_mnemonic (NULL, \_("radiobutton3"));
+
+gtk\_radio\_button\_set\_group (GTK\_RADIO\_BUTTON (radiobutton3), radiobutton1\_group);
+
+radiobutton1\_group = gtk\_radio\_button\_get\_group (GTK\_RADIO\_BUTTON (radiobutton3));
+
+**判断单选按钮构件状态的函数(同开关按钮):** 
+gtk\_toggle\_button\_get\_active (GTK\_TOGGLE\_BUTTON (radiobutton1))
+
+**一、用Glade设计界面** 
+步骤：1、新建glade工程
+
+　　　　　2、依此放置 窗口（400，300）、固定位置、三个单选按钮构件。
+
+　　　　　3、为三个单选按钮构件，分别添加toggled信号响应，object后分别填写：radiobutton1,radiobutton2,radiobutton3。
+
+　　　　　4、保存工程，并生成代码。
+
+**二、修改代码** 
+Interface.c
+
+g\_signal\_connect\_swapped ((gpointer) radiobutton1, "toggled",
+
+G\_CALLBACK (on\_radiobutton1\_toggled),
+
+GTK\_OBJECT (radiobutton1));
+
+g\_signal\_connect\_swapped ((gpointer) radiobutton2, "toggled",
+
+G\_CALLBACK (on\_radiobutton2\_toggled),
+
+GTK\_OBJECT (radiobutton2));
+
+g\_signal\_connect\_swapped ((gpointer) radiobutton3, "toggled",
+
+G\_CALLBACK (on\_radiobutton3\_toggled),
+
+GTK\_OBJECT (radiobutton3));
+
+
+
+Callbacks.h
+
+void on\_radiobutton1\_toggled (GtkToggleButton \*radiobutton1,
+
+gpointer user\_data);
+
+void on\_radiobutton2\_toggled (GtkToggleButton \*radiobutton2,
+
+gpointer user\_data);
+
+
+
+void on\_radiobutton3\_toggled (GtkToggleButton \*radiobutton3,
+
+gpointer user\_data);
+
+
+
+Callbacks.c
+
+
+
+void on\_radiobutton1\_toggled (GtkToggleButton \*radiobutton1,
+
+gpointer user\_data)
+
+{
+
+if (gtk\_toggle\_button\_get\_active (GTK\_TOGGLE\_BUTTON (radiobutton1)))
+
+{
+
+printf("radiobutton1 is True/n");
+
+}
+
+}
+
+
+
+void on\_radiobutton2\_toggled (GtkToggleButton \*radiobutton2,
+
+gpointer user\_data)
+
+{
+
+if (gtk\_toggle\_button\_get\_active (GTK\_TOGGLE\_BUTTON (radiobutton2)))
+
+{
+
+printf("radiobutton2 is True/n");
+
+}
+
+}
+
+
+
+void on\_radiobutton3\_toggled (GtkToggleButton \*radiobutton3,
+
+gpointer user\_data)
+
+{
+
+if (gtk\_toggle\_button\_get\_active (GTK\_TOGGLE\_BUTTON (radiobutton3)))
+
+{
+
+printf("radiobutton3 is True/n");
+
+}
+
+}

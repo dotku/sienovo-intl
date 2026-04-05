@@ -1,0 +1,25 @@
+---
+title: "OMAPL138 墩泰I2C LCD触控屏驱动程序移植"
+date: "2021-04-04"
+slug: "115430239"
+tags: ["#OMAPL138", "#C6748", "#LCD", "#触控", "#驱动移植"]
+source: "https://blog.csdn.net/yeyuangen/article/details/115430239"
+---
+
+ 
+
+硬件分析：
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/115430239/01_ebd050ba17d5f0321eda80613cdf2127.png)
+
+软件配置：
+
+GT811通过I2C接口连接到omapl138的I2C1上，因此，需要配置AM335x的I2C1的两条 引脚 为I2C功能；GPIO1\_27需要配置为中断输入、下降沿触发，中断号也可以确定下来了，就是GPIO1的27号角（内核能将引脚转换为中断号）；最后就是RESET脚，驱动初始化GT811时需要操作RESET引脚，且GT811为拉低复位，故可将GPIO1的26角设为输出电平状态。通过前面几篇文章的学习，我们知道DTS可以配置pinmux，然后分析内核自带的DTS文件可以，DTS也可以将连接信息传递给内核。经过分析及参考，我最TQ335x.dts文件做了如下修改：
+
+Step1. 检查I2C引脚的pinmux配置
+
+查找i2c1可以找到i2c1节点，该节点的pinctrl-0只想的phandler对i2c1的两个引脚进行了相关的配置，因此，不需任何修改。
+
+Step2. 配置INT和RESET引脚
+
+在am33xx\_pinmux节点内添加引脚配置 信息 ，具体内容如下：

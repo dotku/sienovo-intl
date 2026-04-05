@@ -1,0 +1,51 @@
+---
+title: "使用nginx搭建https服务器"
+date: "2015-05-13"
+slug: "45693443"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/45693443"
+---
+
+ 
+
+最近在研究nginx，整好遇到一个需求就是希望服务器与客户端之间传输内容是 加密 的，防止中间监听泄露信息，但是去证书服务商那边申请证书又不合算，因为访问服务器的都是内部人士，所以自己给自己颁发证书，忽略掉浏览器的不信任警报即可。下面是颁发证书和配置过程。
+
+首先确保机器上安装了openssl和openssl-devel
+
+#yum install openssl
+
+#yum install openssl-devel
+
+然后就是自己颁发证书给自己
+
+#cd /etc/nginx/nginxhttps
+
+#openssl genrsa -des3-out server.key 1024
+
+#openssl req -new -keyserver.key -out server. csr
+
+#openssl rsa \-in server.key -outserver\_nopwd.key
+
+#openssl x509 -req -days365\-inserver.csr -signkey server\_nopwd.key -out server.crt
+
+至此证书已经生成完毕，下面就是配置nginx
+
+server {
+
+    listen 443;
+
+    ssl on;
+
+    ssl\_certificate  /etc/nginx/nginxhttps/server.crt;
+
+    ssl\_certificate\_key  /etc/nginx/nginxhttps/server\_nopwd.key;
+
+}
+
+然后重启nginx即可。
+
+至此已经完成了https服务器搭建，但如何让浏览器信任自己颁发的证书呢？(其实用IE直接信任也是可以的)
+
+今天终于研究捣鼓出来了，只要将之前生成的server.crt文件导入到系统的证书管理器就行了，具体方法：
+
+控制面板 -> Internet选项 -> 内容 -> 发行者 -> 受信任的根证书颁发机构 -> 导入 -》选择server.crt

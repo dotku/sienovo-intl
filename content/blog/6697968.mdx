@@ -1,0 +1,80 @@
+---
+title: "启动文件系统时出现错误：Warning: unable to open an initial console."
+date: "2011-08-18"
+slug: "6697968"
+tags: ["#bash", "#脚本", "#command", "#c", "#shell", "#null"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6697968"
+---
+
+ 
+
+————————————————————————————————
+
+（一）启动文件系统时出现错误：Warning: unable to open an initial console.
+
+————————————————————————————————
+
+具体错误：
+
+```cpp
+yaffs: dev is 32505858 name is "mtdblock2"yaffs: passed flags ""yaffs: Attempting MTD mount on 31.2, "mtdblock2"yaffs: auto selecting yaffs2s3c-nand: ECC uncorrectable error detectedblock 109 is badVFS: Mounted root (yaffs filesystem).Freeing init memory: 140KWarning: unable to open an initial console.
+```
+
+原因查找：
+
+ 1）删掉 下载 的文件系统中的/dev/console和/dev/null
+
+重新建立
+
+mknod –m 660 console c 5 1
+
+mknod –m 660 null c 1 3
+
+2）你的根文件系统上需要建/dev/console
+
+3）你的rootfs真的是cramfs吗？ 如果是jffs2, 那么command line里设置一下 rootfstype=jffs2看看  
+
+4）现在我加了支持devfs选项编译核，启动中是没了：   
+warning：unable to open an initial console   
+且多了：   
+Mounted devfs on /dev   
+可就仅此而已，后面什么也没有了！敲键盘反映全是乱七八糟的字符！  
+
+\*\*\*\*\*\*\*\*\*\*\*\*
+
+最终原因：
+
+\*\*\*\*\*\*\*\*\*\*\*\*
+
+在建立根文件系统的目录时，跳过了一些步骤。
+
+进入opt/mini2440/fs,创建一个 shell 的脚本用于构建根文件系统的各个目录。create\_rootfs\_bash，平且改变执行的权限。
+
+#chmod +x create\_rootfs\_bash
+
+在 kernel 目录下，运行./create\_rootfs\_bash,其脚本的内容如下：
+
+```cpp
+#!/bin/shecho "------Create rootfs directons start...--------"mkdir rootfscd rootfsecho "--------Create root,dev....----------"mkdir root dev etc boot tmp var sys proc lib mnt home usrmkdir etc/init.d etc/rc.d etc/sysconfigmkdir usr/sbin usr/bin usr/lib usr/modulesecho "make node in dev/console dev/null"  //这几行的作用是创建console控制台，而我在制作根目录时刚好没有做这个工作。mknod -m 600 dev/console c 5 1mknod -m 600 dev/null c 1 3mkdir mnt/etc mnt/jffs2 mnt/yaffs mnt/data mnt/tempmkdir var/lib var/lock var/run var/tmpchmod 1777 tmpchmod 1777 var/tmpecho "-------make direction done---------"
+```
+具体如下图所示：
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/6697968/02_0_13136454098hY9.gif)
+
+  
+
+ 经过以上改变后，根文件系统制作成功，启动界面如下图：
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/6697968/03_0_1313645515Aa5H.gif)  
+
+  
+
+有用的链接：
+
+[http://www.lslnet.com/linux/dosc1/43/linux-300515.htm](http://www.lslnet.com/linux/dosc1/43/linux-300515.htm)  
+
+[http://topic.csdn.net/u/20110317/09/8f75cc2a-5c58-40cc-91c8-a356c9a77b48.html](http://topic.csdn.net/u/20110317/09/8f75cc2a-5c58-40cc-91c8-a356c9a77b48.html)
+
+参考文章：yaffs2根文件系统移植至MINI2440
+
+[http://blog.csdn.net/yeyuangen/article/details/6698000](http://blog.csdn.net/yeyuangen/article/details/6698000)

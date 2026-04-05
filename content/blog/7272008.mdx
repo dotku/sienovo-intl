@@ -1,0 +1,187 @@
+---
+title: "VxWorks进程间通信2 -- 信号量"
+date: "2012-02-19"
+slug: "7272008"
+tags: ["#semaphore", "#任务", "#优化", "#delete", "#工作"]
+source: "https://blog.csdn.net/yeyuangen/article/details/7272008"
+---
+
+ 
+
+ 
+
+## VxWorks 进程间通信2 -- 信号量
+
+## 一．信号量的概念
+
+是实现任务互斥、同步操作的主要机制。VxWorks提供的信号量经过了高度优化，在所有任务间通信机制中，速度最快。
+
+**二．信号量的分类**
+
+**Binary Semaphores**（二进制）：完成互斥、同步操作的最佳方式；速度最快，最常用。
+
+**Mutual Exclusion Semaphores**（互斥）：一种特殊的二进制信号量，专门针对互斥操作进行了优化。
+
+**Counting Semaphores**（计数）：类似于二进制信号量，可记录信号量释放的次数，可监视同一资源上的多个实例。
+
+三．**Binary Semaphores（二进制信号量）**
+
+    Task经常会等待 事件 或需获取资源。查询(polling)在RealTime系统中原则上不允许，最好采用Pending，等待事件或资源。
+
+**状态图：**
+
+**![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/7272008/01_0_1302757680pZDD.gif)**
+
+**说明：**
+
+1.为某个资源调用**semBCreate()**创建一个binary semaphore 并规定：
+
+SEM\_Full (资源可用) SEM\_Empty (资源不可用).
+
+2.资源不可用时Task调用**semTake()**进入Pending直到semaphore被Given
+
+**相关函数：**
+
+**\[c-sharp\]** [view plain](http://write.blog.csdn.net/postedit# "view plain") [copy](http://write.blog.csdn.net/postedit# "copy")
+
+1.  SEM\_ID semBCreate  
+2.  (  
+3.      int         options,      /\* semaphore options \*/  
+
+5.      SEM\_B\_STATE initialState  /\* initial semaphore state \*/  
+6.  )  
+
+8.  STATUS semTake  
+9.  (  
+10.      SEM\_ID semId, /\* 需要获取的信号量ID \*/  
+
+12.      int timeout /\* 超时时间（tick）/no-wait/forever \*/  
+13.  )  
+
+**![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/7272008/02_0_1302757687fO1m.gif)**
+
+**ISR**（中断服务 程序 ）不能调用**semTake()**操作！
+
+**\[c-sharp\]** [view plain](http://write.blog.csdn.net/postedit# "view plain") [copy](http://write.blog.csdn.net/postedit# "copy")
+
+1.  STATUS semGive  
+2.  (  
+3.      SEM\_ID semId /\* 需要释放的信号量ID \*/  
+4.  )  
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/7272008/03_0_1302757693c8m2.gif)
+
+**\[c-sharp\]** [view plain](http://write.blog.csdn.net/postedit# "view plain") [copy](http://write.blog.csdn.net/postedit# "copy")
+
+1.  semFlush()  
+
+**![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/7272008/04_0_1302757699BFl9.gif)**
+
+**应用方向：**
+
+**1.互斥操作**：是指不同任务可以利用信号量互斥地访问临界资源。这种互斥的访问方式比中断禁止（interrupt disable） 与优先级锁定
+
+（preemptive locks）两种互斥方式具有更加精确的粒度。
+
+互斥操作时初始状态设为（SEM\_FULL）可用。并在**同一个**Task中成对、顺序调用semTake()、semGive()。
+
+**2.同步操作**：是指一个任务可以利用信号量控制自己的执行进度，使自己同步于一组外部事件。同步操作时初始状态设为（SEM\_EMPTY）不可用。在**不同**Task中分别单独调用semTake()、semGive()。
+
+**四．Mutual Exclusion Semaphores（互斥信号量）**
+
+    互斥信号量是一种特殊的二进制信号量，它是针对使用二进制信号量进行互斥操作时存在的一些问题设计的。互斥信号量主要增加了对优先级倒置、删除安全以及递归访问的处理。
+
+**状态图：**
+
+**![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/7272008/05_0_1302757705h5V6.gif)**
+
+**相关函数：**
+
+**\[c-sharp\]** [view plain](http://write.blog.csdn.net/postedit# "view plain") [copy](http://write.blog.csdn.net/postedit# "copy")
+
+1.  SEM\_ID semMCreate  
+2.  (  
+3.      int options               /\* mutex semaphore options \*/  
+4.  )  
+
+**区别：**
+
+1.互斥信号量只能用于互斥操作。
+
+2.只能由已经获取了互斥信号量的任务去释放它。
+
+3.中断服务程序(ISR)不可以释放(semGive())互斥信号量。
+
+4.互斥信号量不支持semFlush()操作。
+
+**应用方向：**
+
+**1.避免优先级倒置(Priority Inversion)**：
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/7272008/06_0_1302757711Wif8.gif)
+
+在上图中，task2等待task1的资源，于是处于Pend状态，这时一个中等优先级的task进来，并抢占了task1的CPU，此时的表现是低优先级task在高优先级的task2前执行。这种现象就是先级倒置。
+
+使用**semId = semMCreate(SEM\_Q\_PRIORITY | SEM\_INVERSION\_SAFE);**就可以避免倒置。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/7272008/07_0_1302757716mBzR.gif)
+
+此时，task1的优先级提升与task2一样，至到task2执行完成。
+
+**SEM\_INVERSION\_SAFE**不能与**SEM\_Q\_FIFO**配对！
+
+**2.Deletion Safety(安全删除)**
+
+使用：**semId = semMCreate(SEM\_Q\_FIFO | SEM\_DELETE\_SAFE);**可以实现安全删除。
+
+其实质是：在Task对互斥信号量执行semTake()操作并成功占有该信号量之前，隐含执行了taskSafe()操作；在执行semGive()操作之后，隐含执行taskUnsafe()操作。
+
+如果一个任务task1试图删除一个已经被保护起来的任务task2，task1则将被阻塞起来，直到task2解除保护（释放掉具有删除保护的互斥信号量）才能完成删除工作。
+
+**3.递归访问**
+
+**\[c-sharp\]** [view plain](http://write.blog.csdn.net/postedit# "view plain") [copy](http://write.blog.csdn.net/postedit# "copy")
+
+1.  InitFun()  
+2.  {  
+3.      sem\_ID = semMCreate(…);  
+4.  }  
+
+6.  funB()  
+7.  {  
+8.      semTake(sem\_ID, SEM\_FOREVER);  
+
+10.      /\*访问临界资源\*/  
+
+12.      semGive(sem\_ID);  
+13.  }  
+
+15.  funA()  
+16.  {  
+17.      semTake(sem\_ID, SEM\_FOREVER);  
+
+19.      /\*访问临界资源\*/  
+
+21.      funB();  //递归访问， 而不会死锁  
+
+23.      semGive(sem\_ID);  
+24.  }  
+
+**五．Counting Semaphores**（计数信号量）
+
+计数信号量与二进制信号量都可以用于任务之间的同步与互斥。其不同点在于，计数信号量可记录信号量释放的次数，可以用来监视某一资源的使用状况。
+
+**状态图：**
+
+**![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/7272008/08_0_1302757721tR04.gif)**
+
+**相关函数：**
+
+**\[c-sharp\]** [view plain](http://write.blog.csdn.net/postedit# "view plain") [copy](http://write.blog.csdn.net/postedit# "copy")
+
+1.  SEM\_ID semCCreate  
+2.  (  
+3.      int options,              /\* semaphore option modes \*/  
+
+5.      int initialCount          /\* initial count \*/  
+6.  )

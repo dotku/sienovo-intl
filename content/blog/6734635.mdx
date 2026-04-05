@@ -1,0 +1,48 @@
+---
+title: "mutex 互斥锁线程控制"
+date: "2011-08-31"
+slug: "6734635"
+tags: ["#null", "#join", "#测试"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6734635"
+---
+
+ 
+
+**一、引言**
+
+    mutex是一种简单的加锁的方法来控制对共享资源的存取。这个互斥所只有两种状态：上锁和解锁。可以把互斥锁看成某种意义上的全局变量。在同一时刻，只能有一个线程掌握某个互斥锁，拥有上锁状态的线程能够对共享资源进行操作。若其它线程希望上锁一个已经上锁的互斥锁，则该线程就会挂起，直到上锁的线程释放该互斥锁为止。可以说，这把锁使得共享资源得以有序在各个线程中操作。
+
+互斥锁主要操作：
+
+1）初始化：pthread\_mutex\_init
+
+2)上锁：pthread\_mutex\_lock
+
+3)解锁：pthread\_mutex\_unlock
+
+4)判断上锁：pthread\_mutex\_trylock
+
+5)消除互斥锁：pthread\_mutex\_destroy
+
+\=========
+
+     问答
+
+\=========
+
+1.可以有多个互斥锁吗？如何存在的？作用区间如何？
+
+答：
+
+**二、实例**
+
+```cpp
+/*mutex.c*/#include <stdio.h>#include <stdlib.h>#include <unistd.h>#include <pthread.h>#include <errno.h> pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;int lock_var = 0;time_t end_time; void pthread1(void *arg);void pthread2(void *arg); int main(int argc, char *argv[]){	pthread_t id1,id2;	pthread_t mon_th_id;	int ret; 	end_time = time(NULL)+10;		pthread_mutex_init(&mutex,NULL);	/*创建两个线程：pthread1,pthread2*/	ret=pthread_create(&id1,NULL,(void *)pthread1, NULL);	if(ret!=0)		perror("pthread cread1");		ret=pthread_create(&id2,NULL,(void *)pthread2, NULL);	if(ret!=0)		perror("pthread cread2");		pthread_join(id1,NULL);	pthread_join(id2,NULL);		exit(0);} void pthread1(void *arg){	int i;	while(time(NULL) < end_time)	{/*互斥所上锁*/		if(pthread_mutex_lock(&mutex)!=0)		{			perror("pthread_mutex_lock");		}		else			printf("pthread1:pthread1 lock the variable\n");				for(i=0;i<2;i++)          //睡眠两个时间单位		{			sleep(1);             			lock_var++;		} /*互斥所解锁*/		if(pthread_mutex_unlock(&mutex)!=0)		{			perror("pthread_mutex_unlock");		}		else			printf("pthread1:pthread1 unlock the variable\n");				sleep(1);           //睡眠1个时间单位	}} void pthread2(void *arg){	int nolock=0;	int ret;		while(time(NULL) < end_time)	{/*测试锁状态*/		ret=pthread_mutex_trylock(&mutex);		if(ret==EBUSY)                         //若为忙，表示被其它线程占用			printf("pthread2:the variable is locked by pthread1\n");		else		{			if(ret!=0)			{				perror("pthread_mutex_trylock");				exit(1);			}			else				printf("pthread2:pthread2 got lock.The variable is %d\n",lock_var);/*解锁*/			if(pthread_mutex_unlock(&mutex)!=0)			{				perror("pthread_mutex_unlock");			}			 else				printf("pthread2:pthread2 unlock the variable\n");		}		sleep(3);  //睡眠3个时间单位	}}
+```
+  
+
+运行结果如下：
+
+```cpp
+[root@localhost net]# ./mutexpthread1:pthread1 lock the variablepthread2:the variable is locked by pthread1pthread1:pthread1 unlock the variablepthread2:pthread2 got lock.The variable is 2pthread2:pthread2 unlock the variablepthread1:pthread1 lock the variablepthread1:pthread1 unlock the variablepthread2:pthread2 got lock.The variable is 4pthread2:pthread2 unlock the variablepthread1:pthread1 lock the variablepthread1:pthread1 unlock the variablepthread2:pthread2 got lock.The variable is 6pthread2:pthread2 unlock the variablepthread1:pthread1 lock the variablepthread1:pthread1 unlock the variable
+```

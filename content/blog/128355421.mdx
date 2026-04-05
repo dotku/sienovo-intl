@@ -1,0 +1,35 @@
+---
+title: "基于linux+xenomai实时系统FPGA Ethercat主站PCIE加速卡"
+date: "2022-12-21"
+slug: "128355421"
+tags: ["#ethercat", "#pcie", "#linux+xenomai"]
+source: "https://blog.csdn.net/yeyuangen/article/details/128355421"
+---
+
+ 
+
+概述
+
+EtherCAT 商业主站和开源主站，都是使用软件的方法实现主站功能，主站的性能很大程度上取决于PC的性能和操作系统的实时性。而信迈将EtherCAT的协议层用FPGA逻辑实现，预先编程好，客户只需当作专用芯片使用。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128355421/01_df86c3fc1519274059ac03a3c2a08f60.png)
+
+EtherCAT max10芯片实现了标准的EtherCAT主站 协议 ，采用标准的通用并行总线接口，可以连接任何CPU，并对芯片进行控制。支持ARM处理器或者x86处理器平台。提供参考软件代码，API函数，XML文件初始化系统等软件。可用于任何标准的 EtherCAT 电机、IO设备的控制。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128355421/02_617b029a78363fab034a7ef12f9c0be5.png)
+
+特点
+
+⦁    支持ARM处理器上裸机程序运行EtherCAT主站，无需 操作系统 ；  
+⦁    支持x86处理器，PCIe接口，提供 Linux （withXenomai实时内核）下的驱动和应用程序的参考代码；  
+⦁    友好的系统调试界面；  
+⦁     CPU 负担小，无论高端或低端处理器，都能快速实现高实时性能的EtherCAT主站通信；  
+⦁    主站与从站间的同步性能强，同步时间的抖动远小于1us（4轴实测50ns）；  
+⦁    循环周期短，可以轻松实现31.25us的通信周期（可实现4轴62.5us的循环周期）；  
+⦁    通过XML文件轻松配置系统，可接从站数量多
+
+性能对比
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128355421/03_fad0cedf97acb0d3c6b89cfe45000e02.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128355421/04_bea6af09d2ca23d1774779ca5bc19647.png)

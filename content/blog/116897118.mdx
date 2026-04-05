@@ -1,0 +1,299 @@
+---
+title: "基于AM5728的OpenCL例程开发分享"
+date: "2021-05-16"
+slug: "116897118"
+tags: ["#AM5728", "#OPENCL", "#OPENCV", "#OPENMP", "#多核异构"]
+source: "https://blog.csdn.net/yeyuangen/article/details/116897118"
+---
+
+ 
+
+### **基于AM57x的OpenCL例程使用手册**
+
+### **1 OpenCL 简介**
+
+OpenCL（全称 Open Computing Language，开放运算语言）是第一个面向异构系统通用目的并行编程的开放式、免费标准，也是一个统一的编程环境，便于软件开发人员为高性能计算服务器、桌面计算系统、手持设备编写高效轻便的代码，而且广泛适用于多核心处理器（CPU）、图形处理器（ GPU ）、Cell 类型架构以及数字信号处理器（DSP）等其他并行处理器，在游戏、娱乐、科研、医疗等各种领域都有广阔的发展前景。
+
+**2 OpenCL 例程编译**
+
+本例程基于信迈XM5728-IDK-V3开发板进行。
+
+在Ubuntu下执行如下指令，安装 gawk 查找替换文本工具：
+
+Host# sudo apt-get install gawk
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/116897118/01_ca433907b78a7ee3fbcbe587b89eb500.png)
+
+图1
+
+输入Y确认安装，安装成功如下图所示：
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/116897118/02_260b05b07a5eaec2ea5a4c1dedc33d86.png)
+
+图2
+
+确认已安装对应版本Linux Processor-SDK包，进入SDK安装包根目录执行如下指令
+
+编译OpenCL 例程：
+
+****Host****\# sudo make opencl-examples
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/116897118/03_a4959b3ab570c7eda16b4b943d0ded5f.png)
+
+图3
+
+编译完成后，会在当前路径“example-applications/opencl-examples-1.1.10.3”目录下生
+
+成 可执行文件 ，将编译生成的可执行文件拷贝到开发板文件系统。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/116897118/04_ae0b6565cfeaff00e8741f0be6789f5a.png)
+
+图4
+
+为便于客户测试，我司提供经验证的 OpenCL 可执行文件位于光盘“Demo/OpenCL/O
+
+penCL/bin/opencl.tar.gz”路径下，将其拷贝到开发板文件系统。进入文件所在路径，执行
+
+如下指令将其解压：
+
+Target# tar xvf opencl.tar.gz
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/116897118/05_cfaa41abc79a993deb99c6b70b9073ac.png)
+
+图5
+
+### **3 OpenCL 例程测试**
+
+3.1 向量相加
+
+开发板文件系统下执行如下指令，测试 vecadd 例程：
+
+****Target****  ./opencl/vecadd/vecadd
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/116897118/06_255c2e6e9811b64f11dec56817cdec47.png)
+
+图6
+
+例程运行结果为：8192K 个元素的两个四维向量相加，用时 26476us。
+
+3.2 基于 OpenMP 并行向量相加
+
+本例程是使用 OpenMP 并行进行向量（8192 个元素、一维向量）相加。开发板文件
+
+系统下执行如下指令：
+
+****Target****  cd opencl/vecadd\_openmp
+
+****Target****  ./vecadd\_openmp
+
+图7
+
+3.3 浮点计算
+
+例程分别在ARM端（两个OpenMP线程）和 DSP 端（OpenCL加速）进行浮点计算，数据量为2\*1024\*1024个。
+
+开发板文件系统下，执行如下指令：
+
+****Target****  cd opencl/float\_compute/
+
+****Target****  ./float\_compute
+
+图8
+
+由上图运行结果可以看出，ARM 端用时 4010us，DSP 端用时 7718us。
+
+3.4 dsplib\_fft 例程
+
+开发板文件系统下，执行如下指令测试 FFT 运算，测试结果如下图所示：
+
+****Target****  cd opencl/dsplib\_fft/
+
+****Target****  ./dsplib\_fft
+
+图9
+
+3.5 蒙特卡洛法（monte\_carlo）
+
+开发板文件系统下执行如下指令，测试使用OpenCL实现DSP加速的蒙特卡洛法，结果如下图所示：
+
+****Target****  cd opencl/monte\_carlo
+
+****Target****  ./monte\_carlo
+
+图10
+
+图11
+
+4 OpenCL 加速性能测试
+
+本例程测试功能：读取指定的图像数据，然后对图像进行灰度转换和 Canny 算法处
+
+理，计算处理过程所耗的时间，并将处理后的图像保存到当前目录下。
+
+本例程主要是测试 OpenCL 是否对这两种算法有优化效果，分别从禁用 OpenCL 和使
+
+能 OpenCL 两种情况来计算处理图像数据所用的时间，将测试的结果与官方提供的测试结
+
+果进行对比和验证。
+
+例程源码路径：网盘“Demo/OpenCL/OpenCL\_performance\_test/src”
+
+可执行文件以及测试脚本路径：光盘“Demo/OpenCL/OpenCL\_performance\_test/bin”
+
+测试使用的图片路径：光盘“Demo/OpenCL/OpenCL\_performance\_test/data”
+
+4.1 例程编译
+
+将网盘资料“Demo/OpenCL/OpenCL\_performance\_test/src”例程源码拷贝Ubuntu任意目录，进入该源码目录执行以下命令对源码进行编译：
+
+****Host****\#  cd ~/AM57xx/Demo/OpenCL/OpenCL\_performance\_test/src
+
+****Host****# make SDK\_INSTALL\_PATH=/home/xmtech/ti-processor-sdk-linux-am57xx-evm-03. 01.00.06
+
+图12
+
+编译完成之后会在当前目录下生成可执行文件 canny，将其拷贝到开发板文件系统的
+
+“/home/root/”目录下。
+
+将网盘资料“Demo/OpenCL/OpenCL\_performance\_test”下的 bin 文件夹以及 data 文件夹拷贝到开发板文件系统的“/home/root/”目录下。bin 文件夹下包含 opencl\_off.sh 和
+
+opencl\_on.sh 测 试 脚 本 ， data 文 件 夹 下 是 两 张 大 小 和 格式不同的 图片文件TL5728\_1080p.jpg 和 lena.png。
+
+图13
+
+4.2 禁用 OpenCL
+
+以下分别从禁用 OpenCL 功能和使能 OpenCL 功能来进行对比测试，分别采用 data
+
+文件夹下的图片 XM5728\_IDK\_V3.jpg 和 lena.png 来测试。
+
+执行以下命令进行测试，先禁止运行 OpenCL 功能，然后清理 缓存 再进行测试，重复
+
+清理缓存和测试的步骤 5 次，如下图所示：
+
+****Target****\#  source bin/opencl\_off.sh
+
+****Target****\#  sync; echo 3 >/proc/sys/vm/drop\_caches
+
+****Target****\#  ./canny data/XM5728\_IDK\_V3.jpg
+
+图14
+
+取以上 5 次测试结果的平均值：
+
+Ø BGR2GRAY tdiff=79.02ms
+
+Ø Canny tdiff=255.81ms
+
+4.3 使能 OpenCL
+
+执行以下命令进行测试，先使能 OpenCL 功能，然后清理缓存再进行测试，重复清理
+
+缓存和测试的步骤 6 次，如下图所示：
+
+****Target****\#  source bin/opencl\_on.sh
+
+****Target****\#  sync; echo 3 >/proc/sys/vm/drop\_caches
+
+****Target****#  ./canny data/XM5728\_IDK\_V3.jpg
+
+图15
+
+如上一共测试了 6 次，每一次测试之前记得先将系统内核缓存清理干净，否则测试
+
+结果有误。因为第一次运行时，内核在AM57xx上编译，OpenCL使能时会有额外的延迟，
+
+延迟时间大约为几十秒，所以第一次测试结果不作为参考。官方解释如下：
+
+Please note that the first run, with OpenCL on, has additional delay of ~1min, d
+
+ue to kernel compilation on AM57xx. This is constrained to first run only, if "TI\_OCL\_CACHE\_KERNELS" environemnt variable is set.
+
+由以上 6 次的测试结果，取最后 5 次测试结果的平均值：
+
+Ø BGR2GRAY tdiff=217.54ms
+
+Ø Canny tdiff=14.41ms
+
+4.4 测试结果对比
+
+同理，按照如上操作步骤在分别禁用OpenCL和使能OpenCL的情况下，计算处理
+
+lena.png 图片所用的时间，并对5次测试的数据取平均值。对比以上测试结果，如下表所 示：
+
+表1
+
+测试算法
+
+禁止 OpenCL
+
+使能 OpenCL
+
+作用率
+
+XM5728\_IDK\_V3.jpg
+
+BGR2GRAY
+
+79.02ms
+
+217.54ms
+
+0.364
+
+Canny
+
+255.81ms
+
+14.41ms
+
+17.76
+
+Lena.jpg
+
+BGR2GRAY
+
+42.38ms
+
+210.76ms
+
+0.201
+
+Canny
+
+55.40ms
+
+18.51ms
+
+2.993
+
+作用率=禁用 OpenCL 计算处理图像数据所用的时间/使能 OpenCL 计算处理图像数据所用的时间。
+
+以下是官方的测试数据：
+
+图16
+
+BGR2GRAY 作用率=0.345
+
+Canny 作用率=1.690
+
+从测试结果可以看出来，本次测试与官方测试结论是一致的：OpenCL对BRG2GRAY
+
+算法不但没有性能上的提升反而存在着负面的效果；而对Canny算法则有着非常明显的
+
+提升效果，与官方的作用率进行对比，本次测试得出的作用率要大于官方提供的作用率
+
+数据，这与待测试的图像文件有一定的关系。
+
+官方提供的其他 OpenCL 内核的测试数据：
+
+链接：http://processors.wiki.ti.com/index.php/ OpenCV
+
+图17
+
+图18
+
+图19
+
+完毕。

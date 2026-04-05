@@ -1,0 +1,68 @@
+---
+title: "Linux下运行JAVA程序——JRE安装和配置"
+date: "2011-08-29"
+slug: "6728004"
+tags: ["#java", "#linux", "#plugins", "#浏览器", "#firefox", "#jdk"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6728004"
+---
+
+ 
+
+JAVA程序的运行必须要安装JAVA RUNTIME ，也就是运行所需要的环境；我们可以通过安装JRE 或者JDK 所获得；如果我们只是应用不是开发，只下载JRE 的包就足够。
+
+JAVA程序的运行必须要[安装](http://soft.zdnet.com.cn/files/list-0-0-105247-1-1.htm "安装")JAVA RUNTIME ，也就是运行所需要的环境；我们可以通过[安装](http://soft.zdnet.com.cn/files/list-0-0-105247-1-1.htm "安装")JRE 或者JDK 所获得；如果我们只是应用不是开发，只下载JRE 的包就足够； JDK包里面也包含JRE；本文以JRE的[安装](http://soft.zdnet.com.cn/files/list-0-0-105247-1-1.htm "安装")为例；JRE中还包括浏览器所需要的JAVA插件；  
+  
+一、下载JRE；  
+http://ftp.isu.edu.tw
+
+根据自己的机器来下载对应的版本，我的机器是 32位的X86机，所以只能下载 [Linux](http://soft.zdnet.com.cn/files/list-0-0-154112-1-1.htm "Linux")32目录中的 jre-1\_5\_0\_04-[Linux](http://soft.zdnet.com.cn/files/list-0-0-154112-1-1.htm "Linux")\-i586.bin；如果您是X86-64位机，就下载相对的；
+
+jre-1\_5\_0\_04-[Linux](http://soft.zdnet.com.cn/files/list-0-0-154112-1-1.htm "Linux")\-i586.bin For [Linux](http://soft.zdnet.com.cn/files/list-0-0-154112-1-1.htm "Linux")32  
+  
+二、解压和配置；  
+  
+1、释放软件包；  
+  
+
+`[root@localhost sunjava]# ls   jre-1_5_0_04-[Linux](http://soft.zdnet.com.cn/files/list-0-0-154112-1-1.htm "Linux")-i586.bin   [root@localhost sunjava]# sh jre-1_5_0_04-[Linux](http://soft.zdnet.com.cn/files/list-0-0-154112-1-1.htm "Linux")-i586.bin   Do you agree to the above license terms? [yes or no] yes    [root@localhost sunjava]# ls   jre1.5.0_04 jre-1_5_0_04-[Linux](http://soft.zdnet.com.cn/files/list-0-0-154112-1-1.htm "Linux")-i586.bin`
+
+  
+2、配置JRE ；  
+  
+  
+1）把jre1.5.0\_04 的目录移到 /usr/lib目录中  
+  
+
+`[root@localhost sunjava]# mv jre1.5.0_04 /usr/lib/jre154`
+
+  
+2）配置环境变量；  
+
+在当前用户的.bashrc 中加入三行，内容如下：  
+
+`JAVA_HOME=/usr/lib/jre154   JAVA_BIN=/usr/lib/jre154/bin   export JAVA_HOME JAVA_BIN`
+
+您可以用gedit 或 vi 来编辑.bashrc 文件；  
+
+`[root@localhost sunjava]# gedit ~/.bashrc   [root@localhost sunjava]# vi ~/.bashrc`
+
+  
+3）加一个字体simsun.ttf ；  
+  
+在/usr/lib/jre154/lib/fonts中建一个目录 fallback ，然后拷字体 simsun.ttf 到这个目录，或者把simsun.ttc 复制成simsun.ttf也行，然后放到这个目录；  
+  
+
+`[root@localhost ~]# mkdir /usr/lib/jre154/lib/fonts/fallback   `  
+4）[安装](http://soft.zdnet.com.cn/files/list-0-0-105247-1-1.htm "安装")java plugins ；让浏览器也能支持java 程序；  
+  
+比如我用 firefox 浏览器，则为libjavaplugin\_oji.so建一个链接到firefox 相对应的目录中的plugins 目录中，其它浏览器同理；
+
+`[root@localhost plugins]# cd /usr/lib/firefox-1.0.6/plugins/   [root@localhost plugins]# ln -s /usr/lib/jre154/plugin/i386/ns7/libjavaplugin_oji.so .`  
+  
+5）JAVA控制台的调用；  
+
+`[beinan@localhost ~]# /usr/lib/jre154/bin/ControlPanel`
+
+测试地址： http://www.icq.com/icq2go
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/6728004/01_0_1314579753ZwBS.gif)

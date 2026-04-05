@@ -1,0 +1,81 @@
+---
+title: "信迈TI AM5728 DCAN 驱动详解"
+date: "2019-02-01"
+slug: "86741348"
+tags: ["#DCAN", "#AM5728", "#TI", "#驱动"]
+source: "https://blog.csdn.net/yeyuangen/article/details/86741348"
+---
+
+ 
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/86741348/01_14d016cb0dd8cecae2011fee8e6b1b23.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/86741348/02_55ce7a4381135be1b61e279478170b5b.png)
+
+设备树DTS:
+
+         can @481cc000 {  
+            compatible = "ti,dra7-d\_can";  
+            ti,hwmods = "dcan1";  
+            reg = <0x4ae3c000 0x2000>;  
+            syscon-raminit = <0x9 0x558 0x0>;  
+            interrupts = <0x0 0xde 0x4>;  
+            clocks = <0x10d>;  
+            status = "disabled";  
+            phandle = <0x209>;  
+        };
+
+        can@481d0000 {  
+            compatible = "ti,dra7-d\_can";  
+            ti,hwmods = "dcan2";  
+            reg = <0x48480000 0x2000>;  
+            syscon-raminit = <0x9 0x558 0x1>;  
+            interrupts = <0x0 0xe1 0x4>;  
+            clocks = <0x11>;  
+            status = "disabled";  
+            phandle = <0x20a>;  
+        };
+
+## **CAN总线测试方法**
+
+开发板 文件系统 下执行如下指令，配置 CAN0 总线（软件上的 CAN0 对应为硬件上的
+
+CAN1）比特率为 1MHz，并启动 CAN 总线：
+
+Target# canconfig can0 bitrate 1000000
+
+Target# canconfig can0 start
+
+执行如下指令，监控接收 PC 端发送的 数据 ：
+
+Target# candump can0
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/86741348/03_d1fde3a2dbfc540fd51da430b687b1f4.png)
+
+PC上自动 安装驱动
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/86741348/04_b2546232f7325064aae068731f024ee3.png)
+
+再打开调试仪器软件
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/86741348/05_68eeb82c277e1746b5de9d495a302c02.png)
+
+一．先设置 com端，比特率为 1MHz，
+
+二．任选数据 点发送 或循环发送
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/86741348/06_da907d0698596a4d2a8b35eb7fc33089.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/86741348/07_a4afbb5bbf4269af0cc57a6525b3313b.png)
+
+实例图
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/86741348/08_1a0a277111a62eb6168a965433eac641.jpeg)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/86741348/09_efe6af2632e0e199b90da201c416e593.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/86741348/10_3674da613c9d321b561eb19ae18b9924.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/86741348/11_60e9b4a4a1819703bf5b1ce333dff515.png)
+
+参考文章：信迈AM5728 CAN总线测试及SDK升级  [https://blog.csdn.net/YEYUANGEN/article/details/94588789](https://blog.csdn.net/YEYUANGEN/article/details/94588789)

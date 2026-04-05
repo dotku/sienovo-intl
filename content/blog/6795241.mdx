@@ -1,0 +1,46 @@
+---
+title: "win7 vmware  ifconfig只有IPV6的解决办法   samba"
+date: "2011-09-20"
+slug: "6795241"
+tags: ["#vmware", "#interface", "#windows", "#up", "#终端", "#c"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6795241"
+---
+
+ 
+
+win7 vmware  ifconfig只有IPV6，没有XP环境下的IPV4，如何  samba呢？或者如何与windows共享文件呢？以下提供一种 解决 办法。  
+
+  
+
+**问题一：只有IPV6**
+
+```cpp
+[root@localhost ~]# ifconfigeth0      Link encap:Ethernet  HWaddr 00:0C:29:E1:98:55            inet6 addr: 2001:250:3000:5a06:20c:29ff:fee1:9855/64 Scope:Global          inet6 addr: fe80::20c:29ff:fee1:9855/64 Scope:Link          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1          RX packets:412806 errors:5 dropped:38 overruns:0 frame:0          TX packets:38 errors:0 dropped:0 overruns:0 carrier:0          collisions:0 txqueuelen:1000           RX bytes:41496217 (39.5 MiB)  TX bytes:7915 (7.7 KiB)          Interrupt:193 Base address:0x2000  lo        Link encap:Local Loopback            inet addr:127.0.0.1  Mask:255.0.0.0          inet6 addr: ::1/128 Scope:Host          UP LOOPBACK RUNNING  MTU:16436  Metric:1          RX packets:3217 errors:0 dropped:0 overruns:0 frame:0          TX packets:3217 errors:0 dropped:0 overruns:0 carrier:0          collisions:0 txqueuelen:0           RX bytes:4593565 (4.3 MiB)  TX bytes:4593565 (4.3 MiB)
+```
+解决办法：
+
+**步骤1：将网络连接方式从桥接改为NAT连接**
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/6795241/02_0_13165261303q9z.gif)  
+
+**步骤2：在终端运行**
+
+/etc/init.d/network restart  
+
+```cpp
+[root@localhost ~]# /etc/init.d/network restartShutting down interface eth0:                              [  OK  ]Shutting down loopback interface:                          [  OK  ]Bringing up loopback interface:                            [  OK  ]Bringing up interface eth0:  Determining IP information for eth0... done.                                                           [  OK  ]
+```
+**步骤3：运行ifconfig**
+
+```cpp
+[root@localhost ~]# ifconfigeth0      Link encap:Ethernet  HWaddr 00:0C:29:E1:98:55            inet addr:192.168.119.129  Bcast:192.168.119.255  Mask:255.255.255.0          inet6 addr: fe80::20c:29ff:fee1:9855/64 Scope:Link          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1          RX packets:412815 errors:5 dropped:0 overruns:0 frame:0          TX packets:68 errors:0 dropped:0 overruns:0 carrier:0          collisions:0 txqueuelen:1000           RX bytes:41497420 (39.5 MiB)  TX bytes:16351 (15.9 KiB)          Interrupt:193 Base address:0x2000  lo        Link encap:Local Loopback            inet addr:127.0.0.1  Mask:255.0.0.0          inet6 addr: ::1/128 Scope:Host          UP LOOPBACK RUNNING  MTU:16436  Metric:1          RX packets:3217 errors:0 dropped:0 overruns:0 frame:0          TX packets:3217 errors:0 dropped:0 overruns:0 carrier:0          collisions:0 txqueuelen:0           RX bytes:4593565 (4.3 MiB)  TX bytes:4593565 (4.3 MiB)
+```
+  
+
+成功！
+
+**二、与windows共享文件夹**
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/6795241/04_0_1316526966Mzmu.gif)  
+
+呵呵，特别感谢汉斌的祥细指导！

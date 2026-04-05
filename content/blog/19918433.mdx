@@ -1,0 +1,35 @@
+---
+title: "【c++对象模型】"
+date: "2014-02-25"
+slug: "19918433"
+tags: ["#C++ virtual"]
+source: "https://blog.csdn.net/yeyuangen/article/details/19918433"
+---
+
+ 
+
+  
+
+**1.C++在布局以及存取时间上的额外负担，主要是由virtual引起的。**
+
+（1）virtual function，即执行期绑定；
+
+（2）virtual class base，即基 类 。
+
+**2.表格驱动对象模型**
+
+（1）每个class产生出一堆指向virtual function的指针，放在表格之中，这个表格称之为virtual table(Vtbl)；
+
+（2）每个class object被添加了一个指针，指向相关的vitural table。通常这个指针被称为vptr。vptr的设定和重置都由每一个class的constructor、destructor和copy assignment运算符自动生成。每个class所关联的type\_info object（用以支持 runtime type identification，RTTI）也经由virtual table被指出来，通常是放在表格的第一个slot处。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/19918433/01_20140225170738500.png)  
+
+**3.C++以下列方法支持多态**
+
+（1）经由一组隐含的转化操作，如把一个derived class转化为一个指向其base type class的指针。shape \*ps = new circle()；
+
+（2）virtual function机制；
+
+（3）经由dynamic cast和typed id运算符
+
+if (circle \*pc = dynamic cast <circle\*> (ps))...

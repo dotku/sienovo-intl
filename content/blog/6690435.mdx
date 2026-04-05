@@ -1,0 +1,82 @@
+---
+title: "yaffs2根文件系统的制作安装（附：出现的问题[drivers/video/console/vgacon.o] error 1）"
+date: "2011-08-16"
+slug: "6690435"
+tags: ["#function", "#each"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6690435"
+---
+
+ 
+
+——————————————————
+
+（一）根文件系统的安装问答
+
+——————————————————
+
+1.首先要编译成一个文件 系统
+
+2.是不是我那个内核有问题？重做一个试试看（反正当成生成内核 映像 的复习）。
+
+3.yaffs2文件系统的制作
+
+问4：解压缩后，什么也不出来了。
+
+答：
+
+  
+
+  
+
+——————————————————
+
+（二）出现的问题
+
+\[drivers/video/console/vgacon.o\] error 1  
+\[drivers/video/console\] Error 2  
+\[drivers/video\]Error 2  
+
+——————————————————
+
+drivers/video/console/vgacon.c: In function 'vgacon\_startup':...
+
+当我们都[配置](http://action.utops.cc/click.jsp?adsId=276&adsLeagueId=5&adsUserId=188&siteId=657&siteLeagueId=5&siteUserId=564&scId=2&adsType=8&prices=0.8&checkCode=1fc257fa9d&click=1&url=http%3A//www.ach.net.cn/chn/product.asp&v=0&keyword=%u914D%u7F6E&s=http%3A//www.linuxidc.com/Linux/2009-07/20909.htm&rn=282793 "%u5929%u6D25%u534E%u5B9D%u5EFA%u6750 @utops.cc")好以后执行make uImage时，出现了以下的错误信息，根据信息的大概意思是关于vga的[支持](http://action.utops.cc/click.jsp?adsId=255&adsLeagueId=5&adsUserId=188&siteId=657&siteLeagueId=5&siteUserId=564&scId=2&adsType=2&prices=1.33&checkCode=92c1ef5c70&click=1&url=http%3A//hd.5460.net/bysn/index.html&v=0&keyword=%u652F%u6301&s=http%3A//www.linuxidc.com/Linux/2009-07/20909.htm&rn=205059 "%u4E2D%u56FD%u540C%u5B66%u5F55%u6BD5%u4E1A%u5341%u5E74 @utops.cc")问题，在这里我直接把关于vga的配置选项去掉不选
+
+Device Drivers
+
+      ---->Graphics support
+
+              ----->Console display driver support
+
+            ----->VGA text Console(这个选项不选就能[解决](http://action.utops.cc/click.jsp?adsId=168&adsLeagueId=5&adsUserId=1&siteId=657&siteLeagueId=5&siteUserId=564&scId=2&adsType=6&prices=1.31&checkCode=c634b6e723&click=1&url=http%3A//www.totole.com.cn&v=0&keyword=%u89E3%u51B3&s=http%3A//www.linuxidc.com/Linux/2009-07/20909.htm&rn=458561)此问题)
+
+CC      drivers/video/console/dummycon.o
+
+CC      drivers/video/console/vgacon.o  
+drivers/video/console/vgacon.c: In function 'vgacon\_startup':  
+drivers/video/console/vgacon.c:489: error: 'PCIMEM\_BASE' undeclared (first use in this function)  
+drivers/video/console/vgacon.c:489: error: (Each undeclared identifier is reported only once  
+drivers/video/console/vgacon.c:489: error: for each function it appears in.)  
+drivers/video/console/vgacon.c: In function 'vgacon\_do\_font\_op':  
+drivers/video/console/vgacon.c:1047: error: 'PCIMEM\_BASE' undeclared (first use in this function)  
+make\[3\]: \*\*\* \[drivers/video/console/vgacon.o\] 错误 1  
+make\[2\]: \*\*\* \[drivers/video/console\] 错误 2  
+make\[1\]: \*\*\* \[drivers/video\] 错误 2  
+make: \*\*\* \[drivers\] 错误 2  
+\[root@localhost linux-2.6.22.6\]#
+
+——————————————————————————————————————————————
+
+出现的问题\[drivers/video/console/vgacon.o\] error 1
+
+drivers/video/console/vgacon.o:987:warning:comparison is always true due to limited range of data type  
+make\[3\]:\*\*\*\[drivers/video/console/vgacon.o\] error 1  
+make\[2\]:\*\*\*\[drivers/video/console2\] error 2  
+make\[1\]:\*\*\*\[drivers/video1\] error 2  
+make:\*\*\*\[drivers\] error 2  
+解决办法：  
+
+在make menuconfig 时  
+Graphics support ->  
+console display driver support->  
+vga text console(不选这个)

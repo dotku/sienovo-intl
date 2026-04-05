@@ -1,0 +1,70 @@
+---
+title: "Ubuntu tomcat配置https的方法"
+date: "2015-05-13"
+slug: "45691257"
+tags: ["#Ubuntu tomcat https"]
+source: "https://blog.csdn.net/yeyuangen/article/details/45691257"
+---
+
+ 
+
+  
+
+**参考文献：**
+
+http://www.cnblogs.com/xwdreamer/p/3466661.html(后半部分需要做修正)  
+
+[http://tomcat.apache.org/tomcat-7.0-doc/ssl-howto.html](http://tomcat.apache.org/tomcat-7.0-doc/ssl-howto.html)
+
+[http://blog.sina.com.cn/s/blog\_682b5aa1010113uu.html](http://blog.sina.com.cn/s/blog_682b5aa1010113uu.html)（中文，比较实用）
+
+[https://help.ubuntu.com/community/TomcatSSL](https://help.ubuntu.com/community/TomcatSSL)
+
+[http://blog.csdn.net/fjssharpsword/article/details/6851969](http://blog.csdn.net/fjssharpsword/article/details/6851969)（服务器和客户端证书）
+
+**背景**
+
+本文以ubuntu环境为例进行说明，具体环境如下
+
+OS：ubuntu-server\_12.04
+
+TOMCAT\_HOME:/usr/local/tomcat7，安装方法参考：[windows和linux下将tomcat注册为服务](http://www.cnblogs.com/xwdreamer/p/3411986.html)
+
+JAVA\_HOME:/usr/lib/jvm/jdk1.7.0\_45，安装方法参考：[ubuntu下安装JDK并配置java环境](http://www.cnblogs.com/xwdreamer/archive/2010/12/05/2297062.html)
+
+**总体思路**
+
+**服务器端**
+
+1.用JDK自带的Keytool生成keystore文件  
+  1)打开终端控制台，转向tomcat主目录，执行生成keystore文件命令，这条命令的作用是在tomcat主目录下生成server.keystore文件，这里设定的server.keystore的密码是Envisi0n，这个密码在后面会用到。
+
+keytool -genkey -alias tomcat -keyalg RSA -keypassEnvisi0n -storepass Envisi0n -keystore server.keystore -validity3600
+
+  2)根据keystore文件生成证书，这条命令的作用是在tomcat主目录下生成server.cer证书文件。
+
+keytool -export -trustcacerts -alias tomcat -fileserver.cer -keystore server.keystore -storepass Envisi0n
+
+3)%TOMCAT\_HOME%\\conf\\server.xml，找到一下这段内容，将这段的注释取消掉
+
+<Connectorport\="8443" protocol\="HTTP/1.1"SSLEnabled\="true" maxThreads\="150" scheme\="https" secure\="true" clientAuth\="false" sslProtocol\="TLS" />
+
+并添加keystoreFile和keystorePass，如下图所示：
+
+  <Connectorport\="8443" protocol\="HTTP/1.1"SSLEnabled\="true"
+
+               maxThreads\="150" scheme\="https" secure\="true"
+
+               clientAuth\="false" sslProtocol\="TLS"
+
+               keystoreFile\="/usr/local/tomcat7/server.keystore"
+
+              keystorePass\="Envisi0n"  />
+
+**4）**拿到上面第二步获得的证书以后，将此证书导入到JDK的cacerts库当中，执行如下命令
+
+sudo /usr/lib/ jvm /java-7-openjdk-amd64/bin/keytool -import -trustcacerts-alias tomcat -file server.cer -keystore/usr/lib/jvm/java-7-openjdk-amd64/jre/lib/security/cacerts -storepass changeit
+
+**客户端：**
+
+采用单向认证，不需要导入用户证书。用firefox信任该网址就可以了。如果想知道客户端如何生成并导入证书，进行双向验证，可以参考[http://blog.csdn.net/fjssharpsword/article/details/6851969](http://blog.csdn.net/fjssharpsword/article/details/6851969)。

@@ -1,0 +1,363 @@
+---
+title: "Linux之父炮轰C++：糟糕程序员的垃圾语言"
+date: "2011-09-30"
+slug: "6837754"
+tags: ["#linux", "#c++", "#语言", "#编程", "#c", "#git"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6837754"
+---
+
+ 
+
+  
+
+【图灵图书推荐】[Linux程序设计(第3版](http://www.dearbook.com.cn/book/176891)[)](http://blog.csdn.net/turingbook/article/details/1775488)    
+
+众所期待的程序设计圣经
+
+* * *
+
+  
+【写在前面】  
+此文贴出后，引起了大家的较多关注，是意料之中的事情。毕竟，C、C++、Linux之父，都是大家最最熟悉的东西。但是许多同学把精力放在纯粹语言优劣的争论上，就没有太大意思了。这场争论的主角之一，微软的Dmitry Kakurin有一句话非常正确：“这是一种信仰问题。因此，任何讲道理和争论都会无穷无尽，而且也毫无意义……”  
+  
+我想，正确的态度，应该是从高手们的争论中汲取营养，提高和深化自己对相关语言的认识，结合自己的实际环境，想想应该怎么学，怎么用。[孟岩](http://blog.csdn.net/myan/archive/2007/09/10/1778843.aspx)和[云风](http://blog.codingnow.com/2007/09/c_vs_cplusplus.html)、[pongba](http://blog.csdn.net/pongba/archive/2007/05/16/1611593.aspx)在这方面都有“有营养的”文字，大家可以看看。  
+  
+各种语言都是有自己的局限性的，也都有自己最擅长的用武之地。今天，软件项目中越来越倾向于采用多语言开发，所以与其花精力做口舌之争，不如多学学对方的语言。写《程序员修炼之路》的Andy Hunt和David Thomas大师早就教导我们，要在软件开发这个行当立于不败之地，应该“[每年学一种新的语言](http://blog.csdn.net/turingbook/archive/2007/09/10/1778867.aspx)”。
+
+* * *
+
+  
+Linux之父Linus Torvalds为了Linux内核开发而专门打造的版本控制软件[Git](http://git.or.cz/)已经引起了业界的广泛关注。昨天，有一位Dmitry Kakurin老兄在查看了源代码之后，发现使用的是纯C而非C++，表示不可理解，他直言：“别拿可移植性说事儿，这是屁话（BS，bullshit）。“（此外，他还[批评](http://article.gmane.org/gmane.comp.version-control.git/57815)Git蛮力地直接操作文本，既啰嗦又易错，而且很难跟上高层代码逻辑。）  
+  
+![](http://git.or.cz/git-logo.png)![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/6837754/03_846cf00cd0a07a87dad2ea2ec9f97db0.jpeg)  
+这个BS引起了Torvalds的[强烈反应](http://thread.gmane.org/gmane.comp.version-control.git/57643/focus=57918)，他用“**\*YOU\*** are full of bullshit.“（你才满嘴屁话呢）作为自己反驳的开场白。接着，他先转向了对C++的罕见的火药味十足的炮轰：  
+  
+”C++是一种糟糕的（horrible）语言。而且因为有大量不够标准的程序员在使用而使情况更糟，以至于极容易产生彻头彻尾的垃圾（total and utter crap）。老实说，选择C就是为了把C++程序员踢出去。……我有这样的结论，任何喜欢用C++而不是C开发项目的程序员可能都是我希望踢出去的人，免得他们来搞乱我参与的项目。C++会导致非常非常糟糕的设计选择。你们这些C++程序员总是一上来就用语言的那些‘漂亮的’库特性比如STL、Boost和其他彻头彻尾的垃圾，这可能对你们的程序有所‘帮助’，但是却会导致：  
+  
+“——当库无法工作时无穷无尽的折磨（别跟我说什么STL尤其是Boost很稳定而且可移植性很好，那全是屁话，而且一点都不可笑）  
+  
+"——低效的抽象编程模型，可能在两年之后你会注意到有些抽象效果不怎么样，但是所有代码已经依赖于围绕它设计的‘漂亮’对象模型了，如果不重写应用程序，就无法改正。
+
+* * *
+
+【图灵图书推荐】近10年来最好的C语言图书，哈佛、MIT教材：**K.N.King《C语言程序设计：现代方法》**即将出版！！  
+                                C语言摇篮贝尔实验室培训秘笈[《C语言解惑》](http://www.dearbook.com.cn/book/176890)热卖中                                                              
+
+* * *
+
+  
+”也就是说，使用优秀的、高效的、系统级的和可移植的C++的唯一方式，最终还是限于使用C本身具有的所有特性。项目限制只用C，意味着参与的人不会捣乱，也意味着会得到许多真正懂得底层问题，而不会折腾那些白痴‘对象模型’垃圾的程序员。  
+  
+"所以，我很抱歉，但是对于Git这样效率是主要目标的软件，C++的所谓优点只是巨大的错误。而我们将看不到这一点的人排除在外却成了一个巨大的附加优势。  
+  
+"如果你想要用C++写的版本控制系统，去玩Monotone吧。他们确实使用了‘真格的数据库’，使用了‘漂亮的面向对象库’、使用了‘漂亮的C++抽象’。可是说老实话，所有这些对某些计算机专业人士而言富于吸引力的设计决定，其最终结果确是一堆可怕、难以维护的垃圾。“
+
+* * *
+
+  
+【070907更新】Torvalds和Dmitry Kakurin争论继续中。  
+对Torvalds的回击，Dmitry反唇相讥：“随着只用C编程的恐龙们逐渐灭绝，你很快就会发现只剩下自己一个人在固执己见。用Git贡献者的数量是说明不了问题的。显然C++开发者也能够贡献C代码。但是以为他们喜欢这种方式，那可就错了。  
+  
+“没有C的时候我用汇编编程。然后在C++诞生之前，我转向了C。现在我使用C++和C#，而且不再走回头路。差劲的程序员用任何语言都写不出好程序。但是为了将差劲的贡献者拒之门外这样一个没谱的理由而惩罚优秀的开发者，这简直是胡闹。”  
+  
+只过了10几分钟，Torvalds就回贴了：“和你不同的是，我实实在在地给出了不喜欢C++的原因，而且指出了它可能导致的各种问题的一些例子。而你呢，没有给出一条像样的使用C++的理由。事实上，Git比其他软件配置管理软件都要好，而好的品味（taste）和C正是原因之一。  
+  
+        对上面的最后一句话，Torvalds后来又做了如下补充：  
+        ”说得更具体一些：  
+        “——简单和清晰的核心数据结构， 非常精益（lean）且颇具雄心的代码管理着它们，将”简单胜于花哨”  
+                 这一方法发挥到极致。  
+        ”——有意识地不抽象数据结构和算法，因为它们恰恰是Git核心的全部要素（whole point）。  
+
+        ”如果你想用更花哨的语言，C++绝对是最糟糕的选择。如果想要真正的高级特性，那就选择有垃圾回收或  
+                  者好的系统集成的，而不是既缺乏C的简约（sparseness）又缺乏C的直接而且没有重要概念的高层                  绑定（high-level bindings to important concepts）的东西。
+
+        “一言以蔽之，C++正处在困境当中，它既无法帮助原型化或者简单的GUI编程足够简化从而真正可用，又                  不是C那样积极地鼓励你使用简单和直接的语言构造的精益系统编程语言。
+
+                   （另一位同学插了一句：这还没有提到很难找到两个C++编译器支持同样的特性。）
+
+“这与什么恐龙毫无关系。好的品味永远不会过时。将C与汇编语言相提并论，恰恰说明你对自己所讨论的问题缺乏起码的概念（don't have a friggin idea）。"
+
+* * *
+
+【图灵图书推荐】 不容错过的C++圣经[《C++ Primer中文版》](http://www.dearbook.com.cn/book/92394)和[习题集](http://www.dearbook.com.cn/book/123557)  
+                                凝聚C++业界专家智慧的[《C++编程规范》](http://www.dearbook.com.cn/book/91309)                                
+
+* * *
+
+【070908继续更新】  
+争论还在继续。半个小时之后，半小时后，Dmitry回帖：  
+“我说过，这是一种信仰问题。因此，任何讲道理和争论都会无穷无尽，而且也毫无意义，就像任何其他宗教问题一样。"  
+  
+”我来讲讲Git开发应该使用C++的理由（而不是一般意义上C++对任何项目都更好的理由，这种说法同样也是毫无意义的）：  
+  
+“1. 好的String类能够大大提高代码的可读性（而且代码也会显著减少）  
+"2. 好的Buffer类——理由同上  
+”3. 管理内存和文件/套接字/锁句柄的智能指针和智能句柄  
+“就目前而言，通过这种繁琐的宏管理字符串和内存，很难看出高层逻辑。  
+  
+接下来他的语气变得缓和，甚至最后还用了一个笑脸：  
+"以我之见，Git具有非常漂亮的高层设计（对象数据库，使用散列，数据和元数据的简单而且容易访问的存储。）向你赞一个！  
+  
+“但是具体实现方式——C和shell脚本的混合、自底向上发展出来的命令行界面就很一般了。  
+  
+”我可没有将C与汇编语言相提并论。我只是要指出我曾经用许多不同的语言编程，目睹了糟糕的程序员用任何语言都会写出差劲的代码。因此这实际上是与语言无关的。![:-)](http://news.gmane.org/img/smilies/smile.png)
+
+* * *
+
+Torvalds则依然怒气未消，他反驳Dmitry对Git用宏管理字符串和内存的批评：  
+"完全是屁话。字符串/内存管理根本无关紧要。还是去看看源代码吧（我敢打赌你没有看过）。这不是重要的部分，而且也不复杂。唯一真正重要的部分是设计。有些部分之所以是用 ' 原型化语言 ' 编写，恰恰是因为它们不是核心部分，而且会被C慢慢地替换掉。C++可没有办法替换shell脚本或者Perl代码。而且C++也没办法让真正核心的部分变得更好。  
+  
+"显然你这一辈子已经经历了 ' 汇编-> C -> C++/C# ' 的转变过程，你将我这样一直坚持用C的比作 ' 恐龙 '，似乎这是一种向更好/更现代的语言不可避免的演进。这是毫无根据的，因为C在很多方面都远远优于C++（更优于C#），包括可移植性，还有接口和低层支持。  
+  
+"你当然可以用任何语言编写糟糕的代码。但是，有些语言，尤其是带有一些心理（mental）包袱的语言本身就非常糟糕。你这样的新手跑来指出一些绝对无关紧要的补丁特性（【刘江按】此处应该指C++对C的增强特性），用它们作为一种语言优越的论据（这些东西语言原作者都不喜欢），这一事实本身恰恰说明你满脑子都是糊涂概念，应该好好醒悟一下了。  
+  
+"对于Git核心代码真正重要的，是诸如这样的事情：编写自己的对象分配代码，使内存占用尽可能小，从而能够高效地记录百万对象的标志。这实际上是为树形关系的多个对象编写本质上非常优化的分析程序，因为这里没有任何抽象。这绝对是在原始内存字节一级上的。  
+  
+"这些事情能够用C之外的语言编写吗？当然可以。但是那些认为C++字符串处理这样的高级特性很重要的人肯定是写不出来的。  
+  
+"事实上，这正是C擅长的事情。不仅指语言本身，还包括一种必需的心态（mentality）。C最大的优点之一，就是它不会使你认为程序是什么高层的东西。正是后一种心态会使你明显偏向其他语言，但实际上从Git的角度看来，所谓 ' 高层 ' 恰恰是错误的。"
+
+* * *
+
+Dmitry回帖：  
+我不仅看过源代码，而且还做过很多调试工作。我发现的问题大多数都与处理Windows上的路径（也就是字符串处理）有关。  
+  
+他表示不再纠缠于“C与C++孰优孰劣”的讨论，而是介绍了一下自己的出发点：  
+  
+我的目的是使用Git。当有些功能无法使用时，我想能够在尽可能最短时间和花费最小的力气进行改正并贡献改正的代码。对我来说，这只是我主要工作的一种消遣而已。  
+  
+而Git用C编写这一事实，对这一目的毫无好处。建议使用C++是现有C代码基础的唯一出路。所以，虽然C++可能从学术上来讲并非最佳选择，但是唯一切合实际的选择。  
+  
+“除了其他已经尝试过了的政体之外，民主是政体的最差形式。”  
+——温斯顿 丘吉尔  
+  
+现在，我认识到自己只是一个不太活跃的贡献者，但我希望自己的声音能够被人听到。而那些承担开发和维护Git主要重任的人也应该发出自己的声音。
+
+* * *
+
+此后，Torvalds没有再发言，大概是认为自己已经大获全胜。而另外一些Git贡献者继续对Dmitry进行反驳，可以看出，Torvalds的看法并不是他的私见。Theodore Tso说：  
+  
+“我认为字符串处理是C++会找来大麻烦的地方之一。糟糕的程序员（原文为idiot）会这样写代码：
+
+a = b + "_/share/_" + c + serial\_num;
+
+“其中你肯定无法弄清到底分配了多少内存，因为有类型强制转换、重载的操作符（感谢上帝，在C++中你可以重载逗号操作符！），而当这种东西出现在内循环中，结果将是性能上的大灾难，而且原因还不明显！
+
+另外还有同学讽刺，说的确有不少C++程序员贡献代码，但是反而需要核心的C程序员花费更多时间去修改和删除。
+
+* * *
+
+【刘江按】以下是我的一点门外之见，做引玉的砖头之用。  
+  
+Dmitry有一点是肯定正确的，语言之争更多的是一种类似宗教信仰上的，所以很难有结果，也没有太多实际意义。这种争论因为出自高手之间，所以还是会透露出很多重要的信息。比如：  
+  
+1\. 对于要求性能高的系统编程领域，C++其实未必胜过C，而且事实上，也确实有很多此类项目是选择C作为主要语言的。C的生命力目前仍然毋庸置疑。更多的信息可以读[这里](http://blog.csdn.net/turingbook/archive/2006/06/27/841143.aspx)。  
+  
+2\. C++目前确实处于一种被夹攻的态势，一方面在企业级系统开发（数据密集、业务规则复杂多变）中，C++已经基本被Java和C#等淘汰出局，另一方面在系统编程和嵌入式等更接近硬件的领域，又遭到C的强烈狙击。  
+  
+3\. OO技术并非one-size-fits-all。  
+……（大家补充）  
+  
+必须看到的是，C语言作为一种古老的语言，其局限性也是很明显的，比如已经成为安全问题渊薮的缓冲区溢出。C的标准库也存在各种各样的问题。对于更加贴近现实世界的众多项目，没有面向对象机制，显然会影响开发效率。（有关C标准库源码层次的分析，图灵将出版著名C/C++专家Plauger的《C标准库》一书。）而且，即使是C程序员所引以为豪的性能优势，现在也岌岌可危了（参见C++之父Stroustrup的[文章](http://jjhou.csdn.net/programmer-4-learning-standard-cpp.htm)中相关的比较）。  
+  
+C++目前的困境，很大程度上是由于此前的图书和文献曾经一度倾向于炫技，陶醉于对语言各种细节的深入探索，有华丽化、复杂化的趋势，语言设计者们苦心设计出来各种丰富的特性和多范型的编程风格，却成了学习者和使用者的负担，加上微软等开发工具又用MFC之类的糖衣，结果造就了大批基础不牢、半桶水叮当响的C++程序员，而且因为自以为掌握了世上最难的语言，往往有目空一切的傲气。这样开发出来的代码质量，可想而知。对C++的各种误解和不良使用习惯，可以说是漫天飞舞。而这种局面继而造成C++逐渐成为一般人心目中望而生畏、学不好教不好更用不好的“专家语言”，越来越无法吸引新入行的程序员。老人毛病多多，新人青黄不接，C++社区的确面临危机。  
+  
+这几年，C++界的核心人物，包括Bjarne Stroustrup、Herb Sutter、Stan Lippman、Andrei Alexandrescu和Andrew Koenig、Stephen Dewhurst等，对此局面有过较多的反思，痛定思痛之后，写作了[Learning C++ as a New Language](http://www.research.att.com/~bs/new_learning.pdf)（[中译文](http://jjhou.csdn.net/programmer-4-learning-standard-cpp.htm)）、[《C++ Primer》第四版](http://www.dearbook.com.cn/book/92394)、[《C++编程规范》](http://www.dearbook.com.cn/book/91309)、《Accelerated C++》和[《C++必知必会》](http://www.dearbook.com.cn/book/90946)等返璞归真的文章和图书。其核心变化，是对标准库（Torvalds语气中对STL和Boost也很不屑，不知是何原因，请方家告我）、规范化、领域概念和设计的强调，弱化底层语言细节，或者说强调更规范地选择使用语言特性。  
+  
+比较同一作者的《C++ Primer》第四版和第三版、《C++编程规范》和《Modern C++ Design》以及Exceptional C++系列，可以清楚地看到这一点。  
+  
+比如Primer第三版一上来就突出C++的多种编程风格（过程式编程、基于对象编程、面向对象编程、泛型编程），并且以此作为布局谋篇的主线，很容易使初学者晕倒。到了第四版，则更多地把力气花在打好扎实的基础，介绍那些实际开发中通用的、行之有效的编程技术，在特定场合，C++提供的丰富“武器库”中应该选择哪些设施、应该注意哪些问题、业界已经总结了哪些优秀的编程实践和易犯的错误等，成了书中的主干。这使此书成为目前最适合的C++学习和使用的百科全书。  
+  
+与此配套的，当然应属《C++编程规范》，用条款形式说明了C++各种语言设施的正确用法和适用场合。如果你在学习C++的时候，就能结合其中的相关条款，了解所学特性的正确用法，当然是最理想的。而《C++必知必会》则选取了对C++程序员非常重要的知识点，进行一番贴近实际的讨论。  
+  
+C++图书推荐请参见：[C++藏书阁(上)](http://www.google.com/url?sa=t&ct=res&cd=7&url=http%3A%2F%2Fwww.gmw.cn%2F01ds%2F2006-05%2F17%2Fcontent_419522.htm&ei=AfriRv-XF5r6swKFkYCZCg&usg=AFQjCNG_xZMP62_wZUWRl72TYvH6Gy5pAg&sig2=-s_Bn_6PilAJqzeccX2UgA)  
+  
+最后八卦一下，Dmitry Kakurin同学经查应该是一位微软公司的工程师（参考[这里](http://msdn.microsoft.com/msdnmag/issues/03/08/WebQA/)最后的Thanks to），致力于[Git on Windows](http://code.google.com/p/msysgit/)的开发。——但是不许联想啊，免得又引起另外一个门派之争。
+
+* * *
+
+【070909更新】好像是和Linus Torvalds呼应似的，有相当权威性的[TIOBE的编程语言指数](http://www.tiobe.com/index.htm?tiobe_index)最近一期的结果显示，C++下降了两名，落后于(Visual) Basic和PHP，成了老五。而C则稳居第二。
+
+Position  
+Sep 2007
+
+Position  
+Sep 2006
+
+Delta in Position
+
+Programming Language
+
+Ratings  
+Sep 2007
+
+Delta   
+Sep 2006
+
+Status
+
+1
+
+1
+
+![](http://www.tiobe.com/tiobe_index/images/Same.gif)
+
+[Java](http://www.tiobe.com/tiobe_index/Java.html)
+
+21.701%
+
++0.17%
+
+  A
+
+2
+
+2
+
+![](http://www.tiobe.com/tiobe_index/images/Same.gif)
+
+[C](http://www.tiobe.com/tiobe_index/C.html)
+
+14.908%
+
+\-3.15%
+
+  A
+
+3
+
+4
+
+![](http://www.tiobe.com/tiobe_index/images/Up.gif)
+
+[(Visual) Basic](http://www.tiobe.com/tiobe_index/%28Visual%29_Basic.html)
+
+10.748%
+
++0.12%
+
+  A
+
+4
+
+5
+
+![](http://www.tiobe.com/tiobe_index/images/Up.gif)
+
+[PHP](http://www.tiobe.com/tiobe_index/PHP.html)
+
+10.204%
+
++1.08%
+
+  A
+
+5
+
+3
+
+![](http://www.tiobe.com/tiobe_index/images/Down.gif)![](http://www.tiobe.com/tiobe_index/images/Down.gif)
+
+[C++](http://www.tiobe.com/tiobe_index/C__.html)
+
+9.938%
+
+\-0.82%
+
+  A
+
+6
+
+6
+
+![](http://www.tiobe.com/tiobe_index/images/Same.gif)
+
+[Perl](http://www.tiobe.com/tiobe_index/Perl.html)
+
+5.416%
+
+\-0.01%
+
+  A
+
+7
+
+8
+
+![](http://www.tiobe.com/tiobe_index/images/Up.gif)
+
+[C#](http://www.tiobe.com/tiobe_index/C_.html)
+
+3.583%
+
++0.59%
+
+  A
+
+8
+
+7
+
+![](http://www.tiobe.com/tiobe_index/images/Down.gif)
+
+[Python](http://www.tiobe.com/tiobe_index/Python.html)
+
+3.025%
+
+\-0.12%
+
+  A
+
+9
+
+9
+
+![](http://www.tiobe.com/tiobe_index/images/Same.gif)
+
+[JavaScript](http://www.tiobe.com/tiobe_index/JavaScript.html)
+
+2.722%
+
++0.28%
+
+  A
+
+10
+
+13
+
+![](http://www.tiobe.com/tiobe_index/images/Up.gif)![](http://www.tiobe.com/tiobe_index/images/Up.gif)![](http://www.tiobe.com/tiobe_index/images/Up.gif)
+
+[Ruby](http://www.tiobe.com/tiobe_index/Ruby.html)
+
+2.065%
+
++1.13%
+
+  A
+
+* * *
+
+【070910更新】  
+刚才看到，有两位资深同学写了相关的讨论文章，用姜文的话说，属于“有营养”的好文字，大家可以去看看：  
+孟岩：[Linux之父话糙理不糙](http://blog.csdn.net/myan/archive/2007/09/08/1777230.aspx)   
+云风：[C的回归](http://blog.codingnow.com/2007/09/c_vs_cplusplus.html#more)  
+  
+【070910夜更新】  
+今天偶然翻到《Unix编程艺术》一书，其中第4章中[“Compactness”（紧凑性）部分](http://www.faqs.org/docs/artu/ch04s02.html#compactness)里，Eric Raymond写道：  
+  
+“在通用编程语言中，C和Python是半紧凑的；Perl、Java、Emacs Lisp和shell则不是（尤其是真正的shell编程要求你知道半打sed和awk这样的其他工具）。C++是反紧凑的——语言的设计者承认，他并不指望任何一个程序员能够完全理解这一语言。”  
+
+* * *
+
+【070911更新】  
+刚才看到一张[Linux内核开发者峰会照的全家福](http://lwn.net/images/conf/lce2007/ks-annot.jpg)，有历史价值，给大家分享一下。上面有Torvalds（大致在中间）、Andrew Morton（目前的内核主要维护者，第二排右数第二个）、Alan Cox（Linux贡献最大的黑客之一，为《Linux程序设计》写序的老大，两个柱子之间个子不高的大胡子）、Jonathan Corbet（《Linux设备驱动程序》一书的作者，第一排左数第一个）和写书的伙伴Greg Kroah-Hartman（中间的柱子左边）、上面发言的Tso（中间的柱子右边，看[简历](http://thunk.org/tytso/)也是个大牛呢，IBM的）、Olaf Kirch（《Linux网络管理员指南》的作者）等等。有位中国人[Yang Li](http://wiki.zh-kernel.org/intro/li_yang)，飞思卡尔的。[Herbert Xu](http://gondor.apana.org.au/~herbert/)是澳洲的，那个坐在地上的华人女士[Mingming Cao](http://www.linuxsymposium.org/2007/view_bio.php?id=934)是IBM美国的。  
+  
+
+* * *
+
+  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/6837754/22_monotone-logo.png)  
+Monotone也是一个自由的CVS，网站在[这里](http://www.monotone.ca/)。  
+  
+C和C++的比较是一个非常有趣的话题。你怎么看呢？

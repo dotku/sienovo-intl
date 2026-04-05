@@ -1,0 +1,497 @@
+---
+title: "适配器模式和外观模式（强烈推荐）"
+date: "2012-12-30"
+slug: "8452320"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/8452320"
+---
+
+ 
+
+原作链接：[适配器模式和外观模式](http://www.cnblogs.com/goody9807/archive/2011/09/06/2168729.html)  
+  
+
+**适配器模式（Adapter）**
+
+还是先从引入说起，先来看一个问题吧，总所周知，在中国通用的电压时 220V,
+
+而美国电压则是 110V，如果有经常在美国和中国之间跑的 IT 人，而其笔记本都是随身携带的，
+
+那么它的笔记本的电压问题如何解决呢？
+
+（因为在美国和中国电压不同，所以一般的电器会不通用的）
+
+而适配器在这个问题上体现得妙极妙极。
+
+现在的笔记本都有一个电源适配器，而正是这个电源适配器来解决上面提到的适配器问题，
+
+比如，一款索尼笔记本，其输入电流为交流100V~240V，而输出则是统一的直流 19.5V，
+
+在电源适配器的一端输入交流电流，然后通过电源适配器把电源变成需要的电压，
+
+也就是适配器的作用是使得一个东西适合另外一个东西。
+
+**下面来给出适配器模式的定义**
+
+**适配器模式将一个接口转换成另外一个接口，以符合客户的期望。**
+
+主要用于以下情况：
+
+比如现在我有一个旧的软件系统，而其中有一个组件呢，它已经过时了，需要更新，
+
+所以我又有了第三方的组件（新组件），但是旧组件的接口和新组件的接口不同，
+
+同时，您又不想去改变现有的代码（如果系统大的话，或许您改都改不了），
+
+此时呢，就是让适配器模式登场的时刻了，
+
+您可以通过适配器模式将新组件的一些接口转换成为你所期望的接口（也就是和新组件符合），
+
+这样的话，您就无需要改变原来的代码而轻松实现从旧组件更新到新组件了。
+
+然后呢，还有一种比较好的应用就是，比如现在很多在 Windows 上的东西都不能在 Linux 上运行，
+
+比如一个 WINE 的工具，它呢，就允许用户在 Linux 环境下运行 Windows 程序，这也是一种适配器。
+
+其实呢，可以这样来理解适配器模式的，适配器模式就是将一些对象包装起来，
+
+然后让它们的接口看起来是别的接口。
+
+还有需要提及的是：
+
+适配器模式本来是分为了类适配器模式和对象适配器模式，但是由于类适配器模式要以多重继承为前提，
+
+而 C# 呢不支持多重继承，
+
+所以在这里只介绍对象适配器，如果有对类适配器模式感兴趣的话，可以使用 C++ 来实现一下。  
+  
+
+**先来看 Target 类（Target 类代表能够被客户端使用的接口）**
+
+namespace **Adapter**   
+{   
+    public abstract class **Target**   
+    {   
+        //温度   
+        /// <summary>   
+        /// 下面的接口才是可以被客户端所识别的接口，也就是目标接口   
+        /// 而前面在被适配器类中的 中文 却不能被客户端识别，需要被适配   
+        /// </summary>   
+        public abstract void **GetTemperature**();
+
+        //气压   
+        public abstract void **GetPressure**();
+
+        //湿度   
+        public abstract void **GetHumidity**();
+
+        //紫外线强度   
+        public abstract void **GetUltraviolet**();   
+    }   
+}
+
+**再来看需要被适配的类 Adaptee（Adaptee 中的接口由于不能被客户端识别，所以需要被适配）**
+
+using System;
+
+namespace **Adapter**   
+{   
+    class **Adaptee**   
+    {   
+        /// <summary>   
+        /// 在被适配器类中的接口并不是客户端需要的接口   
+        /// 比如这里是使用的中文，而我在客户端却必须要使用英文   
+        /// 所以在这里我必须使用适配器来适配   
+        /// </summary>   
+        public void **得到温度**()   
+        {   
+            Console.WriteLine("您得到了今日的温度");   
+        }
+
+        public void **得到气压**()   
+        {   
+            Console.WriteLine("您得到了今日的气压");   
+        }
+
+        public void **得到湿度**()   
+        {   
+            Console.WriteLine("您得到了今日的湿度");   
+        }
+
+        public void **得到紫外线强度**()   
+        {   
+            Console.WriteLine("您得到了今日的紫外线强度");   
+        }   
+    }   
+}
+
+**然后就要看适配器中的代码部分了（适配器将不能被客户端识别的接口间接转换为可以被识别的接口）**
+
+namespace **Adapter**   
+{   
+    public class **Adapter:Target**     {   
+        //在适配器中必须要维护一个被适配器类的对象   
+        private Adaptee adaptee = **new Adaptee**();
+
+        /// <summary>   
+        /// 通过适配器来适配原来不能被客户端所认识的接口   
+        /// </summary>   
+        public override void **GetTemperature**()   
+        {   
+            adaptee.**得到温度**();   
+        }
+
+        public override void **GetPressure**()   
+        {   
+            adaptee.**得到气压**();   
+        }
+
+        public override void **GetHumidity**()   
+        {   
+            adaptee.**得到湿度**();   
+        }
+
+        public override void **GetUltraviolet**()   
+        {   
+            adaptee.**得到紫外线强度**();   
+        }   
+    }   
+}
+
+**最后再来看客户端就 OK 了**
+
+using System;
+
+namespace **AdapterTest**   
+{   
+    class Program   
+    {   
+        static void Main(string\[\] args)   
+        {   
+            //实例化一个适配器给目标接口   
+            **Adapter.Target** target = **new Adapter.Adapter()**;
+
+            //下面的这些就是客户端可以被识别了接口了
+
+            target.**GetTemperature**();   
+            target.**GetPressure**();   
+            target.**GetHumidity**();   
+            target.**GetUltraviolet**();
+
+            Console.ReadKey();   
+        }   
+    }   
+}
+
+\===================================================================  
+  
+
+**外观模式（Facade）**
+
+还是从《Head First Design Patterns》中的例子说起（我重新整理了那个例子），
+
+例子是这样描述的，说是美国有很多人搞家庭影院（我考虑一种最简单的方式，也就是全部是打开和关闭）,
+
+在家庭影院中，首先必须要有灯 光 ，屏幕，投影机，功放机，DVD 播放器这几个基本的工具，
+
+而灯光呢可以关闭灯光，打开灯光，
+
+投影机呢，可以打开和关闭投影机，
+
+屏幕呢，也可以打开和关闭，
+
+功放机的话，关闭音量，打开音量，
+
+DVD 播放器的话可以打开播放器和关闭播放器。
+
+  
+
+然后我要打开看电影的话，我必须在客户端执行下面的操作，
+
+先打开投影仪，再打开功放机，再打开屏幕，再打开 DVD 播放机，再打开灯光，
+
+在经历了这么多操作后，您才可以看一场电影（看得多不爽啊，居然这么多操作，太复杂了），
+
+而后在关闭的时候，你还是要先关闭投影仪，再关闭功放机，再关闭屏幕，再关闭 DVD 播放机，再关闭灯光，
+
+哦，这是太复杂了！！！
+
+在客户端居然有那么多操作（问题是还有一些用户可能不知道如何使用其中的一个工具那他便看不了电影），
+
+用户简直会烦死去！！！
+
+上面其实反映的是一个现今软件开发系统中的一个比较常见的现象，
+
+**那就是客户端程序经常和复杂系统的内部子系统产生直接联系，而导致客户程序随着子系统的变化而变化。**
+
+而上面的例子中呢，客户端程序便是用户的操作，而复杂系统的内部子系统代表的就是这些工具的一些使用接口。
+
+上面的例子中我还只是使用了最简单的工具操作接口，即简单的打开和关闭，
+
+如果在子系统，即各个工具中还有新的功能的话呢？
+
+那么必然会导致客户端代码得变化。
+
+要想解决上面的这一串问题，
+
+你必须要简化客户程序与子系统之间的交互接口（要使得不会使用所有工具的用户也可以实现观看电影），
+
+然后就是要解除客户程序和子系统之间的耦合，而外观模式正好可以解决这个问题。
+
+  
+
+**外观模式（Facade）的定义**
+
+**为子系统中的一组接口提供一个一致的界面，用来访问子系统中的一群接口，**
+
+**此模式定义了一个高层的接口，这个接口使得这一子系统更加容易使用。**
+
+**简单的说，就是外观模式将一个或者多个类的复杂的操作进行了隐藏，只显示出一个一致的界面供客户端使用。**
+
+**还有需要注意的是，外观模式仅仅是给你提供了更为直接和容易的操作方式，它并没有把原来的子系统进行隔离，**
+
+**所以，如果你还需要子系统类的更高层的功能，还是可以使用原来的子系统的，这个是外观模式的一大优点。**
+
+**同时，通过外观模式可以子系统的多个接口上建立一个高层接口，并且将这个高层接口提供给客户端使用，**
+
+**这样便可以解除掉客户端和复杂子系统之间的耦合。**
+
+**同时，外观模式也可以使我们遵循迪米特法则（也就是最小知识原则）。**
+
+  
+
+**下面就先来看几个播放工具的代码吧**
+
+using System;
+
+namespace **Facade**   
+{   
+    /// <summary>   
+    /// 投影仪   
+    /// </summary>   
+    public class **Projector**   
+    {   
+        public void **OpenProjector**()   
+        {   
+            Console.WriteLine("打开投影仪");   
+        }
+
+        public void **CloseProjector**()   
+        {   
+            Console.WriteLine("关闭投影仪");   
+        }
+
+        public void **SetWideScreen**()   
+        {   
+            Console.WriteLine("投影仪状态为宽屏模式");   
+        }
+
+        public void **SetStandardScreen**()   
+        {   
+            Console.WriteLine("投影仪状态为标准模式");   
+        }   
+    }   
+}
+
+using System;
+
+namespace **Facade**   
+{   
+    /// <summary>   
+    /// 功放机   
+    /// </summary>   
+    public class **Amplifier**   
+    {   
+        public void **OpenAmplifier**()   
+        {   
+            Console.WriteLine("打开功放机");   
+        }
+
+        public void **CloseAmplifier**()   
+        {   
+            Console.WriteLine("关闭功放机");   
+        }   
+    }   
+}
+
+using System;
+
+namespace **Facade**   
+{   
+    /// <summary>   
+    /// 屏幕   
+    /// </summary>   
+    public class **Screen**   
+    {   
+        public void **OpenScreen**()   
+        {   
+            Console.WriteLine("打开屏幕");   
+        }
+
+        public void **CloseScreen**()   
+        {   
+            Console.WriteLine("关闭屏幕");   
+        }   
+    }   
+}
+
+using System;
+
+namespace **Facade**   
+{   
+    /// <summary>   
+    /// DVD播放器   
+    /// </summary>   
+    public class **DVDPlayer**   
+    {   
+        public void **OpenDVDPlayer**()   
+        {   
+            Console.WriteLine("打开 DVD 播放器");   
+        }
+
+        public void **CloseDVDPlayer**()   
+        {   
+            Console.WriteLine("关闭 DVD 播放器");   
+        }   
+    }   
+}
+
+using System;
+
+namespace **Facade**   
+{   
+    /// <summary>   
+    /// 灯光   
+    /// </summary>   
+    public class **Light**   
+    {   
+        public void **OpenLight**()   
+        {   
+            Console.WriteLine("打开灯光");   
+        }
+
+        public void **CloseLight**()   
+        {   
+            Console.WriteLine("关闭灯光");   
+        }   
+    }   
+}
+
+**下面再贴出外观类中的代**码****
+
+namespace **Facade**   
+{   
+    /// <summary>   
+    /// 定义一个外观   
+    /// </summary>   
+    public class **MovieFacade**   
+    {   
+        /// <summary>   
+        /// 在外观类中必须保存有子系统中各个对象   
+        /// </summary>   
+        private **Projector** projector;   
+        private **Amplifier** amplifier;   
+        private **Screen** screen;   
+        private **DVDPlayer** dvdPlayer;   
+        private **Light** light;
+
+        public MovieFacade()   
+        {   
+            projector = new Projector();   
+            amplifier = new Amplifier();   
+            screen = new Screen();   
+            dvdPlayer = new DVDPlayer();   
+            light = new Light();   
+        }
+
+        /// <summary>   
+        /// 打开电影   
+        /// </summary>   
+        public void **OpenMovie**()   
+        {   
+            //先打开投影仪   
+            projector.OpenProjector();   
+            //再打开功放   
+            amplifier.OpenAmplifier();   
+            //再打开屏幕   
+            screen.OpenScreen();   
+            //再打开 DVD   
+            dvdPlayer.OpenDVDPlayer();   
+            //再打开灯光   
+            light.OpenLight();   
+        }
+
+        /// <summary>   
+        /// 关闭电影   
+        /// </summary>   
+        public void **CloseMovie**()   
+        {   
+            //关闭投影仪   
+            projector.CloseProjector();   
+            //关闭功放   
+            amplifier.CloseAmplifier();   
+            //关闭屏幕   
+            screen.CloseScreen();   
+            //关闭 DVD   
+            dvdPlayer.CloseDVDPlayer();   
+            //关闭灯光   
+            light.CloseLight();   
+        }   
+    }   
+}
+
+**最后贴出客户端代码**
+
+using System;
+
+namespace **FacadeTest**   
+{   
+    class Program   
+    {   
+        static void Main(string\[\] args)   
+        {   
+            Facade.MovieFacade **movie** = **new Facade.MovieFacade()**;   
+            Facade.Projector **projector** = **new Facade.Projector()**;
+
+            //首先是观看电影   
+            movie.OpenMovie();
+
+            Console.WriteLine();
+
+            //然后是将投影仪模式调到宽屏模式   
+            projector.SetWideScreen();   
+           //再将投影仪模式调回普通模式   
+            projector.SetStandardScreen();   
+            Console.WriteLine();
+
+            //最后就是关闭电影了   
+            movie.CloseMovie();
+
+            Console.ReadKey();   
+        }   
+    }   
+}
+
+  
+
+从上面的截图可以看出，我还是可以在客户端中使用子系统中的内容，即外观模式并没有把子系统和客户端隔离开来，
+
+其只是提供了整洁的接口给客户端，但是，如果客户端想访问复杂子系统中的接口时还是一样的可以访问的，
+
+比如在上面的 Demo 中就访问了子系统中的投影仪，并且设置了宽屏和普通等模式。
+
+从上面的 Demo 中也可以清晰地看出，
+
+外观模式可以提供一个简洁的外观接口来实现将一个复杂的子系统变得容易使用。
+
+同时，在客户端还是可以访问原来子系统中的复杂的接口的。
+
+好了，外观模式的介绍就到这里了。
+
+**下面将要介绍的是装饰者模式，适配器模式，外观模式三者之间的区别：**
+
+装饰者模式的话，它并不会改变接口，而是将一个一个的接口进行装饰，也就是添加新的功能。
+
+适配器模式是将一个接口通过适配来间接转换为另一个接口。
+
+外观模式的话，其主要是提供一个整洁的一致的接口给客户端。

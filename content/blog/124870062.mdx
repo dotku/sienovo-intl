@@ -1,0 +1,119 @@
+---
+title: "瑞芯微RK3399/RK3568+FPGA硬件加速设计方案"
+date: "2022-07-05"
+slug: "124870062"
+tags: ["#tensorflow", "#人工智能", "#FPGA", "#PCIE", "#RK3399"]
+source: "https://blog.csdn.net/yeyuangen/article/details/124870062"
+---
+
+ 
+
+瑞芯微RK3399/RK3568+FPGA硬件加速设计方案。RK3399通过MIPI接口/PCIE实现与FPGA的对接。信迈科技拥有成熟的方案。
+
+FPGA支持ZYNQ/A7/K7等，亦支持国产的安路、高云。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/124870062/01_35618cc0e987bf39afc940be958701a9.jpeg)
+
+首先我们了解下 android系统常用的图像识别框架
+
+一：调用一些不开源库进行识别
+
+旷视的图像识别及 OCR 文字识别库，及其他厂家如阿里，百度，华为，腾讯的 OCR 文字识别库等。
+
+二：调用一些开源库进行识别
+
+一）： tensorflow 训练自定义图像并识别
+
+1\. 是先在 ubuntu 上对很多图片进行训练得到自己的类别模型文件， xxx.pb 文件及 xxx\_labels.txt 文件
+
+2\. 把上一步生成的文件放到 Android studio （ AS ）工程里
+
+3.AS 添加 tensorflow 依赖
+
+4\. 在 tensorflow 给的 android 工程上做改动，写出自己的工程
+
+5\. 运行工程开始识别。
+
+要在 android 上使用 tensorflow ，官方提供两种方式工程：
+
+一） tensorflow for mobile, 成熟，功能方法多
+
+只需配置 buildgradle, 调用 tensorflow 相关接口进行识别
+
+2) tensorflow lite. 轻量，允许设备端的机器学习模型的低延迟推断
+
+下载移动端的模型 model 和标签 labels 文件并解压到 assert 下，导入 tensorflow 项目，调用 tensorflow 相关接口进行识别
+
+注意此种方法不能直接使用 tensorflow 的模型，需要对模型进行转换。
+
+二）： opencv 训练自定义图像并识别
+
+1\. 配置 AS 中 opencv 的环境，下载并配置 opencv 的 sdk
+
+2\. 在 windows 上用 opencv 工具训练自定义图像数据集
+
+3\. 将训练好的数据集加载到 AS
+
+4\. 编写自己的 android 工程
+
+5\. 运行 android 工程进行识别
+
+三）： tensorflow 训练自定义图像，实时处理 openCV 获取的摄像头图像（ openCV 对图像进行分割）并识别（ https://blog.csdn.net/qq\_33200967/article/details/82773677 ）
+
+此方法与单独使用 tensorflow 的区别是使用了 opencv 中的图像分割，将所有分割物体进行识别
+
+四）其他：
+
+另外有些开源的图像识别方法， Tesseract （支持 OCR 文字识别）等，可以将其加入 android 并进行识别。
+
+OK3399-C 平台 android 系统的图像识别实现
+
+OK3399 的 android 图像识别实现是使用 tensorflow 在 ubuntu 上训练自定义图像，用 tensorflow lite 在 android 上进行的识别，识别部分使用了 rk3399 内部的 mali400 gpu 。
+
+关于模型
+
+首先，我们有训练好的 tensorflow 模型文件： xxx.pb 。
+
+其次，将模型文件进行转换，先转换成 tensorflow lite 支持的 xxx.tflite 模型文件，然后转换成 rk3399 的 SSD （ Single Shot MultiBox Detector ）支持的 xxx.rkl 模型文件。
+
+然后，把此转换后的模型文件加入 android 工程。
+
+此 android 例程的基本实现为：
+
+打开 camera 的预览，同时创建一个跟踪线程。跟踪线程不断的检测是否有可用的图片，一旦有可用图片就调用识别 api 进行识别，识别函数会返回识别目标的位置及类型，然后得到 物体在图片中的范围，并绘制出来。
+
+此例程除 java 实现的部分外，还涉及到三个库： librkssd4j.so ， librga.so 和 librkssd.so 。
+
+以下是三个库的介绍。
+
+librkssd4j.so
+
+调用说明：由 android 例程直接调用的库。
+
+源码位置： rk\_ssd\_demo\_rk3399\\app\\src\\main\\cpp
+
+作用：调用 librga.so 对于图像进行格式转换或翻转及压缩，然后调用 librkssd.so 进行识别。
+
+librga.so
+
+调用说明：被 librkssd4j.so 加载
+
+源码位置： OK3399-android7-source/hardware/rockchip/librga/
+
+作用：用来判断平台是否支持 rga ，及做 yuv 转 rgb 处理， rga 主要对图片数据进行一些格式转换，翻转，缩放等运算。
+
+librkssd.so
+
+作用：对图片进行识别。其使用了 rk3399 内部的 Mali400 gpu 。
+
+以下为运行效果：
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/124870062/02_8e6e97547ca33e6e1b119ddcf17d65b3.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/124870062/03_cb7d3758017183dd4cc4847ff52236c1.jpeg)
+
+ ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/124870062/04_b292cadabcf42f8d730be1926c918b66.jpeg)
+
+参考资料：
+
+瑞芯微原厂资料 RKDocs/rk3399/ RK3399\_SSD\_Android& Linux\_V1.0\_20180522.pdf

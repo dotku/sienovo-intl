@@ -1,0 +1,95 @@
+---
+title: "const int *p,const * int p,int const *p"
+date: "2012-11-01"
+slug: "8138580"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/8138580"
+---
+
+ 
+
+从微软的一道面试题谈起
+
+  
+
+5.What is the output of the follow code ?
+
+voidmain(int argc, char\* argv\[\]) {
+
+int i = 11;
+
+int const \*p = &i;
+
+p++;
+
+print(“%d”,\*p);
+
+}
+
+A. 11 B. 12 C.Garbage value D. Comipler error E. None of above
+
+Choose:C
+
+  
+
+#### const int \*p,const \* int p,int const \*p
+
+1 从const int i 说起  
+有了const修饰的ic 我们不称它为变量，而称符号常量，代表着20这个数。这就是const 的作用。ic是不能在它处重新赋新值了。  
+认识了const 作用之后，另外，我们还要知道格式的写法。有两种：const int ic=20;与int const ic=20;。它们是完全相同的。这一点我们是要清楚。总之，你务必要记住const 与int哪个写前都不影响语义。有了这个概念后，我们来看这两个家伙：const int \* pi与int const \* pi ，按你的逻辑看，它们的语义有不同吗？呵呵，你只要记住一点，int 与const 哪个放前哪个放后都是一样的，就好比const int ic;与int const ic;一样。也就是说，它们是相同的。  
+好了，我们现在已经搞定一个“双包胎”的问题。那么int \* const pi与前两个式子又有什么不同呢？我下面就来具体分析它们的格式与语义吧！
+
+2 const int \* pi的语义  
+我先来说说const int \* pi是什么作用。看下面的例子：  
+int i1=30;  
+int i2=40;  
+const int \* pi=&i1;  
+pi=&i2; //4.注意这里，pi可以在任意时候重新赋值一个新内存地址  
+i2=80; //5.想想看：这里能用\*pi=80;来代替吗？当然不能  
+printf( “%d”, \*pi ) ; //6.输出是80
+
+语义分析：  
+看出来了没有啊，pi的值是可以被修改的。即它可以重新指向另一个地址的，但是，不能通过\*pi来修改i2的值。这个规则符合我们前面所讲的逻辑吗？当然符合了！  
+首先const 修饰的是整个\*pi（注意，我写的是\*pi而不是pi）。所以\*pi是常量，是不能被赋值的（虽然pi所指的i2是变量，不是常量）。  
+其次，pi前并没有用const 修饰，所以pi是指针变量，能被赋值重新指向另一内存地址的。你可能会疑问：那我又如何用const 来修饰pi呢？其实，你注意到int \* const pi中const 的位置就大概可以明白了。请记住，通过格式看语义。
+
+3 再看int \* const pi  
+确实，int \* const pi与前面的int const \* pi会很容易给混淆的。注意：前面一句的const 是写在pi前和\*号后的，而不是写在\*pi前的。很显然，它是修饰限定pi的。我先让你看例子：  
+int i1=30;  
+int i2=40;  
+int \* const pi=&i1;  
+//pi=&i2; 4.注意这里，pi不能再这样重新赋值了，即不能再指向另一个新地址。  
+//所以我已经注释了它。  
+i1=80; //5.想想看：这里能用\*pi=80;来代替吗？可以，这里可以通过\*pi修改i1的值。  
+//请自行与前面一个例子比较。  
+printf( “%d”, \*pi ) ; //6.输出是80
+
+语义分析：  
+看了这段代码，你明白了什么？有没有发现pi值是不能重新赋值修改了。它只能永远指向初始化时的内存地址了。相反，这次你可以通过\*pi来修改i1的值了。与前一个例子对照一下吧！看以下的两点分析  
+1). pi因为有了const 的修饰，所以只是一个指针常量：也就是说pi值是不可修改的（即pi不可以重新指向i2这个变量了）(看第4行)。  
+2). 整个\*pi的前面没有const 的修饰。也就是说，\*pi是变量而不是常量，所以我们可以通过\*pi来修改它所指内存i1的值（看5行的注释）  
+总之一句话，这次的pi是一个指向int变量类型数据的指针常量。
+
+我最后总结两句：  
+1).如果const 修饰在\*pi前则不能改的是\*pi而不是指pi。  
+2).如果const 是直接写在pi前则pi不能改。
+
+3.补充三种情况。  
+这里，我再补充以下三种情况。其实只要上面的语义搞清楚了，这三种情况也就已经被包含了。不过作为三种具体的形式，我还是简单提一下吧！
+
+情况一：int \* pi指针指向const int i常量的情况  
+const int i1=40;  
+int \*pi;  
+pi=&i1;//这样可以吗？不行，VC下是编译错。  
+//const int 类型的i1的地址是不能赋值给指向int 类型地址的指针pi的。否则pi岂不是能修改i1的值了吗！  
+pi=(int\* ) &i1;　　//　这样可以吗？强制类型转换可是C所支持的。  
+//VC下编译通过，但是仍不能通过\*pi=80来修改i1的值。去试试吧！看看具体的怎样。
+
+情况二：const int \* pi指针指向const int i1的情况  
+const int i1=40;  
+const int \* pi;  
+pi=&i1;//两个类型相同，可以这样赋值。很显然，i1的值无论是通过pi还是i1都不能修改的。
+
+情况三：用const int \* const pi申明的指针  
+int i  
+const int \* const pi=&i;//你能想象pi能够作什么操作吗？pi值不能改，也不能通过pi修改i的值。因为不管是\*pi还是pi都是const的。

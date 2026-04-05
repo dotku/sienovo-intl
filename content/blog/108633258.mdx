@@ -1,0 +1,110 @@
+---
+title: "AM5728 Opencv4.4成功移植经验分享之二：如何运行例程"
+date: "2020-09-17"
+slug: "108633258"
+tags: ["#AM5728", "#OPENCV4.4.", "#例程", "#三维图像", "#开发板"]
+source: "https://blog.csdn.net/yeyuangen/article/details/108633258"
+---
+
+ 
+
+本次移植采用的是信迈AM5728 IDK开发板。公司项目用于电力工况环境监测，需要用到高清图像。项目基于AM5728 + Lattice FPGA。
+
+Opencv4.4支持三维图像分析，而TI SDK自带的opencv3.1只能支持二维图像。
+
+一．依赖 先安装SDK 里边包含有交叉编译工具。
+
+SDK  安装目录 ，默认安装，如有选择的地方全选择。：
+
+./ti-processor-sdk-linux-am57xx-evm-03.01.00.06.bin
+
+二．
+
+1.新建工具demo
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108633258/01_f1f827042308a0a0ca3d6b84ffa48f11.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108633258/02_2c0e404751dc89855f4e44de289e07fe.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108633258/03_63b07bc179ba2a2171543f404b0e8870.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108633258/04_e3dd57960b0fd7940f05d33bc43827fb.png)
+
+arm-linux\-gnueabihf-
+
+/home/mxtech/ti-processor-sdk-linux-am57xx-evm-03.01.00.06/linux-devkit/sysroots/x86\_64-arago-linux/usr/bin
+
+Finish
+
+输入代码
+
+ ****#include****<opencv2/core.hpp>
+
+ ****#include****<opencv2/imgcodecs.hpp>
+
+ ****#include****<opencv2/imgproc.hpp>
+
+ ****using**** ****namespace**** cv;
+
+****int**** ****main****() {
+
+Mat pic;
+
+pic=****imread****("1.jpg");
+
+Mat gray;
+
+****cvtColor****(pic,gray,__COLOR\_BGR2GRAY__);
+
+****imwrite****("gray.png",gray);
+
+****return**** 0;
+
+}
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108633258/05_b015b50804862486062f858f6b718419.png)
+
+2.在配置include 项目上右键 选择Properties并设置如图选项
+
+Ok
+
+说明：  
+①/home/mxtech/ti/opencv-4.4.0/build/install/是交叉编译执行make install后存放可执行文件的目录，也就我们提供的文件压缩包  
+②/home/mxtech/ti/opencv-4.4.0/build/install/include/opencv4 对应代码"#include<opencv2/core.hpp>"  
+,因为我的opencv4的下一级目录是opencv2，opencv2里面存放的是头文件。
+
+3.在配置lib项目上右键 选择Properties并设置如图选项
+
+4.添加C++11新特性
+
+Project->Properties->C/C++ Build\->Settings->GCC G++ Compiler->Miscellaneous->Other flags 将-c -fmessage-length=0 改为 -c -fmessage-length=0 -std=c++11
+
+5\. 项目Clean然后Build
+
+Clean 是为了防止你中途没有配置完Properties就Build项目:
+
+说明：Building file是原始我们的ｃｐｐ文件，Building target指的是编译ｃｐｐ文件生成的可执行文件。
+
+6.导出可执行文件和so文件并执行
+
+opencv4-example-gray可执行文件存放在生成的Debug目录下：
+
+so文件就是我们刚刚指定的libraries依赖的path路径下的so文件 :
+
+复制opencv4-example-gray可执行文件以及Exam.cpp程序所需的一张图片到arm平台的一个目录下，这里用到的图片名称为1.jpg
+
+复制so文件到arm平台的/lib文件夹下。
+
+进入opencv4-example-gray可执行文件和图片所在的目录，执行命令，就会生成一张gray.png图片：
+
+./opencv4-example-gray
+
+查看依赖库存
+
+arm-linux-gnueabihf-readelf -a opencv4-example-gray  |  grep "Shared library:"
+
+电脑上显示 图片
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108633258/06_5a2a5dcb8f9a5d4b272d0f95102a7711.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108633258/07_1ce06d7a215e401f6e7247df957c200d.png)

@@ -1,0 +1,152 @@
+---
+title: "Linux原子操作的分析"
+date: "2012-03-14"
+slug: "7351451"
+tags: ["#linux", "#assembly", "#compiler", "#struct", "#汇编", "#integer"]
+source: "https://blog.csdn.net/yeyuangen/article/details/7351451"
+---
+
+ 
+
+## Linux 原子操作的分析  
+
+作者：卢冉   （转载请注明出处）  
+
+本文针对Linux提供的原子操作函数 atomic\_dec\_and\_test 做了详细的实例分析，解释了其原子性的本质意义。并对 volatile 产生的误解做了解释。
+
+### 1.   atomic\_dec\_and\_test 分析
+
+（ 1 ）先来看 atomic\_dec\_and\_test 的定义：
+
+11 #ifdef CONFIG\_SMP
+
+12 #define LOCK "lock ; "
+
+13 #else
+
+14 #define LOCK ""
+
+15 #endif
+
+137 static \_\_inline\_\_ int atomic\_dec\_and\_test(atomic\_t \_ v)
+
+138 {
+
+139 unsigned char c;
+
+140
+
+141 \_\_asm\_\_ \_\_volatile\_\_(
+
+142 LOCK "decl %0; sete %1"
+
+143 :"=m" (v->counter), "=qm" (c)
+
+144 :"m" (v->counter) : "memory");
+
+145 return c ! = 0;
+
+146 }
+
+11–15 this macro is used in the inline assembly part of some of the functions that follow. It means that
+
+the LOCK macro can always be used. But sometimes (the SMP case) it invokes the machine
+
+instruction to lock the bus; other times it has no effect.
+
+142 the SETE instruction sets parameter 1 (the unsigned char c) to 1 if the zero bit is set in
+
+EFLAGS (i.e. if the result of the subtraction was 0).
+
+143 parameter 0 (the counter field) is write only ("=") and may be in memory ("m"). Parameter 1
+
+is the unsigned char c declared on line 139. It may be in a general purpose register, or in
+
+memory ("=qm").
+
+144 parameter 2 is the input parameter i; it is expected as an immediate integer operand and may be
+
+in a general register ("ir") . Parameter 3 is the other input, the value in (v- . counter)
+
+beforehand. The "memory" operand constraint tells the compiler that memory will be modified
+
+in an unpredictable manner, so it will not keep memory values cached in registers across the
+
+group of assembler instructions.
+
+145 if the result of the decrement was 0, then c was set to 1 on line 142. In that case, c ! = 0 is TRUE.
+
+Otherwise, c was set to 0, and c ! = 0 is FALSE.
+
+在 uniprocessor 情况下， LOCK 被扩展为空，比如说：当 decl %0 执行完之后，如果此时发生了中断，那么我认为这个时候就有可能导致系统的不一致。那么在单处理机上怎么样来保证原子操作的真正的实现？
+
+解释如下 , 首先说一点 , 任何一条汇编指令都是在一个不可分割的指令周期内完成的 , 也就是说 , 只有在指令周期内的最后一个点才会查询是否有中断发生了。现在说说 LOCK 的作用 , 首先想一想 , 因为任何的操作都在 cpu 的内部进行完成 , 所以如果想对变量 v 进行操作的话 , 那么在一个 inc 指令周期内 , 实际上 cpu 还是需要从内存总读出 v 的数值 , 然后对 v 处理之后 , 再写回到内存中去 . 这里需要注意的一个问题就是 inc 指令周期中 , 实际上发生了多次的对内存的进行访问 , 而这些对内存进行的访问实际上在地址总线上并不是原子操作的 , 也就是说 . 如果存在多个 cpu 的话 , 那么另外的 cpu 完全可以在该 inc 读出 v 的数值之后 , 另外的 cpu 这个时候就可以占用地址总线 , 从中读出 v 的数值 , 而这个时候 , 当前的 cpu 当修改 v 的数值之后 , 再回写到内存中 ,这个时候实际上就已经导致了内存的不一致的问题 . 因为另外的 cpu 的数值和真实的数值已经是不一样了。而 LOCK 的作用就是使一个指令 , 例如 incl 这样的操作在地址总线上也是原子操作的 . 也就是这个指令会一直的站用着地址总线 , 直到把 v 的数值写到内存中 . 而当地址总线锁定的时候 , 别的 cpu 压根就不能访问 cpu. 所以这样就从总线的站用上保证了原子 .  
+  
+
+在 decl 和 sete 之间确实是可以被中断的 . 但是需要清楚的是 . 该条指令只是说本次操作的结果是不是 1, 而不是用来说变量 v 的数值是不是 0. 如果你需要根据该数值进行一些操作的话 , 那么该函数的结果并不代表当前的变量 v 的真实的数值。
+
+(2) 实例分析如下：
+
+**Function:** mmdrop() _(include/linux/sched.h)_
+
+765 static inline void mmdrop(struct mm\_struct \* mm)
+
+766 {
+
+767 if (atomic\_dec\_and\_test(&mm->mm\_count))
+
+768 \_\_mmdrop(mm);
+
+769 }
+
+运行 mmdrop 的时候 decl 指令将 (&mm->count)->counter 的值由 2 减为 1 ，非零， EFLAG 为 0 。此时中断产生，保存上下文（ CPU  寄存器 状态被保存在栈中 ,etc ），中断处理程序调 mmdrop ， decl 指令将 (&mm->count)->counter 的值由1 减为 0 ， EFLAG 为 0 ， atomic\_dec\_and\_test 返回值为 1 ，所以 \_\_mmdrop 被调用 mm 被释放。中断返回，恢复中断上下文（被中断时的寄存器状态从栈中弹出， etc ）调用 sete 赋值 c=0 ， atomic\_dec\_and\_test 返回值为 0 ，所以mmdrop 不会被调用。
+
+(3) 总结：
+
+这儿的原子操作只保证 decl 执行的原子性，不能保证整个原子操作函数执行的原子性。这个函数的意义就是在保证对操作数加 1后检查其结果是否为 0 （检查且仅检查加 1 操作后的值） , 那么按照这样的思路，不管后面是否有中断改变这个值，跟这里的检测是没有任何逻辑上的关系的，所以其调用者得到的结果还是正确的。
+
+### 2.   volatile 分析
+
+用 volatile 关键字声明的变量 i 每一次被访问时，执行部件都会从 i 相应的内存单元中取出 i 的值。
+
+例如：
+
+volatile i;
+
+int main()
+
+{
+
+    i = 8;
+
+    printf("%d", i);
+
+    printf("%d", i);
+
+    return 0;
+
+}
+
+反汇编：
+
+804837e:       a1 90 95 04 08         mov    0x8049590,%eax  ；将变量值从内存取出到寄存器中
+
+  8048383:      50                   push    %eax               ；压栈此值作为 printf 的第二个参数
+
+  8048384:      68 84 84 04 08       push   $0x8048484             ；压 栈 格式串的起始地址
+
+  8048389:      e8 22 ff ff ff            call   80482b0 <printf@plt> ；调用 printf
+
+  804838e:       58                  pop    %eax
+
+  804838f:       5a                  pop    %edx
+
+8048390:      a1 90 95 04 08         mov    0x8049590,%eax    ；将变量值从内存取出到寄存器中
+
+  8048395:      50                  push   %eax               ；压栈此值作为 printf 的第二个参数
+
+  8048396:      68 84 84 04 08       push   $0x8048484
+
+  804839b:      e8 10 ff ff ff            call   80482b0 <printf@plt>
+
+可知， volatile 只能保证每次使用此变量之前都去内存取，可能刚刚执行 mov 取出来变量值为 8 ，还没有使用便产生中断，内存中的此变量被中断例程修改为 9 ，中断返回， push 继续压入中断产生前的变量值 8 。因此，volatile 只能尽量早的让使用者得知变量的更新值，并无法保证

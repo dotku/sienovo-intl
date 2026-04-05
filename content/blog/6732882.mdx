@@ -1,0 +1,360 @@
+---
+title: "深入UNIX编程:一个简单聊天室的两种实现 (fcntl 和 select)-"
+date: "2011-08-30"
+slug: "6732882"
+tags: ["#聊天", "#unix", "#编程", "#server", "#socket", "#null"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6732882"
+---
+
+ 
+
+在互联网相当普及的今天，在互联网上聊天对很多“网虫”来说已经是家常便饭了。聊天室程序可以说是网上最简单的多点通信程序。聊天室的实现方法有很多，但都是利用所谓的“多用户空间”来对信息进行交换，具有典型的多路I/O的架构。一个简单的聊天室, 从程序员的观点来看就是在多个I/O端点之间实现多对多的通信。其架构如图一所示。这样的实现在用户的眼里就是聊天室内任何一个人输入一段字符之后,其他用户都可以得到这一句话。这种“多用户空间”的架构在其他多点通信程序中应用的非常广泛，其核心就是多路I/O通信。多路I/O通信又被称为I/O多路复用（I/O Multiplexing）一般被使用在以下的场合：  
+  
+    客户程序需要同时处理交互式的输入和同服务器之间的网络连接时需要处理I/O多路复用问题；  
+  
+    客户端需要同时对多个网络连接作出反应（这种情况很少见）；  
+  
+    TCP服务器需要同时处理处于监听状态和多个连接状态的socket；  
+  
+    服务器需要处理多个网络协议的socket;  
+  
+    服务器需要同时处理不同的网络服务和协议。   
+  
+    聊天室所需要面对的情况正是第一和第三两种情况。我们将通过在TCP/IP协议之上建立一个功能简单的聊天室让大家更加了解多路I/O以及它的实现方法。 我们要讨论的聊天室功能非常简单, 感兴趣的朋友可以将其功能扩展, 发展成一个功能比较完整的聊天室, 如加上用户认证, 用户昵称, 秘密信息, semote 等功能. 首先它是一个 client/server 结构的程序, 首先启动 server, 然后用户使用 client 进行连接. client/server 结构的优点是速度快, 缺点是当 server 进行更新时, client 也必需更新.  
+
+网络初始化 
+
+  
+    首先是初始化 server, 使server 进入监听状态: (为了简洁起见,以下引用的程序与实际程序略有出入, 下同)  
+  
+sockfd = socket( AF\_INET,SOCK\_STREAM, 0);  
+  
+// 首先建立一个 socket, 族为 AF\_INET, 类型为 SOCK\_STREAM.  
+  
+// AF\_INET = ARPA Internet protocols 即使用 TCP/IP 协议族  
+  
+// SOCK\_STREAM 类型提供了顺序的, 可靠的, 基于字节流的全双工连接.  
+  
+// 由于该协议族中只有一个协议, 因此第三个参数为 0  
+  
+  
+bind( sockfd, ( struct sockaddr \*)&serv\_addr, sizeof( serv\_addr));  
+  
+// 再将这个 socket 与某个地址进行绑定.  
+  
+// serv\_addr 包括 sin\_family = AF\_INET 协议族同 socket  
+  
+// sin\_addr.s\_addr = htonl( INADDR\_ANY) server 所接受的所有其他  
+  
+// 地址请求建立的连接.  
+  
+// sin\_port = htons( SERV\_TCP\_PORT) server 所监听的端口  
+  
+// 在本程序中, server 的 IP和监听的端口都存放在 config 文件中.  
+  
+  
+listen( sockfd, MAX\_CLIENT);  
+  
+// 地址绑定之后, server 进入监听状态.  
+  
+// MAX\_CLIENT 是可以同时建立连接的 client 总数.  
+  
+server 进入 listen 状态后, 等待 client 建立连接。  
+  
+  
+Client端要建立连接首先也需要初始化连接：  
+  
+sockfd = socket( AF\_INET,SOCK\_STREAM,0));  
+  
+// 同样的, client 也先建立一个 socket, 其参数与 server 相同.  
+  
+  
+connect( sockfd, ( struct sockaddr \*)&serv\_addr, sizeof( serv\_addr));  
+  
+// client 使用 connect 建立一个连接.  
+  
+// serv\_addr 中的变量分别设置为:  
+  
+// sin\_family = AF\_INET 协议族同 socket  
+  
+// sin\_addr.s\_addr = inet\_addr( SERV\_HOST\_ADDR) 地址为 server  
+  
+// 所在的计算机的地址.  
+  
+// sin\_port = htons( SERV\_TCP\_PORT) 端口为 server 监听的端口.  
+
+  
+当 client 建立新连接的请求被送到Server端时, server 使用 accept 来接受该连接:  
+  
+accept( sockfd, (struct sockaddr\*)&cli\_addr, &cli\_len);  
+  
+// 在函数返回时, cli\_addr 中保留的是该连接对方的信息  
+  
+// 包括对方的 IP 地址和对方使用的端口.  
+  
+// accept 返回一个新的文件描述符.   
+
+  
+    在 server 进入 listen 状态之后, 由于已有多个用户在线，所以程序需要同时对这些用户进行操作，并在它们之间实现信息交换。这在实现上称为I/O多路复用技术。多路复用一般有以下几种方法：   
+  
+    非阻塞通信方法：将文件管道通过fcntl()设为非阻塞通信方式，每隔一端时间对他们实行一次轮询，以判断是否可以进行读写操作。这种方式的缺点是费用太高，大部分资源浪费在轮询上。   
+  
+    子进程方法：应用多个子进程，每一个对一个单工阻塞方式通信。所有子进程通过IPC和父进程进行通信。父进程掌管所有信息。这种方式的缺点是实现复杂，而且由于IPC在各个操作系统平台上并不完全一致，会导致可移植性降低。   
+  
+    信号驱动（SIGIO）的异步I/O方法：首先，异步I/O是基于信号机制的，并不可靠。其次单一的信号不足以提供更多的信息来源。还是需要辅助以其他的手段，实现上有很高的难度。   
+  
+    **select ()方法**：在BSD中提供了一种可以对多路I/O进行阻塞式查询的方法——select()。它提供同时对多个I/O描述符进行阻塞式查询的方法，利用它，我们可以很方便的实现多路复用。根据统一UNIX规范的协议,POSIX也采用了这种方法，因此，我们可以在大多数操作系统中使用select方法。   
+  
+    使用专门的I/O多路复用器：在“UNIX? SYSTEM V Programmer's Guide: STREAMS”一书中详细的说明了构造和使用多路复用器的方法。这里就不再详述了。  
+  
+　  
+我们下面分别讨论多路I/O的两种实现方法:  
+  
+1\. 非阻塞通信方法   
+  
+    对一个文件描述符指定的文件或设备, 有两种工作方式: 阻塞与非阻塞。所谓阻塞方式的意思是指, 当试图对该文件描述符进行读写时, 如果当时没有东西可读,或者暂时不可写, 程序就进入等待状态, 直到有东西可读或者可写为止。而对于非阻塞状态, 如果没有东西可读, 或者不可写, 读写函数马上返回, 而不会等待。缺省情况下, 文件描述符处于阻塞状态。在实现聊天室时, server 需要轮流查询与各client 建立的 socket, 一旦可读就将该 socket 中的字符读出来并向所有其他client 发送。并且, server 还要随时查看是否有新的 client 试图建立连接,这样, 如果 server 在任何一个地方阻塞了, 其他 client 发送的内容就会受到影响,得不到服务器的及时响应。新 client 试图建立连接也会受到影响。所以我们在这里不能使用缺省的阻塞的文件工作方式，而需要将文件的工作方式变成非阻塞方式。在UNIX下，函数fcntl()可以用来改变文件I/O操作的工作方式，函数描述如下：  
+  
+fcntl( sockfd, F\_SETFL, O\_NONBLOCK);  
+  
+// sockfd 是要改变状态的文件描述符.  
+  
+// F\_SETFL 表明要改变文件描述符的状态  
+  
+// O\_NONBLOCK 表示将文件描述符变为非阻塞的.  
+  
+  
+为了节省篇幅我们使用自然语言描述聊天室 server :  
+  
+while ( 1)  
+  
+{  
+  
+    if 有新连接 then 建立并记录该新连接;  
+  
+    for ( 所有的有效连接)  
+  
+        begin  
+  
+            if 该连接中有字符可读 then  
+  
+                begin  
+  
+                    读入字符串；  
+  
+                for ( 所有其他的有效连接)  
+  
+                    begin  
+  
+                        将该字符串发送给该连接;  
+  
+                    end;  
+  
+                end;  
+  
+        end;  
+  
+    end.   
+  
+    由于判断是否有新连接, 是否可读都是非阻塞的, 因此每次判断,不管有还是没有, 都会马上返回. 这样,任何一个 client 向 server 发送字符或者试图建立新连接, 都不会对其他 client 的活动造成影响。  
+  
+对 client 而言, 建立连接之后, 只需要处理两个文件描述符, 一个是建立了连接的 socket 描述符, 另一个是标准输入. 和 server 一样, 如果使用阻塞方式的话, 很容易因为其中一个暂时没有输入而影响另外一个的读入.. 因此将它们都变成非阻塞的, 然后client 进行如下动作:  
+  
+while ( 不想退出)  
+  
+    begin  
+  
+    if ( 与 server 的连接有字符可读)  
+  
+        begin  
+  
+        从该连接读入, 并输出到标准输出上去.  
+  
+        End;  
+  
+    if ( 标准输入可读)  
+  
+        Begin  
+  
+        从标准输入读入, 并输出到与 server 的连接中去.  
+  
+        End;  
+  
+    End.  
+  
+上面的读写分别调用这样两个函数:  
+  
+read( userfd _, line, MAX\_LINE);  
+  
+// userfd _是指第 i 个 client 连接的文件描述符.  
+  
+// line 是指读出的字符存放的位置.  
+  
+// MAX\_LINE 是一次最多读出的字符数.  
+  
+// 返回值是实际读出的字符数.  
+  
+  
+write( userfd\[j\], line, strlen( line));  
+  
+// userfd\[j\] 是第 j 个 client 的文件描述符.  
+  
+// line 是要发送的字符串.  
+  
+// strlen( line) 是要发送的字符串长度.  
+  
+  
+分析上面的程序可以知道, 不管是 server 还是 client, 它们都不停的轮流查询各个文件描述符, 一旦可读就读入并进行处理. 这样的程序, 不停的在执行, 只要有CPU 资源, 就不会放过。因此对系统资源的消耗非常大。server 或者 client 单独执行时, CPU 资源的 98% 左右都被其占用。极大的消耗了系统资源。  
+  
+select 方法   
+  
+    因此，虽然我们不希望在某一个用户没有反应时阻塞其他的用户，但我们却应该在没有任何用户有反应的情况之下停止程序的运行，让出抢占的系统资源，进入阻塞状态。有没有这种方法呢？现在的UNIX系统中都提供了select方法，具体实现方式如下：  
+  
+    select 方法中, 所有文件描述符都是阻塞的. 使用 select 判断一组文件描述符中是否有一个可读(写), 如果没有就阻塞, 直到有一个的时候就被唤醒. 我们先看比较简单的 client 的实现:  
+  
+由于 client 只需要处理两个文件描述符, 因此, 需要判断是否有可读写的文件描述符只需要加入两项:  
+  
+FD\_ZERO( sockset);  
+  
+// 将 sockset 清空  
+  
+FD\_SET( sockfd, sockset);  
+  
+// 把 sockfd 加入到 sockset 集合中  
+  
+FD\_SET( 0, sockset);  
+  
+// 把 0 (标准输入) 加入到 sockset 集合中__
+
+  
+然后 client 的处理如下:  
+  
+while ( 不想退出)  
+  
+{  
+  
+    select( sockfd 1, &sockset, NULL, NULL, NULL);  
+  
+    // 此时该函数将阻塞直到标准输入或者 sockfd 中有一个可读为止  
+  
+    // 第一个参数是 0 和 sockfd 中的最大值加一  
+  
+    // 第二个参数是 读集, 也就是 sockset  
+  
+    // 第三, 四个参数是写集和异常集, 在本程序中都为空  
+  
+    // 第五个参数是超时时间, 即在指定时间内仍没有可读, 则出错  
+  
+    // 并返回. 当这个参数为NULL 时, 超时时间被设置为无限长.  
+  
+    // 当 select 因为可读返回时, sockset 中包含的只是可读的  
+  
+    // 那些文件描述符.  
+  
+  
+  
+    if ( FD\_ISSET( sockfd, &sockset))  
+  
+    {  
+  
+        // FD\_ISSET 这个宏判断 sockfd 是否属于可读的文件描述符  
+  
+        从 sockfd 中读入, 输出到标准输出上去.  
+  
+    }  
+  
+    if ( FD\_ISSET( 0, &sockset))  
+  
+    {  
+  
+        // FD\_ISSET 这个宏判断 sockfd 是否属于可读的文件描述符  
+  
+        从标准输入读入, 输出到 sockfd 中去.  
+  
+    }  
+  
+    重新设置 sockset. (即将 sockset 清空, 并将 sockfd 和 0 加入)  
+  
+}  
+  
+  
+下面看 server 的情况:  
+  
+  
+设置 sockset 如下:  
+  
+FD\_ZERO( sockset);  
+  
+FD\_SET( sockfd, sockset);  
+  
+for ( 所有有效连接)  
+  
+FD\_SET( userfd _, sockset);  
+  
+}  
+  
+maxfd = 最大的文件描述符号   1;  
+_
+
+_  
+server 处理如下:  
+  
+while ( 1)  
+  
+{  
+  
+    select( maxfd, &sockset, NULL, NULL, NULL);  
+  
+    if ( FD\_ISSET( sockfd, &sockset))  
+  
+    {  
+  
+        // 有新连接  
+  
+        建立新连接, 并将该连接描述符加入到 sockset 中去了.  
+  
+    }  
+  
+    for ( 所有有效连接)  
+  
+    {  
+  
+        if ( FD\_ISSET ( userfd_, &sockset))  
+  
+        {  
+  
+            // 该连接中有字符可读  
+  
+            从该连接中读入字符, 并发送到其他有效连接中去.  
+  
+        }  
+  
+    }  
+  
+    重新设置 sockset;  
+  
+}  
+  
+性能比较   
+  
+    由于采用 select 机制, 因此当没有字符可读时, 程序处于阻塞状态,最小程度的占用CPU 资源, 在同一台机器上执行一个 server 和若干个client 时, 系统负载只有 0.1 左右, 而采用原来的非阻塞通信方法, 只运行一个 server, 系统负载就可以达到 1.5 左右. 因此我们推荐使用 select.  
+  
+  
+参考文献：  
+  
+\[1\] UNIX Network Programming Volume 1 W.Richard Stevens 1998 Prentice Hall  
+  
+\[2\] 计算机实用网络编程 汤毅坚 1993 人民邮电出版社  
+  
+\[3\] UNIX? SYSTEM V RELEASE 4 Programmer's Guide:STREAMS AT&T 1990 Prentice Hall  
+  
+\[4\] UNIX? SYSTEM V RELEASE 4 Network Programmer's Guide AT&T 1990 Prentice Hall  
+  
+所有源程序均登载在eDOC网站上，如有需要可以去[http://edoc.163.net](http://edoc.163.net/)下载  
+  
+By Simon Lei, Jul.01,1999.  
+  
+作者介绍：  
+  
+姓名：雷云飞  
+  
+笔名：eDOC工作组 联系地址： 安徽省合肥市四号信箱2331 230027__

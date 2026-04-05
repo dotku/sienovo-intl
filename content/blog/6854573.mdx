@@ -1,0 +1,1200 @@
+---
+title: "Linux 2.6.36内核优化指南"
+date: "2011-10-09"
+slug: "6854573"
+tags: ["#linux", "#debugging", "#deprecated", "#attributes", "#transformation", "#filesystems"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6854573"
+---
+
+ 
+
+Linux 2.6.36内核优化指南
+
+作者：[Ken Wu](http://kenwublog.com/about)
+
+Email: ken.wug@gmail.com
+
+转载本文档请注明原文链接 [http://kenwublog.com/docs/linux-kernel-2-6-36-optimization.htm](http://kenwublog.com/docs/linux-kernel-2-6-36-optimization.htm)！
+
+**介绍**
+
+本文档是一篇关于Linux Kernel 2.6.36的最简优化指南。作者旨在编译一份性能最佳且适合程序开发用的内核（带gnome图形界面）。  
+本文提及的内核调优，主要是通过选择最佳编译选项，删除无用驱动，减少内核尺寸，关闭部分安全特性等方式来进行的。
+
+优化后的效果，主要体现在OS启动时间，启动后的内存占用以及应用程序运行性能。
+
+由于作者水平有限，如果描述错误，还请不吝指教。
+
+**运行环境**
+
+虚拟机
+
+Virtualbox 4.0.2
+
+CPU
+
+Core i7 四核，虚拟给2核 开启 vt-x, IO APIC
+
+磁盘
+
+虚拟 10G的SATA磁盘
+
+内存
+
+分了2G物理内存
+
+网卡
+
+虚拟 Intel PRO/1000 MT
+
+显卡
+
+128M 显存
+
+其他
+
+USB，串口，声卡全关
+
+作者是在虚拟机中编译的内核，如果你与作者的运行环境不同，则本文档中的部分描述可能会与你的实际情况有一定出入。
+
+不过，相信大部分用户在看到选项释义时，能做出适合自己的选择。
+
+**参考资料**
+
+[金国步写的内核选项简介](http://lamp.linux.gov.cn/Linux/kernel_options.html)
+
+[Linux Kernel Database](http://cateee.net/lkddb/web-lkddb/)
+
+[Linuxsir BBS](http://www.linuxsir.org/bbs/)
+
+[http://www.path8.net/tn/archives/3497](http://www.path8.net/tn/archives/3497)
+
+**优化前后性能对比**
+
+项目
+
+优化前
+
+优化后
+
+内核尺寸
+
+4.1M
+
+1.6M
+
+启动时间（含dhcp+默认init service）
+
+22s
+
+14s
+
+启动后的内存占用
+
+25M
+
+22M
+
+APP SPEC测试成绩
+
+待测
+
+待测
+
+红色注释为禁用该选项的理由和解释。
+
+黑色注释为默认选择的选项含义解释。
+
+其余未默认选择的选项，不做任何解释。
+
+**General setup  --->**
+
+\[ \] Prompt for development and/or incomplete code/drivers <=== 显示尚在开发中或尚未完成的代码与驱动. 有许多设备可能必需选择这个选项才能进行配置. 我选择关闭，首先我不是内核或驱动开发人员，其次，我没有碰到哪个设备需要开启这个选项才能使用的。大家可以放心禁用，最多出问题后，再开启。
+
+()  Local version - append to kernel release
+
+\[ \] Automatically append version information to the version string
+
+Kernel compression mode (Bzip2)  ---> <=== 对比默认的Gzip，Bzip2是一个基于Burrows- Wheeler 变换的无损压缩软件，压缩效果比传统的LZ77/LZ78压缩算法来得好。建议选择它。
+
+\[\*\] Support for paging of anonymous memory ( swap ) // 将使你的内核支持虚拟内存。这个虚拟内存在LINUX中就是SWAP分区。除非你不想要SWAP分区，否则这里必选Y。
+
+\[\*\] System V IPC // System V进程间通信(IPC)支持,于处理器在程序之间同步和交换信息，如果不选这项，很多程序运行不起来,特别地，你想在LINUX下运行 DOS仿真程序，你必须要选Y。
+
+\[\*\] BSD Process Accounting // 这是允许用户进程访问内核，将账户 信息 写入文件中。这通常被认为是个好主意，建议你最好将它选上。将进程的统计信息写入文件的用户级系统调用,主要包括进程的创建时间/创建者/内存占用等信息。
+
+\[ \]  BSD Process Accounting version 3 file format
+
+\[ \] Export task/process statistics through netlink (EXPERIMENTAL) <=== 处于实验阶段的功能。通过通用的网络输出工作/进程的相应数据，和BSD不同的是，这些数据在进程运行的时候就可以通过相关命令访问。和BSD类似，数据将在进程结束时送入用户空间。不清楚，选N
+
+\[ \] Auditing support <=== 审计支持,用于和内核的某些子模块同时工作，(例如SELinux)需要它,只有同时选择其子项才能对系统调用进行审计。我的使用场景主要是开发应用程序，不需要那么高的安全性，另外安全总是以牺牲性能为代价
+
+RCU Subsystem  ---> // [非对称读写锁系统](http://www.ibm.com/developerworks/cn/linux/l-rcu/) 是一种高性能的kernel锁机制，适用于读多写少环境
+
+RCU Implementation (Tree-based hierarchical RCU)  --->
+
+< > Kernel .config support
+
+(18) Kernel log buffer size (16 => 64KB, 17 => 128KB)
+
+\[ \] Control Group support  ---><=== cgroups支持，[文档资料](http://www.mjmwired.net/kernel/Documentation/cgroups.txt)，cgroups主要作用是给进程分组，并可以动态调控进程组的CPU占用率。比如A进程分到apple组，给予20%CPU占用率，E进程分easy组，给予50%CPU占用率，最高100%。我目前没有此类应用场景，用到时会选择将其编译进去。
+
+\[ \] enable deprecated sysfs features to support old userspace tools
+
+\[ \] Kernel->user space relay support (formerly relayfs) <=== 在某些文件系统上(比如debugfs)提供从内核空间向用户空间传递大量数据的接口，我目前没有此类应用场景
+
+\-\*- Namespaces support
+
+\[ \]   UTS namespace <=== 我没有已安装的应用程序要用到 UTS ns
+
+\[ \]   IPC namespace <=== 我没有已安装的应用程序要用到 IPC ns
+
+\[ \] Initial RAM filesystem and RAM disk (initramfs/initrd) support <=== 用于在真正内核装载前，做一些操作（俗称两阶段启动），比如加载module，mount一些非root分区，提供灾难恢复shell环境等，[资料](http://blog.linux.org.tw/~jserv/archives/001954.html)，我是期望直接从kernel image 直接启动，所以没选它
+
+\[ \] Optimize for size <=== 这个选项将在GCC命令后用 “-Os” 代替 “-O2″参数，这样可以得到更小的内核。没必要选。选上了有时会产生错误的二进制代码。
+
+\[ \] Configure standard kernel features (for small systems)  --->
+
+\-\*-   Load all symbols for debugging/ksymoops
+
+\[\]     Include all symbols in kallsyms <=== 在kallsyms中包含内核知道的所有符号,内核将会 增大300K，不调式内核关闭
+
+\[\]   Do an extra kallsyms pass <=== 除非你在kallsyms中发现了bug并需要报告这个bug才打开该选项
+
+Kernel Performance Events And Counters  ---> 
+
+\-\*- Kernel performance events and counters // CPU 性能监听器，包括 CPU同一时间执行指令数，cache miss数，分支预测失败次数([Branch misprediction](http://en.wikipedia.org/wiki/Branch_misprediction))。调优其他程序时或许会用到，比如JVM
+
+\[ \] Debug: use vmalloc to back perf mmap() buffers < === 调试特性关闭
+
+\[ \] Kernel performance counters (old config option)
+
+\[ \] Disable heap randomization
+
+Choose SLAB allocator (SLUB (Unqueued Allocator))  --->
+
+\[ \] Profiling support (EXPERIMENTAL) <=== 我不是内核开发人员，不需要profiling内核，用到时再启用。如果要用OProfiler的同学请启用。
+
+\[ \] Kprobes <=== 我不是内核开发人员，不需要调试内核
+
+GCOV-based kernel profiling  --->
+
+\[ \] Enable gcov-based kernel profiling
+
+**\[\*\] Enable loadable module support  ---> // 打开可加载模块支持,如果打开它则必须通过”make modules\_install”把内核模块安装在/lib/modules/中这个选项可以让你的内核支持模块**
+
+\--- Enable loadable module support
+
+\[ \]   Forced module loading
+
+\[\*\]   Module unloading // 允许卸载已经加载的模块
+
+\[ \]   Module versioning support
+
+\[ \]   Source checksum for all modules
+
+**\-\*- Enable the block layer  --->**
+
+\--- Enable the block layer
+
+\[\*\]   Support for large (2TB+) block devices and files // 大硬盘支持，SATA设备如果不选，会发生 kernel panic，具体原因未知
+
+\[ \]   Block layer SG support v4 <=== 支持通用scsi块设备第4版，我用的是SATA
+
+\[ \]   Block layer data integrity support
+
+IO Schedulers  ---> // IO调度器支持，不同程序可以会选用不同的调度策略，这里我们不要动他
+
+<\*> Anticipatory I/O scheduler
+
+<\*> Deadline I/O scheduler
+
+<\*> CFQ I/O scheduler
+
+    Default I/O scheduler (CFQ)  --->
+
+**Processor type and features  --->**
+
+\[\*\] Tickless System (Dynamic Ticks) // 动态时间片系统，这项技术能让新内核运行的更有效率，并且更省电。动态时间片意思是当CPU处于空闲时，降低内核定时器的轮询频率
+
+\[\*\] High Resolution Timer Support // 我有的时候要测试 Real Time JVM，希望内核能支持这种高响应速度的内核定时器，一般用户可关闭
+
+\[\*\] Symmetric multi-processing support // 对称多处理器支持,如果你有多个CPU或者使用的是多核CPU就选上。
+
+\[ \] Support sparse irq numbering <=== 支持稀有的中断编号，关闭
+
+\[ \] Enable MPS table < === mps多处理器规范，关闭
+
+\[ \] Support for big SMP systems with more than 8 CPUs
+
+\[ \] Support for extended (non-PC) x86 platforms <=== 我是X86平台，不需要再支持其他平台
+
+\[\*\] Single-depth WCHAN output // 跟 proc 相关的最好不要关
+
+\[ \] Paravirtualized guest support  --->
+
+\--- Paravirtualized guest support
+
+\[\*\] Disable Bootmem code // 优化内核中一些复杂的初始化内存分配逻辑
+
+\[ \] Memtest
+
+Processor family (Core 2/newer Xeon)  ---> <=== 这里请选择对应的CPU，我是 core 2 duo
+
+\[ \] Generic x86 support <=== 通用x86支持, 如果你的CPU能够在上述"Processor family"中找到就别选了
+
+\[\*\] HPET Timer Support // HPET时钟支持。允许内核使用 HPET 。HPET是替代8254芯片的新一代定时器,i686及以上级别的主板都支持,可以安全的选上。但是，HEPT只会在支持它的平台和BIOS上运行。如 果不支持，8254将会激活。选N，将继续使用8254时钟
+
+(8) Maximum number of CPUs // 支持的最大CPU数,每增加一个内核将增加8K体积
+
+\[ \] SMT (Hyperthreading) scheduler support < === 支持Intel的超线程(HT)技术超线程调度器在某些情况下将会对 Intel Pentium 4 HT系列有较好的支持。如果你不清楚，选N
+
+\[\*\] Multi-core scheduler support // 针对多核CPU进行调度策略优化多核调度机制支持，双核的CPU要选。多核心调度在某些情况下将会对多核的CPU系列有较好的支持。
+
+Preemption Model (Voluntary Kernel Preemption (Desktop))  ---> // 内核抢占模式一些优先级很高的程序可以先让一些低优先级的程序执行，即使这些程序是在核心态下执行。从而减少内核潜伏期，提高系统的响应。当然在一些特殊的点的内核是不可抢先的，比如内核中的调度程序自身在执行时就是不可被抢先的。这个特性可以提高桌面系统、实时系统的性能。
+
+\[\*\] Reroute for broken boot IRQs // 防止同时收到多个boot IRQ(中断)时，系统混乱
+
+\[\*\] Machine Check Exception // 让CPU检测到系统故障时通知内核,以便内核采取相应的措施(如过热关机等)
+
+\[\*\]   Intel MCE features
+
+\[ \]   AMD MCE features <=== 我是intel CPU
+
+\[ \]   Support for old Pentium 5 / WinChip machine checks
+
+< > Machine check injector support
+
+< > Toshiba Laptop support
+
+< > Dell laptop support
+
+\[ \] Enable X86 board specific fixups for reboot <=== 修正某些旧x86主板的重起bug,这种主板基本绝种了
+
+<\*> /dev/cpu/microcode - microcode support // 是否支持Intel IA32架构的CPU。这个选项将让你可以更新Intel IA32系列处理器的微代码，显然你需要到网上去下载最新的代码，LINUX不提供这些代码。当然你还必须在文件系统选项中选择/dev file system support才能正常的使用它。如果你把它译为模块 ,它将是 microcode。IA32主要用于高于4GB的内存。详见下面的“高内存选项”。使用不随Linux内核发行的IA32微代码,你必需有IA32微代 码二进制文件,仅对Intel的CPU有效
+
+\[\*\]   Intel microcode patch loading support
+
+\[ \]   AMD microcode patch loading support <=== 我是intel CPU
+
+<\*> /dev/cpu/\*/msr - Model-specific register support // 是否打开CPU特殊功能寄存器的功能。这个选项桌面用户一般用不到，它主要用在Intel的嵌入式CPU中的，这个寄存器的作用也依赖与不同的CPU类型 而有所不同，一般可以用来改变一些CPU原有物理结构的用途，但不同的CPU用途差别也很大。在多cpu系统中让特权CPU访问x86的MSR寄存器
+
+<\*> /dev/cpu/\*/cpuid - CPU information support // 是否打开记录CPU相关信息功能。这会在/dev/cpu中建立一系列的设备文件，用以让过程去访问指定的CPU。能从/dev/cpu/x/cpuid 获得CPU的唯一标识符(CPUID)
+
+High Memory Support (4GB)  --->
+
+        \[ \] Enable KSM for page merging
+
+(4096) Low address space to protect from user allocation
+
+\[ \] Enable recovery from hardware memory errors
+
+\[ \] Allocate 3rd-level pagetables from highmem <=== 在内存很多(大于4G)的机器上将用户空间的页表放到高位内存区,以节约宝贵的低端内存 ，我只虚拟了1G
+
+\[ \] Check for low memory corruption <=== 低位内存脏数据检查，默认是每60秒检查一次。一般这种脏数据是因某些Bios处理不当引起的。[资料链接](http://cateee.net/lkddb/web-lkddb/X86_CHECK_BIOS_CORRUPTION.html)。我信任我目前的虚拟bios版本
+
+\[ \] Reserve low 64K of RAM on AMI/Phoenix BIOSen <=== 我不是 AMI/Phoenix BIOS
+
+\[ \] Math emulation
+
+\-\*- MTRR (Memory Type Range Register) support // 内存类型区域寄存器。在 Intel P6 系列处理器(Pentium Pro, Pentium II 和更新的)上，MTRR将会用来规定和控制处理器访问某段内存区域的策略。如果你在PCI或者AGP总线上有VGA卡，这将非常有用。可以提升图像的传送 速度2.5倍以上。选Y，会生成文件/proc/mtrr，它可以用来操纵 你的处理器的MTRR。典型地，X server 会用到。这段代码有着通用的接口，其他CPU的寄存器同样能够使用该功能。Cyrix 6×86, 6×86MX和 M II处理器有ARR ，它和 MTRR有着类似的功能。AMD K6-2/ K6-3有两个MTRR， Centaur C6有8个MCR允许复合写入。所有这些处理器都支持这段代码，你可以选Y如果你有以上处理器。选Y同样可以修正SMP BIOS的问题，它仅为第一个CPU提供MTRR，而不为其他的提供。这会导致各种各样的问题，所以选Y是明智的。你可以安全地选Y，即使你的机器没有 MTRR。这会给内核增加9KB。打开它可以提升PCI/AGP总线上的显卡2倍以上的速度,并且可以修正某些BIOS错误
+
+\[ \]   MTRR cleanup support
+
+\[ \] EFI runtime service support <=== 我机器是BIOS引导的，用不到EFI(Extensible Firmware Interface)，如果你有兴趣体验EFI，可以在Virtualbox中开启
+
+\[ \] Enable seccomp to safely compute untrusted bytecode <=== 只有嵌入式系统可以不选
+
+\[ \] Enable -fstack-protector buffer overflow detection (EXPERIMENTAL)
+
+Timer frequency (1000 HZ)  ---> // Timer frequency (1000 HZ) —>内核时钟频率 桌面1000 服务器100或250
+
+\[ \] kexec system call <=== kexec 系统调用。kexec是一个用来关闭你当前内核，然后开启另一个内核的系统调用。它和重启很像，但是它不访问系统固件。由于和重启很像，你可以启动任何内 核，不仅仅 是LINUX。kexec这个名字是从 exec 系统调用来的。它只是一个进程，可以确定硬件是否正确关闭，Linus本人都没话说，估计是受害不浅。我们当然不能上当，选N！提供kexec系统调用, 可以不必重启而切换到另一个内核，如果需要就选择，对大多数用户来说并不需要
+
+\[ \] kernel crash dumps <=== 内核崩溃时，dump运行时信息。就算crash了，我也不会去调试内核的core dump
+
+\[ \] Build a relocatable kernel <=== [官方说明](http://cateee.net/lkddb/web-lkddb/RELOCATABLE.html) （建立一个移动的内核，并增加10%的内核尺寸，运行时会被丢弃），我认为没实质性的作用
+
+(0x1000000) Physical address where the kernel is loaded
+
+\-\*- Support for hot-pluggable CPUs // 对SMP休眠和热插拔CPU提供支持
+
+\[ \] Compat VDSO support
+
+\[ \] Built-in kernel command line
+
+**Power management and ACPI options  --->**
+
+\[\*\] Power Management support
+
+\[ \]   Power Management Debug Support <=== 不想调试ACPI
+
+\[ \]       Extra PM attributes in sysfs  for low-level debugging/testing
+
+\[ \]     Verbose Power Management debugging
+
+\[\*\] Suspend to RAM and standby // 待机
+
+\[\*\] Hibernation (aka 'suspend to disk') // 休眠
+
+\[ \] Runtime PM core functionality
+
+\[\*\] ACPI (Advanced Configuration and Power Interface) Support  --->
+
+\[\*\]   Deprecated /proc/acpi files
+
+\[\*\]   Deprecated power /proc/acpi directories
+
+<>  ACPI 4.0 power meter
+
+\[\*\]   Future power /sys interface
+
+<>  EC read/write through /sys/kernel/debug/ec
+
+\[\*\]   Deprecated /proc/acpi/event support
+
+<\*>   AC Adapter
+
+<\*>   Battery
+
+<\*>   Button
+
+<\*>   Fan
+
+<\*>   Processor
+
+<\*>     Thermal Zone
+
+(0)   Disable ACPI for systems before Jan 1st this year
+
+\[ \]   Debug Statements
+
+< >   PCI slot detection driver
+
+< >   Smart Battery System
+
+< >   Hardware Error Device
+
+\[ \]   ACPI platform Error Interface (APEI)     
+
+\[ \] SFI  (Simple Firmware Interface) Support --->
+
+< > APM(Advanced Power Management) BIOS Support --->
+
+CPU Frequency scaling  --->
+
+\[\*\] CPU Frequency scaling
+
+\[ \]   Enable CPUfreq debugging <=== 我不需要调试 CPUfreq
+
+< >   CPU frequency translation statistics
+
+Default CPUFreq governor (performance)  ---> <=== 默认用 performance高性能的CPU调频方式
+
+\-\*-   'performance' governor
+
+< >   'powersave' governor
+
+<>   'userspace' governor for userspace frequency scaling
+
+<>   'ondemand' cpufreq policy governor <=== "周期性的考察CPU负载并自动的动态调整cpu频率"，我只用 performance
+
+<>   'conservative' cpufreq governor
+
+\*\*\* CPUFreq processor drivers \*\*\*
+
+                 < >     Processor Clocking P-stat driver
+
+<\*>   ACPI Processor P-States driver
+
+< >   AMD Mobile K6-2/K6-3 PowerNow!
+
+< >   AMD Mobile Athlon/Duron PowerNow!
+
+< >   AMD Opteron/Athlon64 PowerNow!
+
+< >   Cyrix MediaGX/NatSemi Geode Suspend Modulation
+
+< >   Intel Enhanced SpeedStep (deprecated)
+
+< >   Intel Speedstep on ICH-M chipsets (ioport interface)
+
+< >   Intel Pentium 4 clock modulation
+
+< >   Transmeta LongRun
+
+< >   VIA Cyrix III Longhaul
+
+ \[ \]    Cpuidle Driver for Intel Processors
+
+**Bus options (PCI etc.)  --->**
+
+\[\*\] PCI support
+
+PCI access mode (Any)  --->
+
+        \[ \] Read CNB20LE Host Bridge Window
+
+\[\*\] PCI Express support
+
+< > PCI Express Hotplug driver
+
+\[\*\]   Root Port Advanced Error Reporting support // 硬件驱动会负责发送错误信息
+
+\[ \]     PCI Express ECRC settings control
+
+< >    PCIE AER error injector support
+
+\-\*-    PCI Express ASPM control
+
+\[ \]           Debug PCI Express ASPM
+
+\[\*\] Message Signaled Interrupts (MSI and MSI-X)
+
+\[ \] PCI Debugging
+
+< > PCI Stub driver
+
+\[\*\] Interrupts on hypertransport devices
+
+\[ \] PCI IOV support
+
+\[ \] ISA support
+
+\[ \] MCA support
+
+< > NatSemi SCx200 support
+
+\[ \] One Laptop Per Child support
+
+\[ \] Support for OLPC’s Open Firmware
+
+< > PCCard (PCMCIA/CardBus) support  ---> <=== 一般笔记本电脑会配备PCCard接口(无线网卡之类的)，看你的硬件和使用场景吧。虽然我也是NB，但我从来不用PCMCIA
+
+< > Support for PCI Hotplug  ---> <=== 我没有要热拔插PCI设备的需求
+
+**Executable file formats / Emulations  --->**
+
+\[\*\] Kernel support for ELF binaries
+
+\[\*\] Write ELF core dumps with partial segments
+
+< > Kernel support for a.out and ECOFF binaries
+
+<\*> Kernel support for MISC binaries
+
+**\[\*\] Networking support  --->**
+
+Networking options  --->
+
+<\*> Packet socket
+
+<\*> Unix domain socket
+
+<\*> Transformation user configuration interface
+
+< > PF\_KEY sockets
+
+\[\*\] TCP/IP networking
+
+\[\*\]   IP: multicasting
+
+\[\*\]   IP: advanced router
+
+Choose IP: FIB lookup algorithm (choose FIB\_HASH if unsure) (FIB\_HASH)  --->
+
+\[\*\]   IP: policy routing
+
+\[\*\]   IP: equal cost multipath
+
+\[\*\]   IP: verbose route monitoring
+
+\[ \]   IP: kernel level autoconfiguration <=== 我很少用网络引导OS，内核级别的网络配置对我无用。
+
+\[ \]     IP: DHCP support
+
+\[ \]     IP: BOOTP support
+
+\[ \]     IP: RARP support
+
+< >   IP: tunneling
+
+< >   IP: GRE tunnels over IP
+
+\[\*\]   IP: multicast routing
+
+\[ \]         IP: multicast policy routing
+
+\[\*\]     IP: PIM-SM version 1 support
+
+\[\*\]     IP: PIM-SM version 2 support
+
+\[ \]   IP: ARP daemon support
+
+\[ \]   IP: TCP syncookie support (disabled per default) <=== 抵抗SYN flood攻击，我是开发机，暂不考虑安全特性
+
+< >   IP: AH transformation
+
+< >   IP: ESP transformation
+
+ < >   IP: IPComp transformation
+
+< >   IP: IPsec transport mode
+
+< >   IP: IPsec tunnel mode
+
+< >   IP: IPsec BEET mode
+
+\[\*\]   Large Receive Offload (ipv4/tcp)
+
+< >   INET: socket monitoring interface
+
+\[ \]   TCP: advanced congestion control  ---> <=== 高级拥塞控制,如果没有特殊需求(比如无线网络)就别选了
+
+< >   The IPv6 protocol  ---> <=== 我暂时没有要支持IPV6的需求
+
+\[ \]   NetLabel subsystem support <=== NetLabel子系统, 为诸如CIPSO与RIPSO之类能够在分组信息上添加标签的协议提供支持，我用不到
+
+\[ \] Security Marking <=== 对网络包进行安全标记,类似于nfmark,但主要是为安全目的而设计, 安全特性，我暂时不考虑
+
+\[ \] Network packet filtering framework (Netfilter)  ---> <=== 我不打算使用防火墙，要用到时再编译进去
+
+< > Asynchronous Transfer Mode (ATM)
+
+< > 802.1d Ethernet Bridging
+
+< > 802.1Q VLAN Support
+
+< > DECnet Support
+
+< > ANSI/IEEE 802.2 LLC type 2 Support
+
+< > The IPX protocol
+
+< > Appletalk protocol support
+
+< > Phonet protocols family
+
+\[ \] QoS and/or fair queueing  --->  <=== 通过IPRoute切换网络设备上的Qos策略，我不打算使用IP路由
+
+\[ \] Data Center Bridging support
+
+Network testing  --->
+
+\[ \]   Amateur Radio support  ---> <=== 我没有无线电
+
+< >   CAN bus subsystem support  --->
+
+< >   IrDA (infrared) subsystem support  --->
+
+< >   Bluetooth subsystem support  --->
+
+\[ \]   Wireless  ---> <=== 我没有使用无线网卡
+
+         <> cfg80211 – wireless configuration API
+
+        <> Common routines for IEEE802.11 driver
+
+\[ \]     Wimax Wireless Broadband support
+
+< >   RF switch subsystem support  ---> <=== 我没有RF切换设备
+
+< >  CAIF support
+
+**Device Drivers  --->**
+
+Generic Driver Options  --->
+
+(/sbin/hotplug) path to uevent helper
+
+\[\*\] Prevent firmware from being built
+
+\-\*- Userspace firmware loading support
+
+\[\*\]   Include in-kernel firmware blobs in kernel binary
+
+()    External firmware blobs to build into the kernel binary
+
+\[ \] Driver Core verbose debug messages
+
+\[ \] Managed device resources verbose debug messages <=== 管理设备资源的冗长调试信息，我不需要
+
+<\*> Connector - unified userspace <-> kernelspace linker  --->// 内核空间与用户空间的信道
+
+\[\*\]   Report process events to userspace // 报告处理时间给用户空间
+
+< > Memory Technology Device (MTD) support  --->
+
+< > Parallel port support  --->
+
+\-\*- Plug and Play support  --->
+
+\[ \]   PNP debugging messages <=== 调试信息，老规矩
+
+\[ \] Block devices  ---> <=== 我没有想要支持的块设备，比如ramdisk, 磁盘阵列，CD/DVD刻录等，详见内部选项
+
+\[ \] Misc devices  ---> <=== 没有需要支持的杂项设备
+
+< > ATA/ATAPI/MFM/RLL support  --->
+
+SCSI device support  --->
+
+< > RAID Transport Class
+
+\-\*- SCSI device support
+
+\[\] legacy /proc/scsi/ support <=== 我没有SCSI设备
+
+\*\*\* SCSI support type (disk, tape, CD-ROM) \*\*\*
+
+<\*> SCSI disk support // 就算你用SATA，此选项也必选
+
+< > SCSI tape support
+
+< > SCSI OnStream SC-x0 tape support
+
+<> SCSI CDROM support <=== 我没有SCSI设备
+
+<> SCSI generic support <=== 我没有SCSI设备
+
+< > SCSI media changer support
+
+\[ \] Probe all LUNs on each SCSI device
+
+\[\] Verbose SCSI error reporting (kernel size +=12K) <=== 我没有SCSI设备
+
+\[ \] SCSI logging facility
+
+\[ \] Asynchronous SCSI scanning
+
+SCSI Transports  --->
+
+<> Parallel SCSI (SPI) Transport Attributes <=== 我没有SCSI设备
+
+< > FiberChannel Transport Attributes
+
+< > iSCSI Transport Attributes
+
+< > SAS Domain Transport Attributes
+
+< > SRP Transport Attributes
+
+\[ \] SCSI low-level drivers  --->
+
+< > SCSI Device Handlers  --->
+
+< > OSD-Initiator library
+
+Serial ATA (prod) and Parallel ATA (experimental) drivers  --->
+
+        \[\*\]  Verbose ATA error reporting
+
+\[\*\]   ATA ACPI Support
+
+\[ \]   SATA Port Multiplier support <=== 我只有一枚SATA设备，没有使用 多路SATA/SATA Hub 的需求。Port Multiplier是南桥芯片提供的一种支持多块SATA设备，并共享总带宽的技术。
+
+<\*>   AHCI SATA support
+
+< >      Platform AHCI SATA support
+
+< >      Inito 162x SATA support
+
+< >   Silicon Image 3124/3132 SATA support
+
+\[\*\]   ATA SFF support // 选择自己硬件对应的驱动即可
+
+< >     ServerWorks Frodo / Apple K2 SATA support
+
+<\*>     Intel ESB, ICH, PIIX3, PIIX4 PATA/SATA support // Intel ICH，G系列chipset driver
+
+< >     Marvell SATA support 
+
+< >     NVIDIA SATA support  
+
+< >     Pacific Digital ADMA support                  
+
+< >     Pacific Digital SATA QStor support            
+
+< >     Promise SATA TX2/TX4 support                  
+
+< >     Silicon Image SATA support                    
+
+< >     SiS 964/965/966/180 SATA support              
+
+< >     ULi Electronics SATA support                  
+
+< >     VIA SATA support     
+
+< >     VITESSE VSC-7174 / INTEL 31244 SATA support   
+
+< >     Initio 162x SATA support                      
+
+< >     ACPI firmware driver for PATA                 
+
+< >     ALi PATA support     
+
+< >     AMD/NVidia PATA support <=== 我用的是SATA，取消PATA支持
+
+< >     ARTOP 6210/6260 PATA support                  
+
+< >     ATI PATA support     
+
+< >     CMD64x PATA support  
+
+< >     CS5510/5520 PATA support                      
+
+< >     CS5530 PATA support
+
+< >     CS5536 PATA support                            
+
+< >     EFAR SLC90E66 support                         
+
+< >     Generic ATA support                           
+
+< >     HPT 366/368 PATA support                      
+
+< >     HPT 343/363 PATA support                      
+
+< >     IT8211/2 PATA support                         
+
+< >     JMicron PATA support                          
+
+< >     Compaq Triflex PATA support                   
+
+< >     Marvell PATA support via legacy mode          
+
+<>     Intel PATA MPIIX support <=== 我用的是SATA，取消PATA支持
+
+< >     Intel PATA old PIIX support <=== 我用的是SATA，取消PATA支持
+
+< >     NETCELL Revolution RAID support               
+
+< >     Nat Semi NS87410 PATA support                 
+
+< >     Nat Semi NS87415 PATA support                 
+
+< >     Older Promise PATA controller support         
+
+< >     PC Tech RZ1000 PATA support                   
+
+< >     SC1200 PATA support                           
+
+< >     SERVERWORKS OSB4/CSB5/CSB6/HT1000 PATA support
+
+< >     Promise PATA 2027x support                     
+
+< >     CMD / Silicon Image 680 PATA support          
+
+< >     SiS PATA support                              
+
+< >     VIA PATA support                              
+
+< >     Winbond SL82C105 PATA support                 
+
+< >     Intel SCH PATA support <=== 我用的是SATA，取消PATA支持
+
+\[ \] Multiple devices driver support (RAID and LVM)  ---> <=== 暂时没有要使用Raid（磁盘阵列）和LVM（逻辑卷管理器，添加，删除逻辑分区）的需求
+
+\[ \] Fusion MPT device support  --->
+
+IEEE 1394 (FireWire) support  --->
+
+< > I2O device support  --->
+
+\[ \] Macintosh device drivers  ---> <=== Mac系统硬件设备驱动，没什么好说的，关
+
+\[\*\] Network device support  --->
+
+< >   Dummy net driver support                        
+
+< >   Bonding driver support                          
+
+< >   EQL (serial line load balancing) support        
+
+< >   Universal TUN/TAP device driver support         
+
+< >   Virtual ethernet pair device                    
+
+< >   General Instruments Surfboard 1000              
+
+< >   ARCnet support  ---> 
+
+\-\*-   PHY Device support and infrastructure  ---> <=== PHY (物理层控制芯片)  ，里面没有我对应的硬件
+
+\[ \]   Ethernet (10 or 100Mbit)  ---> <=== 如果你是百 M卡，请自行选择
+
+\[\*\]   Ethernet (1000 Mbit)  ---> // 选择自己对应的硬件
+
+\[ \]   Ethernet (10000 Mbit)  ---> <=== 如果你是万M卡，请自行选择
+
+<>   Token Ring driver support  ---> <=== IBM的令牌环网，用以太网的忽略
+
+\[ \]     Wireless LAN  --->  <=== 不用无线网络
+
+      \*\*\* Enable WiMAX (Networking options) to see the WiMAX drivers \*\*\* 
+
+      USB Network Adapters  --->           
+
+\[ \]   Wan interfaces support  --->                    
+
+<>   FDDI driver support <=== 光纤卡驱动，相信没几个人能用上这玩意
+
+< >   PPP (point-to-point protocol) support           
+
+< >   SLIP (serial line) support                      
+
+\[ \]   Fibre Channel driver support
+
+\[ \]    Network console logging support
+
+\[ \]    VMware VMXNET3 ethernet driver
+
+\[ \] ISDN support  --->       
+
+< > Telephony support  --->  
+
+Input device support  --->
+
+\-\*- Generic input layer (needed for keyboard, mouse, ...)
+
+\-\*-   Support for memoryless force-feedback devices   
+
+<>   Polled input device skeleton  <=== 一种周期性轮询硬件状态的驱动，去掉后没什么副作用
+
+      \*\*\* Userland interfaces \*\*\*                     
+
+\-\*-   Mouse interface
+
+\[ \]     Provide legacy /dev/psaux device 
+
+(1024)  Horizontal screen resolution                  
+
+(768)   Vertical screen resolution                    
+
+< >   Joystick interface                              
+
+<\*>   Event interface  // 将输入设备的事件存储到/dev/input/eventX供应用程序读取
+
+< >   Event debugging                                 
+
+      \*\*\* Input Device Drivers \*\*\*                    
+
+\-\*-   Keyboards  --->
+
+\[\*\]   Mice  --->                             
+
+\[\]   Joysticks/Gamepads  --->  <=== 游戏设备
+
+\[\]   Tablets  ---> <=== 平板PC
+
+\[\]   Touchscreens  --->  <=== 触摸屏
+
+\[\]   Miscellaneous devices  ---> <=== 杂七杂八的驱动，扬声器，笔记本扩展按键等
+
+Hardware I/O ports  --->
+
+Character devices  ---> 
+
+\-\*- Virtual terminal         
+
+\[\*\]   Support for binding and unbinding console drivers // 在某些系统上可以使用多个控制台驱动程序(如framebuffer控制台驱动程序),该选项使得你可以选择其中之一，我一般只用默认的虚拟终端
+
+\[\] /dev/kmem virtual device support  <=== 支持/dev/kmem设备，很少用    
+
+\[\] Non-standard serial port support  <=== 我没有非标准的串口设备
+
+ Serial drivers  --->
+
+< > 8250/16550 and compatible serial support <=== 兼容一些老式的串口设备，我一般不用
+
+    \*\*\* Non-8250 serial port support \*\*\*
+
+< > Digi International NEO PCI Support
+
+\-\*- Unix98 PTY support       
+
+\[ \]   Support multiple instances of devpts            
+
+\[ \] Legacy (BSD) PTY support 
+
+< > IPMI top-level message handler  --->              
+
+<\*> Hardware Random Number Generator Core support     
+
+< >   Timer IOMEM HW Random Number Generator support  
+
+<\*>   Intel HW Random Number Generator support    
+
+<>   AMD HW Random Number Generator support  <=== 我是intel主板
+
+< >   AMD Geode HW Random Number Generator support <=== 我是intel主板
+
+<>   VIA HW Random Number Generator support <=== 我是intel主板    
+
+<> /dev/nvram support  <=== 直接存取CMOS，太危险，关
+
+< > Siemens R3964 line discipline
+
+< > Applicom intelligent fieldbus card support        
+
+< > ACP Modem (Mwave) support
+
+< > NatSemi PC8736x GPIO Support                      
+
+< > NatSemi Base GPIO Support
+
+< > AMD CS5535/CS5536 GPIO (Geode Companion Device)   
+
+< > RAW driver (/dev/raw/rawN)
+
+\[\*\] HPET - High Precision Event Timer              
+
+\[ \]   Allow mmap of HPET     
+
+< > Hangcheck timer
+
+\-\*- I2C support  ---> // 感知硬件状态，比如温度，风扇转速
+
+\[ \] SPI support  --->        
+
+    PPS support  --->        
+
+\[ \] GPIO Support  --->       
+
+< > Dallas's 1-wire support  --->                     
+
+\-\*- Power supply class support  --->                  
+
+<\*> Hardware Monitoring support  --->      
+
+\-\*- Generic Thermal sysfs driver  --->                
+
+\[\] Watchdog Timer Support  ---> <=== 系统监视程序，我一般不用
+
+    Sonics Silicon Backplane  --->                    
+
+\[\*\]    Multifunction device drivers  --->                
+
+\[ \] Voltage and Current Regulator Support  --->       
+
+< > Multimedia support  ---> 
+
+Graphics support  --->
+
+< > /dev/agpgart (AGP Support)  ---> < --- virtualbox不支持虚拟独立显卡
+
+\-\*-  VGA arbitration
+
+(16) Maximium number of GPU
+
+\[ \] Latop Hybird Graphics – GPU switch support           
+
+<\*> Direct Rendering Manager (XFree86 4.1.0 and higher DRI support)  --->
+
+<> Lowlevel video output switch controls 
+
+<> Support for frame buffer devices  --->
+
+\[ \] Backlight & LCD device support  --->  < --- 支持背光设置，比如pda等。我用不到
+
+    Display device support  ---> 
+
+    Console display driver support  --->  
+
+\[ \]   Enable Scrollback Buffer in System RAM
+
+<> Sound card support  --->  <=== 用不到声卡
+
+\[\] HID Devices  --->  <=== 用不到人力工程学设备
+
+\[\] USB support  --->  <=== 这个选项，对于跑物理机建议开启，因为有可能你的键盘是USB的，我是跑虚拟机的，所以关了
+
+< > MMC/SD/SDIO card support  --->  
+
+< > Sony MemoryStick card support (EXPERIMENTAL)  --->
+
+\[\] LED Support  --->  <=== 发光二级管，应该是跟显示器相关的驱动，由于我运行的是虚拟机，所以我选择关闭
+
+\[ \] Accessibility support  --->
+
+< > InfiniBand support  ---> 
+
+\[\*\] EDAC (Error Detection And Correction) reporting  ---> // 硬件故障repoting
+
+<\*> Real Time Clock  --->
+
+\[\*\] DMA Engine support  ---> 
+
+\[ \] Auxiliary Display support  --->                   
+
+< > Userspace I/O drivers  --->                       
+
+    TI VLYNQ  --->           
+
+\[ \] Staging drivers  --->    
+
+\[\] X86 Platform Specific Device Drivers  ---> <=== 一些笔记本的驱动，我没有相关设备
+
+**Firmware Drivers  --->**
+
+< > BIOS Enhanced Disk Drive calls determine boot disk
+
+< > BIOS update support for DELL systems via sysfs    
+
+< > Dell Systems Management Base Driver               
+
+\[\*\] Export DMI identification via sysfs to userspace   // 将BIOS里的DMI区信息导出到用户空间，部分系统管理工具可能会用到
+
+\[ \] iSCSI Boot Firmware Table Attributes
+
+**File systems  --->**
+
+< > Second extended fs support
+
+<> Ext3 journalling file system support <=== 我使用的是ext4 FS
+
+<\*> The Extended 4 (ext4) filesystem
+
+\[ \]   Enable ext4dev compatibility                    
+
+\[\*\]   Ext4 extended attributes
+
+\[\*\]     Ext4 POSIX Access Control Lists
+
+\[\]     Ext4 Security Labels  <=== 取消 SELinux 支持
+
+\[ \] JBD (ext3) debugging support
+
+\[ \] JBD2 (ext4) debugging support                     
+
+< > Reiserfs support         
+
+< > JFS filesystem support   
+
+< > XFS filesystem support   
+
+< > OCFS2 file system support
+
+\[\*\] Dnotify support                   
+
+\[\*\] Inotify support for userspace                     
+
+\[\] Quota support <=== 磁盘配额支持,限制某个用户或者某组用户的磁盘占用空间，暂时没这个需求，你可以把它编译成模块
+
+< > Kernel automounter support
+
+<\*> Kernel automounter version 4 support (also supports v3)
+
+< > FUSE (Filesystem in Userspace) support
+
+    Caches  ---> 
+
+    CD-ROM/DVD Filesystems  ---> 
+
+<> ISO 9660 CDROM file system support  <=== 在虚拟机内，我不用CDROM              
+
+< > UDF file system support
+
+    DOS/FAT/NT Filesystems  --->
+
+< > MSDOS fs support <=== 我没有微软fs的设备
+
+< > VFAT (Windows-95) fs support  <=== 我没有微软fs的设备
+
+< > NTFS file system support
+
+    Pseudo filesystems  ---> 
+
+\[\] Miscellaneous filesystems  ---> <=== 如果你没有其他FS的支持需求，关
+
+\[\*\] Network File Systems  ---> <=== 如果你没有NFS的支持需求，关
+
+    Partition Types  --->    
+
+\[ \] Advanced partition selection <=== 如果不是和其他系统共存，可以不选
+
+\-\*- Native language support  ---> // 选上Chinese
+
+**Kernel hacking  --->**
+
+\[\] Show timing information on printks  <=== 在printk的输出中包含时间信息,可以用来分析内核启动过程各步骤所用时间 , 我不需要debug内核
+
+\[ \] Enable \_\_deprecated logic                         
+
+\[\*\] Enable \_\_must\_check logic                         
+
+(2048) Warn for stack frames larger than (needs gcc 4.4)
+
+\[\] Magic SysRq key <=== 一种通过快捷键控制系统方式，除非你非常清楚这个选项，官方不推荐选择
+
+\[ \] Enable unused/obsolete exported symbols           
+
+\[ \] Debug Filesystem
+
+\[ \] Run 'make headers\_check' when building vmlinux    
+
+\[ \] Kernel debugging <=== 内核调试，关                   
+
+\[ \] Enable SLUB performance statistics                                                                           
+
+\[\] Compile the kernel with frame pointers  <=== 还是跟内核开发有关
+
+\[ \] Delay each boot printk message by N milliseconds  
+
+< > torture tests for RCU                              
+
+\[ \] Check for stalled CPUs delaying RCU grace periods 
+
+< > Self test for the backtrace code                  
+
+\[ \] Force extended block device numbers and spread them
+
+\[ \] Fault-injection framework                         
+
+\[ \] Latency measuring infrastructure                  
+
+\[\*\] Sysctl checks
+
+\[\] Tracers  --->
+
+\[\] Remote debugging over FireWire early on boot  <=== 启动过程中，允许远程调试内核
+
+\[ \] Enable dynamic printk() support
+
+\[ \] Enable debugging of DMA-API usage
+
+\[ \] Sample kernel code  --->                          
+
+\[ \] Filter access to /dev/mem
+
+\[\] Enable verbose x86 bootup info messages <=== 在内核镜像解压缩阶段输出启动信息，关闭后相当于无声启动(Slient Bootup)
+
+\-\*- Early printk 
+
+\[\]   Early printk via EHCI debug port  <=== 允许printk通过EHCI调试端口输出内核日志，调试的一律关
+
+\[ \] Use 4Kb for kernel stacks instead of 8Kb
+
+\[ \] Enable IOMMU stress-test mode
+
+    IO delay type (port 0x80 based port-IO delay \[recommended\])  --->  
+
+\[\*\] Allow gcc to uninline functions marked 'inline'
+
+**Security options  --->**  <=== 安全特性，我选择全关，当然，这些选项不会影响你的日常开发，办公
+
+\[\] Enable access key retention support <=== 关闭
+
+\[\] Enable different security models <=== 关闭
+
+\[ \] Enable the securityfs filesystem
+
+\[\] File POSIX Capabilities <=== 关闭
+
+\[ \] Integrity Measurement Architecture(IMA)
+
+**< > Cryptographic API  --->** // 加密API，这部分选项会根据此前的优化自动调整，默认即可
+
+**\[\] Virtualization  --->** <=== 我的系统已经运行在虚拟机中，不需要再支持虚拟化
+
+**Library routines  --->** // 库子程序，这部分选项会根据此前的优化自动调整，默认即可

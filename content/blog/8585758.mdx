@@ -1,0 +1,440 @@
+---
+title: "Posix线程私有数据"
+date: "2013-02-17"
+slug: "8585758"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/8585758"
+---
+
+ 
+
+原文：
+
+[http://baike.baidu.com/view/974776.htm](http://baike.baidu.com/view/974776.htm)   
+
+ [http://www.blogjava.net/tinysun/archive/2010/05/29/322210.html](http://www.blogjava.net/tinysun/archive/2010/05/29/322210.html)
+
+   在单线程程序中,函数经常使用全局变量或静态变量,这是不会影响程序的正确性的,但如果线程调用的函数使用全局变量或静态变量,则很可能引起编程错误,因为这些函数使用的全局变量和静态变量无法为不同的线程保存各自的值,而当同一进程内的不同线程几乎同时调用这样的函数时就可能会有问题发生。而解决这一问题的一种方式就是使用 线程私有数据 。
+
+　　 线程私有数据采用了一种被称为一键多值的技术，即一个键对应多个数值。访问数据时都是通过键值来访问，好像是对一个变量进行访问，其实是在访问不同的数据。使用线程私有数据时，首先要为每个线程数据创建一个相关联的键。在各个线程内部，都使用这个公用的键来指代线程数据，但是在不同的线程中，这个键代表的数据是不同的。
+
+在JAVA中是使用ThreadLocal来实现线程特定数据。 POSIX中 操作线程私有数据的主要通过以下4个函数来实现：pthread\_key\_create（创建一个键），pthread\_setspecific（为一个键设置线程私有数据），pthread\_getspecific（从一个键读取线程私有数据），pthread\_key\_delete（删除一个键）。这几个函数的声明如下：
+
+#include <pthread.h>
+
+int  pthread\_key\_create (pthread\_key\_t \*key,void (\*destr\_function)(void \*));
+
+int  pthread\_setspecific (pthread\_key\_t key,const void \*pointer));
+
+void  \*pthread\_getspecific (pthread\_key\_t key);
+
+int  pthread\_key\_delete (pthread\_key\_t key);
+
+     pthread\_key\_create ：从Linux的TSD池中分配一项，将其值赋给key供以后访问使用，它的第一个参数key为指向键值的指针，第二个参数为一个函数指针，如果指针不为空，则在线程退出时将以key所关联的数据为参数调用destr\_function()，释放分配的缓冲区。
+
+    key一旦被创建，所有线程都可以访问它，但各线程可以根据自己的需要往key中填入不同的值，这就相当于提供了一个同名而不同值的全局变量，一键多值。一键多值靠的是一个关键数据结构数组，即TSD池其结构如下：
+
+static struct pthread\_key\_struct pthread\_keys\[PTHREAD\_KEYS\_MAX\] ={{0,NULL}};
+
+    创建一个TSD就相当于将结构数组中的某一项设置为“in\_use”，并将其索引返回给＊key，然后设置destructor函数destr\_function。
+
+     pthread\_setspecific ：该函数将pointer的值（不是内容）与key相关联。用pthread\_setspecific为一个键指定新的线程数据时，线程必须先释放原有的线程数据用以回收空间。
+
+     pthread\_getspecific ：通过该函数得到与key相关联的数据。
+
+     pthread\_key\_delete ：该函数用来删除一个键，键所占用的内存将被释放。需要注意的是，键占用的内存被释放，与该键关联的线程数据所占用的内存并不被释放。因此，线程数据的释放必须在释放键之前完成。
+
+   POSIX  要求实现 POSIX 的系统为每个进程维护一个称之为 Key 的结构数组,这个数组中的每一个结构咱称之为一个线程特定数据元素。POSIX 规定系统实现的 Key 结构数组必须包含不少于 128 个线程特定数据元素,而每个线程特定数据元素中至少包含两项内容:使用标志和析构函数指针。线程特定数据元素中的使用标志指示这个数组元素是否正在使用,初始值为“不在使用”, 我们稍后讨论线程特定数据元素中的析构函数指针。在后面的介绍中,我们假设Key 结构数组中包含 128 个元素。
+
+　　Key 结 构 数 组 中 每 个 元 素 的 索 引 ( 0~127 ) 称 之 为 索引键 ( key ) 当 一 个 线 程 调 用, pthread\_key\_create  创建一个新的线程特定数据Key时,系统搜索其所在进程的 Key 结构数组,找出其中第一个不在使用的元素,并返回该元素的索引键。
+
+　　 参数 keyptr 为一个 pthread\_key\_t 变量的指针,用于保存得到的索引键值。参数 destructor为指定的析构函数的指针。除了 Key 结构数组,系统还在进程中维护关于每个线程的多种信息。这些特定于线程的信息被保存于称之为  Pthread  的结构中。Pthread 结构中包含名为 pkey 的指针数组,其长度为128,初始值为空。这 128 个指针与 Key 结构数组的 128 个线程特定数据元素一一对应。在调用 pthread\_key\_create 得到一个键之后,每个线程可以依据这个键操作自己的 pkey 指针数组中对应的指针来设置和提取线程私有数据,这通过  pthread\_getspecific  和  pthread\_setspecific  函数来实现。
+
+　　 pthread\_getspecific 返回pkey中对应于key 的当前线程特定数据的指针,而 pthread\_setspecific 将pkey中对应于key的指针设置为 value，即设置对应于key的当前线程特定数据的指针。我们使用线程特定数据机制,就是要使线程中的函数可以共享一些数据。如果我们在线程中通过 malloc 获得一块内存,并把这块内存的指针通过 pthread\_setspecific 设置到 pkey指针数组中对应于 key 的位置,那么线程中调用的函数即可通过 pthread\_getspecific 获得这个指针,这就实现了线程内部数据在各个函数间的共享。当一个线程终止时,系统将扫描该线程的 pkey 数组,为每个非空的 pkey 指针调用相应的析构函数,因此只要将执行回收的函数的指针在调用 pthread\_key\_create 时作为函数的参数,即可在线程终止时自动回收分配的内存区。
+
+ 示例1
+
+    
+
+     #include
+     
+     <stdio.h>
+    
+
+    
+
+     #include
+     
+     <string.h>
+    
+
+    
+
+     #include
+     
+     <pthread.h>
+    
+
+    
+
+    
+
+     pthread\_key\_t
+      key
+     ;
+    
+
+    
+
+    
+
+     void
+     
+     \*
+      thread2
+     (
+     void
+     
+     \*
+     arg
+     )
+    
+
+    
+
+     {
+    
+
+    
+
+     int
+     tsd 
+     \=
+     
+     5
+     ;
+    
+
+    
+
+     printf
+     (
+     "thread %d is running\\n"
+     ,
+     pthread\_self
+     ());
+    
+
+    
+
+     pthread\_setspecific
+     (
+     key
+     ,(
+     void
+     
+     \*)
+     tsd
+     );
+    
+
+    
+
+     printf
+     (
+     "thread %d returns %d\\n"
+     ,
+     pthread\_self
+     (),
+     pthread\_getspecific
+     (
+     key
+     ));
+    
+
+    
+
+     }
+    
+
+    
+
+    
+
+     void
+     
+     \*
+      thread1
+     (
+     void
+     
+     \*
+     arg
+     )
+    
+
+    
+
+     {
+    
+
+    
+
+     int
+     tsd 
+     \=
+     
+     0
+     ;
+    
+
+    
+
+     pthread\_t
+      thid2
+     ;
+    
+
+    
+
+    
+
+     printf
+     (
+     "thread %d is running\\n"
+     ,
+     pthread\_self
+     ());
+    
+
+    
+
+     pthread\_setspecific
+     (
+     key
+     ,(
+     void
+     
+     \*)
+     tsd
+     );
+    
+
+    
+
+     pthread\_create
+     (&
+     thid2
+     ,
+     NULL
+     ,
+     thread2
+     ,
+     NULL
+     );
+    
+
+    
+
+     sleep
+     (
+     2
+     );
+    
+
+    
+
+     printf
+     (
+     "thread %d return %d\\n"
+     ,
+     pthread\_self
+     (),
+     pthread\_getspecific
+     (
+     key
+     ));
+    
+
+    
+
+     }
+    
+
+    
+
+    
+
+     int
+      main
+     (
+     void
+     )
+    
+
+    
+
+     {
+    
+
+    
+
+     pthread\_t
+      thid1
+     ;
+    
+
+    
+
+     printf
+     (
+     "main thread begins running\\n"
+     );
+    
+
+    
+
+     pthread\_key\_create
+     (&
+     key
+     ,
+     NULL
+     );
+    
+
+    
+
+     pthread\_create
+     (&
+     thid1
+     ,
+     NULL
+     ,
+     thread1
+     ,
+     NULL
+     );
+    
+
+    
+
+     sleep
+     (
+     5
+     );
+    
+
+    
+
+     pthread\_key\_delete
+     (
+     key
+     );
+    
+
+    
+
+     printf
+     (
+     "main thread exit\\n"
+     );
+    
+
+    
+
+     return
+     
+     0
+     ;
+    
+
+    
+
+     }
+    
+
+ 编译并执行，结果如下：
+
+    
+
+     $ gcc 
+     \-
+     o 
+     8
+     \-
+     4
+     
+     8
+     \-
+     4.c
+     
+     \-
+     g 
+     \-
+     l pthread
+    
+
+    
+
+     $ 
+     ./
+     8
+     \-
+     4
+    
+
+    
+
+     main
+      thread begins running
+    
+
+    
+
+     thread 
+     \-
+     1209746544
+     
+     is
+      running
+    
+
+    
+
+     thread 
+     \-
+     1218139248
+     
+     is
+      running
+    
+
+    
+
+     thread 
+     \-
+     1218139248
+     returns 
+     5
+    
+
+    
+
+     thread
+     
+     \-
+     1209746544
+     
+     return
+     
+     0
+    
+
+    
+
+     main
+     thread 
+     exit
+    
+
+    程序说明：程序中，主线程创建了线程thread1，线程thread1创建了线程thread2。两个线程分别将tsd作为线程私有数据。从程序运行结果可以看出，两个线程tsd的修改互不干扰，可以看出thread2先于thread1结束，线程在创建thread2后，睡眠3s等待thread2执行完毕。主线程睡眠5s等待thread1结束。可以看出thread2对tsd的修改并没影响到thread1的tsd的取值。

@@ -1,0 +1,217 @@
+---
+title: "基于昇腾AI 使用AscendCL实现垃圾分类和视频物体分类应用"
+date: "2024-04-25"
+slug: "138196105"
+tags: ["#人工智能", "#分类", "#音视频"]
+source: "https://blog.csdn.net/yeyuangen/article/details/138196105"
+---
+
+ 
+
+现如今，人工智能迅猛发展，AI赋能产业发展的速度正在加快，“AI+”的需求蜂拥而来，但 AI应用 快速落地的过程中仍存在很大的挑战：向下需要适配的硬件，向上需要完善的技术支持，两者缺一不可。
+
+基于此，昇腾推出了系列化行业SDK和参考设计，通过把千行百业细分场景的开发经验和行业知识沉淀下来、水平复制，从而大幅度降低门槛、简化开发、提升效率。而信迈科技是昇腾重要的APN合作伙伴、金牌分销商，具有较强的自主设计硬件能力，双方紧密携手，打造软硬结合、更符合行业需求的算力底座，赋能产业快速、低成本数字化转型。
+
+使用AscendCL快速实现垃圾分类和视频物体分类应用的案例，帮助开发者降低学习成本、简化开发流程，缩短项目周期！
+
+  **案例概述**
+
+①垃圾分类应用：基于AscendCL，使用实现对图片中的垃圾类别进行检测，并输出有检测类别的图片；
+
+②视频物体分类应用：基于GoogLeNet分类网络，使用实现对视频帧中的物体进行识别分类，并将分类的结果展示在PC网页上。
+
+  **案例说明**
+
+本案例底层原理逻辑请参考华为昇腾AscendCL [<垃圾分类>](https://www.hiascend.com/marketplace/mindx-sdk/case-studies/d2f608d9-e0da-4cd7-895f-aabe9cf59270 "<垃圾分类>")，和[<视频物体分类>](https://www.hiascend.com/marketplace/mindx-sdk/case-studies/66ca40c1-b676-4fe7-b427-f0acbd2b0adf "<视频物体分类>")案例。
+
+  **前置条件**
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138196105/01_b83b06894e3a4f63bbd85021d310d35e.jpeg)
+
+**基于实现垃圾分类应用**
+
+1
+
+环境安装
+
+**注意事项：**
+
+➢以下操作以普通用户HwHiAiUser安装CANN包为例说明，推荐使用root用户进行操作，如果是root用户，请将安装准备中所有的${HOME}修改为/usr/local。
+
+➢推荐按照本文档路径进行操作，如安装在自定义路径可能会导致环境冲突等问题
+
+**1、配置相关环境**
+
+```hljs
+# 以安装用户在任意目录下执行以下命令，打开.bashrc文件。
+```
+
+**2、安装python-acllite**
+
+```hljs
+# 安装ffmpeg部分依赖
+```
+
+2
+
+模型获取&转换
+
+```hljs
+# 进入案例路径，samples为前置步骤中下载的案例包
+```
+
+3
+
+测试数据获取
+
+```hljs
+# 创建并进入data文件夹
+```
+
+4
+
+运行案例
+
+运行python代码：
+
+```hljs
+# 此处的data为测试数据路径
+```
+
+➢运行成功后如无报错会显示以下信息：
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138196105/02_0a1c35dc0f565b66b8f1f2f821730b04.png)
+
+5
+
+案例展示
+
+在案例根目录out文件夹下会生成带有检测类别的图片：
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138196105/03_3ce346390aff8872b43429c6e27e37b0.png)
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138196105/04_086e5614025f871093e11119b5610118.png)
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138196105/05_0c64ff7ea40f0ddc6a61f92d49c563c4.png)
+
+**基于实现视频物体分类应用**
+
+1
+
+环境安装
+
+**注意****事项****：**
+
+➢以下操作以普通用户HwHiAiUser安装CANN包为例说明，推荐使用root用户进行操作，如果是root用户，请将安装准备中所有的${HOME}修改为/usr/local。
+
+➢推荐按照本文档路径进行操作，如安装在自定义路径可能会导致环境冲突等问题。
+
+**1、配置相关环境**
+
+```hljs
+# 以安装用户在任意目录下执行以下命令，打开.bashrc文件。
+```
+
+**2、安装opencv**
+
+```hljs
+# 执行以下命令安装opencv （注：请确保安装的版本是3.x）
+```
+
+**3、****安装protobuf&presentagent**
+
+```hljs
+# 安装protobuf相关依赖
+```
+
+2
+
+模型转换&获取
+
+**注意****事项****：**
+
+➢本案例使用基于Caffe的GoogLeNet模型，获取模型的命令已提供，如果开发者需要更多模型信息可参考：
+
+```hljs
+# 进入案例路径，samples为前置步骤中下载的案例包
+```
+
+3
+
+编译运行案例
+
+**1、执行编译脚本**
+
+```hljs
+# 进入脚本路径
+```
+
+➢执行编译脚本后请根据实际情况选择arm/x86格式，在上进行操作请选择：arm
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138196105/06_08ac4ac577b10e45b3cd30d3ff4e763b.png)
+
+➢编译脚本中会自动下载相关视频素材：cat.mp4，如开发者使用其它素材，可以在sample\_build.sh处删除该命令
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138196105/07_b58b6d5b610970f00a663024e0147355.png)
+
+➢编译完成后会生成相关文件并提示complete
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138196105/08_e65ccc092ba55d0e655cb27da4dce591.png)
+
+**2、执行脚本运行案例**
+
+```hljs
+# 赋予脚本权限 
+```
+
+➢执行运行脚本后，如果有本设备有多个ip，请选择能连通外网的ip并进行输入，例：10.1.30.111
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138196105/09_32e1ae965dc7299bebf05866a352dac5.png)
+
+➢执行成功后，会提示successfully，并提供相关的 网页链接
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138196105/10_75eadcda77f10d307eb68abe25c96ffc.png)
+
+➢运行脚本默认读取cat.mp4素材，如开发者使用其它素材，可以在sample\_run.sh处更改素材路径
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138196105/11_4179d560b2a9f2853108799221f0bfa0.png)
+
+4
+
+案例展示
+
+打开浏览器输入提供的网页链接与端口号，例：10.1.30.111:7007
+
+➢进入下图界面后，等待状态栏变为绿色，可以单击“Refresh“刷新，当有数据时相应的Channel 的Status变成绿色。
+
+➢状态栏正常后，点击右侧的View Name下的名字 ，例：classify
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138196105/12_e5ceea0ada5946ad75bec1f4b9ce6830.png)
+
+➢进入视频物体分类界面后，会在视频左上角显示检测的物体类别，视频上方显示视频帧率，开发者可进行截图、录像等功能。
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138196105/13_38af442a09ee04d991852eabcbfd1b4e.png)
+
+5
+
+相关FAQ
+
+1、安装protobuf&presentagent时执行${THIRDPART\_PATH}/bin/protoc presenter\_message.proto --cpp\_out=./ 
+
+报错：protoc not such file or directory
+
+➢该报错可能是protobuf安装问题：
+
+```hljs
+# 回到protobuf安装路径cd /usr/local/probuf# 再次执行make installmake install# 查看${THIRDPART_PATH}/bin/下是否有protoc
+```
+
+2、执行编译脚本时报错如下图：
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138196105/14_4e2acabae1184b0d62305e18ab108a60.png)
+
+➢该报错可能是 opencv 版本问题：
+
+```hljs
+# 进入报错代码
+```

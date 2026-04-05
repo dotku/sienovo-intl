@@ -1,0 +1,73 @@
+---
+title: "mini2440的nor flash与nand flash启动过程区别"
+date: "2011-08-22"
+slug: "6707384"
+tags: ["#flash", "#c", "#存储", "#微软"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6707384"
+---
+
+ 
+
+\--------------------------------------------------------
+
+目标：祥读mini2440说明书
+
+\--------------------------------------------------------
+
+**一、调试经验**
+
+1.一位老电脑科学家的提示：当你遇到怪问题时，重启是一种最简单的解决办法之一。因为操作系统本身有不完善之处，不管是微软视窗还是苹果电脑。
+
+2.USB转口线出现乱码问题：说明 串口 线的功能和性能不稳定。可购买性能好的代替之。
+
+**二、问答**
+
+**1.什么是nand,什么是nor?nand启动与nor启动的区别及联系。(收集整理）**
+
+答：1）在NOR FLASH里面可以直接执行代码，而在NAND FLASH里面不可以，在2410里面，如果选择NAND启动方式的话，NAND里的代码是被拷贝到RAM里面去执行的。
+
+2）NAND FLASH每次取数据前要写入好像是0X55,0XAA才行，而NOR FLASH直接取到数据。
+
+3）NOR FLASH地址线和数据线分开，来了地址和控制信号，数据就出来。NAND Flash地址线和数据线在一起，需要用程序来控制，才能出数据。
+
+**2.如何开机进入BIOS模式？**
+
+答：将S2跳转开关打至nor flash端即可。
+
+**3.使用supervivi作为bootloader.而有些开发板使用uboot**
+
+**4.SEC s3c241x什么意思？**
+
+**三、ARM的nor flash与nand flash启动过程区别**
+
+s3c2440启动过程详解  
+1:地址空间的分配  
+2:开发板上一般都用SDRAM做内存flash（nor、nand）来当做 ROM 。其中nand flash没有地址线，一次至少要读一页(512B).其他两个有地址线  
+3:nandflash不用来运行代码，只用来存储代码，NORflash，SDRAM可以直接运行代码）  
+4:s3c2440总共有8个内存banks  
+  6个内存bank可以当作ROM或者SRAM来使用  
+  留下的2个bank除了当作ROM 或者SRAM，还可以用SDRAM(各种内存的读写方式不一样)  
+  7个bank的起始地址是固定的  
+  还有一个灵活的bank的内存地址，并且bank大小也可以改变  
+5:s3c2440支持两种启动模式：NAND和非NAND（这里是nor flash）。  
+具体采用的方式取决于OM0、OM1两个引脚  
+OM\[1:0\]所决定的启动方式  
+OM\[1：0\]=00时，处理器从NAND Flash启动  
+OM\[1：0\]=01时，处理器从16位宽度的ROM启动  
+OM\[1：0\]=10时，处理器从32位宽度的ROM启动。  
+OM\[1：0\]=11时，处理器从 Test Mode启动。
+
+6.开发板出厂时已经在nand flash,nor flash烧入了相同的BIOS。
+
+  
+
+当从NAND启动时
+
+    cpu会自动从NAND flash中读取前4KB的数据放置在片内SRAM里（s3c2440是 soc ），同时把这段片内SRAM映射到nGCS0片选的空间（即0x00000000）。cpu是从0x00000000开始执行，也就是NAND flash里的前4KB内容。因为NAND FLASH连地址线都没有，不能直接把NAND映射到0x00000000，只好使用片内SRAM做一个载体。通过这个载体把nandflash中大代码复制到RAM(一般是SDRAM)中去执行
+
+  
+当从非NAND flash启动时
+
+    nor flash被映射到0x00000000地址（就是nGCS0，这里就不需要片内SRAM来辅助了，所以片内SRAM的起始地址还是**0x40000000**）. 然后cpu从0x00000000开始执行（也就是在Norfalsh中执行）。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/6707384/01_0_1313977068eYnj.gif)

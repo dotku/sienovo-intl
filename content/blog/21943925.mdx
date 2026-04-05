@@ -1,0 +1,23 @@
+---
+title: "SO_TIMESTAMP - 《Unix网络编程》中未提及的Socket选项"
+date: "2014-03-24"
+slug: "21943925"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/21943925"
+---
+
+ 
+
+在setsockopt函数中常用Socket选项对socket进行一些必要的设置，使socket可以按我们预期的特性去工作。    
+
+    SO\_TIMESTAMP，一个Socket选项，在权威著作《Unix网络编程》中未提及到，即使在google上也难找到其详细解释与用法。然而在 开源代码 ptpv2d-rc1中用到了这个socket选项，那么它到底是用来做什么的呢。
+
+    分析过 linux \-2.6.32内核源码后，发现通过设置此选项，我们可以让内核协议栈在接受到一个网络帧时为其打上时间戳，并将此时间戳作为一笔附加数据，与网络帧数据一起递交到上层协议。
+
+    netif\_receive\_skb()，linux内核协议 栈 中的关键函数，通常在网卡驱动程序poll函数（RX中断处理函数会调度poll函数，详情参考最新内核机制NAPI）的最后一步调用，占们用来处理网络帧，并将网络帧递交至上层协议，而netif\_receive\_skb函数第一件要做的事就是调用net\_timestamp，为当前收到的网络帧打时间戳（net\_timestamp函数里会判断是否已经使能了网络时间戳功能，即netstamp\_need），并将此时间戳作为一笔SCM\_TIMESTAMP类型的附加数据插入sk\_buff（即cmsg）。    
+
+    上层代码如果要获取内核协议栈为网络帧打的时间戳，就需要拿到附加数据，很显然，我们要拿的是SCM\_TIMESTAMP 类 型的附加数据。 
+
+    我们要在收到的报文中遍历附加数据（可能有很多笔附加数据），可以使用CMSG\_FIRSTHDR()与CMSG\_NXTHDR() 宏 在附加数据对象中进行遍历，if(cmsg->cmsg\_level == SOL\_SOCKET && cmsg->cmsg\_type == SCM\_TIMESTAMP)条件一旦成立，就表明已经找到了SCM\_TIMESTAMP类型的附加数据，那就是之前内核协议栈为这一帧网络报文打上的时间戳，也就是收到此网络报文的时间。    
+
+    这个特性在PTP协议中非常有用，要做网络时间同步，必须有办法知道网络报文收到的时间，如果没有硬件时间戳（精密PHY），上层应用程序就需要使用此特性获取网络帧收到时的时间戳，或者自己编写内核模块代码接入底层协议栈，加盖软件时间戳。

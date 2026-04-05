@@ -32,7 +32,7 @@ config({ path: join(PROJECT_ROOT, ".env.local") });
 
 // ── Config ──────────────────────────────────────────────────────────────────
 const CONTENT_DIR = join(PROJECT_ROOT, "content/blog");
-const ARTICLE_LIST = "/tmp/csdn_final_articles.txt";
+const ARTICLE_LIST = join(PROJECT_ROOT, "scripts/article-list.txt");
 const DELAY_MS = 2000;
 const PAGE_TIMEOUT = 25000;
 const BATCH_SIZE = 20;

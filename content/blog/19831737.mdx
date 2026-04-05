@@ -1,0 +1,125 @@
+---
+title: "【面试】3.如何判断链表是否有环？如何计算环的长度？"
+date: "2014-02-24"
+slug: "19831737"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/19831737"
+---
+
+ 
+
+1.如何判断是否有环？如果有两个头结点 指针 ，一个走的快，一个走的慢，那么若干步以后，快的指针总会超过慢的指针一圈。
+
+  
+
+2.如何计算环的长度？第一次相遇（超一圈）时开始计数，第二次相遇时停止计数。
+
+3.如何判断环的入口点：碰撞点p到连接点的距离=头指针到连接点的距离，因此，分别从碰撞点、头指针开始走，相遇的那个点就是连接点。
+
+为什么呢？需要一个简单的计算过程：  
+（1）当fast与slow相遇时，show肯定没有走完 链表 ，而fast已经在还里走了n（n>= 1）圈。假设slow走了s步，那么fast走了2s步。fast的步数还等于s走的加上环里转的n圈，所以有：  
+2s = s \+ nr。因此，s = nr。  
+（2）设整个链表长为L，入口据相遇点 X ，起点到入口的距离为a。因为slow指针并没有走完一圈，所以：  
+a + x = s，带入第一步的结果，有：a + x = nr \= (n-1)r + r = (n-1)r + L - a；即：  
+a = (n-1)r + L -a -x;  
+这说明：从头结点到入口的距离，等于转了(n-1)圈以后，相遇点到入口的距离。因此，我们可以在链表头、相遇点各设一个指针，每次各走一步，两个指针必定相遇，且相遇第一点为环入口点。  
+
+也许大家有一个问题，就是为什么“当fast与slow相遇时，show肯定没有走完链表”。这个问题比较坑，我也没有找到很好的证明。不过大家自己画几个试试，会发现的确是这样。
+
+4.如何判断两个链表（不带环）是否相交？将其中的一个链表首尾相连，然后判断另一个链表是否带环即可。这个比较简单， 程序 就省略了。
+
+**\[cpp\]**  [view plain](http://blog.csdn.net/thefutureisour/article/details/8174313# "view plain") [copy](http://blog.csdn.net/thefutureisour/article/details/8174313# "copy")
+
+1.  #include <stdio.h>  
+
+3.  typedef struct Node  
+4.  {  
+5.      int val;  
+6.      Node \*next;  
+7.  }Node,\*pNode;  
+
+11.  //判断是否有环  
+12.  bool isLoop(pNode pHead)  
+13.  {  
+14.      pNode fast = pHead;  
+15.      pNode slow = pHead;  
+16.      //如果无环，则fast先走到终点  
+17.      //当链表长度为奇数时，fast->Next为空  
+18.      //当链表长度为偶数时，fast为空  
+19.      while( fast != NULL && fast->next != NULL)  
+20.      {  
+
+22.          fast = fast->next->next;  
+23.          slow = slow->next;  
+24.          //如果有环，则fast会超过slow一圈  
+25.          if(fast == slow)  
+26.          {  
+27.              break;  
+28.          }  
+29.      }  
+
+31.      if(fast == NULL || fast->next == NULL  )  
+32.          return false;  
+33.      else  
+34.          return true;  
+35.  }  
+
+37.  //计算环的长度  
+38.  int loopLength(pNode pHead)  
+39.  {  
+40.      if(isLoop(pHead) == false)  
+41.          return 0;  
+42.      pNode fast = pHead;  
+43.      pNode slow = pHead;  
+44.      int length = 0;  
+45.      bool begin = false;  
+46.      bool agian = false;  
+47.      while( fast != NULL && fast->next != NULL)  
+48.      {  
+49.          fast = fast->next->next;  
+50.          slow = slow->next;  
+51.          //超两圈后停止计数，挑出循环  
+52.          if(fast == slow && agian == true)  
+53.              break;  
+54.          //超一圈后开始计数  
+55.          if(fast == slow && agian == false)  
+56.          {             
+57.              begin = true;  
+58.              agian = true;  
+59.          }  
+
+61.          //计数  
+62.          if(begin == true)  
+63.              ++length;  
+
+65.      }  
+66.      return length;  
+67.  }  
+
+70.  //求出环的入口点  
+71.  Node\* findLoopEntrance(pNode pHead)  
+72.  {  
+73.      pNode fast = pHead;  
+74.      pNode slow = pHead;  
+75.      while( fast != NULL && fast->next != NULL)  
+76.      {  
+
+78.          fast = fast->next->next;  
+79.          slow = slow->next;  
+80.          //如果有环，则fast会超过slow一圈  
+81.          if(fast == slow)  
+82.          {  
+83.              break;  
+84.          }  
+85.      }  
+86.      if(fast == NULL || fast->next == NULL)  
+87.          return NULL;  
+88.      slow = pHead;  
+89.      while(slow != fast)  
+90.      {  
+91.          slow = slow->next;  
+92.          fast = fast->next;  
+93.      }  
+
+95.      return slow;  
+96.  }

@@ -1,0 +1,72 @@
+---
+title: "vxworks 常用命令"
+date: "2012-02-04"
+slug: "7233501"
+tags: ["#statistics", "#任务", "#function", "#network", "#string", "#internet"]
+source: "https://blog.csdn.net/yeyuangen/article/details/7233501"
+---
+
+ 
+
+  
+
+1．与任务相关的命令  
+sp function,\[arg1\],...,\[arg9\]  
+－启动任务，最多接受9个参数，默认的优先级100、堆栈20000字节
+
+period n,function,\[arg1\],...,\[arg8\]  
+－创建一个周期调用function的任务，周期为n秒，最多接受8个参数
+
+repeat m,function,\[arg1\],...,\[arg8\]  
+－创建一个反复调用function的任务，调用次数为m，m＝0时永久调用，最多也是8个参数
+
+ts tidX         －挂起任务  
+tr tidX         －恢复挂起的任务  
+td tidX         －删除任务  
+i   tidX         －显示任务基本 信息 ，参数为0时显示全部任务  
+ti tidX         －显示任务详细信息，包括寄存器、堆栈等  
+tt tidX         －显示任务的函数调用关系  
+checkStack tidX －显示任务堆栈使用的历史统计，参数为0时显示全部任务  
+\[其中tidX可以为任务ID 也可以为任务名\]
+
+2、系统信息
+
+lkup \["string"\] －在系统符号表中查找并列出含有"string"字符的函数及全局变量，有两个特殊参数：  
+                   0，给出符号表统计；""（空字符串），列出全部符号
+
+lkAddr addr      －显示addr地址附近的符号表
+
+l addr,\[n\]       －显示addr地址开始的n条指令的反汇编，n省略时默认为10条指令
+
+h \[n\]            －n为0时列出最近执行的shell命令，默认20条；n非0时，设定shell记录的历史命令的数目
+
+d \[addr,\[number\],\[width\]\]  
+                 －显示addr地址开始的number个单元的内容，width定制每个单元的宽度，可以是1、2、4、8
+
+m addr,\[width\]   －按width宽度修改addr地址的内容，width可以是1、2、4、8
+
+memShow 1        －显示系统分区上空闲和已分配空间的总数等
+
+printErrno value －打印系统定义的错误码的宏
+
+3、与网络相关的命令
+
+ifShow       \["ifname"\]            - show info about network interfaces  
+inetstatShow                       - show all Internet protocol sockets  
+tcpstatShow                        - show statistics for TCP  
+udpstatShow                        - show statistics for UDP  
+ipstatShow                         - show statistics for IP  
+icmpstatShow                       - show statistics for ICMP  
+arpShow                            - show a list of known ARP entries  
+mbufShow                           - show network stack data pool statistics  
+netStackSysPoolShow                - show network stack system pool statistics
+
+routeShow                          - display all IP routes (summary information)  
+mRouteShow                         - display all IP routes (verbose information)  
+routestatShow                      - display routing statistics  
+routeAdd     "destaddr","gateaddr" - add route to route table  
+routeDelete "destaddr","gateaddr" - delete route from route table
+
+说明：上述大多数命令都可以在help、netHelp中查到
+
+http://blog.myspace.cn/e/401761251.htm

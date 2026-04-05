@@ -1,0 +1,29 @@
+---
+title: "【面试】联合体内存表示"
+date: "2014-03-03"
+slug: "20403425"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/20403425"
+---
+
+ 
+
+联合体所有成员共用一块地址空间（对比：结构体不同成员的存放地址不同）。  
+
+（1）
+
+```cpp
+＃include<stdio.h>union{int i;char x[2];}a; void main(){a.x[0] = 10;a.x[1] = 1;printf("%d",a.i);}
+```
+
+答案 ：266 (低位低地址即a.x\[0\]=10=0x0A，高位高地址a.x\[1\]=0x01，内存占用情况是0x010A。）
+
+（2）
+
+```cpp
+main(){union{ /*定义一个联合*/int i;struct{ /*在联合中定义一个结构*/char first;char second;}half;}number;number.i=0x4241; /*联合成员赋值*/printf("%c%c\n",number.half.first, mumber.half.second);number.half.first='a'; /*联合中结构成员赋值*/number.half.second='b';printf("%x\n", number.i);getch();}
+```
+
+答案： AB (0x41对应'A',是低位；0x42对应'B',是高位）。
+
+a=0x61, b=0x62,按照低位低地址，高位高地址的原则，得答案0x6261 (number.i和number.half共用一块地址空间）。

@@ -1,0 +1,129 @@
+---
+title: "AM5728 高性能计算（并行计算）OpenCL/OpenMP简介及测试"
+date: "2019-06-25"
+slug: "93607538"
+tags: ["#AM5728", "#OpenCl", "#OpenMP", "#Opencv", "#多核异构"]
+source: "https://blog.csdn.net/yeyuangen/article/details/93607538"
+---
+
+ 
+
+### 一、OpenCL/OpenMP简介
+
+**OpenCL** (Open Computing Language) 是一个为异构平台编写程序的框架，属于API，和OpenGL架构 类 似，此异构平台可由CPU，GPU或其他类型的处理器组成。
+
+最近花了点时间，对[OpenMP](http://openmp.org/wp/)，[OpenCL](http://www.khronos.org/opencl/)，MPI（有多种实现，如[Open MPI](http://www.open-mpi.org/)）等，关于高性能计算的技术，做了一下简单的浏览，我把这次简单浏览所学习到的一点东西记录在此。这些总结和记录都比较半吊子，还需要更深入的学习和研究。
+
+       **首先**，时下越来越热的GPU计算，随着中国天津的大型计算机拿到国际头把运算力交椅，不得不让人重视。现有的技术，从阵营上分，有 NVidia 的[CUDA](http://developer.nvidia.com/object/cuda_3_2_downloads.html)，AMD(ATI)的[stream](http://developer.amd.com/gpu/atistreamsdk/pages/default.aspx)。还有一个开放标准：[OpenCL](http://www.khronos.org/opencl/)。我是比较看好OpenCL的，因为他可以支持同时对不同品牌，不同核心CPU和GPU的优化和加速，特别适合异构环境。他的基本原理就是系统里边内置一个类似编译器，好像llvm,API的东西，软件写完的代码只有到最后的硬件执行的时候进行最终编译，这个编译过程似乎是通过系统里边的硬件驱动Driver，现在都还需要另外安装，[intel](http://software.intel.com/en-us/articles/intel-opencl-sdk/)，[nvidia](http://developer.nvidia.com/object/opencl-download.html)，[amd](http://developer.amd.com/gpu/atistreamsdk/pages/default.aspx)提供的sdk中都分别包含有自己Driver，得以执行。所以OpenCL的程序主线程，会根据系统中是几个核的多核CPU，那种架构的CPU（arm或者x86），有没有GPU，哪种GPU? 来决定最后生成的工作线程的代码传递给哪个Driver编译执行。系统会自动保存编译后的二进制代码以备后用。这个过程看起来好像是一个动态语言的过程，但是实际上现在OpenCL还主要是底层的，经过扩展的c语言来写。不同硬件的Driver充当了runtime的角色。
+
+       intel,nvidia,amd等多家硬件厂商支持OpenCL，但是同时也有自己的小九九，比如nvidia的 cuda ，就提供了针对自己的更多的功能，而且函数上据说也更为高级。所以说，如果是专门针对特定硬件环境下，比如开发大运算量的科学程序的话，最好使用专门硬件自己的GPU加速sdk开发。只有在要求通用性，比如商业软件上，才使用OpenCL开发。
+
+      **其次**，OpenMP和MPI，这两个都是已经被广泛使用的并行程序开发库。他们的区别是：OpenMP是针对多核处理器，使用的是共享内存的并行方式，可以说更为线程一些；MPI是针对 服务器 中，多个对称并行CPU或者集群服务器的情况，内容共享方式是混合的，更为进程一些。
+
+       从某种角度上说，OpenCL有代替OpenMP的可能和趋势，里边会包含针对多核心CPU的处理。现在的环境下，还是OpenMP更合适——可以直接发挥多核心处理器的能力，而且不需要图形开发的知识。[这里](http://blog.jackpien.com/?p=244)是一篇关于OpenMP和OpenCL性能的测试。
+
+    现在的并行开发，主要就是MPI+OpenMP，前者负责将运算通过进程分布到不同服务器的不同CPU上去，后者负责通过多线程，有效利用CPU中每个核心的效能。
+
+       **再次**，有文章显示，为了最好的发挥线程的效能，在同样算法条件下，[最好程序使用的线程和cpu提供的最大线程数一致](http://www.ibm.com/developerworks/cn/linux/l-cn-optimization/index.html)，而且[最好能够绑定程序执行线程和CPU核心](http://blog.chinaunix.net/u4/120880/showart_2380539.html)。GPU对某些计算加速效果特别好，效率也不错，但是由于必须通过PCI用CPU进行调度，所以，实际程序设计的时候，要[考虑这个通信过程的延时](http://tech.it168.com/a2010/0723/1081/000001081479_all.shtml)。
+
+       **最后**，现有的几种并行计算技术：
+
+1、系统层面，使用进程迁移技术，从而让所有支持多进程的程序，实现并行，如openmosix，这需要经过patch过的操作系统；
+
+2、硬件层面，也就是OpenCL等GPU加速技术，需要相应的硬件支持；
+
+3、开发语言方面，现在[erlang](http://www.erlang.org/)这种动态语言，就提供了对集群环境的支持，他会自动向加入集群的服务器分布运算进程。[google Go](http://golang.org/)语言可能也是类似的。
+
+二、AM5728 OpenCL/OpenMP测试
+
+### ******2 OpenMP 例程编译******
+
+在 Ubuntu 下执行如下指令，安装 gawk 查找替换文本工具：
+
+****Host****\# sudo apt-get install gawk
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/93607538/01_95937abd530a5c47d060dc99be40354e.png)
+
+图1
+
+输入 Y 确认安装，安装成功如下图所示：
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/93607538/02_59a50a72eca6ba8ec1fb777f2a174ed7.png)
+
+图2
+
+确认已正确安装对应版本 Linux Processor-SDK 包，进入 SDK 安装包根目录执行如下
+
+指令编译 OpenMP 例程：
+
+Host# make openmpacc-examples
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/93607538/03_f40089ad959cf8ec05290813686d04bc.png)
+
+图3
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/93607538/04_a928e6875dad5d6619ad281f6d0153cf.png)
+
+图4
+
+将编译生成的可执行文件拷贝到开发板文件系统。便于客户测试，我司提供经过验证的 OpenMP 可执行文件位于光盘 Demo\\OpenMP\\bin\\openmp.tar.gz”路径下，将其拷贝
+
+到开发板文件系统。进入文件系统该文件所在路径，执行如下指令将其解压：
+
+****Target****\#  tar xvf openmp.tar.gz
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/93607538/05_28085b3ab2cd9011effa2be9a65a5cc5.png)
+
+图5
+
+3 OpenMP 例程测试
+
+3.1 dspheap 例程
+
+此例程演示如何在 OpenMP 目标区域内，在 DSP 上创建和使用堆。由 DSP 内置函数来创建在 MSMC、DDR 和本地内存区域中操作用户定义的堆。这些堆是永久的，只要它
+
+们的底层内存被分配。在这个例子中，从连续的共享内存区域创建缓冲区，提供底层内存存储。堆是活跃的和持久的从它们被初始化直到缓冲区被解除分配。
+
+开发板文件系统下执行如下指令，运行该例程：
+
+****Target****#   cd openmp/dspheap/
+
+****Target****#  ./dspheap
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/93607538/06_e9a604f69508081d71a660353595b6cf.png)
+
+图6
+
+3.2 vecadd 向量相加例程
+
+本例程利用 OpenMP 进行两个元素个数为 8K 的一维向量的并行相加。开发板文件
+
+系统下执行如下指令，运行该例程：
+
+****Target****\#  cd openmp/vecadd/
+
+****Target****\#  ./vecadd
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/93607538/07_9762609ca09cb54aee33c4b996a47fab.png)
+
+图7
+
+3.3 vecadd\_complex 例程
+
+本例程利用 OpenMP 进行两个元素个数为 8K 的复数向量的并行相加。开发板文件
+
+系统下执行如下指令，运行该例程：
+
+****Target****\#  cd openmp/vecadd\_complex/
+
+****Target****\#  ./vecadd\_complex
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/93607538/08_ce9eb52ed46d02fb1db7a7d3ce98c34c.png)
+
+图8
+
+3.4 其他例程测试说明
+
+其他程序测试方法跟以上一样，具体程序功能可以查看源码.C 文件的注释，路径在
+
+Linux Processor-SDK安装包根目录“/example-applications/openmpacc-examples-1.4.0.2/”路径下。

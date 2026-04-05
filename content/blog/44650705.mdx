@@ -1,0 +1,15 @@
+---
+title: "pthread_cond_wait()和pthread_cond_signal() 的理解"
+date: "2015-03-26"
+slug: "44650705"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/44650705"
+---
+
+ 
+
+pthread\_cond\_wait() 用于阻塞当前线程，等待别的线程使用pthread\_cond\_signal()或pthread\_cond\_broadcast来唤醒它。 pthread\_cond\_wait() 必须与pthread\_mutex 配套使用。pthread\_cond\_wait()函数一进入wait状态就会自动release mutex。当其他线程通过pthread\_cond\_signal()或pthread\_cond\_broadcast，把该线程唤醒，使pthread\_cond\_wait()通过（返回）时，该线程又自动获得该mutex。
+
+  pthread\_cond\_signal函数的作用是发送一个信号给另外一个正在处于阻塞等待状态的线程,使其脱离阻塞状态,继续执行.如果没有线程处在阻塞等待状态,pthread\_cond\_signal也会成功返回。
+
+  使用pthread\_cond\_signal一般不会有“惊群现象”产生，他最多只给一个线程发信号。假如有多个线程正在阻塞等待着这个条件变量的话，那么是根据各等待线程优先级的高低确定哪个线程接收到信号开始继续执行。如果各线程优先级相同，则根据等待时间的长短来确定哪个线程获得信号。但无论如何一个pthread\_cond\_signal调用最多发信一次。

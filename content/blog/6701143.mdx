@@ -1,0 +1,56 @@
+---
+title: "Makefile实例解析（完全注释）"
+date: "2011-08-19"
+slug: "6701143"
+tags: ["#makefile", "#wildcard"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6701143"
+---
+
+ 
+
+\#   For 2416 Project  
+\#   Write by lx-gzjp-2011-7-19  
+  
+  
+#\*\*\*\*\*\*\*\*\*\*\* setting\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+CC :=gcc  
+OUTDIR := obj  
+OUTBINNAME := go  
+SRC\_DIR := ./ 2416def/ bmp/ lcddriver/ disp/ zklib/ gps/ usb/ timer/ anet/ omc/  
+#\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+  
+  
+LINK :=(𝐶𝐶)−𝑜𝐿𝐼𝑁𝐸𝑇𝐻𝑅𝐸𝐴𝐷:\=−𝑙𝑝𝑡ℎ𝑟𝑒𝑎𝑑−𝑙𝑚𝐶𝐹𝐿𝐴𝐺:\=−𝑐−𝑂2−𝑜𝑆𝑅𝐶𝑆𝑈𝐹𝐹𝐼𝑋:\=.𝑐𝑂𝐵𝐽𝑆𝑈𝐹𝐹𝐼𝑋:\=.𝑜𝑆𝑅𝐶𝑆:\=(CC)−oLINETHREAD:=−lpthread−lmCFLAG:=−c−O2−oSRCSUFFIX:=.cOBJSUFFIX:=.oSRCS:=(foreach n,(𝑆𝑅𝐶𝐷𝐼𝑅),(SRCDIR),(wildcard (𝑛)∗(n)∗(SRC\_SUFFIX)))  
+OBJECTS := (𝑝𝑎𝑡𝑠𝑢𝑏𝑠𝑡(patsubst(SRC\_SUFFIX),(𝑂𝑈𝑇𝐷𝐼𝑅)/(OUTDIR)/(OBJ\_SUFFIX),(𝑛𝑜𝑡𝑑𝑖𝑟(notdir(SRCS)))  
+  
+  
+all     : (𝑂𝑈𝑇𝐷𝐼𝑅)(OUTDIR)(OUTDIR)/$(OUTBINNAME)  
+  
+  
+
+.PHONY : all
+
+(OUTDIR):mkdir(OUTDIR):mkdir(𝑂𝑈𝑇𝐷𝐼𝑅):𝑚𝑘𝑑𝑖𝑟@  
+  
+  
+  
+  
+(OUTDIR)/(OUTDIR)/(𝑂𝑈𝑇𝐷𝐼𝑅)/(OUTBINNAME):(OBJECTS)(OBJECTS)(𝑂𝐵𝐽𝐸𝐶𝑇𝑆)(LINK) @@@(OBJECTS) (LINETHREAD)@echo"Finished!"@echo"Binfileis(LINETHREAD)@echo"Finished!"@echo"Binfileis(𝐿𝐼𝑁𝐸𝑇𝐻𝑅𝐸𝐴𝐷)@𝑒𝑐ℎ𝑜"𝐹𝑖𝑛𝑖𝑠ℎ𝑒𝑑!"@𝑒𝑐ℎ𝑜"𝐵𝑖𝑛𝑓𝑖𝑙𝑒𝑖𝑠(OUTDIR)/(OUTBINNAME)!"(OUTBINNAME)!"(𝑂𝑈𝑇𝐵𝐼𝑁𝑁𝐴𝑀𝐸)!"(OUTDIR)/main.o:main.c  
+        (CC)(CC)(𝐶𝐶)(CFLAG) @@@<  
+  
+  
+(OUTDIR)/(OUTDIR)/(𝑂𝑈𝑇𝐷𝐼𝑅)/(SRCS)  
+        (CC)(CC)(𝐶𝐶)(CFLAG) @@@(\*F)/(∗F).cclean:@rm−rfobj@echo"(∗F).cclean:@rm−rfobj@echo"(∗𝐹).𝑐𝑐𝑙𝑒𝑎𝑛:@𝑟𝑚−𝑟𝑓𝑜𝑏𝑗@𝑒𝑐ℎ𝑜"(OUTDIR) has been deleted!"  
+
+  
+
+\=======================     Makefile 领悟      =========================================================
+
+edit（最终目标） : main.o kbd.o command.o display.o insert.o search.o files.o utils.o （最终目标文件的依赖文件是中间文件）  
+ cc -o edit main.o kbd.o command.o display.o  insert.o search.o files.o utils.o    //由很多.o文件生成最终目标文件  
+main.o : main.c defs.h   
+ cc -c main.c                        //没有.o，难道是隐晦规则中的把.o直接变成当前目标了  
+
+  
+
+\================================================================================================

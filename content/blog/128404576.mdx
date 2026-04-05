@@ -1,0 +1,53 @@
+---
+title: "评估EtherCAT从站节点解决方案"
+date: "2022-12-22"
+slug: "128404576"
+tags: ["#TI C2000", "#Ethercat从站", "#F28338"]
+source: "https://blog.csdn.net/yeyuangen/article/details/128404576"
+---
+
+ 
+
+本系列博客文章的第1部分介绍了用于C2000™微控制器的EtherCAT从站堆栈解决方案的市场机遇，以及从站堆栈开发快速入门的三个阶段指南。第2部分详细说明了TIC2000 MCU EtherCAT实施的特点和优势。第3部分分别介绍了使用EtherCAT从站和C2000 Delfino MCU controlCARD套件自行开发从站节点应用程序的三个阶段，并介绍了TI C2000 controlSUITE™软件中的EtherCAT包如何为每个阶段提供支持。本篇博文作为本系列文章的第4部分将介绍如何利用最新的C2000 TMS320F28388D实时控制器自行开发EtherCAT从站控制器。
+
+C2000 F28388D MCU采用了Beckhoff的EtherCAT外设模块，并将其集成到芯片上。EtherCAT外设模块所有权可以分配给CPU1或CM。为支持此功能，已经在C2000Ware（C2000微控制器软件包）中增加了一套软件解决方案。这些F28388D EtherCAT软件解决方案有以下优点：
+
+验证F28388D ControlCARD或自定义F28388D板的EtherCAT是否正常运行。
+
+评估EtherCAT从站堆栈和使用F28388D创建从站节点应用程序。
+
+**开始**
+
+在对F28388D上的EtherCAT进行评估和验证之前，您需要先下载并安装：
+
+C2000Ware – 其中包含用于F28388D的所有EtherCAT软件。
+
+TwinCAT PC/ PLC – Beckhoff EtherCAT 主站。
+
+如需参阅F28388D EtherCAT 示例代码 以及更多详细使用说明文档，请在C2000Ware中跳转至~\\C2000Ware\_X\_XX\_XX\_XX\\libraries\\communications\\Ethercat\\f2838x。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128404576/01_3ca026ea01abdb0805f1d19dbfd21290.png)
+
+**验证运行和连接**
+
+F28388D EtherCAT软件解决方案包括一套硬件抽象层（ HAL ）测试应用程序（一个用于CPU1，一个用于CM）。这些应用程序可以验证EtherCAT子系统与器件中央处理单元之间的ASYNC16处理器数据接口，以确保其能够对EtherCAT寄存器和内存执行一系列读写操作。该应用的软件堆栈如图1所示。此外，这些应用程序还包括检查确认是否使用EtherCAT所需的最小数据集对器件的电可擦除可编程只读存储器（EEPROM）进行编程。
+
+无需使用EtherCAT从站堆栈来执行此验证。将此应用程序下载到设备上后，EtherCAT主站便可识别出网络上的EtherCAT从站控制器，从而确认物理接口是否正常工作。之后，您可以对EtherCAT从站的EEPROM进行编程，然后重新运行应用程序以执行前述的PDI检查。
+
+**评估EtherCAT从站节点解决方案**
+
+F28388D EtherCAT软件解决方案包括EtherCAT从站演示和参考解决方案。两者都包括从CPU1运行或从CM运行的变体。
+
+EtherCAT从站演示应用程序是一个简单的“回送”示例，其中从EtherCAT主站发送的数据由EtherCAT主站控制器接收并发送回主站。演示应用程序软件堆栈如图2所示。利用TwinCAT PC软件来控制EtherCAT主站节点，您只需几分钟即可在工作台上构建多节点EtherCAT网络。
+
+此演示应用程序以二进制映像的形式提供，专为F28388D controlCARD而配置。由于此映像已集成EtherCAT从站堆栈，无需自行生成从站堆栈代码。您只需利用该应用程序对F28388 DcontrolCARD进行编程，并将一根CAT5电缆从controlCARD连接到EtherCAT主站（本例中为TwinCAT PC/PLC）。
+
+**自行创建EtherCAT从站节点解决方案**
+
+在使用EtherCAT从站演示应用程序进行评估后，F28388D EtherCAT软件包含一个用于帮助自行创建从站节点应用程序的参考解决方案。
+
+EtherCAT从站参考解决方案具有与演示应用程序相同的回送功能。但是，该解决方案包含了对其进行调试以及在您自己的应用程序中对其进行开发所需的所有 源代码 （除了EtherCAT从站堆栈本身）。图3详细说明了该解决方案的软件堆栈。您可以通过EtherCAT Technology Group（ETG）从站堆栈代码（SSC）ET9300工具获取EtherCAT从站堆栈代码。
+
+为了生成F28388D器件的从站堆栈代码，F28388D EtherCAT软件解决方案包中提供了一个 配置文件 ，将该配置文件导入SSC工具后，只需通过该工具的下拉菜单就可以使用各种F28388D从站配置了。选择一种配置后，该工具会生成用于集成到解决方案中的从站堆栈源代码。C2000Ware中的F28388d EtherCAT软件使用文档提供了进一步的详细信息。
+
+当生成从站堆栈并链接到F28388D EtherCAT从站参考解决方案之后，您就可以开始运行该解决方案，并利用其开发自己的EtherCAT从站应用程序了。

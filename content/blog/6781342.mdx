@@ -1,0 +1,172 @@
+---
+title: "msgsnd/msgrcv函数祥解"
+date: "2011-09-16"
+slug: "6781342"
+tags: ["#struct", "#structure", "#signal", "#null", "#buffer", "#less"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6781342"
+---
+
+ 
+
+\================================
+
+              msgrcv()函数  
+
+\============================
+
+ msgrcv()函数被用来从消息队列中取出消息。它在linux/msg.h  
+中的定义是这样的：  
+系统调用： msgrcv()  
+函数声明： int msgrcv ( int msqid, struct msgbuf \*msgp, int msgsz, long  
+mtype,  
+int msgflg )  
+返回值： Number of bytes copied into message buffer  
+\-1 on error: errno = E2BIG (Message length is greater than  
+msgsz,  
+no MSG\_NOERROR)  
+EACCES (No read permission)  
+EFAULT (Address pointed to by msgp is  
+invalid)  
+EIDRM (Queue was removed during  
+retrieval)  
+EINTR (Interrupted by arriving signal)  
+EINVAL (msgqid invalid, or msgsz less than 0)  
+ENOMSG (IPC\_NOWAIT asserted, and no  
+message  
+exists in the queue to satisfy the  
+request)  
+函数的前三个参数和msgsnd()函数中对应的参数的含义是相同的。第四个参数mtype  
+指定了函数从队列中所取的消息的类型。函数将从队列中搜索类型与之匹配的消息并将之  
+返回。不过这里有一个例外。如果mtype 的值是零的话，函数将不做类型检查而自动返回  
+队列中的最旧的消息。  
+第五个参数依然是是控制函数行为的标志，取值可以是：  
+0,表示忽略；  
+IPC\_NOWAIT，如果消息队列为空，则返回一个ENOMSG，并将控制权交回调用函数  
+的进程。如果不指定这个参数，那么进程将被阻塞直到函数可以从队列中得到符合条件的  
+消息为止。如果一个client 正在等待消息的时候队列被删除，EIDRM 就会被返回。如果进  
+程在阻塞等待过程中收到了系统的中断信号，EINTR 就会被返回。  
+MSG\_NOERROR，如果函数取得的消息长度大于msgsz，将只返回msgsz 长度的信息，  
+剩下的部分被丢弃了。如果不指定这个参数，E2BIG 将被返回，而消息则留在队列中不被  
+取出。  
+当消息从队列内取出后，相应的消息就从队列中删除了。  
+我们将开发一个msgrcv()的封装函数read\_message()：  
+int read\_message( int qid, long type, struct mymsgbuf \*qbuf )  
+{  
+int result, length;  
+/\* The length is essentially the size of the structure minus sizeof(mtype) \*/  
+length = sizeof(struct mymsgbuf) - sizeof(long);  
+if((result = msgrcv( qid, qbuf, length, type, 0)) == -1)  
+{  
+return(-1);  
+}  
+return(result);  
+}  
+利用上面提到的msgrcv()对消息长度的处理，我们可以使用下面的方法来检查队列内  
+是存在符合条件的信息：  
+int peek\_message( int qid, long type )  
+{  
+int result, length;  
+if((result = msgrcv( qid, NULL, 0, type, IPC\_NOWAIT)) == -1)  
+{  
+if(errno == E2BIG)  
+return(TRUE);  
+}  
+return(FALSE);  
+}  
+这里我们将msgp 和msgsz 分别设为NULL 和零。然后检查函数的返回值，如果是E2BIG  
+则说明存在符合指定类型的消息。一个要注意的地方是IPC\_NOWAIT 的使用，它防止了阻塞  
+
+\=======================
+
+msgsnd()函数  
+
+\=======================
+
+从函数名就可以看出，msgsnd()函数是用来向消息队列发送消息的。在linux/msg.h 它  
+的函数定义是这样的：  
+系统调用： msgsnd()  
+函数声明： int msgsnd ( int msqid, struct msgbuf \*msgp, int msgsz, int msgflg )  
+返回值： 0 on success  
+\-1 on error: errno = EAGAIN (queue is full, and IPC\_NOWAIT was asserted)  
+EACCES (permission denied, no write permission)  
+EFAULT (msgp address isn't accessable – invalid)  
+EIDRM (The message queue has been removed)  
+EINTR (Received a signal while waiting to write)  
+EINVAL (Invalid message queue identifier, nonpositive  
+message type, or invalid message size)  
+ENOMEM (Not enough memory to copy message buffer)  
+传给msgsnd()函数的第一个参数msqid 是消息队列对象的标识符（由msgget()函数得  
+到），第二个参数msgp 指向要发送的消息所在的内存，第三个参数msgsz 是要发送信息的  
+长度（字节数），可以用以下的公式计算：  
+msgsz = sizeof(struct mymsgbuf) - sizeof(long);  
+第四个参数是控制函数行为的标志，可以取以下的值：  
+0，忽略标志位；  
+IPC\_NOWAIT，如果消息队列已满，消息将不被写入队列，控制权返回调用函数的线  
+程。如果不指定这个参数，线程将被阻塞直到消息被可以被写入。  
+这里我们将创建一个封装函数来演示msgsnd()函数的使用：  
+int send\_message( int qid, struct mymsgbuf \*qbuf )  
+{  
+int result, length;  
+/\* The length is essentially the size of the structure minus sizeof(mtype) \*/  
+length = sizeof(struct mymsgbuf) - sizeof(long);  
+if((result = msgsnd( qid, qbuf, length, 0)) == -1)  
+{  
+return(-1);  
+}  
+return(result);  
+}  
+
+\========================================
+
+                 msgsnd/msgrcv系统调用
+
+\========================================  
+     
+功能描述：  
+在消息队列上进行收发消息。为了发送消息，调用进程对消息队列必须有写权能。接收消息时必须有读权能。
+
+ 
+
+用法：   
+#include <sys/types.h>  
+#include <sys/ipc.h>  
+#include <sys/msg.h>
+
+int msgsnd(int msqid, const void \*msgp, size\_t msgsz, int msgflg);
+
+ssize\_t msgrcv(int msqid, void \*msgp, size\_t msgsz, long msgtyp, int msgflg);
+
+参数：    
+msqid：消息队列的识别码。  
+msgp：指向消息缓冲区的指针，此位置用来暂时存储发送和接收的消息，是一个用户可定义的通用结构，形态如下
+
+struct msgbuf {  
+    long mtype;      
+    char mtext\[1\];   
+};
+
+msgsz：消息的大小。  
+msgtyp：从消息队列内读取的消息形态。如果值为零，则表示消息队列中的所有消息都会被读取。  
+msgflg：用来指明核心程序在队列没有数据的情况下所应采取的行动。如果msgflg和常数IPC\_NOWAIT合用，则在msgsnd()执行时若是消息队列已满，则msgsnd()将不会阻塞，而会立即返回-1，如果执行的是msgrcv()，则在消息队列呈空时，不做等待马上返回-1，并设定错误码为ENOMSG。当msgflg为0时，msgsnd()及msgrcv()在队列呈满或呈空的情形时，采取阻塞等待的处理模式。
+
+   
+     
+返回说明：    
+成功执行时，msgsnd()返回0，msgrcv()返回拷贝到mtext数组的实际字节数。失败两者都返回-1，errno被设为以下的某个值  
+\[对于msgsnd\]   
+EACCES：调用进程在消息队列上没有写权能，同时没有CAP\_IPC\_OWNER权能  
+EAGAIN：由于消息队列的msg\_qbytes的限制和msgflg中指定IPC\_NOWAIT标志，消息不能被发送  
+EFAULT：msgp指针指向的内存空间不可访问  
+EIDRM：消息队列已被删除  
+EINTR：等待消息队列空间可用时被信号中断  
+EINVAL：参数无效  
+ENOMEM：系统内存不足，无法将msgp指向的消息拷贝进来  
+\[对于msgrcv\]  
+E2BIG：消息文本长度大于msgsz，并且msgflg中没有指定MSG\_NOERROR  
+EACCES：调用进程没有读权能，同时没具有CAP\_IPC\_OWNER权能  
+EAGAIN：消息队列为空，并且msgflg中没有指定IPC\_NOWAIT  
+EFAULT：msgp指向的空间不可访问  
+EIDRM：当进程睡眠等待接收消息时，消息已被删除  
+EINTR：当进程睡眠等待接收消息时，被信号中断  
+EINVAL：参数无效  
+ENOMSG：msgflg中指定了IPC\_NOWAIT，同时所请求类型的消息不存在

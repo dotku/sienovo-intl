@@ -1,0 +1,39 @@
+---
+title: "【面试】String类构造和析构函数实现"
+date: "2014-03-03"
+slug: "20405279"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/20405279"
+---
+
+ 
+
+已知String类定义如下：
+
+class String
+
+{
+
+public:
+
+String( const char \*str = NULL); // 通用构造函数
+
+String(const String &another); // 拷贝构造 函数
+
+~ String(); // 析构函数
+
+String & operater =(const String&rhs); // 赋值 函数
+
+private:
+
+char \*m\_data; // 用于保存字符串
+
+};
+
+尝试写出 类 的成员函数实现。
+
+答案：
+
+```cpp
+// 通用构造函数String::String(const char *str){if ( str == NULL ) //strlen在参数为NULL时会抛异常才会有这步判断{m_data = new char[1] ;m_data[0] = '\0' ;}else{m_data = new char[strlen(str) + 1];strcpy(m_data,str);}}// 拷贝构造函数String::String(const String &another){m_data = new char[strlen(another.m_data) +1];strcpy(m_data,other.m_data);} // 赋值函数String& String::operator =(const String&rhs){if ( this == &rhs)return *this ;delete []m_data; //删除原来的数据，新开一块内存m_data = new char[strlen(rhs.m_data) + 1];strcpy(m_data,rhs.m_data);return *this ;} // 析构函数String::~String(){delete []m_data ;}
+```

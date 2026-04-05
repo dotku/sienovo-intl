@@ -1,0 +1,305 @@
+---
+title: "段错误与coredump调试"
+date: "2014-06-24"
+slug: "34115971"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/34115971"
+---
+
+ 
+
+## 
+
+段错误
+
+所谓的段 [错误](http://baike.baidu.com/view/120927.htm)就是指访问的 [内存](http://baike.baidu.com/view/1082.htm)超出了系统所给这个程序的内存空间，通常这个值是由gd tr来保存的，他是一个48位的寄存器，其中的32位是保存由它指向的 gdt表，后13位保存 相应于gdt的下标，最后3位包括了程序是否在内存中以及程序的在 [cpu](http://baike.baidu.com/view/2089.htm)中的运行级别，指向 的gdt是由以64位为一个单位的表，在这张表中就保存着程序运行的 [代码段](http://baike.baidu.com/view/1315853.htm)以及 [数据段](http://baike.baidu.com/view/1005328.htm)的起 始地址以及与此相应的段限和页面交换还有程序运行级别还有内存粒度等等的信息。
+
+### 目录
+
+1[实例](http://baike.baidu.com/link?url=q5BY4s6WdLTvMnqZA8yCK-Nel1D8sQhpmfveGuS2ILvgP3cw739Rk5ylvhHDEHkqeGxpQM1kQqwyIAT3Vs8ZjK#1)
+
+▪  [英文简介](http://baike.baidu.com/link?url=q5BY4s6WdLTvMnqZA8yCK-Nel1D8sQhpmfveGuS2ILvgP3cw739Rk5ylvhHDEHkqeGxpQM1kQqwyIAT3Vs8ZjK#1_1)
+
+▪  [Quote:](http://baike.baidu.com/link?url=q5BY4s6WdLTvMnqZA8yCK-Nel1D8sQhpmfveGuS2ILvgP3cw739Rk5ylvhHDEHkqeGxpQM1kQqwyIAT3Vs8ZjK#1_2)
+
+2[段错误的常见形式](http://baike.baidu.com/link?url=q5BY4s6WdLTvMnqZA8yCK-Nel1D8sQhpmfveGuS2ILvgP3cw739Rk5ylvhHDEHkqeGxpQM1kQqwyIAT3Vs8ZjK#2)
+
+▪  [利用gdb逐步查找段错误](http://baike.baidu.com/link?url=q5BY4s6WdLTvMnqZA8yCK-Nel1D8sQhpmfveGuS2ILvgP3cw739Rk5ylvhHDEHkqeGxpQM1kQqwyIAT3Vs8ZjK#2_1)
+
+▪  [分析Core文件](http://baike.baidu.com/link?url=q5BY4s6WdLTvMnqZA8yCK-Nel1D8sQhpmfveGuS2ILvgP3cw739Rk5ylvhHDEHkqeGxpQM1kQqwyIAT3Vs8ZjK#2_2)
+
+▪  [利用backtrace和objdump进行分析](http://baike.baidu.com/link?url=q5BY4s6WdLTvMnqZA8yCK-Nel1D8sQhpmfveGuS2ILvgP3cw739Rk5ylvhHDEHkqeGxpQM1kQqwyIAT3Vs8ZjK#2_3)
+
+3[几种典型的段错误](http://baike.baidu.com/link?url=q5BY4s6WdLTvMnqZA8yCK-Nel1D8sQhpmfveGuS2ILvgP3cw739Rk5ylvhHDEHkqeGxpQM1kQqwyIAT3Vs8ZjK#3)
+
+### 1实例[编辑](http://baike.baidu.com/link?url=q5BY4s6WdLTvMnqZA8yCK-Nel1D8sQhpmfveGuS2ILvgP3cw739Rk5ylvhHDEHkqeGxpQM1kQqwyIAT3Vs8ZjK# "编辑本段")
+
+#### 英文简介
+
+A segmentation fault (often shortened to segfault) is a particular error condition that can occur during the operation of computer software. In short, a segmentation fault occurs when a program attempts to access a memory location that it is not allowed to access, or attempts to access a memory location in a way that is not allowed (e.g., attempts to write to a read-only location, or to overwrite part of the operating system). Systems based on processors like the Motorola 68000 tend to refer to these events as Address or Bus errors.
+
+Segmentation is one approach to memory management and protection in the operating system. It has been superseded by paging for most purposes, but much of the terminology of segmentation is still used, "segmentation fault" being an example. Some operating systems still have segmentation at some logical level although paging is used as the main memory management policy.
+
+On Unix-like operating systems, a process that accesses invalid memory receives the SIGSEGV signal. On Microsoft Windows, a process that accesses invalid memory receives the STATUS\_ACCESS\_VIOLATION exception.
+
+另外，这里有个基本上对照的中文解释，来自库扩展阅读1；
+
+#### Quote:
+
+一旦一个程序发生了 [越界](http://baike.baidu.com/view/392942.htm)访问， [cpu](http://baike.baidu.com/view/2089.htm)就会产生相应的保护，于是segmentation fault就出现
+
+了通过上面的解释，段 [错误](http://baike.baidu.com/view/120927.htm)应该就是访问了不可访问的 [内存](http://baike.baidu.com/view/1082.htm)，这个 [内存](http://baike.baidu.com/view/1082.htm)区要么是不存在的，
+
+要么是受到系统保护的，还有可能是缺少文件或者文件损坏。
+
+### 2段错误的常见形式[编辑](http://baike.baidu.com/link?url=q5BY4s6WdLTvMnqZA8yCK-Nel1D8sQhpmfveGuS2ILvgP3cw739Rk5ylvhHDEHkqeGxpQM1kQqwyIAT3Vs8ZjK# "编辑本段")
+
+在 [编程](http://baike.baidu.com/view/3281.htm)中以下几类做法容易导致段 [错误](http://baike.baidu.com/view/120927.htm),基本上是错误地使用 [指针](http://baike.baidu.com/view/159417.htm)引起的。
+
+1) **访问系统数据区**，尤其是往系统保护的 [内存地址](http://baike.baidu.com/view/404417.htm)写 [数据](http://baike.baidu.com/view/38752.htm)最常见就是给一个 [指针](http://baike.baidu.com/view/159417.htm)以0地址。
+
+2) **内存越界**( [数组](http://baike.baidu.com/view/209670.htm)越界， [变量](http://baike.baidu.com/view/296689.htm)类型不一致等)： 访问到不属于你的内存区域。
+
+解决方法：我们在用C/ [C++](http://baike.baidu.com/view/824.htm)语言写程序的时候， [内存管理](http://baike.baidu.com/view/4541016.htm)的绝大部分工作都是需要我们来做的。实际上， [内存管理](http://baike.baidu.com/view/4541016.htm)是一个比较繁琐的工作，无论你多高明，经验多丰富，难免会在此处犯些小 [错误](http://baike.baidu.com/view/120927.htm)，而通常这些错误又是那么的浅显而易于消除。但是手工“除虫”（debug），往往是效率低下且让人厌烦的，本文将就"段错误"这个内存访问 [越界](http://baike.baidu.com/view/392942.htm)的错误谈谈如何快速定位这些"段错误"的语句。
+
+下面将就以下的一个存在段 [错误](http://baike.baidu.com/view/120927.htm)的程序介绍几种调试方法：
+
+1 dummy\_function (void)
+
+2 {
+
+3 unsigned char \*ptr = 0x00;
+
+4 \*ptr = 0x00;
+
+5 }
+
+6
+
+7 int main (void)
+
+8 {
+
+9 dummy\_function ();
+
+10
+
+11 return 0;
+
+12 }
+
+作为一个熟练的 [C/C++](http://baike.baidu.com/view/1107274.htm)程序员，以上代码的bug应该是很清楚的，因为它尝试操作地址为0的 [内存](http://baike.baidu.com/view/1082.htm)区域，而这个内存区域通常是不可访问的禁区，当然就会出错了。我们尝试编译运行它:
+
+xiaosuo@gentux test $ ./a.out
+
+段错误
+
+出错并退出。
+
+#### 利用gdb逐步查找段错误
+
+这种方法也是被大众所熟知并广泛采用的方法，首先我们需要一个带有调试信息的可执行程序，所以我们加上“-g -rdynamic"的参数进行编译，然后用 [gdb](http://baike.baidu.com/view/639266.htm)调试运行这个新编译的程序,具体步骤如下:
+
+xiaosuo@gentux test $ gcc -g -rdynamic d.c
+
+xiaosuo@gentux test $ gdb ./a.out
+
+GNU gdb 6.5
+
+Copyright (C) 2006 Free Software Foundation, Inc.
+
+GDB is free software, covered by the GNU General Public License, and you are
+
+welcome to change it and/or distribute copies of it under certain conditions.
+
+Type "show copying" to see the conditions.
+
+There is absolutely no warranty for GDB. Type "show warranty" for details.
+
+This GDB was configured as "i686-pc-linux-gnu"...Using host libthread\_db library "/lib/libthread
+
+(gdb) r
+
+Starting program: /home/xiaosuo/test/a.out
+
+Program received signal SIGSEGV, Segmentation fault.
+
+0x08048524 in dummy\_function () at d.c:4
+
+4 \*ptr = 0x00;
+
+(gdb)
+
+不用一步步调试我们就找到了出错位置d.c文件的第4行，其实就是如此的简单。
+
+从这里我们还发现进程是由于收到了SIGSEGV信号而结束的。通过进一步的查阅文档(man 7 signal)，我们知道SIGSEGV默认handler的动作是打印”段错误"的出错信息，并产生Core文件，由此我们又产生了方法二。
+
+#### 分析Core文件
+
+The default action of certain signals is to cause a process to terminate and produce a core dump file, a disk file containing an image of the process's memory at the time of termination. A list of the signals which cause a process to dump core can be found in signal(7).
+
+以 上资料摘自man page(man 5 core)。不过奇怪了，我的系统上并没有找到core文件。后来，忆起为了渐少系统上的垃圾文件的数量，禁止了core文件的生成，查看了以下果真如此，将系统的core文件的大小限制在512K大小，再试:
+
+xiaosuo@gentux test $ ulimit -c
+
+0
+
+xiaosuo@gentux test $ ulimit -c 1000
+
+xiaosuo@gentux test $ ulimit -c
+
+1000
+
+xiaosuo@gentux test $ ./a.out
+
+段错误 (core dumped)
+
+xiaosuo@gentux test $ ls
+
+a.out core d.c f.c g.c pango.c test\_iconv.c test\_regex.c
+
+core文件终于产生了，用 [gdb](http://baike.baidu.com/view/639266.htm)调试一下看看吧:
+
+xiaosuo@gentux test $ gdb ./a.out core
+
+GNU gdb 6.5
+
+Copyright (C) 2006 Free Software Foundation, Inc.
+
+GDB is free software, covered by the GNU General Public License, and you are
+
+welcome to change it and/or distribute copies of it under certain conditions.
+
+Type "show copying" to see the conditions.
+
+There is absolutely no warranty for GDB. Type "show warranty" for details.
+
+This GDB was configured as "i686-pc-linux-gnu"...Using host libthread\_db library "/lib/libthread.
+
+warning: Can't read pathname for load map: 输入/输出错误。
+
+Reading symbols from /lib/lib6...done.
+
+Loaded symbols for /lib/li6
+
+Reading symbols from /lib/ld-.2...done.
+
+Loaded symbols for /lib/ld-linux.s2
+
+Core was generated by \`./a.out'.
+
+Program terminated with signal 11, Segmentation fault.
+
+#0 0x08048524 in dummy\_function () at d.c:4
+
+4 \*ptr = 0x00;dfg
+
+#### 利用backtrace和objdump进行分析
+
+#include <execinfo.h>
+
+#include <stdio.h>
+
+#include <stdlib.h>
+
+#include <signal.h>
+
+/\* A dummy function to make the backtrace more interesting. \*/
+
+void
+
+dummy\_function (void)
+
+{
+
+unsigned char \*ptr = 0x00;
+
+\*ptr = 0x00;
+
+}
+
+void dump(int signo)
+
+{
+
+void \*array\[10\];
+
+size\_t size;
+
+char \*\*strings;
+
+size\_t i;
+
+size = backtrace (array, 10);
+
+strings = backtrace\_symbols (array, size);
+
+printf ("Obtained %zd stack frames.\\n", size);
+
+for (i = 0; i < size; i++)
+
+printf ("%s\\n", strings\[i\]);
+
+free (strings);
+
+exit(0);
+
+}
+
+int
+
+main (void)
+
+{
+
+signal(SIGSEGV, &dump);
+
+dummy\_function ();
+
+return 0;
+
+}
+
+运行结果：xiaosuo@gentux test $ gcc -g -rdynamic g.c
+
+xiaosuo@gentux test $ ./a.out
+
+Obtained 5 stack frames.
+
+./a.out(dump+0x19) \[0x80486c2\]
+
+\[0xffffe420\]
+
+./a.out(main+0x35) \[0x804876f\]
+
+### 3几种典型的段错误[编辑](http://baike.baidu.com/link?url=q5BY4s6WdLTvMnqZA8yCK-Nel1D8sQhpmfveGuS2ILvgP3cw739Rk5ylvhHDEHkqeGxpQM1kQqwyIAT3Vs8ZjK# "编辑本段")
+
+1，int main(void){ \[1\]  
+
+char\*s ="hello world";
+
+\*s ='H';
+
+}
+
+被装载时，系统把“hello world” 连同其它的字符串和const型数据放入到内存的只读区。执行时，一个变量s被设为指向该字符串的位置，当再试图向该位置写时，就会产生段错误。
+
+2，
+
+int\*ptr = NULL;
+
+\*ptr =1;
+
+因为该代码只创建了一个空指针，并没有指向一个具体空间，当赋值时，产生段错误。
+
+3，
+
+int main(void){
+
+main();
+
+return0;
+
+}
+
+无限递归，这会导致栈溢出，也会产生段错误。

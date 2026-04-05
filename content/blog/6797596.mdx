@@ -1,0 +1,251 @@
+---
+title: "linux下《UNIX环境高级编程》(apue2)源码编译出错的处理方法汇总"
+date: "2011-09-21"
+slug: "6797596"
+tags: ["#unix", "#linux", "#编程", "#freebsd", "#function", "#reference"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6797596"
+---
+
+ 
+
+**linux下《UNIX环境高级编程》(apue2)源码编译出错的处理方法**  
+文章出处： [http://www.diybl.com/course/3\_program/c++/cppjs/2008617/126036.html](http://www.diybl.com/course/3_program/c++/cppjs/2008617/126036.html)
+
+相信很多跟我一样想要学习unix编程的朋友在兴冲冲拿到《unix环境高级编程》后，准备拿源码练练手时，执行第一个myls就出现一大堆的 错误，这未免时个不小的打击。今天把解决方法写下来，第一自己有个记录，第二也帮助那些被同样问题困扰的朋友尽快的进入linux美丽的世界。(只限 linux系统）
+
+首先需要make一次源代码
+
+编辑源码解压生成的apue.2e文件夹下的Make.defines.linux
+
+修改WKDIR=/home/var/apue.2e为你的apue.2e目录，比如我的apue源码解压在/usr/local,那我就改为：
+
+WKDIR=/ usr/local/apue.2e
+
+然后进入apue.2e/std 目录，编辑linux.mk。修改里面所有的nawk为awk。
+
+最后返回apue.2e目录，执行make命令。
+
+以下是编译源码时的错误提示跟解决方法（假定你的工作目录跟我的一样，为/usr/local/apue.2e)
+
+错误提示1：
+
+myls.c:1:19: apue.h: No such file or directory  
+myls.c: In function \`main':  
+myls.c:13: error: \`NULL' undeclared (first use in this function)  
+myls.c:13: error: (Each undeclared identifier is reported only once  
+myls.c:13: error: for each function it appears in.)
+
+解决办法：
+
+拷贝apue.h到系统默认头文件目录中
+
+$cp /usr/local/apue.2e/include/apue.h /usr/include
+
+错误提示2：
+
+/tmp/ccBBopm0.o(.text+0x2b): In function \`main':  
+: undefined reference to \`err\_quit'  
+/tmp/ccBBopm0.o(.text+0x5f): In function \`main':  
+: undefined reference to \`err\_sys'  
+collect2: ld returned 1 exit status
+
+解决办法：
+
+err\_quit跟err\_sys是作者自己定义的错误处理函数,需要单独定义头文件
+
+在/usr/include 下新建一个名为myerr.h的文件，拷贝在原书的附录B中头文件到其中。
+
+**《UNIX环境高级编程》源码编译方法**
+
+这里要谈到的一个问题就是该书中的源代码编译的问题。此书中差不多每个历程中，都会有这样一行源码：  
+＃include "ourhdr.h"  
+  在第二版中改为：＃include "apue.h"    这个头文件是作者把把每个例程中常用的标准头文件，一些常用的出错处理函数（err\_\*\*（）之类的函数）和一些常用的宏定义给整理在一个头文件中。这个 可以省去在每个例程中录入较多的重复代码，这样可以减少每个例程的长度。但是，这样就给读者带来了不少麻烦。因为我们还要去搞明白如和把这个头文件编译， 然后做成库文件，添加到我们的系统中。特别读于初学者，本来满怀信心的，结果在编译第一个程序的时候就出现了问题。我也没有搞明白如何把 "ourhdr.h"静态的编译到系统中。  
+  
+    不过，不明白如何使用"ourhdr.h"这个头文件，并不会影响我们学习APUE，也不会影响我们编译和运行每一个例程。其实，简单的想一下，如果一个 C程序要能顺利的编译和运行，除了我们要语法正确等方面外，最根本的是要保证我们程序中所调用的函数以及宏等等都要有完整的来源，也就是必须包含所有调用 函数和宏所在的头文件。对于一个具体的源程序，如果我们正确的包含了头文件，那么剩下的就是程序本生语法方面应该注意的事项。  
+  
+    如何确定系统调用函数包含在那个头文件中呢？这在Unix/Linux系统下并非一件难事。Unix/Linux下命令man可以帮助我们找到。man命 令不仅可以帮助我们查找一般命令的用法，同时提供不同层次的帮助诸如系统调用或者管理员级别的命令等等（譬如FreeBSD6.1中，man 1是用户专用手册，man 2是系统调用，man 3是库函数查询等等）。  
+  
+    下面我们就以APUE书中程序1-1 （实现ls命令部分功能）为例，来说明如何将书中的程序改编成全部使用标准头文件的程序。其中，操作系统用的是FreeBSD6.1，经过相应的修改可以 在书中所说的几个Unix系统及Linux系统中运行，我也曾在Debian Linux下成功编译和运行该程序。书中1-1.c的原始代码如下：#include <sys/types.h>  
+#include <dirent.h>  
+#include "ourhdr.h"  
+  
+int  
+main(int argc, char \*argv\[\])  
+{  
+    DIR                \*dp;  
+    struct dirent    \*dirp;  
+  
+    if (argc != 2)  
+        err\_quit("usage: ls directory\_name");  
+  
+    if ((dp = opendir(argv\[1\])) == NULL)  
+        err\_sys("can't open %s", argv\[1\]);  
+    while ((dirp = readdir(dp)) != NULL)  
+        printf("%s\\n", dirp->d\_name);  
+  
+    closedir(dp);  
+    exit(0);  
+}    从书后面的附录中可以看到"ourhdr.h"的内容比较多，包含了比较多的常用头文件，一些宏定义和一些常用函数和出错函数的定义。其实，对于每一个具体的程序，我们只需要找到该程序中用到的头文件即可。  
+  
+    该1-1.c中所用到的系统函数调用有：opnedir()，readdir()，printf()，closedir()和exit()。  
+其中，对于常用的函数prinft()和exit()，它们所在的头文件一般都知道，分别是<stdio.h>和<stdlib.h>。而对于opnedir ()，readdir()和closedir()，我们可以通过man opendir，man readdir，man closedir得到这三个关于目录操作的函数所在的头文件都是：<sys/types.h>和<dirent.h>。这两个头 文件在源程序中也已经列出。  
+  
+    其次，1-1.c中还用到了作者自定义的两个函数：err\_quit()和err\_sys()。这两个函数主要使用来进行出错处理的。当然，使用这两个函 数对错误信息的处理是比较完善的。但是，作为我们学习来讲，了解程序的核心功能是首要的，我们可以将出错处理简化一点，即当遇到错误的时候，我们只简单的 使用printf()函数来提示一下有错误发生。当然，用printf()来进行出错处理并不是一种很合理的方法，而且往往我们看不到更关键的错误信息， 但对于我们仅仅作为学习来用还是可以接受的。毕竟我们要理解的核心部分是程序的功能实现，出错处理在于其次。  
+  
+   通过以上的说明，我们可以将1-1.c修改为如下内容：  
+  
+#include <sys/types.h>  
+#include <dirent.h>  
+#include <stdio.h>  
+#include <stdlib.h>  
+int main(int argc, char\* argv\[\])  
+{  
+    DIR \*dp;  
+    struct dirent \*dirp;  
+     
+    if(argc != 2)  
+    {  
+        printf("You need input the directory name.\\n");  
+        exit(1);  
+    }  
+     
+    if((dp = opendir(argv\[1\])) == NULL)  
+    {  
+        printf("cannot open %s\\n", argv\[1\]);  
+        exit(1);       }  
+  
+    while ((dirp = readdir(dp)) != NULL)  
+        printf("%s\\n", dirp->d\_name);  
+  
+  
+    closedir(dp);  
+  
+    exit(0);}    这样修改后的程序已经与作者的头文件"ourhdr.h"没有关系，可以单独的进行编译。我使用的是root用户，执行命令：  
+  
+\# gcc 1-1.c //生成目标文件a.out  
+或者  
+＃ gcc -o 1-1 1-1.c //生成目标文件1-1  
+  
+    没有任何错误和警告，说明编译成功。这时我们执行生成的目标文件：  
+  
+＃ ./a.out /home  
+或者  
+＃ ./1-1 /home  
+  
+    则会列出/home路径下的所有文件，包括目录(.)和(..)。  
+  
+    通过这样的方法，基本上我们可以将该书中所有的例程修改成不包含"ourhdr.h"的程序。这样，我们就可以单独的编译每一个例程，而不用顾及作者所给 的杂凑的头文件。同时这种比较笨的方法，反而有利于帮助我们了解不同系统调用所对应的头文件，对于学习来说，这应该是一件好事。  
+  
+    现在，我也才学到APUE的第四章了。前四章的程序，我都是采用这种方法进行编译和运行。如果也有在学习APUE的朋友，我们可以一起交流。
+
+**APUE2作者提供的源码编译方法及单个源码编译的实现**
+
+按照源代码文件夹中的 README的步骤，对整个源代码进行了编译。
+
+（一）作者提供的编译方法的实现
+
+     README文件中给出的编译方法如下：
+
+    To build the source, edit the Make.defines.\* file for your system and set WKDIR to the pathname of the tree containing the source code. Then just run "make". It should figure out the system type and build the source for that platform utomatically.
+
+     参照该方法，我将源码的编译分为三步。整个步骤都是在root超级用户下进行的，如果其他用户没有权限进行编译，可以通过su命令切换到超级用户。
+
+      第一步，编辑Make.defines.\*文件。由于我所使用的操作系统是FreeBSD6.1，所以应该编辑文件Make.defines.freebsd。其实，编辑该文件的内容主要是修改其中的WKDIR，即我们源码所在文件夹的绝对路径名。原文件中WKDIR＝/home/sar/apue.2e，我们可以根据我们实际文件夹所在的位置进行相应的修改。我的apue.2e文件夹直接放在/home下了，所以我将WKDIR修改为WKDIR＝/home/apue.2e。其余内容不用修改，保存修改后的文件。
+
+      第二步，修改脚本文件systype.sh的权限。由于原始的systype.sh文件不具有可执行的权限。通过执行命令:
+
+#chmod +x systype.sh  
+
+给当前用户及其所在组和其他组添加可执行权限；
+
+或者
+
+#chmod u+x systype.sh
+
+仅给当前用户添加可执行权限。
+
+       该脚本文件的功能主要是检测操作系统的类型。它可以检测到系统的类型有：FreeBSD，Linux，MacOS和Solaris等。如果单独执行这个shell脚本：
+
+＃./systype.sh
+
+则输出结果为：freebsd。即检测本机的操作系统为FreeBSD。
+
+    第三步，进行源码的编译。在命令行下执行make命令。通过查看Makefile文件可知，make之后，首先执行systype.sh脚本，即首先确定操作系统的类型，然后在进行源码的编译。在编译的过程中，会有一些Warning。这些都是正常的，导致警告的原因可能是采用编译起的版本不同或者是同一类型操作系统的版本不同。但是，只要make的过程不出现error，就会顺利的生成可执行文件。我的在编译过程中没有出现error，因此意味着编译成功。
+
+       注意：编译的过程中可能会出现的一个问题，也是一个网友曾经问到的问题，就是在编译中出现这个的错误，提示nawk command cannot be found。这个问题可能的原因是，有些操作系统的内核版本较低，可能还不支持nawk(new awk)这个命令。但应该支持awk命令。因此，问题的解决方法就是将相关文件中的nawk命令替换为awk，或者为系统添加一个别名alias，alias nawk awk。这样在编一的过程中，遇到nawk命令时，实际会去执行awk命令。如果还有其他问题，可以去网上搜索相关的解决方法。因为我在编译的过程中没有遇到这样的问题，不再一一赘述。
+
+（二）编译生成可执行文件的位置
+
+     在路径/home/apue.2e/下虽然有所有的源文件，都是以figx.x的形式命名。但是实际编译的过程并不是编译的这些文件。而是编译在该路径下各个文件夹中的后缀名为＊.c的程序。作者把同一章节或者相近几个章节的源代码放在某一个文件夹下面（include和lib文件夹除外）。而文件夹的命名一般是和该章对应的标题是一致的，采用的是英文标题的全称或简写。譬如，advio文件夹对应Chapter 14. Advanced I/O，该章的代码就放在该文件夹下面。还有文件夹proc对应Chapter 8. Process Control，文件夹termios对应Chapter 18. Terminal I/O等等，基本上每一章的代码都可以在这些文件夹中找到。
+
+（三）如何编译单独的源文件
+
+     通过make命令是直接将所有的源程序编译成可执行文件的。对于喜欢修改和调试程序的朋友来说，make生成的可执行文件显然不具有这样的功能，而且，也不可能修改了一个源文件，然后还要make。如何需要编译和调试单个程序的话，方法如下：
+
+1.首先还是要用make对所有文件进行编译。成功编译后，会在WKDIR／lib／下生成库文件libapue.a，主要是将apue.h（位于WKDIR／include/）中定义的所有内容生成一个静态的库，这样可以方便调用。
+
+2.我们以WKDIR/下的fig1.3（实现ls部分功能）文件为例说明需要修改的地方。将fig1.3文件重命名为fig1.3.c，然后编辑该文件，将包含头文件的一行代码：
+
+#include "apue.h" //默认所引用头文件的位置为当前的路径WKDIR=/home/apue.2e
+
+修改为
+
+#include "include/apue.h"
+
+即头文件apue.h的位置为当前路径下inlucde文件夹中，这个就正确的指定了apue.h的位置。
+
+这样就可以进行编译了，但在编译的时候还要加上库文件libapue.a，因为该文件实现了apue.h中的所有功能，主要有常用头文件，宏定义以及自定义函数的实现。
+
+输入命令
+
+#gcc fig1.3.c lib/libapue.a  
+
+则会生成可执行文件a.out。执行命令
+
+#./a.out /home
+
+则列出我的/home路径下的所有文件和文件夹：
+
+.
+
+..
+
+david
+
+simsun .ttc
+
+simkai.ttf
+
+simsun.ttf
+
+MYKERNEL
+
+unix\_advance\_program
+
+freebsd
+
+APUE Source Code
+
+LumaQQ
+
+apue.2e
+
+bash-script
+
+lumaqq\_2005\_patch\_2006.01.22.15.00.zip
+
+lumaqq\_2005-linux\_gtk2\_x86\_with\_jre.tar
+
+apue\_src\_complied.tar
+
+   当然，如果需要编译的是各个文件夹中的一个源程序时，则只需对所包含的头文件apue.h的路径作相对修改，改为
+
+#include "../include/apue.h"
+
+以及编译是库文件的位置也相应修改，改为：
+
+#gcc sourcefile.c ../lib/libapue.a
+
+    至此，APUE第二版作者提供的源码编译方法和单独源码的编译都已经实现。
+
+**原文地址** [http://blog.chinaunix.net/u/33048/showart\_260473.html](http://blog.chinaunix.net/u/33048/showart_260473.html)

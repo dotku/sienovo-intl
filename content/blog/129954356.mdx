@@ -1,0 +1,68 @@
+---
+title: "AM64X/AM62X+FPGA核间通信解决方案"
+date: "2023-04-04"
+slug: "129954356"
+tags: ["#服务器", "#网络", "#linux"]
+source: "https://blog.csdn.net/yeyuangen/article/details/129954356"
+---
+
+ 
+
+IPC for AM64x  
+AM64x处理器有两个双核Cortex-R5F子系统(R5FSS)和一个Cortex-M4F子系统，此外还有一个双核Cortex-A53子系统。R5FSS支持双核模式(Split mode)和单核模式(single - cpu mode)。
+
+**理解IPC（inter-processor communication）**refer link  
+IPC SW 架构
+
+![在这里插入图片描述](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129954356/01_494b83c1fcb61eeb396b399043079609.png)
+
+用于在cpu之间交换消息的APIs:IPC Notify and IPC RP Message  
+IPC RP Message：  
+特点：  
+RP Message + VRING协议实现  
+在底层使用IPC Notify进行中断，并使用共享内存(VRING)作为消息缓冲区  
+支持NORTOS、FreeRTOS和Linux cpu之间的消息传递  
+逻辑通信通道可以使用唯一的“端点”创建。这允许一个CPU上的多个任务使用相同的底层HW邮箱和共享内存与另一个CPU上的多个任务进行通信。  
+IPC Notify：  
+底层实现将使用HW机制来中断接收核心，它也将在快速内部RAM中使用HW FIFOs(可用时)或基于共享内存的SW FIFOs来传输消息值。  
+AM64X使用基于HW邮箱的HW FIFOs传输消息并中断接收核心。  
+特点：  
+低时延，能够在任意cpus之间收发消息（通过几步HW,因此需要用户检测错误；Combining the message and client ID into a single 32b value;在中断处理函数中调用回调函数）  
+客户端ID字段允许向接收端的不同SW客户端发送消息（多路复用）  
+能够为不同的客户端ID注册不同的用户处理程序  
+基于回调的机制来接收消息  
+如果底层IPC HW/SW FIFO已满，则能够阻塞消息发送或返回错误。  
+强烈建议在可用的地方使用SysConfig，而不是直接使用SW API调用 。这将有助于简化SW应用程序，并在开发周期的早期捕获常见错误
+
+支持的最大客户端数量限制为IPC\_NOTIFY\_CLIENT\_ID\_MAX  
+交换的最大消息值被限制为IPC\_NOTIFY\_MSG\_VALUE\_MAX<32b，因此不能将指针作为消息传递，推荐使用已知基址的偏移量作为值传递。  
+2\. 如何是能IPC;
+
+环境搭建：  
+Processor SDK Linux  
+Processor SDK MCU  
+Typical Boot Flow on AM64x for ARM Linux users
+
+![在这里插入图片描述](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129954356/02_e3f5d07afe19f3490c5bb5b650416bb2.png)
+
+正常情况下，加载程序(U-Boot/SPL)启动，在A53上装载HLOS（Linux/ Android )。然后A53引导R5和M4F核心。
+
+The remoteproc driver is hard-coded to look for specific files when loading the R5F cores. 通常在目标文件系统上，Firmware File 被软链接到预期的可执行FW文件
+
+![在这里插入图片描述](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129954356/03_5a10507c03a67542466d84d90cde7dbb.png)
+
+Booting Remote Cores from Linux console/User space
+
+RPMsg Char Driver
+
+![在这里插入图片描述](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129954356/04_8d32db27841f17c6e5c5248d5e008bf7.png)  
+RPMsg字符驱动程序向用户空间进程公开RPMsg端点。通过请求与远程服务的不同交互，多个用户空间应用程序可以唯一地使用一个RPMsg设备。RPMsg字符 驱动 程序支持为每个探测的RPMsg字符设备创建多个端点，支持对不同的实例使用相同的设备。  
+RPMsg设备  
+每个创建的端点设备在/dev中显示为单个字符设备。
+
+RPMsg总线位于VirtIO总线之上。每个virtio名称服务公告消息创建一个新的RPMsg设备，该设备应该绑定到一个RPMsg驱动程序。RPMsg设备是动态创建的:
+
+远程处理器通过发送包含服务名称(即设备名称)、源地址和目的地址的名称服务公告消息来宣布远程RPMsg服务的存在。该消息由RPMsg总线处理，它动态地创建和注册一个表示远程服务的RPMsg设备。一旦注册了相关的RPMsg驱动程序，总线就会立即探测它，双方就可以开始交换消息。
+
+控制界面  
+RPMsg字符驱动程序提供控制接口(在/dev/rpmsg\_ctrlX下以字符设备的形式)，允许用户空间为每个公开的端点导出端点接口。控制接口提供专用的ioctl来创建端点设备。

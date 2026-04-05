@@ -1,0 +1,134 @@
+---
+title: "A::A() : _b(XXX,XXX)解析"
+date: "2011-09-19"
+slug: "6790026"
+tags: ["#class", "#compiler", "#variables", "#access", "#integer", "#nested"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6790026"
+---
+
+ 
+
+1）A::A() : \_b(XXX,XXX); 冒号是初始化的作用，即把xxx，xxx 赋值 给B类型的\_b
+
+2）成员初始化列表  
+
+3）\_b 是A的成员变量，  
+A的构造的时候初始了变量\_b  
+你先去看看构造函数的书写格式，你就懂了。。
+
+4）初始化; 比如常量的话就只能采用这种方式初始化唉
+
+5）说明A()函数，是A中的，指明所属；: \_b(XXX,XXX); 指的是初始化变量。
+
+\===============================================================================================
+
+[C++中双冒号作用域解析符的含义](http://blog.csdn.net/lychee007/article/details/5386039 "C++中双冒号作用域解析符的含义")(转载）  
+
+[http://blog.csdn.net/lychee007/article/details/5386039](http://blog.csdn.net/lychee007/article/details/5386039)  
+
+先把各家的解释复制在这里，意思都差不多。
+
+**Visual C++ Language Reference**
+
+Scope Resolution Operator:  **::**
+
+You can tell the compiler to use the global identifier rather than the local identifier by prefixing the identifier with ::, the scope resolution operator.
+
+[view plain](http://blog.csdn.net/lychee007/article/details/5386039# "view plain")
+
+1.  :: identifier  
+2.  class\-name :: identifier  
+3.  namespace :: identifier  
+
+**Remarks** The identifier can be a variable or a function.
+
+If you have nested local scopes, the scope resolution operator does not provide access to identifiers in the next outermost scope. It provides access to only the global identifiers.
+
+**Example** This example has two variables named amount. The first is global and contains the value 123. The second is local to the main function. The scope resolution operator tells the compiler to use the global amount instead of the local one.
+
+[view plain](http://blog.csdn.net/lychee007/article/details/5386039# "view plain")
+
+1.  // expre\_ScopeResolutionOperator.cpp  
+2.  // compile with: /EHsc  
+3.  // Demonstrate scope resolution operator  
+4.  #include <iostream>  
+
+6.  using namespace std;  
+
+8.  int amount = 123;   // A global variable  
+
+10.  int main() {  
+11.     int amount = 456;   // A local variable  
+12.     cout  << ::amount << endl   // Print the global variable  
+13.           << amount << endl;    // Print the local variable  
+14.  }  
+
+  
+
+**IBM XL C/C++ for AIX, V10.1**
+
+Scope resolution operator :: (C++ only)
+
+The  :: (scope resolution) operator is used to qualify hidden names so that you can still use them. You can use the unary scope operator if a namespace scope or global scope name is hidden by an explicit declaration of the same name in a block or class. For example:
+
+[view plain](http://blog.csdn.net/lychee007/article/details/5386039# "view plain")
+
+1.  int count = 0;  
+
+3.  int main(void)   
+4.  {  
+5.    int count = 0;  
+6.    ::count = 1;  // set global count to 1  
+7.    count = 2;    // set local count to 2  
+8.    return 0;  
+9.  }  
+
+The declaration of  count declared in the  main function hides the integer named  count declared in global namespace scope. The statement  ::count = 1 accesses the variable named  count declared in global namespace scope.
+
+You can also use the class scope operator to qualify class names or class member names. If a class member name is hidden, you can use it by qualifying it with its class name and the class scope operator.
+
+In the following example, the declaration of the variable  X hides the class type  X, but you can still use the static class member  count by qualifying it with the class type  X and the scope resolution operator.
+
+[view plain](http://blog.csdn.net/lychee007/article/details/5386039# "view plain")
+
+1.  #include <iostream>  
+2.  using namespace std;  
+
+4.  class X  
+5.  {  
+6.  public:  
+7.        static int count;  
+8.  };  
+9.  int X::count = 10;                // define static data member  
+
+11.  int main ()  
+12.  {  
+13.        int X = 0;                  // hides class type X  
+14.        cout << X::count << endl;   // use static member of class X  
+15.  }  
+
+**Sun Studio 12: dbx**  
+C++ 双冒号作用域转换操作符  
+使用双冒号操作符 (::) 可以用以下名称限定具有全局作用域的 C++ 成员函数、顶级函数或变量：
+
+*   重载名（不同参数类型使用同一名称）
+    
+*   二义名（不同类中使用同一名称） 
+    
+
+**Wiki:**
+
+[view plain](http://blog.csdn.net/lychee007/article/details/5386039# "view plain")
+
+1.  #include <iostream>  
+
+3.  using namespace std;  
+
+5.  int n = 12;   // A global variable  
+
+7.  int main()   
+8.  {  
+9.     int n = 13;   // A local variable  
+10.     cout  << ::n << endl;  // Print the global variable: 12  
+11.     cout  << n   << endl;  // Print the local variable: 13  
+12.  }

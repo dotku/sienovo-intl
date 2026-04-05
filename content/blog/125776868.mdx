@@ -1,0 +1,83 @@
+---
+title: "Nvidia AGX Xavier GMSL 自动驾驶控制器设计方案"
+date: "2022-07-14"
+slug: "125776868"
+tags: ["#自动驾驶", "#控制器", "#jetson"]
+source: "https://blog.csdn.net/yeyuangen/article/details/125776868"
+---
+
+ 
+
+信迈科技的AGX Xavier GMSL 载板，是一款带有×GMSL视频输入接口的 嵌入式 人工智能计算产品，能够为众多终端设备赋予人工智能计算力，从而有效降低人工智能产品的落地门槛。Xavier能够提供高达32Tops计算能力，能够很好的满足低速无人驾驶，工业机器视觉等场景的图像、激 光 点云等计算需求。
+
+自动驾驶技术，环境感知是其关键，神经网络算法则是核心。随着自动驾驶技术的大面积落地，传统的通用处理器已不能很好地满足需求，于是专门面向自动驾驶领域的处理器应运而生。在AI和自动驾驶的浪潮下，英伟达也积极转型，将业务中心由图像运算转向了人工智能运算以及自动驾驶。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/125776868/01_05ff8cad8f4e47aefed734c75cde7428.gif)
+
+从2015年起，NVIDIA就发布了Drive系列针对自动驾驶自动驾驶专用芯片和计算平台。 通过借鉴人类数十年来在 AI 领域积累的经验，NVIDIA DRIVE™ 硬件和软件解决方案提供行业领先的性能，旨在帮助汽车制造商、卡车制造商、一级供应商和初创公司开发出自动驾驶汽车。但是一直以来NVIDIA Drive自动驾驶平台以高昂的价格，让很多低速无人车、无人船、高速无人车的制造商望而却步。
+
+针对自动驾驶强劲的市场需求，信迈科技近期推出自动驾驶计算平台GEAC91V。该平台基于NVDIA Jetson AGX Xavier嵌入式[GPU](https://cloud.tencent.com/product/gpu?from=10680 "GPU")模组开发的面向车载应用场景的多处理器控制器，内置双Xavier模组、车规级 MCU 处理器、CPLD等多种处理器，满足车载应用场景复杂的高实时性、高可靠性需求。
+
+产品特色
+
+\-双Xavier处理器，工作在Root-Endpoint模式下
+
+\-内置车规级MCU处理器，运行满足车规要求的安全系统
+
+\-内置硬件授时同步电路，为自动驾驶车载系统提供安全可靠的时钟源
+
+\-主要接口资源∶12路GMSL2接口，支持每路独立触发;12路CAN总线接口，2路 LN接口，2踏干兆车载以太网，1路万兆以太网，支持激光需达的Encoder信号接入，支持主备双路供电电源，支持PPS、GPRMC、Tiger，PTP等常用的对外授时接口;主要接口为车规级或M12工规级
+
+\-整机防护等级IP67，
+
+\-工作温度-20~60°，满足36ms-1000z随机振动要求
+
+\- MTBF∶50000小时
+
+\-满足CE-EMC认证标准接口
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/125776868/02_f6275305ca36c6764684384482aaa78c.jpeg)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/125776868/03_57d3def9d73b7c7f88d7134cfe839319.jpeg)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/125776868/04_70b378240e7a0f3b925dfd0956610f1b.jpeg)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/125776868/05_a88e7a3967e4978db61cce85c4d599b7.jpeg)
+
+ ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/125776868/06_5f9ec5b4f475cc8518d04af707a3cc73.jpeg)
+
+ 基于NVIDIA Jetson Xavier AGX GMSL硬件设计与软硬件调试
+
+一、设计目标
+
+```hljs
+    1. 支持Jetson Xavier AGX Devkit 开发套件120Pin （QSH-060-01-H-D-A-K-TR  Samtec）     2. GMSL Deserializer 采用 MAX9296     3. 支持多路 MAX9295 Serializer 相机     4. 同时兼容MAX96705即GMSL1     5. 支持Virtual Channel     6. 支持Frame sync和独立触发Trigger
+```
+
+二、硬件设计简要说明
+
+```hljs
+    1. Deserializer 解串器选择MAX9296 支持6Gbps，传输速率更高、可支持Sensor像素更高、帧率快     2. 硬件在POC段的设计需向下兼容GMSL1（按照Maxim默认设计不支持GMSL1）     3. 8路摄像头的同步触发设计？     4. GMSL摄像头与其他传感器的同步方案？     5. I2C总线与I2C扩展IC 选型     6. 物料选型特别是电感等
+```
+
+分享两个硬件设计框图
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/125776868/09_70215e81c983bd750f412f4d703da4c4.png)
+
+MAX9296/95.png
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/125776868/10_3be36ce517a54b54446e360dbe82f6af.png)
+
+D3.png
+
+三、软件调试踩坑记录
+
+```hljs
+    1. 先不接GMSL相机，读写MAX9296 I2C寄存器是否正常；     问题：I2C不通， 检查MAX9296 供电、PWDN、晶振、地址选择等     2. 接入MAX9295相机，读写MAX9295寄存器是否正常；     问题：I2C不通，检查相机12V供电、MAX9296初始化参数是否成功     3. 查看 /dev/video 设备是否已生成 ；     4. 检查Pipeline lock寄存器、Video link detect和lock 寄存器；     4. 根据配置RAW/YUV Sensor，选择不同的命令打开摄像头；     5. 检查确认摄像头端的MFP配置，比如同步MFP GPIO Pin；     6. 检查同步触发配置，如果同步异常，则需要测量相关MFP信号是否设置成功
+```
+
+四、总结
+
+```hljs
+    1. GMSL相较于FPDLINK 其应用稳定性、产品应用范围、价格供货等有比较多优势;     2. 除了美信，日厂ROHM 也已涉足GMSL SerDes 芯片，并有成熟芯片在推广应用；     3. GMSL 串行器和解串器的设计与调试需要一定的时间与经验累积，不然会走不少的弯路；
+```

@@ -1,0 +1,177 @@
+---
+title: "TI AM5728 LCD触摸屏驱动移植与DTS配置"
+date: "2019-06-14"
+slug: "92019971"
+tags: ["#AM5728", "#LCD", "#驱动移植", "#DTS", "#触摸屏"]
+source: "https://blog.csdn.net/yeyuangen/article/details/92019971"
+---
+
+ 
+
+给信迈XM5728-IDK-V3开发板加LCD屏幕，成功后的样子：
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/92019971/01_905920e4c9c79ed2156dc6fdbb8a0e27.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/92019971/02_ffab82ca136c262e335d618a0c2c1797.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/92019971/03_e62077c5a43f5efe4d0c0320b96ba1b7.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/92019971/04_d5a12dc34dde67521f8751e1af904f69.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/92019971/05_958b7b819702d0dbde768841ced0467c.png)
+
+参考资料 ：用dts在am335x上移植LCD（一） [https://blog.csdn.net/xiaojiezuo123/article/details/49890733](https://blog.csdn.net/xiaojiezuo123/article/details/49890733)
+
+想要驱动源码，加威信：13670212541，欢迎技术交流
+
+调试心得体会：
+
+**开发环境：使用信迈AM5728核心板，板子为公司自己制作，LCD型号为：AT080TN64, AT070TN94**
+
+**出现的问题：**
+
+**1\. 没有产生/de/fb0设备节点**
+
+**2\. lcd字显示顺序反了**
+
+**3\. lcd颜色显示不对**
+
+设备树中与 lcd相关的配置如下：
+
+aliases {
+
+display1 = &lcd;
+
+rtc0 = &tps659038\_rtc;
+
+rtc1 = &isl1208\_rtc;
+
+};
+
+lcd\_bl: backlight {
+
+compatible = "pwm-backlight";
+
+pwms = <&ecap0 0 50000 0>;
+
+brightness-levels = <0 51 53 56 62 75 101 152 255>;
+
+default-brightness-level = <8>;
+
+};
+
+lcd: display {mpatible = "osddisplays,osd070t1718-19ts", "panel-dpi";
+
+enable-gpios = <&gpio3 30 GPIO\_ACTIVE\_HIGH>;
+
+backlight = <&lcd\_bl>;
+
+label = "lcd";
+
+panel\-timing {
+
+clock-frequency = <33300000>;
+
+hactive = <800>;
+
+vactive = <480>;
+
+hfront-porch = <210>;
+
+hback-porch = <46>;
+
+hsync-len = <20>;
+
+vfront-porch = <22>;
+
+vback-porch = <23>;
+
+vsync-len = <10>;
+
+hsync-active = <1>;
+
+vsync-active = <1>;
+
+de \-active = <0>;
+
+pixelclk-active = <0>;
+
+};
+
+port {
+
+lcd\_in: endpoint {
+
+remote\-endpoint = <&dpi\_out>;
+
+};
+
+};
+
+};
+
+&dss {
+
+status = "okay";
+
+vdda\_video-supply = <&ldoln\_reg>;
+
+ports {
+
+#address\-cells = <1>;
+
+#size-cells = <0>;
+
+port {
+
+reg = <1>;
+
+dpi\_out: endpoint {
+
+data-lines = <24>;
+
+remote-endpoint = <&lcd\_in>;
+
+};
+
+};
+
+};
+
+};
+
+**分析问题产生的原因：**
+
+1\. 内核打印信息中，出现反复出现 Linked as a consumer to regulator.20
+
+Dropping the link to regulator.20
+
+2\. lcd中的pinmux设置有问题
+
+3\. 设备驱动中compatible “panel-dpi” 对应的驱动有问题
+
+4\. 设置驱动中的 **.bus\_format = MEDIA\_BUS\_FMT\_RGB888\_1X24**, 其中可以改变rgb数据的形成格式，输出不同格式的RGB数据
+
+5\. lcd驱动板的硬件问题
+
+6\. lcd输出时序有问题
+
+**解决问题过程：**
+
+1\. regulator.20在设备节点为 /sys/class/regulator/目录下，电压为1.8，使用万用表测量也显示正常
+
+2\. 在设备树中，配置好了pinmux之后，还是没有节点产生
+
+3\. 在panel-dpi对应的驱动目录下查看，发现并没有编译此驱动，所以应该是设备匹配有问题
+
+4\. 修改格式为 BGR，GRB等，显示效果没有变化。
+
+5\. 测量lcd驱动板和和核心板上的引脚是否是导通的
+
+6\. 用示波器测量lcd输出时序是否有误
+
+**问题已解决：**
+
+**1\. 将compatible 改成 compatible = "osddisplays,osd070t1718-19ts", "panel-dpi";即可生成设备节点 /dev/fb0**
+
+**2\. lcd颜色显示不对，使用万用表测量电压，发现是lcd驱动板 io的电压过高，硬件组在驱动板中加一个电阻即可**

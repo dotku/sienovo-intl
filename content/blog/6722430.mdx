@@ -1,0 +1,44 @@
+---
+title: "数组检索方法汇总"
+date: "2011-08-26"
+slug: "6722430"
+tags: ["#编程", "#c"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6722430"
+---
+
+ 
+
+**一、引言**
+
+以下结合汉字库中区位码-Unicode转换函数，进行解说。
+
+1.
+
+```cpp
+DWORD Unicode2GBQuWei(WORD wUnicode){    DWORD dwQuNum;    DWORD dwWeiNum;    DWORD i,dwResult = 0;        for(i = 0; i < MAXUNICODENUM; i++)  //实现查询，最笨最简单的方式    {        if(wUnicode == Unicode[i])        {            dwResult = 0;                        if(GBQuWei[i] != DNULL)            {                dwQuNum = (DWORD)GBQuWei[i];    //以下四句是转化规则                                dwWeiNum = (DWORD)GBQuWei[i];                                dwQuNum = (dwQuNum & 0xff00) >> 8;                                dwWeiNum = dwWeiNum & 0x00ff;                                if(dwQuNum < 0x58)                {                                    dwDispAddQuWeiChinese(dwQuNum,dwWeiNum);                }                else                {                    //点阵字库中没有要显示的汉字                    dwDispAddQuWeiChinese(4, 1);                }            }            else            {                //点阵字库中没有要显示的汉字                dwDispAddQuWeiChinese(4, 2);            }                        return dwResult;        }        else        {            dwResult = 1;        }    }        if(dwResult == 1)    {        dwDispAddQuWeiChinese(4, 3);    }        return dwResult;}
+```
+2.
+
+```cpp
+DWORD GBQuWei2Unicode(DWORD dwQuNum, DWORD dwWeiNum){    DWORD i,dwResult = 0;    WORD wQuWeiNum;        wQuWeiNum = (WORD)(dwQuNum << 8) + (WORD)dwWeiNum;           for(i = 0; i < MAXUNICODENUM; i++)    {        if(wQuWeiNum == GBQuWei[i])        {            dwResult = (DWORD)Unicode[i];                        return dwResult;        }        else        {            dwResult = 0;        }    }        return dwResult;}
+```
+  
+二、调试
+
+1.Segmentation fault
+
+这个什么原因呢？溢出吗？内存空间不够吗？但为什么运行其它程序就可以呢？
+
+**三、MIT实践**
+
+1.学习新内容步骤：
+
+1）解决术语问题
+
+2）从应用程序入手。Linus所说，先会用。用了，产生好奇心，再追逐兴趣这条线索学习，有趣味和动力（兴趣最好的老师）。
+
+2.观察，寻找规律，培养耐心
+
+如牛顿观察光。
+
+3.C语法不熟练，C语法问题也是问题，在复杂问题中，为了降低出错概率，降低问题复杂度，熟练C语法编程、常见模式，常见问题，是一个不错的选择。

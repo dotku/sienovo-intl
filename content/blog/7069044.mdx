@@ -1,0 +1,34 @@
+---
+title: "迭代器iterator在程序到底起什么作用？  ——整理"
+date: "2011-12-14"
+slug: "7069044"
+tags: ["#iterator", "#class", "#算法", "#null", "#delete", "#c"]
+source: "https://blog.csdn.net/yeyuangen/article/details/7069044"
+---
+
+ 
+
+  
+1.类似于一个指针，但不是指针  
+2.在container中相当于指向element的指针，但其实现并不是指针，而是对象。   
+3.从大的方面讲是容器和算法之间的黏合剂  
+从小的方面讲是类似智能指针的东东  
+  
+试一下copy算法来加深理解  
+:)  
+4.iterator相当于一个container的指针类型，可以定义一个对象对container中的每个元素进行连续的访问。  
+5.你看一下源代码很快就明白了。我原来也晕了半天，实际就是指针，通过typedef实现。  
+template <class   T>   class   XXX  
+{  
+      ...  
+      ...  
+      typedef   T\*   iterator  
+      typedef   const   T\*   const\_iterator;  
+};  
+  
+建议：看C++ primer加深理解  
+源码参考：  
+
+```cpp
+实现:1)Iterator.h#ifndef ITERATOR_H#define ITERATOR_H typedef int DATA; class Iterater; // 容器的抽象基类class Aggregate{public:    virtual ~Aggregate(){}     virtual Iterater* CreateIterater(Aggregate *pAggregate) = 0;    virtual int GetSize() = 0;    virtual DATA GetItem(int nIndex) = 0;}; // 迭代器的抽象基类class Iterater{public:    virtual ~Iterater(){}     virtual void First()        = 0;    virtual void Next()            = 0;    virtual bool IsDone()        = 0;    virtual DATA CurrentItem()    = 0; private:}; // 一个具体的容器类,这里是用数组表示class ConcreateAggregate    : public Aggregate{public:    ConcreateAggregate(int nSize);    virtual ~ConcreateAggregate();     virtual Iterater* CreateIterater(Aggregate *pAggregate);    virtual int GetSize();    virtual DATA GetItem(int nIndex); private:    int m_nSize;    DATA *m_pData;}; // 访问ConcreateAggregate容器类的迭代器类class ConcreateIterater    : public Iterater{public:    ConcreateIterater(Aggregate* pAggregate);    virtual ~ConcreateIterater(){}     virtual void First();    virtual void Next();    virtual bool IsDone();    virtual DATA CurrentItem(); private:    Aggregate  *m_pConcreateAggregate;    int            m_nIndex;}; #endif复制代码2)Iterator.cpp#include <iostream>#include "Iterator.h" ConcreateAggregate::ConcreateAggregate(int nSize)    : m_nSize(nSize)    , m_pData(NULL){    m_pData = new DATA[m_nSize];        for (int i = 0; i < nSize; ++i)    {        m_pData[i] = i;    }} ConcreateAggregate::~ConcreateAggregate(){    delete [] m_pData;    m_pData = NULL;} Iterater* ConcreateAggregate::CreateIterater(Aggregate *pAggregate){    return new ConcreateIterater(this);} int ConcreateAggregate::GetSize(){    return m_nSize;} DATA ConcreateAggregate::GetItem(int nIndex){    if (nIndex < m_nSize)    {        return m_pData[nIndex];    }    else    {        return -1;    }} ConcreateIterater::ConcreateIterater(Aggregate* pAggregate)    : m_pConcreateAggregate(pAggregate)    , m_nIndex(0){ } void ConcreateIterater::First(){    m_nIndex = 0;} void ConcreateIterater::Next(){    if (m_nIndex < m_pConcreateAggregate->GetSize())    {        ++m_nIndex;    }} bool ConcreateIterater::IsDone(){    return m_nIndex == m_pConcreateAggregate->GetSize();} DATA ConcreateIterater::CurrentItem(){    return m_pConcreateAggregate->GetItem(m_nIndex);}复制代码3_Main.cpp#include "Iterator.h"#include <iostream> int main(){    Aggregate* pAggregate = new ConcreateAggregate(4);    Iterater*  pIterater  = new ConcreateIterater(pAggregate);     for (; false == pIterater->IsDone(); pIterater->Next())    {        std::cout << pIterater->CurrentItem() << std::endl;    }     return 0;}复制代码
+```
