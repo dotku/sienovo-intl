@@ -7,6 +7,7 @@ import { executeTool, TOOL_DESCRIPTIONS } from "@/lib/chat-tools";
 
 const GEMINI_MODEL = "gemini-2.5-flash";
 const CEREBRAS_MODEL = "qwen-3-235b-a22b-instruct-2507";
+const OPENROUTER_MODEL = "deepseek/deepseek-chat-v3-0324:free";
 
 export async function POST(req: NextRequest) {
   if (!(await isAdmin())) {
@@ -15,7 +16,8 @@ export async function POST(req: NextRequest) {
 
   const geminiKey = process.env.GEMINI_API_KEY;
   const cerebrasKey = process.env.CEREBRAS_API_KEY;
-  if (!geminiKey && !cerebrasKey) {
+  const openrouterKey = process.env.OPENROUTER_API_KEY;
+  if (!geminiKey && !cerebrasKey && !openrouterKey) {
     return NextResponse.json({ error: "No AI API key configured" }, { status: 500 });
   }
 
@@ -101,6 +103,12 @@ Guidelines:
   if (cerebrasKey) {
     const cerebrasStream = await tryCerebras(cerebrasKey, systemPrompt, messages, convId);
     if (cerebrasStream) return cerebrasStream;
+  }
+
+  // Fallback to OpenRouter
+  if (openrouterKey) {
+    const openrouterStream = await tryOpenRouter(openrouterKey, systemPrompt, messages, convId);
+    if (openrouterStream) return openrouterStream;
   }
 
   return NextResponse.json(
