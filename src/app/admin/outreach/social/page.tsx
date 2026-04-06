@@ -13,7 +13,7 @@ interface SearchResult {
   author?: string;
 }
 
-type Platform = "xiaohongshu" | "weixin" | "linkedin" | "youtube" | "reddit" | "twitter" | "tiktok" | "all_cn" | "all_global" | "all";
+type Platform = "xiaohongshu" | "weixin" | "linkedin" | "youtube" | "reddit" | "twitter" | "tiktok" | "facebook" | "instagram" | "threads" | "all_cn" | "all_global" | "all";
 type SearchType = "competitor" | "buyer" | "kol" | "keyword";
 
 const PRESET_TAGS_CN = [
@@ -38,6 +38,9 @@ const PLATFORM_GROUPS = [
   { label: "Reddit", key: "reddit" },
   { label: "X", key: "twitter" },
   { label: "TikTok", key: "tiktok" },
+  { label: "Facebook", key: "facebook" },
+  { label: "Instagram", key: "instagram" },
+  { label: "Threads", key: "threads" },
 ];
 
 const PLATFORM_COLORS: Record<string, string> = {
@@ -48,6 +51,9 @@ const PLATFORM_COLORS: Record<string, string> = {
   reddit: "bg-orange-100 text-orange-700",
   twitter: "bg-sky-100 text-sky-700",
   tiktok: "bg-pink-100 text-pink-700",
+  facebook: "bg-blue-50 text-blue-800",
+  instagram: "bg-fuchsia-100 text-fuchsia-700",
+  threads: "bg-gray-200 text-gray-800",
 };
 
 const TYPE_LABELS: Record<string, { en: string; zh: string }> = {

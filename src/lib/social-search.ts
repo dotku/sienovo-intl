@@ -28,6 +28,7 @@ function cleanSogouUrl(url: string): string {
 export type Platform =
   | "xiaohongshu" | "weixin"
   | "linkedin" | "youtube" | "reddit" | "twitter" | "tiktok"
+  | "facebook" | "instagram" | "threads"
   | "all_cn" | "all_global" | "all";
 
 export type SearchType = "competitor" | "buyer" | "kol" | "keyword";
@@ -58,10 +59,13 @@ const PLATFORMS: Record<string, PlatformConfig> = {
   reddit: { siteDomain: "reddit.com", label: "Reddit" },
   twitter: { siteDomain: "x.com", label: "X (Twitter)" },
   tiktok: { siteDomain: "tiktok.com", label: "TikTok" },
+  facebook: { siteDomain: "facebook.com", label: "Facebook" },
+  instagram: { siteDomain: "instagram.com", label: "Instagram" },
+  threads: { siteDomain: "threads.net", label: "Threads" },
 };
 
 const CN_PLATFORMS = ["xiaohongshu", "weixin"];
-const GLOBAL_PLATFORMS = ["linkedin", "youtube", "reddit", "twitter", "tiktok"];
+const GLOBAL_PLATFORMS = ["linkedin", "youtube", "reddit", "twitter", "tiktok", "facebook", "instagram", "threads"];
 
 const INDUSTRY_TERMS_CN = ["工业AI", "边缘计算", "视觉检测", "智能制造", "机器视觉"];
 const INDUSTRY_TERMS_EN = ["edge AI", "industrial vision", "defect detection", "smart manufacturing", "machine vision"];
