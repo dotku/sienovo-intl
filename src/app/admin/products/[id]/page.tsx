@@ -44,6 +44,7 @@ export default function EditProductPage() {
   });
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(!isNew);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (!isNew) {
@@ -77,6 +78,41 @@ export default function EditProductPage() {
     if (!confirm(t.deleteConfirm || "Delete this product?")) return;
     await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
     router.push("/admin");
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || isNew) return;
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const res = await fetch(`/api/admin/products/${id}/image`, {
+      method: "POST",
+      body: formData,
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      setProduct({ ...product, image: data.image });
+    }
+    setUploading(false);
+  };
+
+  const handleImageRemove = async () => {
+    if (isNew) {
+      setProduct({ ...product, image: "" });
+      return;
+    }
+
+    const res = await fetch(`/api/admin/products/${id}/image`, {
+      method: "DELETE",
+    });
+
+    if (res.ok) {
+      setProduct({ ...product, image: "" });
+    }
   };
 
   const addSpecGroup = () => {
@@ -201,34 +237,66 @@ export default function EditProductPage() {
               className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-gray-900"
             />
           </div>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t.imagePath || "Image Path"}
-              </label>
-              <input
-                type="text"
-                value={product.image || ""}
-                onChange={(e) =>
-                  setProduct({ ...product, image: e.target.value })
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-gray-900"
-                placeholder="/images/products/product.png"
-              />
-            </div>
-            <div className="flex items-end">
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={product.active}
-                  onChange={(e) =>
-                    setProduct({ ...product, active: e.target.checked })
-                  }
-                  className="rounded"
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t.productImage || "Product Image"}
+            </label>
+            {product.image ? (
+              <div className="flex items-start gap-4">
+                <img
+                  src={product.image}
+                  alt={product.name}
+                  className="w-32 h-32 object-cover rounded border border-gray-200"
                 />
-                {tc.active || "Active"}
+                <div className="flex flex-col gap-2">
+                  <label className="cursor-pointer text-sm text-blue-600 hover:text-blue-800 font-medium">
+                    {uploading ? (tc.uploading || "Uploading...") : (t.changeImage || "Change Image")}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      disabled={uploading || isNew}
+                      className="hidden"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleImageRemove}
+                    className="text-sm text-red-500 hover:text-red-700 text-left"
+                  >
+                    {t.removeImage || "Remove Image"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <label className={`flex items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-gray-400 transition-colors ${isNew ? "opacity-50" : ""}`}>
+                <div className="text-center">
+                  <p className="text-sm text-gray-500">
+                    {uploading ? (tc.uploading || "Uploading...") : isNew ? (t.saveFirst || "Save product first to upload image") : (t.clickToUpload || "Click to upload image")}
+                  </p>
+                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  disabled={uploading || isNew}
+                  className="hidden"
+                />
               </label>
-            </div>
+            )}
+          </div>
+          <div>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={product.active}
+                onChange={(e) =>
+                  setProduct({ ...product, active: e.target.checked })
+                }
+                className="rounded"
+              />
+              {tc.active || "Active"}
+            </label>
           </div>
         </section>
 

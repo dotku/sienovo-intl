@@ -129,7 +129,23 @@ const TOOL_PATTERNS = [
   /`tool\n\s*(\{[\s\S]*?\})\s*\n`/g,                    // backtick tool block
 ];
 
-async function executeToolCalls(text: string): Promise<{ cleanText: string; toolResults: string } | null> {
+const TOOL_LABELS: Record<string, string> = {
+  enrich_contact: "🔍 正在查询联系人信息...",
+  enrich_company: "🏢 正在查询公司信息...",
+  search_contacts: "📋 正在搜索 CRM 联系人...",
+  search_companies: "📋 正在搜索 CRM 公司...",
+  search_people_at_company: "👥 正在搜索公司联系人...",
+  recommend_prospects: "🤖 正在分析并推荐潜在客户（含 Apollo 联系人查找）...",
+  add_contact: "➕ 正在添加联系人...",
+  add_company: "➕ 正在添加公司...",
+  web_search: "🌐 正在搜索网络...",
+  search_social_leads: "📱 正在搜索社交媒体平台...",
+};
+
+async function executeToolCalls(
+  text: string,
+  onStatus?: (msg: string) => void
+): Promise<{ cleanText: string; toolResults: string } | null> {
   // Normalize escaped HTML entities
   let normalized = text.replace(/&lt;tool&gt;/g, "<tool>").replace(/&lt;\/tool&gt;/g, "</tool>");
 
@@ -148,6 +164,8 @@ async function executeToolCalls(text: string): Promise<{ cleanText: string; tool
   for (const { fullMatch, json } of allMatches) {
     try {
       const parsed = JSON.parse(json);
+      const label = TOOL_LABELS[parsed.name] || `⚙️ 正在执行 ${parsed.name}...`;
+      if (onStatus) onStatus(label);
       const result = await executeTool(parsed.name, parsed.args || {});
       results.push(`**[${parsed.name}]** ${result}`);
     } catch (e) {
@@ -241,10 +259,10 @@ async function tryGemini(
         }
       } finally {
         // Check for tool calls in the response
-        const toolExec = await executeToolCalls(fullText);
+        const toolExec = await executeToolCalls(fullText, (status) => {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: `\n\n> ${status}\n\n` })}\n\n`));
+        });
         if (toolExec) {
-          // Show a brief "looking up data" indicator, not raw results
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: "\n\n_Looking up data..._\n\n" })}\n\n`));
 
           // Follow-up call — AI summarizes tool results into a nice answer
           try {
@@ -262,7 +280,7 @@ async function tryGemini(
                       parts: [{ text: msg.content }],
                     })),
                     { role: "model", parts: [{ text: toolExec.cleanText }] },
-                    { role: "user", parts: [{ text: `工具执行完毕，结果如下:\n\n${toolExec.toolResults}\n\n请将以上结果整理为清晰的中文总结。要求：\n1. 用 ✅ 标记成功操作，❌ 标记失败操作\n2. 用表格展示多条数据\n3. 不要重复原始工具输出，用自然语言总结\n4. 如果是添加操作，明确说明"已成功添加到 CRM"\n5. 不要使用 <tool> 标签` }] },
+                    { role: "user", parts: [{ text: `工具执行完毕，结果如下:\n\n${toolExec.toolResults}\n\n请将以上结果整理为清晰的中文总结。要求：\n1. 用 ✅ 标记成功操作，❌ 标记失败操作\n2. 用表格展示多条数据，表格必须包含所有找到的邮箱地址（📧 列）\n3. 不要重复原始工具输出，用自然语言总结\n4. 如果是添加操作，明确说明"已成功添加到 CRM"\n5. 不要使用 <tool> 标签\n6. 邮箱地址是最重要的信息，绝对不能省略` }] },
                   ],
                   generationConfig: { temperature: 0.5, maxOutputTokens: 16384 },
                 }),
@@ -351,7 +369,10 @@ async function tryCerebras(
   let fullText = resData.choices?.[0]?.message?.content || "";
 
   // Step 2: Check for tool calls and execute them
-  const toolExec = await executeToolCalls(fullText);
+  const statusMessages: string[] = [];
+  const toolExec = await executeToolCalls(fullText, (status) => {
+    statusMessages.push(status);
+  });
   if (toolExec) {
     // Step 3: Follow-up call with tool results
     try {
@@ -388,6 +409,11 @@ async function tryCerebras(
   const stream = new ReadableStream({
     start(controller) {
       controller.enqueue(encoder.encode(`data: ${JSON.stringify({ model: CEREBRAS_MODEL, conversationId })}\n\n`));
+      // Show tool status messages first if any
+      if (statusMessages.length > 0) {
+        const statusText = statusMessages.map((s) => `> ${s}`).join("\n") + "\n\n";
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: statusText })}\n\n`));
+      }
       // Stream in chunks for a typing effect
       const words = fullText.split(/(?<=\s)/);
       let buffer = "";
@@ -401,7 +427,8 @@ async function tryCerebras(
       if (buffer) {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: buffer })}\n\n`));
       }
-      saveAssistantMessage(conversationId, fullText, CEREBRAS_MODEL);
+      const savedText = (statusMessages.length > 0 ? statusMessages.map((s) => `> ${s}`).join("\n") + "\n\n" : "") + fullText;
+      saveAssistantMessage(conversationId, savedText, CEREBRAS_MODEL);
       controller.enqueue(encoder.encode("data: [DONE]\n\n"));
       controller.close();
     },
@@ -445,7 +472,10 @@ async function tryOpenRouter(
   let fullText = resData.choices?.[0]?.message?.content || "";
 
   // Check for tool calls
-  const toolExec = await executeToolCalls(fullText);
+  const orStatusMessages: string[] = [];
+  const toolExec = await executeToolCalls(fullText, (status) => {
+    orStatusMessages.push(status);
+  });
   if (toolExec) {
     try {
       const followRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -479,6 +509,10 @@ async function tryOpenRouter(
   const stream = new ReadableStream({
     start(controller) {
       controller.enqueue(encoder.encode(`data: ${JSON.stringify({ model: OPENROUTER_MODEL, conversationId })}\n\n`));
+      if (orStatusMessages.length > 0) {
+        const statusText = orStatusMessages.map((s) => `> ${s}`).join("\n") + "\n\n";
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: statusText })}\n\n`));
+      }
       const words = fullText.split(/(?<=\s)/);
       let buffer = "";
       for (const word of words) {

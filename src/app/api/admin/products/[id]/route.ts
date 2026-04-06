@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isAdmin } from "@/lib/auth0";
+import { deleteFile } from "@/lib/r2";
 
 const UNAUTHORIZED = NextResponse.json({ error: "Unauthorized" }, { status: 403 });
 
@@ -87,6 +88,10 @@ export async function DELETE(
 ) {
   if (!(await isAdmin())) return UNAUTHORIZED;
   const { id } = await params;
+  const product = await prisma.product.findUnique({ where: { id } });
+  if (product?.imageKey) {
+    await deleteFile(product.imageKey).catch(() => {});
+  }
   await prisma.product.delete({ where: { id } });
   return NextResponse.json({ success: true });
 }

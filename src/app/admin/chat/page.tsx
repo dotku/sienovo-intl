@@ -286,12 +286,12 @@ export default function ChatPage() {
           {messages.map((msg, i) => (
             <div
               key={i}
-              className={`max-w-3xl ${
+              className={`max-w-5xl ${
                 msg.role === "user" ? "ml-auto" : "mr-auto"
               }`}
             >
               <div
-                className={`rounded-2xl px-5 py-3 ${
+                className={`rounded-2xl px-6 py-4 ${
                   msg.role === "user"
                     ? "bg-gray-900 text-white"
                     : "bg-white border border-gray-200 text-gray-800"
@@ -299,7 +299,7 @@ export default function ChatPage() {
               >
                 {msg.role === "assistant" ? (
                   <div
-                    className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-li:text-gray-700 prose-strong:text-gray-900"
+                    className="prose max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-li:text-gray-700 prose-strong:text-gray-900"
                     dangerouslySetInnerHTML={{
                       __html: simpleMarkdown(stripToolTags(msg.content || (t.thinking || "Thinking..."))),
                     }}
@@ -341,7 +341,7 @@ export default function ChatPage() {
 
         {/* Input */}
         <div className="border-t border-gray-200 bg-white px-6 py-4 shrink-0">
-          <div className="max-w-3xl mx-auto flex gap-3">
+          <div className="max-w-5xl mx-auto flex gap-3">
             <textarea
               ref={inputRef}
               value={input}

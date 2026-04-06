@@ -1,6 +1,7 @@
 import { enrichContact, enrichCompany } from "./apollo";
 import { prisma } from "./prisma";
 import { trackApiUsage } from "./api-usage";
+import { searchSocialPlatform, type Platform, type SearchType } from "./social-search";
 
 export interface ToolResult {
   tool: string;
@@ -118,47 +119,168 @@ export async function executeTool(
         const people = data.people || [];
         if (people.length === 0) return "📭 未在该公司找到相关人员";
 
-        // Try to enrich each person with people/match to get emails
+        // Enrich each person by ID to reveal full name + email
         const results: string[] = [];
         for (const p of people.slice(0, 8)) {
+          let firstName = p.first_name || "";
+          let lastName = p.last_name || "";
           let email = p.email || "";
           let linkedin = p.linkedin_url || "";
-          let lastName = p.last_name || "";
-          const city = p.city || "";
-          const country = p.country || "";
+          let title = p.title || "";
+          let city = p.city || "";
+          let country = p.country || "";
 
-          // Try people/match with first name + org to get email
-          if (!email && p.first_name) {
+          if (p.id && (!email || !lastName)) {
             try {
-              const matchRes = await fetch("https://api.apollo.io/api/v1/people/match", {
+              const enrichRes = await fetch("https://api.apollo.io/api/v1/people/match", {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "X-Api-Key": apiKey },
-                body: JSON.stringify({
-                  first_name: p.first_name,
-                  organization_name: p.organization?.name || companyName,
-                  title: p.title,
-                }),
+                body: JSON.stringify({ id: p.id, reveal_personal_emails: true }),
               });
-              if (matchRes.ok) {
-                const matchData = await matchRes.json();
-                const mp = matchData.person;
-                if (mp) {
-                  email = mp.email || email;
-                  linkedin = mp.linkedin_url || linkedin;
-                  lastName = mp.last_name || lastName;
+              if (enrichRes.ok) {
+                const ed = await enrichRes.json();
+                const ep = ed.person;
+                if (ep) {
+                  firstName = ep.first_name || firstName;
+                  lastName = ep.last_name || lastName;
+                  email = ep.email || email;
+                  linkedin = ep.linkedin_url || linkedin;
+                  title = ep.title || title;
+                  city = ep.city || city;
+                  country = ep.country || country;
                 }
               }
+              await trackApiUsage("apollo", "enrich_prospect", true);
             } catch {}
           }
 
           results.push(
-            `- **${p.first_name || ""} ${lastName}** | ${p.title || "N/A"} | ${email || "N/A"} | ${linkedin || "N/A"} | ${city ? `${city}, ${country}` : country || "N/A"}`
+            `- **${firstName} ${lastName}** | ${title || "N/A"} | ${email || "N/A"} | ${linkedin || "N/A"} | ${city ? `${city}, ${country}` : country || "N/A"}`
           );
         }
 
         return `Found ${people.length} people at ${companyName || domain}:\n\n| Name | Title | Email | LinkedIn | Location |\n|------|-------|-------|----------|----------|\n${results.join("\n")}`;
       } catch (e) {
         return `Search failed: ${e instanceof Error ? e.message : "unknown"}`;
+      }
+    }
+
+    case "recommend_prospects": {
+      const industry = args.industry || "";
+      const count = parseInt(args.count || "10") || 10;
+
+      // Gather business context
+      const products = await prisma.product.findMany({
+        where: { active: true },
+        select: { name: true, description: true },
+      });
+      const existingCompanies = await prisma.company.findMany({
+        select: { name: true, website: true, industry: true },
+        take: 20,
+      });
+      const contactCompanies = await prisma.contact.findMany({
+        where: { company: { not: null } },
+        select: { company: true, companyWebsite: true, industry: true },
+        distinct: ["company"],
+        take: 30,
+      });
+
+      const productInfo = products.map((p) => `${p.name}: ${p.description}`).join("\n");
+      const existingNames = [
+        ...existingCompanies.map((c) => c.name),
+        ...contactCompanies.map((c) => c.company).filter(Boolean),
+      ];
+      const existingList = existingNames.join(", ");
+
+      const prompt = `You are a B2B sales strategist. Our products:\n${productInfo}\n\nExisting clients (avoid these): ${existingList}\n\n${industry ? `Focus on: ${industry}\n` : ""}Recommend ${count} specific companies that would be ideal prospects for edge AI video analytics products. Include companies needing quality control, warehouse safety, or factory automation.\n\nFor each, return: name, domain, industry, reason (10 words max), and 2-3 suggested job titles to contact.\n\nReturn ONLY JSON:\n[{"name":"...","domain":"...","industry":"...","reason":"...","titles":["VP Operations","Quality Manager"]}]`;
+
+      const cerebrasKey = process.env.CEREBRAS_API_KEY;
+      if (!cerebrasKey) return "AI not configured.";
+
+      try {
+        const res = await fetch("https://api.cerebras.ai/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${cerebrasKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "qwen-3-235b-a22b-instruct-2507",
+            messages: [{ role: "user", content: prompt }],
+            temperature: 0.3,
+          }),
+        });
+        if (!res.ok) return "AI recommendation failed.";
+
+        const data = await res.json();
+        const text = data.choices?.[0]?.message?.content || "";
+        const match = text.match(/\[[\s\S]*\]/);
+        if (!match) return "Failed to parse recommendations.";
+
+        const recs = JSON.parse(match[0]) as { name: string; domain: string; industry: string; reason: string; titles: string[] }[];
+        await trackApiUsage("cerebras", "recommend_prospects", true);
+
+        // Now use Apollo to find contacts at the top recommended companies
+        const apolloKey = process.env.APOLLO_API_KEY;
+        const lines: string[] = [`## 推荐 ${recs.length} 家目标公司\n`];
+
+        for (const rec of recs.slice(0, count)) {
+          lines.push(`### ${rec.name} (${rec.domain})`);
+          lines.push(`- 行业: ${rec.industry} | 理由: ${rec.reason}`);
+
+          if (apolloKey) {
+            try {
+              const searchRes = await fetch("https://api.apollo.io/api/v1/mixed_people/api_search", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-Api-Key": apolloKey },
+                body: JSON.stringify({
+                  per_page: 3,
+                  q_organization_domains: rec.domain,
+                  person_titles: rec.titles,
+                }),
+              });
+              if (searchRes.ok) {
+                const searchData = await searchRes.json();
+                const people = searchData.people || [];
+
+                if (people.length > 0) {
+                  lines.push("- 关键联系人:");
+                  for (const p of people.slice(0, 3)) {
+                    let firstName = p.first_name || "";
+                    let lastName = p.last_name || "";
+                    let email = p.email || "";
+
+                    if (p.id && (!email || !lastName)) {
+                      try {
+                        const enrichRes = await fetch("https://api.apollo.io/api/v1/people/match", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json", "X-Api-Key": apolloKey },
+                          body: JSON.stringify({ id: p.id, reveal_personal_emails: true }),
+                        });
+                        if (enrichRes.ok) {
+                          const ed = await enrichRes.json();
+                          if (ed.person) {
+                            firstName = ed.person.first_name || firstName;
+                            lastName = ed.person.last_name || lastName;
+                            email = ed.person.email || email;
+                          }
+                        }
+                      } catch {}
+                    }
+
+                    lines.push(`  - **${firstName} ${lastName}** | ${p.title || "N/A"} | 📧 ${email || "未找到邮箱"}`);
+                  }
+                } else {
+                  lines.push("- ⚠️ 未找到匹配联系人，建议搜索职位: " + rec.titles.join(", "));
+                }
+              }
+            } catch {}
+          } else {
+            lines.push(`- 建议搜索职位: ${rec.titles.join(", ")}`);
+          }
+          lines.push("");
+        }
+
+        return lines.join("\n");
+      } catch (e) {
+        return `Recommendation failed: ${e instanceof Error ? e.message : "unknown"}`;
       }
     }
 
@@ -287,6 +409,34 @@ export async function executeTool(
       return `✅ 已添加公司: ${company.name}${company.website ? ` (${company.website})` : ""} [ID: ${company.id}]`;
     }
 
+    case "search_social_leads": {
+      const keywords = args.keywords || args.query;
+      if (!keywords) return "Error: keywords is required.";
+
+      const platform = (args.platform || "both") as Platform;
+      const type = (args.type || "keyword") as SearchType;
+
+      const results = await searchSocialPlatform(platform, keywords, type, 10);
+
+      if (results.length === 0) return "📭 未找到相关结果，请尝试不同的关键词。";
+
+      const platformLabel = { xiaohongshu: "小红书", weixin: "视频号" };
+      const typeLabel = { competitor: "竞品", buyer: "潜在买家", kol: "KOL/博主", keyword: "关键词" };
+      const lines = [`## 📱 社交媒体搜索: "${keywords}" (${typeLabel[type]})\n`];
+
+      for (const r of results) {
+        const tag = r.source || platformLabel[r.platform];
+        const author = r.author ? ` @${r.author}` : "";
+        lines.push(`- **${r.title}** [${tag}${author}]`);
+        lines.push(`  ${r.snippet}`);
+        lines.push(`  🔗 ${r.url}`);
+        lines.push("");
+      }
+
+      lines.push(`共找到 ${results.length} 条结果。`);
+      return lines.join("\n");
+    }
+
     default:
       return `Unknown tool: ${name}`;
   }
@@ -327,9 +477,18 @@ Available tools:
    Args: query (required)
    Example: <tool>{"name": "web_search", "args": {"query": "industrial automation companies San Francisco"}}</tool>
 
-8. **search_people_at_company** — Search for people/employees at a specific company via Apollo API. Returns names, titles, emails, LinkedIn.
+8. **search_people_at_company** — Search for people at a specific company. Returns names, titles, emails, LinkedIn profiles.
    Args: domain OR company (required), titles (optional, comma-separated filter)
    Example: <tool>{"name": "search_people_at_company", "args": {"domain": "fictiv.com", "titles": "Engineering,Procurement,Operations"}}</tool>
+
+9. **recommend_prospects** — AI-powered: analyzes our products and existing clients, then recommends new target companies with key contacts found via Apollo. Use this when the user asks to "推荐客户", "find new prospects", "recommend companies", etc.
+   Args: industry (optional, focus area), count (optional, default 10)
+   Example: <tool>{"name": "recommend_prospects", "args": {"industry": "manufacturing", "count": "5"}}</tool>
+
+10. **search_social_leads** — Search 小红书 (Xiaohongshu) and/or 视频号 (WeChat Channels) for potential clients, competitors, KOLs, or industry content.
+   Args: keywords (required), platform ("xiaohongshu"/"weixin"/"both", default "both"), type ("competitor"/"buyer"/"kol"/"keyword", default "keyword")
+   Use when user mentions 小红书, 视频号, social media prospecting, or asks to find accounts/posts on these platforms.
+   Example: <tool>{"name": "search_social_leads", "args": {"keywords": "工业视觉检测", "platform": "xiaohongshu", "type": "competitor"}}</tool>
 
 CRITICAL RULES FOR TOOL USAGE:
 1. When the user asks to look up, enrich, search, or add contacts/companies — you MUST use the tools. Do NOT suggest commands for the user to run. YOU execute them directly.
@@ -340,16 +499,15 @@ CRITICAL RULES FOR TOOL USAGE:
 6. NEVER wrap <tool> tags in backticks or code blocks. They must be bare text.
 
 STRATEGY FOR FINDING NEW COMPANIES/CONTACTS:
+- **recommend_prospects** is the BEST tool when the user wants to discover new potential clients. It automatically: (1) analyzes our products + existing clients, (2) recommends target companies, (3) finds contacts at each company with emails.
 - search_contacts and search_companies ONLY search our internal CRM database.
-- When the user asks to "find" or "discover" NEW companies, use web_search first to find them on the internet, then enrich_company for details, then add_company to save to CRM.
-- Typical prospecting workflow:
-  1. web_search to find companies and key people (include "linkedin" in query for better results)
+- search_people_at_company finds people at a SPECIFIC company when you already know the domain.
+- Typical manual prospecting workflow:
+  1. web_search to find companies and key people
   2. enrich_company with name + website for structured data
   3. add_company to save to CRM
-  4. web_search for specific people: e.g. "John Smith Fictiv LinkedIn procurement"
-  5. enrich_contact with the person's FULL NAME + COMPANY + EMAIL if found — this dramatically improves hit rate vs searching by company alone
-  6. add_contact as lead
-- TIP: Apollo/Snov free tiers have limited coverage. If enrich returns nothing, use web_search to find the person's LinkedIn URL, email domain pattern (e.g. firstname@company.com), then try enrich_contact with more specific data.
-- NEVER use search_companies to find companies that might not be in our CRM. Use web_search instead.
+  4. search_people_at_company to find contacts with emails
+  5. add_contact as lead
+- NEVER use search_companies to find companies that might not be in our CRM. Use web_search or recommend_prospects instead.
 - NEVER call "googleSearch" — that does not exist. Use "web_search" instead.
 `;

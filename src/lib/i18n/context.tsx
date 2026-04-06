@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
 import { type Locale, type Dictionary, getDictionary, defaultLocale } from "./index";
 
 interface I18nContextType {
@@ -15,6 +15,14 @@ const I18nContext = createContext<I18nContextType>({
   setLocale: () => {},
 });
 
+function getSavedLocale(): Locale | null {
+  const saved = localStorage.getItem("locale") as Locale | null;
+  if (saved === "en" || saved === "zh") return saved;
+  const browserLang = navigator.language.toLowerCase();
+  if (browserLang.startsWith("zh")) return "zh";
+  return null;
+}
+
 export function I18nProvider({
   children,
   initialLocale,
@@ -22,26 +30,25 @@ export function I18nProvider({
   children: ReactNode;
   initialLocale?: Locale;
 }) {
-  const [locale, setLocaleState] = useState<Locale>(() => {
-    if (initialLocale) return initialLocale;
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("locale") as Locale | null;
-      if (saved === "en" || saved === "zh") return saved;
-      // Detect browser language
-      const browserLang = navigator.language.toLowerCase();
-      if (browserLang.startsWith("zh")) return "zh";
+  const [locale, setLocaleState] = useState<Locale>(initialLocale || defaultLocale);
+
+  // Sync from localStorage after hydration to avoid SSR mismatch
+  useEffect(() => {
+    if (!initialLocale) {
+      const saved = getSavedLocale();
+      if (saved && saved !== locale) {
+        setLocaleState(saved);
+        document.documentElement.lang = saved;
+      }
     }
-    return defaultLocale;
-  });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const dict = getDictionary(locale);
 
   const setLocale = useCallback((newLocale: Locale) => {
     setLocaleState(newLocale);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("locale", newLocale);
-      document.documentElement.lang = newLocale;
-    }
+    localStorage.setItem("locale", newLocale);
+    document.documentElement.lang = newLocale;
   }, []);
 
   return (

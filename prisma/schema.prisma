@@ -13,6 +13,7 @@ model Product {
   slug        String      @unique
   description String?
   image       String?
+  imageKey    String?
   active      Boolean     @default(true)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
@@ -152,8 +153,8 @@ model ChatMessage {
 }
 
 model Contact {
-  id             String   @id @default(cuid())
-  email          String   @unique
+  id             String          @id @default(cuid())
+  email          String          @unique
   firstName      String?
   lastName       String?
   company        String?
@@ -167,10 +168,64 @@ model Contact {
   companyWebsite String?
   message        String?
   source         String?
-  isLead         Boolean  @default(false)
-  isNewsletter   Boolean  @default(false)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  isLead         Boolean         @default(false)
+  isNewsletter   Boolean         @default(false)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
   companyId      String?
-  companyRef     Company? @relation(fields: [companyId], references: [id])
+  companyRef     Company?        @relation(fields: [companyId], references: [id])
+  outreachEmails OutreachEmail[]
+}
+
+model OutreachCampaign {
+  id               String          @id @default(cuid())
+  name             String
+  status           String          @default("draft")
+  targetIndustries String?
+  targetTitles     String?
+  targetCountries  String?
+  targetDomains    String?
+  senderName       String          @default("Leo from Sienovo")
+  senderEmail      String          @default("sienovoleo@gmail.com")
+  productFocus     String?
+  aiContext        String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  steps            OutreachStep[]
+  emails           OutreachEmail[]
+}
+
+model OutreachStep {
+  id         String           @id @default(cuid())
+  campaignId String
+  campaign   OutreachCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  stepOrder  Int
+  delayDays  Int
+  subject    String?
+  promptHint String?
+  createdAt  DateTime         @default(now())
+  emails     OutreachEmail[]
+
+  @@index([campaignId])
+}
+
+model OutreachEmail {
+  id          String           @id @default(cuid())
+  campaignId  String
+  campaign    OutreachCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  stepId      String
+  step        OutreachStep     @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  contactId   String
+  contact     Contact          @relation(fields: [contactId], references: [id])
+  subject     String           @default("")
+  htmlContent String           @default("")
+  status      String           @default("pending")
+  sentAt      DateTime?
+  error       String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([campaignId])
+  @@index([contactId])
+  @@index([status])
 }
