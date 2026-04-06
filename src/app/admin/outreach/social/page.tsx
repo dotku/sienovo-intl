@@ -13,7 +13,12 @@ interface SearchResult {
   author?: string;
 }
 
-type Platform = "xiaohongshu" | "weixin" | "linkedin" | "youtube" | "reddit" | "twitter" | "tiktok" | "facebook" | "instagram" | "threads" | "all_cn" | "all_global" | "all";
+type Platform = "xiaohongshu" | "weixin" | "zhihu" | "douyin" | "tieba" | "bilibili"
+  | "linkedin" | "youtube" | "reddit" | "twitter" | "tiktok"
+  | "facebook" | "instagram" | "threads"
+  | "quora" | "github" | "hackernews" | "medium" | "pinterest"
+  | "alibaba" | "madeinchina" | "indiamart"
+  | "all_cn" | "all_global" | "all_b2b" | "all";
 type SearchType = "competitor" | "buyer" | "kol" | "keyword";
 
 const PRESET_TAGS_CN = [
@@ -30,9 +35,17 @@ const PLATFORM_GROUPS = [
   { label: "All", key: "all" },
   { label: "China", key: "all_cn" },
   { label: "Global", key: "all_global" },
+  { label: "B2B", key: "all_b2b" },
   { label: "──", key: "divider" },
+  // China
   { label: "小红书", key: "xiaohongshu" },
   { label: "微信", key: "weixin" },
+  { label: "知乎", key: "zhihu" },
+  { label: "抖音", key: "douyin" },
+  { label: "贴吧", key: "tieba" },
+  { label: "B站", key: "bilibili" },
+  { label: "──", key: "divider2" },
+  // Global social
   { label: "LinkedIn", key: "linkedin" },
   { label: "YouTube", key: "youtube" },
   { label: "Reddit", key: "reddit" },
@@ -41,6 +54,18 @@ const PLATFORM_GROUPS = [
   { label: "Facebook", key: "facebook" },
   { label: "Instagram", key: "instagram" },
   { label: "Threads", key: "threads" },
+  { label: "──", key: "divider3" },
+  // Tech / community
+  { label: "Quora", key: "quora" },
+  { label: "GitHub", key: "github" },
+  { label: "HN", key: "hackernews" },
+  { label: "Medium", key: "medium" },
+  { label: "Pinterest", key: "pinterest" },
+  { label: "──", key: "divider4" },
+  // B2B sourcing
+  { label: "Alibaba", key: "alibaba" },
+  { label: "MIC", key: "madeinchina" },
+  { label: "IndiaMART", key: "indiamart" },
 ];
 
 const PLATFORM_COLORS: Record<string, string> = {
@@ -54,6 +79,18 @@ const PLATFORM_COLORS: Record<string, string> = {
   facebook: "bg-blue-50 text-blue-800",
   instagram: "bg-fuchsia-100 text-fuchsia-700",
   threads: "bg-gray-200 text-gray-800",
+  zhihu: "bg-blue-100 text-blue-800",
+  douyin: "bg-gray-900 text-white",
+  tieba: "bg-cyan-100 text-cyan-700",
+  bilibili: "bg-pink-50 text-pink-600",
+  quora: "bg-red-50 text-red-700",
+  github: "bg-gray-100 text-gray-900",
+  hackernews: "bg-orange-50 text-orange-700",
+  medium: "bg-emerald-50 text-emerald-700",
+  pinterest: "bg-red-100 text-red-600",
+  alibaba: "bg-orange-100 text-orange-800",
+  madeinchina: "bg-red-100 text-red-800",
+  indiamart: "bg-blue-100 text-blue-900",
 };
 
 const TYPE_LABELS: Record<string, { en: string; zh: string }> = {
@@ -120,8 +157,8 @@ export default function SocialSearchPage() {
             </label>
             <div className="flex flex-wrap gap-1.5">
               {PLATFORM_GROUPS.map((p) =>
-                p.key === "divider" ? (
-                  <span key="divider" className="text-gray-300 self-center px-1">|</span>
+                p.key.startsWith("divider") ? (
+                  <span key={p.key} className="text-gray-300 self-center px-1">|</span>
                 ) : (
                   <button
                     key={p.key}

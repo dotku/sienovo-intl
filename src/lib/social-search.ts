@@ -26,10 +26,12 @@ function cleanSogouUrl(url: string): string {
 }
 
 export type Platform =
-  | "xiaohongshu" | "weixin"
+  | "xiaohongshu" | "weixin" | "zhihu" | "douyin" | "tieba" | "bilibili"
   | "linkedin" | "youtube" | "reddit" | "twitter" | "tiktok"
   | "facebook" | "instagram" | "threads"
-  | "all_cn" | "all_global" | "all";
+  | "quora" | "github" | "hackernews" | "medium" | "pinterest"
+  | "alibaba" | "madeinchina" | "indiamart"
+  | "all_cn" | "all_global" | "all_b2b" | "all";
 
 export type SearchType = "competitor" | "buyer" | "kol" | "keyword";
 
@@ -51,9 +53,13 @@ interface PlatformConfig {
 
 const PLATFORMS: Record<string, PlatformConfig> = {
   // Chinese platforms
-  xiaohongshu: { siteDomain: "", label: "小红书相关", gl: "cn", hl: "zh-cn" }, // no site: (Google can't index XHS)
-  weixin: { siteDomain: "", label: "微信公众号", gl: "cn", hl: "zh-cn" }, // uses Sogou
-  // Global platforms
+  xiaohongshu: { siteDomain: "", label: "小红书", gl: "cn", hl: "zh-cn" },
+  weixin: { siteDomain: "", label: "微信公众号", gl: "cn", hl: "zh-cn" },
+  zhihu: { siteDomain: "zhihu.com", label: "知乎", gl: "cn", hl: "zh-cn" },
+  douyin: { siteDomain: "", label: "抖音", gl: "cn", hl: "zh-cn" },
+  tieba: { siteDomain: "tieba.baidu.com", label: "百度贴吧", gl: "cn", hl: "zh-cn" },
+  bilibili: { siteDomain: "bilibili.com", label: "B站", gl: "cn", hl: "zh-cn" },
+  // Global social
   linkedin: { siteDomain: "linkedin.com", label: "LinkedIn" },
   youtube: { siteDomain: "youtube.com", label: "YouTube" },
   reddit: { siteDomain: "reddit.com", label: "Reddit" },
@@ -62,10 +68,21 @@ const PLATFORMS: Record<string, PlatformConfig> = {
   facebook: { siteDomain: "facebook.com", label: "Facebook" },
   instagram: { siteDomain: "instagram.com", label: "Instagram" },
   threads: { siteDomain: "threads.net", label: "Threads" },
+  // Global tech / community
+  quora: { siteDomain: "quora.com", label: "Quora" },
+  github: { siteDomain: "github.com", label: "GitHub" },
+  hackernews: { siteDomain: "news.ycombinator.com", label: "Hacker News" },
+  medium: { siteDomain: "medium.com", label: "Medium" },
+  pinterest: { siteDomain: "pinterest.com", label: "Pinterest" },
+  // B2B sourcing
+  alibaba: { siteDomain: "alibaba.com", label: "Alibaba" },
+  madeinchina: { siteDomain: "made-in-china.com", label: "Made-in-China" },
+  indiamart: { siteDomain: "indiamart.com", label: "IndiaMART" },
 };
 
-const CN_PLATFORMS = ["xiaohongshu", "weixin"];
-const GLOBAL_PLATFORMS = ["linkedin", "youtube", "reddit", "twitter", "tiktok", "facebook", "instagram", "threads"];
+const CN_PLATFORMS = ["xiaohongshu", "weixin", "zhihu", "douyin", "tieba", "bilibili"];
+const GLOBAL_PLATFORMS = ["linkedin", "youtube", "reddit", "twitter", "tiktok", "facebook", "instagram", "threads", "quora", "github", "hackernews", "medium", "pinterest"];
+const B2B_PLATFORMS = ["alibaba", "madeinchina", "indiamart"];
 
 const INDUSTRY_TERMS_CN = ["工业AI", "边缘计算", "视觉检测", "智能制造", "机器视觉"];
 const INDUSTRY_TERMS_EN = ["edge AI", "industrial vision", "defect detection", "smart manufacturing", "machine vision"];
@@ -260,11 +277,13 @@ export async function searchSocialPlatform(
   // Determine which platforms to search
   let platformKeys: string[];
   if (platform === "all") {
-    platformKeys = [...CN_PLATFORMS, ...GLOBAL_PLATFORMS];
+    platformKeys = [...CN_PLATFORMS, ...GLOBAL_PLATFORMS, ...B2B_PLATFORMS];
   } else if (platform === "all_cn") {
     platformKeys = CN_PLATFORMS;
   } else if (platform === "all_global") {
     platformKeys = GLOBAL_PLATFORMS;
+  } else if (platform === "all_b2b") {
+    platformKeys = B2B_PLATFORMS;
   } else {
     platformKeys = [platform];
   }
@@ -272,27 +291,33 @@ export async function searchSocialPlatform(
   const perPlatform = Math.max(3, Math.ceil(num / platformKeys.length));
   const results: SocialSearchResult[] = [];
 
+  // Chinese platforms that need Sogou fallback (Google can't index them)
+  const SOGOU_PLATFORMS: Record<string, string> = {
+    xiaohongshu: "小红书",
+    douyin: "抖音",
+  };
+
   for (const key of platformKeys) {
-    const isGlobal = GLOBAL_PLATFORMS.includes(key);
-    const query = buildQuery(keywords, type, isGlobal);
+    const isChinese = CN_PLATFORMS.includes(key);
+    const query = buildQuery(keywords, type, !isChinese);
 
     if (key === "weixin") {
-      // Sogou Weixin search (dedicated WeChat search)
       const sogou = await searchSogouWeixin(query, perPlatform);
       results.push(...sogou);
       if (sogou.length < 2) {
         const fallback = await searchSogouWeb(`微信公众号 ${query}`, "weixin", "微信相关", perPlatform - sogou.length);
         results.push(...fallback);
       }
-    } else if (key === "xiaohongshu") {
-      // Sogou web search with 小红书 keyword
-      const sogou = await searchSogouWeb(`小红书 ${query}`, "xiaohongshu", "小红书", perPlatform);
+    } else if (SOGOU_PLATFORMS[key]) {
+      // Platforms not indexed by Google — use Sogou
+      const label = SOGOU_PLATFORMS[key];
+      const sogou = await searchSogouWeb(`${label} ${query}`, key, label, perPlatform);
       results.push(...sogou);
     } else {
-      // Global platforms: Google site: search
+      // All platforms with a siteDomain — Google site: search via Serper
       const config = PLATFORMS[key];
-      if (config) {
-        const items = await searchGoogleSite(config.siteDomain, query, config.label, key, perPlatform);
+      if (config?.siteDomain) {
+        const items = await searchGoogleSite(config.siteDomain, query, config.label, key, perPlatform, config.gl, config.hl);
         results.push(...items);
       }
     }
