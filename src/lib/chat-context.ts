@@ -113,7 +113,7 @@ export async function gatherRAGContext(userMessage: string): Promise<string> {
 
     const sections = chunks.map(
       (chunk, i) =>
-        `### Source ${i + 1}: ${chunk.fileName} (relevance: ${(chunk.similarity * 100).toFixed(0)}%)\n${chunk.content}`
+        `### Source ${i + 1}: ${chunk.sourceName} [${chunk.sourceType}] (relevance: ${(chunk.similarity * 100).toFixed(0)}%)\n${chunk.content}`
     );
 
     return `## Relevant Knowledge Base Content

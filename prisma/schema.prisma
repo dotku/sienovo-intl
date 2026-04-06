@@ -70,6 +70,19 @@ model Company {
   contacts    Contact[]
 }
 
+model KnowledgeArticle {
+  id          String           @id @default(cuid())
+  title       String
+  content     String
+  category    String?          // "guide", "policy", "product", "market", "other"
+  indexStatus String           @default("pending")
+  indexError  String?
+  indexedAt   DateTime?
+  chunks      KnowledgeChunk[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
 model KnowledgeFile {
   id          String           @id @default(cuid())
   name        String
@@ -88,15 +101,18 @@ model KnowledgeFile {
 }
 
 model KnowledgeChunk {
-  id              String        @id @default(cuid())
-  knowledgeFileId String
-  knowledgeFile   KnowledgeFile @relation(fields: [knowledgeFileId], references: [id], onDelete: Cascade)
-  content         String
-  chunkIndex      Int
-  tokenCount      Int?
-  createdAt       DateTime      @default(now())
+  id                   String             @id @default(cuid())
+  knowledgeFileId      String?
+  knowledgeFile        KnowledgeFile?     @relation(fields: [knowledgeFileId], references: [id], onDelete: Cascade)
+  knowledgeArticleId   String?
+  knowledgeArticle     KnowledgeArticle?  @relation(fields: [knowledgeArticleId], references: [id], onDelete: Cascade)
+  content              String
+  chunkIndex           Int
+  tokenCount           Int?
+  createdAt            DateTime           @default(now())
 
   @@index([knowledgeFileId])
+  @@index([knowledgeArticleId])
 }
 
 model CompanyFile {

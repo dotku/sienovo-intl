@@ -1,0 +1,155 @@
+---
+title: "AM5728 CPSW Ethernet Port Debugging Notes"
+date: "2019-12-06"
+slug: "103429756"
+tags: ["#AM5728", "#CPSW", "#Ethernet"]
+source: "https://blog.csdn.net/yeyuangen/article/details/103429756"
+---
+
+1. During debugging, the Gigabit Ethernet port failed to initialize. The issue was later found to be caused by a mismatch in PHY addresses.
+
+2. The 100Mbps Ethernet port also failed to come up. The board has four Ethernet ports in total, but only two are being detected as hardware. The root cause is still under investigation.
+
+There are many online resources explaining device tree syntax, but even after understanding the syntax, one might still struggle with how device trees actually work in conjunction with kernel drivers. Here, I'll use TI's CPSW as an example to illustrate the subtle relationship between device trees and kernel drivers.
+
+CPSW stands for TI's Common Platform Ethernet Switch. It is a three-port switch consisting of one CPU port and two external ports. The CPSW, or Ethernet switch driver, follows the standard [Linux](http://lib.csdn.net/base/linux) network interface architecture.
+
+For TI's AM335x CPSW device tree, the definition is located in the `am33x.dtsi` file, as shown below:
+
+```dts
+mac: ethernet@4a100000 {
+    compatible = "ti,cpsw";
+        // This property is the matching string used by the driver. It must be "ti,cpsw" to match the driver.
+
+    ti,hwmods = "cpgmac0";
+        // Optional property: hardware module configuration. Must be "cpgmac0" for driver compatibility.
+
+    clocks = <&cpsw_125mhz_gclk>, <&cpsw_cpts_rft_clk>;
+        // Specifies clocks, defined in the am33xx-clocks.dtsi file.
+
+    clock-names = "fck", "cpts";
+
+    cpdma_channels = <8>;
+        // Number of CPDMA (Common Platform DMA) channels.
+
+    ale_entries = <1024>;
+        // Number of ALE (Address Lookup Engine) entries.
+
+    bd_ram_size = <0x2000>;
+        // Size of internal RAM for buffer descriptors.
+
+    no_bd_ram = <0>;
+        // Indicates whether HW descriptors are located in internal BD RAM. Value must be 0 or 1.
+
+    rx_descs = <64>;
+        // Number of RX descriptors.
+
+    mac_control = <0x20>;
+        // Default value for the MAC control register.
+
+    slaves = <2>;
+        // Number of slave ports.
+
+    active_slave = <0>;
+
+    cpts_clock_mult = <0x80000000>;
+        // Numerator for converting clock cycles to nanoseconds.
+
+    cpts_clock_shift = <29>;
+        // Denominator for converting clock cycles to nanoseconds.
+
+    reg = <0x4a100000 0x800
+           0x4a101200 0x100>;
+        // Memory-mapped register addresses for CPSW.
+
+    #address-cells = <1>;
+    #size-cells = <1>;
+
+    interrupt-parent = <&intc>;
+        // Parent interrupt controller.
+
+    /*
+     * c0_rx_thresh_pend
+     * c0_rx_pend
+     * c0_tx_pend
+     * c0_misc_pend
+     */
+    interrupts = <40 41 42 43>;
+        // Interrupt numbers.
+
+    ranges;
+
+    davinci_mdio: mdio@4a101000 {
+        compatible = "ti,davinci_mdio";
+        #address-cells = <1>;
+        #size-cells = <0>;
+        ti,hwmods = "davinci_mdio";
+        bus_freq = <1000000>;
+        reg = <0x4a101000 0x100>;
+    };
+
+    cpsw_emac0: slave@4a100200 {
+        /* Filled in by U-Boot */
+        mac-address = [ 00 00 00 00 00 00 ];
+    };
+
+    cpsw_emac1: slave@4a100300 {
+        /* Filled in by U-Boot */
+        mac-address = [ 00 00 00 00 00 00 ];
+    };
+
+    phy_sel: cpsw-phy-sel@44e10650 {
+        compatible = "ti,am3352-cpsw-phy-sel";
+        reg = <0x44e10650 0x4>;
+            // Base address and size of the PHY selection register.
+
+        reg-names = "gmii-sel";
+    };
+};
+```
+
+Now let's examine how the kernel uses these parameters.
+
+In the file `cpsw.c` (`drivers/net/ethernet/ti`), the platform driver structure includes an `of_match_table` for matching:
+
+```c
+static struct platform_driver cpsw_driver = {
+    .driver = {
+        .name     = "cpsw",
+        .owner    = THIS_MODULE,
+        .pm       = &cpsw_pm_ops,
+        .of_match_table = cpsw_of_mtable,
+    },
+    // ...
+};
+```
+
+Whether the driver's `probe` function is called depends on this matching mechanism. In this case, the kernel first checks `of_match_table` to see if a matching node exists in the device tree. If no match is found in the DTB file, it then checks for a platform device with the name "cpsw". If found, it retrieves the device information and calls the driver. However, since `platform_device cpsw_device` is typically not manually registered, matching usually relies solely on the device tree.
+
+Expanding the `of_match_table` definition:
+
+```c
+static const struct of_device_id cpsw_of_mtable[] = {
+    { .compatible = "ti,cpsw", },
+    { /* sentinel */ },
+};
+```
+
+The `.compatible = "ti,cpsw"` field matches exactly with the `compatible` property in the device tree node, resulting in a successful match and triggering the `probe` function.
+
+Inside the `probe` function, the driver calls `cpsw_probe_dt` to retrieve parameters from the DTS. Key functions used to read DTS properties include:
+
+- `of_property_read_u32(node, "slaves", &prop)`  
+  Reads the number of slaves defined in DTS: `slaves = <2>;`
+
+- `of_property_read_u32(node, "active_slave", &prop)`  
+  Reads the active slave setting: `active_slave = <0>;`
+
+- `of_property_read_u32(node, "cpts_clock_mult", &prop)`  
+  Reads the `cpts_clock_mult` value: `cpts_clock_mult = <0x80000000>;`
+
+Many other parameters are read similarly and are not listed exhaustively here.
+
+In summary, during kernel boot, device tree information is parsed and made available to the driver for initialization.
+
+Reference: [https://blog.csdn.net/wxxgoodjob/article/details/77893303](https://blog.csdn.net/wxxgoodjob/article/details/77893303)

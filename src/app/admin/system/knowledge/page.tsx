@@ -29,7 +29,10 @@ export default function KnowledgePage() {
   const tc = dict.admin?.common || {};
 
   const [files, setFiles] = useState<KnowledgeFile[]>([]);
+  const [articles, setArticles] = useState<{ id: string; title: string; category: string | null; indexStatus: string; createdAt: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncingBlog, setSyncingBlog] = useState(false);
+  const [blogSyncResult, setBlogSyncResult] = useState<string | null>(null);
 
   // Watch folder
   const [watchedFolder, setWatchedFolder] = useState<string | null>(null);
@@ -47,6 +50,38 @@ export default function KnowledgePage() {
     file: string;
     status: string;
   } | null>(null);
+
+  // Blog sync
+  const handleBlogSync = async () => {
+    setSyncingBlog(true);
+    setBlogSyncResult(null);
+    try {
+      const res = await fetch("/api/admin/knowledge/import-blog", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ locale: "zh", batchSize: 20, translate: true, autoIndex: true }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setBlogSyncResult(`同步 ${data.created} 篇, 更新 ${data.updated} 篇, 翻译 ${data.translated} 篇, 已索引 ${data.indexed} 篇. 剩余 ${data.remaining} 篇`);
+        // Refresh articles
+        const artRes = await fetch("/api/admin/knowledge/articles");
+        if (artRes.ok) setArticles(await artRes.json());
+      } else {
+        setBlogSyncResult(data.error || "Sync failed");
+      }
+    } catch {
+      setBlogSyncResult("Sync failed");
+    }
+    setSyncingBlog(false);
+  };
+
+  useEffect(() => {
+    fetch("/api/admin/knowledge/articles")
+      .then((r) => r.ok ? r.json() : [])
+      .then(setArticles)
+      .catch(() => {});
+  }, []);
 
   // Upload
   const [uploading, setUploading] = useState(false);
@@ -338,6 +373,97 @@ export default function KnowledgePage() {
           {t.helpText || "Files already synced will be skipped. Google Docs/Sheets/Slides are exported as PDF/CSV. Watched folders auto-sync on file create/delete. Deleted files go to trash for 30 days."}
         </p>
       </section>
+
+      {/* Blog Sync */}
+      <section className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+              <svg className="w-5 h-5 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+              </svg>
+              博客文章同步
+            </h3>
+            <p className="text-xs text-gray-500 mt-1">
+              {articles.length} 篇文章已导入 — 同步博客内容到知识库，自动翻译并建立 RAG 索引
+            </p>
+          </div>
+          <button
+            onClick={handleBlogSync}
+            disabled={syncingBlog}
+            className="bg-purple-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-purple-700 disabled:bg-gray-400 transition-colors whitespace-nowrap"
+          >
+            {syncingBlog ? "同步中..." : "同步博客 (20篇)"}
+          </button>
+        </div>
+        {blogSyncResult && (
+          <p className={`text-sm ${blogSyncResult.includes("failed") ? "text-red-600" : "text-green-600"}`}>
+            {blogSyncResult}
+          </p>
+        )}
+        <p className="text-xs text-gray-400">
+          每次同步 20 篇。中文文章自动翻译为英文。已存在的文章会跳过。多次点击可逐步同步全部 1318 篇。
+        </p>
+      </section>
+
+      {/* Articles Table */}
+      {articles.length > 0 && (
+        <section className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
+            <h3 className="font-semibold text-gray-900 text-sm">文章 ({articles.length})</h3>
+          </div>
+          <div className="overflow-x-auto max-h-80 overflow-y-auto">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-white">
+                <tr className="border-b border-gray-200 text-left">
+                  <th className="px-4 py-2 font-medium text-gray-600">标题</th>
+                  <th className="px-4 py-2 font-medium text-gray-600">类型</th>
+                  <th className="px-4 py-2 font-medium text-gray-600">RAG</th>
+                  <th className="px-4 py-2 font-medium text-gray-600">日期</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {articles.slice(0, 50).map((a) => (
+                  <tr key={a.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-2 text-gray-900 max-w-xs truncate">{a.title}</td>
+                    <td className="px-4 py-2">
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${
+                        a.category?.startsWith("blog-en") ? "bg-blue-50 text-blue-700" :
+                        a.category?.startsWith("blog-zh") ? "bg-purple-50 text-purple-700" :
+                        "bg-gray-100 text-gray-600"
+                      }`}>
+                        {a.category?.startsWith("blog-en") ? "EN" : a.category?.startsWith("blog-zh") ? "ZH" : a.category || "—"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2">
+                      {a.indexStatus === "indexed" ? (
+                        <span className="inline-flex items-center gap-1 text-xs text-green-700">
+                          <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                          已索引
+                        </span>
+                      ) : a.indexStatus === "processing" ? (
+                        <span className="text-xs text-blue-600">处理中...</span>
+                      ) : a.indexStatus === "error" ? (
+                        <span className="text-xs text-red-600">错误</span>
+                      ) : (
+                        <span className="text-xs text-gray-400">待处理</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2 text-gray-500 text-xs whitespace-nowrap">
+                      {new Date(a.createdAt).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {articles.length > 50 && (
+            <div className="px-4 py-2 border-t border-gray-200 text-xs text-gray-400 text-center">
+              显示前 50 篇，共 {articles.length} 篇
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Upload & Index */}
       <section className="bg-white rounded-lg border border-gray-200 p-6">
