@@ -7,7 +7,7 @@ import { executeTool, TOOL_DESCRIPTIONS } from "@/lib/chat-tools";
 
 const GEMINI_MODEL = "gemini-2.5-flash";
 const CEREBRAS_MODEL = "qwen-3-235b-a22b-instruct-2507";
-const OPENROUTER_MODEL = "deepseek/deepseek-chat-v3-0324:free";
+const OPENROUTER_MODEL = "qwen/qwen3.6-plus:free";
 
 export async function POST(req: NextRequest) {
   if (!(await isAdmin())) {
@@ -111,10 +111,17 @@ Guidelines:
     if (openrouterStream) return openrouterStream;
   }
 
-  return NextResponse.json(
-    { error: "AI 服务暂时不可用，请稍后再试。" },
-    { status: 503 }
-  );
+  // All providers failed — return a user-friendly streamed error
+  const encoder = new TextEncoder();
+  const errorStream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ model: "none", conversationId: convId })}\n\n`));
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: "⚠️ AI 服务暂时繁忙，所有模型（Gemini / Cerebras / OpenRouter）均不可用。请稍等几秒后重试。" })}\n\n`));
+      controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+      controller.close();
+    },
+  });
+  return new Response(errorStream, { headers: SSE_HEADERS });
 }
 
 // ── Tool Execution ──────────────────────────────────────────────────────────
@@ -175,7 +182,9 @@ async function executeToolCalls(
     normalized = normalized.replace(fullMatch, "");
   }
 
-  return { cleanText: normalized.trim(), toolResults: results.join("\n\n") };
+  // Strip **[tool_name]** prefix — the follow-up AI will format properly
+  const cleanResults = results.map((r) => r.replace(/^\*\*\[[^\]]+\]\*\*\s*/, ""));
+  return { cleanText: normalized.trim(), toolResults: cleanResults.join("\n\n---\n\n") };
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -187,6 +196,144 @@ async function saveAssistantMessage(conversationId: string, content: string, mod
 }
 
 const SSE_HEADERS = { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" };
+
+// Build the follow-up messages for tool result summarization
+function buildFollowUpMessages(
+  systemPrompt: string,
+  messages: { role: "user" | "assistant"; content: string }[],
+  toolExec: { cleanText: string; toolResults: string }
+) {
+  const followUpPrompt = `工具执行完毕，结果如下:\n\n${toolExec.toolResults}\n\n请将以上结果整理为清晰的中文总结。要求：\n1. 用 ✅ 标记成功操作，❌ 标记失败操作\n2. 用表格展示多条数据，表格必须包含所有找到的邮箱地址（📧 列）\n3. 不要重复原始工具输出，用自然语言总结\n4. 如果是添加操作，明确说明"已成功添加到 CRM"\n5. 不要使用 <tool> 标签\n6. 邮箱地址是最重要的信息，绝对不能省略`;
+  return { followUpPrompt };
+}
+
+// Try Gemini follow-up (buffered). Returns full text or null.
+async function geminiFollowUp(
+  apiKey: string,
+  systemPrompt: string,
+  messages: { role: "user" | "assistant"; content: string }[],
+  toolExec: { cleanText: string; toolResults: string }
+): Promise<string | null> {
+  const { followUpPrompt } = buildFollowUpMessages(systemPrompt, messages, toolExec);
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [
+            { role: "user", parts: [{ text: systemPrompt }] },
+            { role: "model", parts: [{ text: "Understood." }] },
+            ...messages.map((msg) => ({
+              role: msg.role === "user" ? "user" : "model",
+              parts: [{ text: msg.content }],
+            })),
+            { role: "model", parts: [{ text: toolExec.cleanText }] },
+            { role: "user", parts: [{ text: followUpPrompt }] },
+          ],
+          generationConfig: { temperature: 0.5, maxOutputTokens: 16384 },
+        }),
+      }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    return text.length >= 50 ? text : null; // too short = truncated
+  } catch {
+    return null;
+  }
+}
+
+// Cerebras follow-up (streaming via SSE). Streams directly to controller, returns full text.
+async function cerebrasFollowUpStream(
+  systemPrompt: string,
+  messages: { role: "user" | "assistant"; content: string }[],
+  toolExec: { cleanText: string; toolResults: string },
+  controller: ReadableStreamDefaultController,
+  encoder: TextEncoder
+): Promise<string | null> {
+  const cerebrasKey = process.env.CEREBRAS_API_KEY;
+  if (!cerebrasKey) return null;
+  const { followUpPrompt } = buildFollowUpMessages(systemPrompt, messages, toolExec);
+  try {
+    const res = await fetch("https://api.cerebras.ai/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${cerebrasKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: CEREBRAS_MODEL,
+        stream: true,
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...messages,
+          { role: "assistant", content: toolExec.cleanText },
+          { role: "user", content: followUpPrompt },
+        ],
+        temperature: 0.5,
+        max_completion_tokens: 16384,
+      }),
+    });
+    if (!res.ok || !res.body) return null;
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let fullText = "";
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value, { stream: true });
+      for (const line of chunk.split("\n")) {
+        if (!line.startsWith("data: ")) continue;
+        const jsonStr = line.slice(6);
+        if (jsonStr === "[DONE]") continue;
+        try {
+          const data = JSON.parse(jsonStr);
+          const t = data.choices?.[0]?.delta?.content;
+          if (t) {
+            fullText += t;
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: t })}\n\n`));
+          }
+        } catch {}
+      }
+    }
+    return fullText || null;
+  } catch {
+    return null;
+  }
+}
+
+// OpenRouter follow-up (non-streaming fallback)
+async function openrouterFollowUp(
+  systemPrompt: string,
+  messages: { role: "user" | "assistant"; content: string }[],
+  toolExec: { cleanText: string; toolResults: string }
+): Promise<string | null> {
+  const orKey = process.env.OPENROUTER_API_KEY;
+  if (!orKey) return null;
+  const { followUpPrompt } = buildFollowUpMessages(systemPrompt, messages, toolExec);
+  try {
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${orKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: OPENROUTER_MODEL,
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...messages,
+          { role: "assistant", content: toolExec.cleanText },
+          { role: "user", content: followUpPrompt },
+        ],
+        temperature: 0.5,
+        max_tokens: 16384,
+      }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content || null;
+  } catch {
+    return null;
+  }
+}
 
 // ── Gemini ───────────────────────────────────────────────────────────────────
 
@@ -221,9 +368,7 @@ async function tryGemini(
 
   if (!res.ok) {
     trackApiUsage("gemini", "chat", false);
-    if (res.status === 429) return null;
-    const err = await res.text();
-    return NextResponse.json({ error: `Gemini error: ${err}` }, { status: 502 });
+    return null; // fallback to next provider
   }
 
   trackApiUsage("gemini", "chat");
@@ -233,97 +378,131 @@ async function tryGemini(
 
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
-  let fullText = "";
 
+  // Step 1: Buffer the full Gemini response first (don't stream yet)
+  // This lets us detect tool calls before sending anything to the client
+  let fullText = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    const chunk = decoder.decode(value, { stream: true });
+    for (const line of chunk.split("\n")) {
+      if (!line.startsWith("data: ")) continue;
+      const jsonStr = line.slice(6);
+      if (jsonStr === "[DONE]") continue;
+      try {
+        const data = JSON.parse(jsonStr);
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) fullText += text;
+      } catch { /* skip malformed */ }
+    }
+  }
+
+  // Step 2: Check for tool calls
+  const hasToolCalls = TOOL_PATTERNS.some((p) => new RegExp(p.source, p.flags).test(
+    fullText.replace(/&lt;tool&gt;/g, "<tool>").replace(/&lt;\/tool&gt;/g, "</tool>")
+  ));
+
+  if (!hasToolCalls) {
+    // No tools — stream the buffered text as-is
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ model: GEMINI_MODEL, conversationId })}\n\n`));
+        // Stream in chunks for typing effect
+        const words = fullText.split(/(?<=\s)/);
+        let buffer = "";
+        for (const word of words) {
+          buffer += word;
+          if (buffer.length >= 20) {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: buffer })}\n\n`));
+            buffer = "";
+          }
+        }
+        if (buffer) controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: buffer })}\n\n`));
+        saveAssistantMessage(conversationId, fullText, GEMINI_MODEL);
+        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+        controller.close();
+      },
+    });
+    return new Response(stream, { headers: SSE_HEADERS });
+  }
+
+  // Step 3: Has tool calls — execute tools, then stream formatted follow-up
   const stream = new ReadableStream({
     async start(controller) {
       controller.enqueue(encoder.encode(`data: ${JSON.stringify({ model: GEMINI_MODEL, conversationId })}\n\n`));
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          const chunk = decoder.decode(value, { stream: true });
-          for (const line of chunk.split("\n")) {
-            if (!line.startsWith("data: ")) continue;
-            const jsonStr = line.slice(6);
-            if (jsonStr === "[DONE]") continue;
-            try {
-              const data = JSON.parse(jsonStr);
-              const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-              if (text) {
-                fullText += text;
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`));
-              }
-            } catch { /* skip malformed */ }
-          }
-        }
-      } finally {
-        // Check for tool calls in the response
-        const toolExec = await executeToolCalls(fullText, (status) => {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: `\n\n> ${status}\n\n` })}\n\n`));
-        });
-        if (toolExec) {
 
-          // Follow-up call — AI summarizes tool results into a nice answer
-          try {
-            const followRes = await fetch(
-              `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:streamGenerateContent?alt=sse&key=${apiKey}`,
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  contents: [
-                    { role: "user", parts: [{ text: systemPrompt }] },
-                    { role: "model", parts: [{ text: "Understood." }] },
-                    ...messages.map((msg) => ({
-                      role: msg.role === "user" ? "user" : "model",
-                      parts: [{ text: msg.content }],
-                    })),
-                    { role: "model", parts: [{ text: toolExec.cleanText }] },
-                    { role: "user", parts: [{ text: `工具执行完毕，结果如下:\n\n${toolExec.toolResults}\n\n请将以上结果整理为清晰的中文总结。要求：\n1. 用 ✅ 标记成功操作，❌ 标记失败操作\n2. 用表格展示多条数据，表格必须包含所有找到的邮箱地址（📧 列）\n3. 不要重复原始工具输出，用自然语言总结\n4. 如果是添加操作，明确说明"已成功添加到 CRM"\n5. 不要使用 <tool> 标签\n6. 邮箱地址是最重要的信息，绝对不能省略` }] },
-                  ],
-                  generationConfig: { temperature: 0.5, maxOutputTokens: 16384 },
-                }),
-              }
-            );
+      // Execute tools with status messages
+      const toolExec = await executeToolCalls(fullText, (status) => {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: `> ${status}\n\n` })}\n\n`));
+      });
 
-            if (followRes.ok && followRes.body) {
-              const followReader = followRes.body.getReader();
-              let followText = "";
-              while (true) {
-                const { done, value } = await followReader.read();
-                if (done) break;
-                const chunk = decoder.decode(value, { stream: true });
-                for (const line of chunk.split("\n")) {
-                  if (!line.startsWith("data: ")) continue;
-                  const jsonStr = line.slice(6);
-                  if (jsonStr === "[DONE]") continue;
-                  try {
-                    const data = JSON.parse(jsonStr);
-                    const t = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                    if (t) {
-                      followText += t;
-                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: t })}\n\n`));
-                    }
-                  } catch {}
-                }
-              }
-              fullText = (toolExec.cleanText ? toolExec.cleanText + "\n\n" : "") + followText;
-            } else {
-              // Fallback: show raw results if follow-up fails
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: toolExec.toolResults })}\n\n`));
-              fullText = toolExec.cleanText + "\n\n" + toolExec.toolResults;
-            }
-          } catch {
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: toolExec.toolResults })}\n\n`));
-            fullText = toolExec.cleanText + "\n\n" + toolExec.toolResults;
-          }
-        }
-
-        if (fullText) saveAssistantMessage(conversationId, fullText, GEMINI_MODEL);
+      if (!toolExec) {
+        // Shouldn't happen, but fallback
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: fullText })}\n\n`));
+        saveAssistantMessage(conversationId, fullText, GEMINI_MODEL);
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
         controller.close();
+        return;
       }
+
+      // Follow-up strategy:
+      // 1. Try Gemini (buffered) — if complete, stream the buffer
+      // 2. If Gemini fails/truncates — stream Cerebras directly (reliable, won't cut off)
+      // 3. If Cerebras fails — try OpenRouter (buffered)
+      // 4. Last resort — show raw tool results
+
+      let finalText = "";
+
+      // Attempt 1: Gemini buffered
+      const geminiText = await geminiFollowUp(apiKey, systemPrompt, messages, toolExec);
+      if (geminiText) {
+        // Gemini succeeded — stream the buffered content
+        finalText = geminiText;
+        const words = finalText.split(/(?<=\s)/);
+        let buf = "";
+        for (const word of words) {
+          buf += word;
+          if (buf.length >= 30) {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: buf })}\n\n`));
+            buf = "";
+          }
+        }
+        if (buf) controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: buf })}\n\n`));
+      } else {
+        // Attempt 2: Cerebras streaming (won't truncate)
+        const cerebrasText = await cerebrasFollowUpStream(
+          systemPrompt, messages, toolExec, controller, encoder
+        );
+        if (cerebrasText) {
+          finalText = cerebrasText;
+        } else {
+          // Attempt 3: OpenRouter buffered
+          const orText = await openrouterFollowUp(systemPrompt, messages, toolExec);
+          if (orText) {
+            finalText = orText;
+          } else {
+            // Last resort: raw tool results
+            finalText = toolExec.toolResults;
+          }
+          // Stream the buffered text
+          const words = finalText.split(/(?<=\s)/);
+          let buf = "";
+          for (const word of words) {
+            buf += word;
+            if (buf.length >= 30) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: buf })}\n\n`));
+              buf = "";
+            }
+          }
+          if (buf) controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: buf })}\n\n`));
+        }
+      }
+
+      const savedText = finalText;
+      saveAssistantMessage(conversationId, savedText, GEMINI_MODEL);
+      controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+      controller.close();
     },
   });
 
@@ -360,8 +539,7 @@ async function tryCerebras(
 
   if (!res.ok) {
     trackApiUsage("cerebras", "chat", false);
-    const err = await res.text();
-    return NextResponse.json({ error: `Cerebras error: ${err}` }, { status: 502 });
+    return null; // fallback to next provider
   }
 
   trackApiUsage("cerebras", "chat");

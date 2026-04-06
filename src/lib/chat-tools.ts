@@ -420,16 +420,15 @@ export async function executeTool(
 
       if (results.length === 0) return "📭 未找到相关结果，请尝试不同的关键词。";
 
-      const platformLabel = { xiaohongshu: "小红书", weixin: "视频号" };
+      const platformLabel: Record<string, string> = { xiaohongshu: "小红书", weixin: "视频号", linkedin: "LinkedIn", youtube: "YouTube", reddit: "Reddit", twitter: "X", tiktok: "TikTok" };
       const typeLabel = { competitor: "竞品", buyer: "潜在买家", kol: "KOL/博主", keyword: "关键词" };
       const lines = [`## 📱 社交媒体搜索: "${keywords}" (${typeLabel[type]})\n`];
 
       for (const r of results) {
-        const tag = r.source || platformLabel[r.platform];
+        const tag = r.source || platformLabel[r.platform] || r.platform;
         const author = r.author ? ` @${r.author}` : "";
-        lines.push(`- **${r.title}** [${tag}${author}]`);
-        lines.push(`  ${r.snippet}`);
-        lines.push(`  🔗 ${r.url}`);
+        lines.push(`- [${r.title}](${r.url}) [${tag}${author}]`);
+        if (r.snippet) lines.push(`  ${r.snippet}`);
         lines.push("");
       }
 
@@ -485,10 +484,11 @@ Available tools:
    Args: industry (optional, focus area), count (optional, default 10)
    Example: <tool>{"name": "recommend_prospects", "args": {"industry": "manufacturing", "count": "5"}}</tool>
 
-10. **search_social_leads** — Search 小红书 (Xiaohongshu) and/or 视频号 (WeChat Channels) for potential clients, competitors, KOLs, or industry content.
-   Args: keywords (required), platform ("xiaohongshu"/"weixin"/"both", default "both"), type ("competitor"/"buyer"/"kol"/"keyword", default "keyword")
-   Use when user mentions 小红书, 视频号, social media prospecting, or asks to find accounts/posts on these platforms.
-   Example: <tool>{"name": "search_social_leads", "args": {"keywords": "工业视觉检测", "platform": "xiaohongshu", "type": "competitor"}}</tool>
+10. **search_social_leads** — Search social media platforms for potential clients, competitors, KOLs, or industry content. Supports: 小红书, 微信/视频号, LinkedIn, YouTube, Reddit, X (Twitter), TikTok.
+   Args: keywords (required), platform ("xiaohongshu"/"weixin"/"linkedin"/"youtube"/"reddit"/"twitter"/"tiktok"/"all_cn"/"all_global"/"all", default "all"), type ("competitor"/"buyer"/"kol"/"keyword", default "keyword")
+   Use "all_cn" for Chinese platforms, "all_global" for international, "all" for everything.
+   Example: <tool>{"name": "search_social_leads", "args": {"keywords": "edge AI defect detection", "platform": "linkedin", "type": "competitor"}}</tool>
+   Example: <tool>{"name": "search_social_leads", "args": {"keywords": "工业视觉检测", "platform": "all_cn", "type": "kol"}}</tool>
 
 CRITICAL RULES FOR TOOL USAGE:
 1. When the user asks to look up, enrich, search, or add contacts/companies — you MUST use the tools. Do NOT suggest commands for the user to run. YOU execute them directly.

@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
   if (!(await isAdmin())) return UNAUTHORIZED;
 
   const body = await req.json();
-  const { keywords, platform = "both", type = "keyword", num = 10 } = body as {
+  const { keywords, platform = "all", type = "keyword", num = 10 } = body as {
     keywords: string;
     platform?: Platform;
     type?: SearchType;

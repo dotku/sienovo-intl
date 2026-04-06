@@ -13,19 +13,41 @@ interface SearchResult {
   author?: string;
 }
 
-type Platform = "xiaohongshu" | "weixin" | "both";
+type Platform = "xiaohongshu" | "weixin" | "linkedin" | "youtube" | "reddit" | "twitter" | "tiktok" | "all_cn" | "all_global" | "all";
 type SearchType = "competitor" | "buyer" | "kol" | "keyword";
 
-const PRESET_TAGS = [
+const PRESET_TAGS_CN = [
   "边缘AI", "视觉检测", "智能制造", "工业相机", "缺陷检测",
   "机器视觉", "AI盒子", "安防监控", "智慧工厂", "工业自动化",
-  "质量检测", "仓库安全",
 ];
 
-const PLATFORM_LABELS: Record<string, string> = {
-  xiaohongshu: "小红书",
-  weixin: "视频号",
-  both: "全部",
+const PRESET_TAGS_EN = [
+  "edge AI", "machine vision", "defect detection", "smart manufacturing",
+  "industrial camera", "factory automation", "warehouse safety", "quality inspection",
+];
+
+const PLATFORM_GROUPS = [
+  { label: "All", key: "all" },
+  { label: "China", key: "all_cn" },
+  { label: "Global", key: "all_global" },
+  { label: "──", key: "divider" },
+  { label: "小红书", key: "xiaohongshu" },
+  { label: "微信", key: "weixin" },
+  { label: "LinkedIn", key: "linkedin" },
+  { label: "YouTube", key: "youtube" },
+  { label: "Reddit", key: "reddit" },
+  { label: "X", key: "twitter" },
+  { label: "TikTok", key: "tiktok" },
+];
+
+const PLATFORM_COLORS: Record<string, string> = {
+  xiaohongshu: "bg-red-100 text-red-700",
+  weixin: "bg-green-100 text-green-700",
+  linkedin: "bg-blue-100 text-blue-700",
+  youtube: "bg-red-50 text-red-600",
+  reddit: "bg-orange-100 text-orange-700",
+  twitter: "bg-sky-100 text-sky-700",
+  tiktok: "bg-pink-100 text-pink-700",
 };
 
 const TYPE_LABELS: Record<string, { en: string; zh: string }> = {
@@ -40,7 +62,7 @@ export default function SocialSearchPage() {
   const t = dict.admin?.outreach || {};
   const tc = dict.admin?.common || {};
 
-  const [platform, setPlatform] = useState<Platform>("both");
+  const [platform, setPlatform] = useState<Platform>("all");
   const [type, setType] = useState<SearchType>("keyword");
   const [keywords, setKeywords] = useState("");
   const [searching, setSearching] = useState(false);
@@ -90,20 +112,24 @@ export default function SocialSearchPage() {
             <label className="block text-xs font-medium text-gray-500 mb-2">
               {t.socialPlatform || "Platform"}
             </label>
-            <div className="flex gap-2">
-              {(["both", "xiaohongshu", "weixin"] as Platform[]).map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setPlatform(p)}
-                  className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
-                    platform === p
-                      ? "bg-gray-900 text-white"
-                      : "bg-white border border-gray-300 text-gray-600 hover:bg-gray-50"
-                  }`}
-                >
-                  {PLATFORM_LABELS[p]}
-                </button>
-              ))}
+            <div className="flex flex-wrap gap-1.5">
+              {PLATFORM_GROUPS.map((p) =>
+                p.key === "divider" ? (
+                  <span key="divider" className="text-gray-300 self-center px-1">|</span>
+                ) : (
+                  <button
+                    key={p.key}
+                    onClick={() => setPlatform(p.key as Platform)}
+                    className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+                      platform === p.key
+                        ? "bg-gray-900 text-white"
+                        : "bg-white border border-gray-300 text-gray-600 hover:bg-gray-50"
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                )
+              )}
             </div>
           </div>
 
@@ -155,7 +181,12 @@ export default function SocialSearchPage() {
 
           {/* Preset Tags */}
           <div className="flex flex-wrap gap-1.5">
-            {PRESET_TAGS.map((tag) => (
+            {(["all_cn", "xiaohongshu", "weixin"].includes(platform)
+              ? PRESET_TAGS_CN
+              : ["all_global", "linkedin", "youtube", "reddit", "twitter", "tiktok"].includes(platform)
+              ? PRESET_TAGS_EN
+              : [...PRESET_TAGS_CN.slice(0, 5), ...PRESET_TAGS_EN.slice(0, 5)]
+            ).map((tag) => (
               <button
                 key={tag}
                 onClick={() => addTag(tag)}
@@ -196,12 +227,10 @@ export default function SocialSearchPage() {
                     <div className="flex items-center gap-2 mb-1">
                       <span
                         className={`px-1.5 py-0.5 rounded text-xs font-medium ${
-                          r.platform === "xiaohongshu"
-                            ? "bg-red-100 text-red-700"
-                            : "bg-green-100 text-green-700"
+                          PLATFORM_COLORS[r.platform] || "bg-gray-100 text-gray-700"
                         }`}
                       >
-                        {r.source || PLATFORM_LABELS[r.platform]}
+                        {r.source || r.platform}
                       </span>
                       {r.author && (
                         <span className="text-xs text-gray-400 shrink-0">@{r.author}</span>
