@@ -270,7 +270,7 @@ export default function ChatPage() {
                 {t.greetingSub || "I have access to your CRM data, knowledge base, and system metrics."}
               </p>
               <div className="grid sm:grid-cols-2 gap-2">
-                {SUGGESTIONS.map((s) => (
+                {SUGGESTIONS.map((s: string) => (
                   <button
                     key={s}
                     onClick={() => sendMessage(s)}
