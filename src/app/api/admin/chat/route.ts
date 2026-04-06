@@ -409,3 +409,93 @@ async function tryCerebras(
 
   return new Response(stream, { headers: SSE_HEADERS });
 }
+
+// ── OpenRouter (OpenAI-compatible, 3rd fallback) ────────────────────────────
+
+async function tryOpenRouter(
+  apiKey: string,
+  systemPrompt: string,
+  messages: { role: "user" | "assistant"; content: string }[],
+  conversationId: string
+): Promise<Response | null> {
+  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: OPENROUTER_MODEL,
+      messages: [
+        { role: "system" as const, content: systemPrompt },
+        ...messages,
+      ],
+      temperature: 0.7,
+      max_tokens: 16384,
+    }),
+  });
+
+  if (!res.ok) {
+    trackApiUsage("gemini", "chat_openrouter", false);
+    return null;
+  }
+
+  trackApiUsage("gemini", "chat_openrouter");
+  const resData = await res.json();
+  let fullText = resData.choices?.[0]?.message?.content || "";
+
+  // Check for tool calls
+  const toolExec = await executeToolCalls(fullText);
+  if (toolExec) {
+    try {
+      const followRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: OPENROUTER_MODEL,
+          messages: [
+            { role: "system", content: systemPrompt },
+            ...messages,
+            { role: "assistant", content: toolExec.cleanText },
+            { role: "user", content: `工具执行完毕，结果如下:\n\n${toolExec.toolResults}\n\n请将以上结果整理为清晰的中文总结。用 ✅ 标记成功，❌ 标记失败，用表格展示数据。不要使用 <tool> 标签。` },
+          ],
+          temperature: 0.5,
+          max_tokens: 16384,
+        }),
+      });
+      if (followRes.ok) {
+        const followData = await followRes.json();
+        const followText = followData.choices?.[0]?.message?.content || toolExec.toolResults;
+        fullText = (toolExec.cleanText ? toolExec.cleanText + "\n\n" : "") + followText;
+      } else {
+        fullText = (toolExec.cleanText ? toolExec.cleanText + "\n\n" : "") + toolExec.toolResults;
+      }
+    } catch {
+      fullText = (toolExec.cleanText ? toolExec.cleanText + "\n\n" : "") + toolExec.toolResults;
+    }
+  }
+
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ model: OPENROUTER_MODEL, conversationId })}\n\n`));
+      const words = fullText.split(/(?<=\s)/);
+      let buffer = "";
+      for (const word of words) {
+        buffer += word;
+        if (buffer.length >= 20) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: buffer })}\n\n`));
+          buffer = "";
+        }
+      }
+      if (buffer) {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: buffer })}\n\n`));
+      }
+      saveAssistantMessage(conversationId, fullText, OPENROUTER_MODEL);
+      controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+      controller.close();
+    },
+  });
+
+  return new Response(stream, { headers: SSE_HEADERS });
+}
