@@ -15,7 +15,7 @@ export default async function AdminLayout({
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      <AdminSidebar email={session.user.email} />
+      <AdminSidebar email={session.user.email || ""} />
       <div className="flex-1 min-w-0">{children}</div>
     </div>
   );
