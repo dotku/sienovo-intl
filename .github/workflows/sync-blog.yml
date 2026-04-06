@@ -16,12 +16,12 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 24
           cache: "npm"
 
       - name: Install dependencies
@@ -50,16 +50,22 @@ jobs:
           R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
           R2_PUBLIC_URL: ${{ secrets.R2_PUBLIC_URL }}
 
-      # Step 3: Commit and push new content
+      # Step 3: Translate new articles to English
+      - name: Translate new articles
+        run: node scripts/translate-blog.mjs
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
+      # Step 4: Commit and push new content
       - name: Commit and push changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add content/blog/ scripts/article-list.txt
+          git add content/blog/ content/blog-en/ scripts/article-list.txt
           if git diff --staged --quiet; then
             echo "No new articles to commit."
           else
-            COUNT=$(git diff --staged --name-only -- content/blog/ | wc -l | tr -d ' ')
+            COUNT=$(git diff --staged --name-only -- content/blog/ content/blog-en/ | wc -l | tr -d ' ')
             git commit -m "sync: add ${COUNT} new blog articles from CSDN"
             git push
           fi

@@ -348,7 +348,7 @@ async function main() {
 title: "${useTitle.replace(/"/g, '\\"')}"
 date: "${data.date}"
 slug: "${id}"
-tags: [${data.tags.map((t) => `"${t}"`).join(", ")}]
+tags: [${data.tags.map((t) => `"${t.replace(/\\/g, "/").replace(/"/g, '\\"')}"`).join(", ")}]
 source: "${url}"
 ---
 

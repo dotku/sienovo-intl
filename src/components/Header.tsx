@@ -1,18 +1,21 @@
 "use client";
 
 import { useState } from "react";
-
-const NAV_ITEMS = [
-  { href: "#features", label: "Features" },
-  { href: "#scenarios", label: "Scenarios" },
-  { href: "#cases", label: "Cases" },
-  { href: "#specs", label: "Specifications" },
-  { href: "#platform", label: "Platform" },
-  { href: "/blog", label: "Blog" },
-];
+import { useI18n } from "@/lib/i18n/context";
 
 export default function Header() {
   const [open, setOpen] = useState(false);
+  const { dict, locale, setLocale } = useI18n();
+  const t = dict.nav;
+
+  const NAV_ITEMS = [
+    { href: "#features", label: t.features },
+    { href: "#scenarios", label: t.scenarios },
+    { href: "#cases", label: t.cases },
+    { href: "#specs", label: t.specs },
+    { href: "#platform", label: t.platform },
+    { href: "/blog", label: t.blog },
+  ];
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-100">
@@ -24,7 +27,7 @@ export default function Header() {
               SIENOVO
             </span>
           </a>
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600">
+          <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-600">
             {NAV_ITEMS.map((item) => (
               <a
                 key={item.href}
@@ -34,19 +37,26 @@ export default function Header() {
                 {item.label}
               </a>
             ))}
+            {/* Language Switcher */}
+            <button
+              onClick={() => setLocale(locale === "en" ? "zh" : "en")}
+              className="px-2 py-1 rounded border border-gray-200 text-xs font-semibold text-gray-500 hover:text-accent hover:border-accent transition-colors"
+            >
+              {locale === "en" ? "中文" : "EN"}
+            </button>
             <a
               href="https://calendly.com/sienovoleo"
               target="_blank"
               rel="noopener noreferrer"
               className="border border-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-100 transition-colors"
             >
-              Book a Demo
+              {t.bookDemo}
             </a>
             <a
               href="#contact"
               className="bg-accent text-white px-5 py-2 rounded hover:bg-red-700 transition-colors"
             >
-              Contact Sales
+              {t.contactSales}
             </a>
           </nav>
           <button
@@ -54,26 +64,11 @@ export default function Header() {
             onClick={() => setOpen(!open)}
             aria-label="Toggle menu"
           >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               {open ? (
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               ) : (
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 6h16M4 12h16M4 18h16"
-                />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               )}
             </svg>
           </button>
@@ -92,6 +87,12 @@ export default function Header() {
                 {item.label}
               </a>
             ))}
+            <button
+              onClick={() => { setLocale(locale === "en" ? "zh" : "en"); setOpen(false); }}
+              className="block w-full text-left py-2 text-sm font-medium text-gray-600 hover:text-accent"
+            >
+              {locale === "en" ? "中文" : "English"}
+            </button>
             <a
               href="https://calendly.com/sienovoleo"
               target="_blank"
@@ -99,14 +100,14 @@ export default function Header() {
               className="block mt-2 text-center border border-gray-300 text-gray-700 px-5 py-2 rounded hover:bg-gray-100 transition-colors text-sm font-medium"
               onClick={() => setOpen(false)}
             >
-              Book a Demo
+              {t.bookDemo}
             </a>
             <a
               href="#contact"
               className="block text-center bg-accent text-white px-5 py-2 rounded hover:bg-red-700 transition-colors text-sm font-medium"
               onClick={() => setOpen(false)}
             >
-              Contact Sales
+              {t.contactSales}
             </a>
           </div>
         </nav>

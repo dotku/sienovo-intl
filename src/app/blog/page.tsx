@@ -4,9 +4,9 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
 export const metadata = {
-  title: "Blog | Sienovo",
+  title: "Technical Blog - Embedded Systems, Edge AI & Industrial Computing",
   description:
-    "Technical articles on embedded systems, edge AI, FPGA, ARM platforms, and industrial computing solutions.",
+    "Technical articles on embedded systems, edge AI, FPGA, ARM platforms, and industrial computing solutions from Sienovo.",
 };
 
 export default async function BlogPage({

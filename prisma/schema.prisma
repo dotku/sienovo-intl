@@ -1,0 +1,160 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Product {
+  id          String      @id @default(cuid())
+  name        String
+  slug        String      @unique
+  description String?
+  image       String?
+  active      Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  specGroups  SpecGroup[]
+}
+
+model SpecGroup {
+  id        String     @id @default(cuid())
+  category  String
+  sortOrder Int        @default(0)
+  productId String
+  product   Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  items     SpecItem[]
+}
+
+model SpecItem {
+  id          String    @id @default(cuid())
+  label       String
+  value       String
+  sortOrder   Int       @default(0)
+  specGroupId String
+  specGroup   SpecGroup @relation(fields: [specGroupId], references: [id], onDelete: Cascade)
+}
+
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model ApiUsage {
+  id        String   @id @default(cuid())
+  service   String
+  action    String
+  success   Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([service, createdAt])
+}
+
+model Company {
+  id          String        @id @default(cuid())
+  name        String        @unique
+  website     String?
+  industry    String?
+  size        String?
+  linkedinUrl String?
+  phone       String?
+  city        String?
+  country     String?
+  description String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  files       CompanyFile[]
+  contacts    Contact[]
+}
+
+model KnowledgeFile {
+  id          String           @id @default(cuid())
+  name        String
+  key         String
+  url         String
+  size        Int
+  mimeType    String
+  driveFileId String?          @unique
+  source      String           @default("upload")
+  trashedAt   DateTime?
+  indexStatus String           @default("pending") // pending | processing | indexed | error
+  indexError  String?
+  indexedAt   DateTime?
+  chunks      KnowledgeChunk[]
+  createdAt   DateTime         @default(now())
+}
+
+model KnowledgeChunk {
+  id              String        @id @default(cuid())
+  knowledgeFileId String
+  knowledgeFile   KnowledgeFile @relation(fields: [knowledgeFileId], references: [id], onDelete: Cascade)
+  content         String
+  chunkIndex      Int
+  tokenCount      Int?
+  createdAt       DateTime      @default(now())
+
+  @@index([knowledgeFileId])
+}
+
+model CompanyFile {
+  id        String   @id @default(cuid())
+  name      String
+  key       String
+  url       String
+  size      Int
+  mimeType  String
+  category  String?
+  notes     String?
+  companyId String
+  createdAt DateTime @default(now())
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+}
+
+model Conversation {
+  id        String        @id @default(cuid())
+  title     String        @default("New conversation")
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  messages  ChatMessage[]
+}
+
+model ChatMessage {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String
+  content        String
+  model          String?
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId])
+}
+
+model Contact {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  firstName      String?
+  lastName       String?
+  company        String?
+  jobTitle       String?
+  industry       String?
+  phone          String?
+  linkedinUrl    String?
+  city           String?
+  country        String?
+  companySize    String?
+  companyWebsite String?
+  message        String?
+  source         String?
+  isLead         Boolean  @default(false)
+  isNewsletter   Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  companyId      String?
+  companyRef     Company? @relation(fields: [companyId], references: [id])
+}
