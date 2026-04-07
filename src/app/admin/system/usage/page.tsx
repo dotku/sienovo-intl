@@ -7,6 +7,7 @@ const PLAN_LIMITS: Record<string, { monthly: number; daily?: number; label: stri
   snov: { monthly: 50, label: "Snov.io" },
   gemini: { monthly: 600, daily: 20, label: "Gemini" },
   cerebras: { monthly: 10000, label: "Cerebras" },
+  deepseek: { monthly: 10000, label: "DeepSeek" },
   brevo: { monthly: 9000, label: "Brevo" },
   google: { monthly: 25000, label: "Google Contacts" },
 };

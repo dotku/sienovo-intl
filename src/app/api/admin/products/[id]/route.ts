@@ -34,12 +34,16 @@ export async function PUT(
   if (!(await isAdmin())) return UNAUTHORIZED;
   const { id } = await params;
   const body = await req.json();
-  const { name, slug, description, image, active, specGroups } = body;
+  const { name, slug, description, image, active, price, currency, specGroups } = body;
 
   // Update product fields
   const product = await prisma.product.update({
     where: { id },
-    data: { name, slug, description, image, active },
+    data: {
+      name, slug, description, image, active,
+      price: price != null ? parseFloat(price) : null,
+      currency: currency || "USD",
+    },
   });
 
   // Replace spec groups if provided

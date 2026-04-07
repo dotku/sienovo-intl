@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
   const body = await req.json();
-  const { name, slug, description, image, specGroups } = body;
+  const { name, slug, description, image, price, currency, specGroups } = body;
 
   const product = await prisma.product.create({
     data: {
@@ -31,6 +31,8 @@ export async function POST(req: NextRequest) {
       slug,
       description,
       image,
+      price: price != null ? parseFloat(price) : null,
+      currency: currency || "USD",
       specGroups: {
         create: (specGroups || []).map(
           (

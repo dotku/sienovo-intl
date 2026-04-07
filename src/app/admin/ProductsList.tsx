@@ -7,6 +7,8 @@ interface ProductRow {
   id: string;
   name: string;
   description: string | null;
+  price: number | null;
+  currency: string;
   active: boolean;
   specGroupCount: number;
   specCount: number;
@@ -59,6 +61,11 @@ export default function ProductsList({ products }: { products: ProductRow[] }) {
                   <p className="text-sm text-gray-500 mt-1">
                     {product.description}
                   </p>
+                  {product.price != null && (
+                    <p className="text-sm font-medium text-gray-700 mt-1">
+                      {new Intl.NumberFormat(undefined, { style: "currency", currency: product.currency || "USD" }).format(product.price)}
+                    </p>
+                  )}
                   <p className="text-xs text-gray-400 mt-2">
                     {(t.specGroupsInfo || "{groups} spec groups, {specs} specs")
                       .replace("{groups}", String(product.specGroupCount))

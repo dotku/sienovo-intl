@@ -16,6 +16,8 @@ export default async function AdminPage() {
     id: p.id,
     name: p.name,
     description: p.description,
+    price: p.price,
+    currency: p.currency,
     active: p.active,
     specGroupCount: p.specGroups.length,
     specCount: p.specGroups.reduce((acc, g) => acc + g.items.length, 0),

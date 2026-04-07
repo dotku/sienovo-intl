@@ -14,6 +14,8 @@ model Product {
   description String?
   image       String?
   imageKey    String?
+  price       Float?
+  currency    String      @default("USD")
   active      Boolean     @default(true)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
@@ -135,9 +137,13 @@ model CompanyFile {
 model Conversation {
   id        String        @id @default(cuid())
   title     String        @default("New conversation")
+  userId    String?
+  user      User?         @relation(fields: [userId], references: [id])
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
   messages  ChatMessage[]
+
+  @@index([userId])
 }
 
 model ChatMessage {
@@ -175,6 +181,94 @@ model Contact {
   companyId      String?
   companyRef     Company?        @relation(fields: [companyId], references: [id])
   outreachEmails OutreachEmail[]
+  portalUser     User?
+}
+
+model User {
+  id             String          @id @default(cuid())
+  auth0Sub       String          @unique
+  email          String          @unique
+  name           String?
+  role           String?         // null = customer, "owner" | "sales" | "fulfillment" | "support" | "content"
+  companyName    String?
+  phone          String?
+  country        String?
+  contactId      String?         @unique
+  contact        Contact?        @relation(fields: [contactId], references: [id])
+  tickets        Ticket[]
+  ticketMessages TicketMessage[]
+  conversations  Conversation[]
+  orders         Order[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+model Ticket {
+  id        String          @id @default(cuid())
+  subject   String
+  type      String          @default("inquiry")
+  status    String          @default("open")
+  userId    String
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  TicketMessage[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+model TicketMessage {
+  id        String   @id @default(cuid())
+  ticketId  String
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  isAdmin   Boolean  @default(false)
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([ticketId])
+}
+
+model Order {
+  id             String        @id @default(cuid())
+  orderNumber    String        @unique
+  userId         String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status         String        @default("pending") // pending, confirmed, processing, shipped, delivered, cancelled
+  totalAmount    Float?
+  currency       String        @default("USD")
+  notes          String?
+  shippingName   String?
+  shippingAddr   String?
+  shippingCity   String?
+  shippingCountry String?
+  shippingZip    String?
+  trackingNumber String?
+  trackingUrl    String?
+  carrier        String?
+  shippedAt      DateTime?
+  deliveredAt    DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  items          OrderItem[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productName String
+  quantity  Int      @default(1)
+  unitPrice Float?
+  notes     String?
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
 }
 
 model OutreachCampaign {

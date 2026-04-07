@@ -1,5 +1,6 @@
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
+import Products from "@/components/Products";
 import Features from "@/components/Features";
 import ProductGallery from "@/components/ProductGallery";
 import Specs from "@/components/Specs";
@@ -15,6 +16,7 @@ export default function Home() {
       <Header />
       <main>
         <Hero />
+        <Products />
         <Features />
         <ProductGallery />
         <Scenarios />

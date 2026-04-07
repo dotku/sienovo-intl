@@ -21,6 +21,8 @@ interface Product {
   slug: string;
   description: string;
   image: string;
+  price: number | null;
+  currency: string;
   active: boolean;
   specGroups: SpecGroup[];
 }
@@ -39,6 +41,8 @@ export default function EditProductPage() {
     slug: "",
     description: "",
     image: "",
+    price: null,
+    currency: "USD",
     active: true,
     specGroups: [],
   });
@@ -222,6 +226,42 @@ export default function EditProductPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-gray-900"
                 placeholder="int-aibox-p-8"
               />
+            </div>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t.price || "Price"}
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={product.price ?? ""}
+                onChange={(e) =>
+                  setProduct({ ...product, price: e.target.value ? parseFloat(e.target.value) : null })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-gray-900"
+                placeholder="0.00"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t.currency || "Currency"}
+              </label>
+              <select
+                value={product.currency}
+                onChange={(e) =>
+                  setProduct({ ...product, currency: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-gray-900 bg-white"
+              >
+                <option value="USD">USD ($)</option>
+                <option value="EUR">EUR (€)</option>
+                <option value="GBP">GBP (£)</option>
+                <option value="CNY">CNY (¥)</option>
+                <option value="JPY">JPY (¥)</option>
+              </select>
             </div>
           </div>
           <div>

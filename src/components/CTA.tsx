@@ -65,7 +65,7 @@ export default function CTA() {
           )}
         </div>
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-          <a href="https://calendly.com/sienovoleo" target="_blank" rel="noopener noreferrer" className="bg-white text-gray-900 px-6 py-3 rounded font-medium hover:bg-gray-100 transition-colors text-sm">
+          <a href="https://calendly.com/sienovo" target="_blank" rel="noopener noreferrer" className="bg-white text-gray-900 px-6 py-3 rounded font-medium hover:bg-gray-100 transition-colors text-sm">
             {t.scheduleDemo}
           </a>
           <span className="text-gray-500 text-sm">or</span>

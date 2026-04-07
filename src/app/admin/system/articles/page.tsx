@@ -155,7 +155,7 @@ export default function ArticlesPage() {
         <div className="px-4 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">{t.title || "Articles"}</h2>
           <p className="text-xs text-gray-500 mt-0.5">
-            {stats.total} total · {stats.indexed} indexed · {stats.pending} pending · {stats.error} errors
+            {stats.total} {t.total || "total"} · {stats.indexed} {t.indexed || "indexed"} · {stats.pending} {t.pending || "pending"} · {stats.error} {t.errors || "errors"}
           </p>
         </div>
 
@@ -179,10 +179,10 @@ export default function ArticlesPage() {
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
-                {f === "all" ? `All (${stats.total})` :
-                 f === "indexed" ? `Indexed (${stats.indexed})` :
-                 f === "pending" ? `Pending (${stats.pending})` :
-                 `Error (${stats.error})`}
+                {f === "all" ? `${t.all || "All"} (${stats.total})` :
+                 f === "indexed" ? `${t.indexed || "Indexed"} (${stats.indexed})` :
+                 f === "pending" ? `${t.pending || "Pending"} (${stats.pending})` :
+                 `${t.error || "Error"} (${stats.error})`}
               </button>
             ))}
           </div>
@@ -203,7 +203,7 @@ export default function ArticlesPage() {
               >
                 <div className="flex items-start justify-between gap-2">
                   <p className="text-sm font-medium text-gray-900 line-clamp-2">{a.title}</p>
-                  <StatusBadge status={a.indexStatus} />
+                  <StatusBadge status={a.indexStatus} labels={t} />
                 </div>
                 <div className="flex items-center gap-2 mt-1">
                   {a.category && (
@@ -330,25 +330,26 @@ export default function ArticlesPage() {
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status, labels }: { status: string; labels?: Record<string, string> }) {
+  const l = labels || {};
   switch (status) {
     case "indexed":
       return (
         <span className="inline-flex items-center gap-1 text-xs text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
           <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-          Indexed
+          {l.indexed || "Indexed"}
         </span>
       );
     case "processing":
-      return <span className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full animate-pulse">Processing</span>;
+      return <span className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full animate-pulse">{l.processing || "Processing"}</span>;
     case "error":
       return (
         <span className="inline-flex items-center gap-1 text-xs text-red-700 bg-red-50 px-2 py-0.5 rounded-full">
           <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-          Error
+          {l.error || "Error"}
         </span>
       );
     default:
-      return <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">Pending</span>;
+      return <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{l.pending || "Pending"}</span>;
   }
 }

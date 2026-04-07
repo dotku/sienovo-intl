@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 
 export async function trackApiUsage(
-  service: "apollo" | "snov" | "gemini" | "cerebras" | "brevo" | "google" | "serper",
+  service: "apollo" | "snov" | "gemini" | "cerebras" | "deepseek" | "brevo" | "google" | "serper" | "zai",
   action: string,
   success: boolean = true
 ) {

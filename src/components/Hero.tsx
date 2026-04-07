@@ -31,10 +31,12 @@ export default function Hero() {
             />
             <div className="flex flex-col sm:flex-row gap-4">
               <a
-                href="#contact"
+                href="https://calendly.com/sienovo"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="bg-accent hover:bg-red-700 text-white px-8 py-3 rounded font-medium text-center transition-colors"
               >
-                {t.requestQuote}
+                {t.requestDemo}
               </a>
               <a
                 href="#specs"

@@ -7,33 +7,64 @@ import { indexKnowledgeArticle } from "@/lib/rag/index-article";
 export const maxDuration = 300;
 
 async function translateToEnglish(title: string, content: string): Promise<{ title: string; content: string }> {
-  const key = process.env.CEREBRAS_API_KEY;
-  if (!key) return { title, content };
+  // Provider chain: Z.AI (free) → DeepSeek (cheap) → Cerebras (fallback)
+  const providers = [
+    process.env.ZAI_API_KEY && {
+      name: "zai",
+      url: "https://api.z.ai/api/paas/v4/chat/completions",
+      key: process.env.ZAI_API_KEY,
+      model: "GLM-4.7-Flash",
+      maxTokensKey: "max_tokens",
+    },
+    process.env.DEEPSEEK_API_KEY && {
+      name: "deepseek",
+      url: "https://api.deepseek.com/chat/completions",
+      key: process.env.DEEPSEEK_API_KEY,
+      model: "deepseek-chat",
+      maxTokensKey: "max_tokens",
+    },
+    process.env.CEREBRAS_API_KEY && {
+      name: "cerebras",
+      url: "https://api.cerebras.ai/v1/chat/completions",
+      key: process.env.CEREBRAS_API_KEY,
+      model: "qwen-3-235b-a22b-instruct-2507",
+      maxTokensKey: "max_completion_tokens",
+    },
+  ].filter(Boolean) as Array<{ name: string; url: string; key: string; model: string; maxTokensKey: string }>;
 
-  try {
-    const res = await fetch("https://api.cerebras.ai/v1/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-      body: JSON.stringify({
-        model: "qwen-3-235b-a22b-instruct-2507",
-        messages: [{
-          role: "user",
-          content: `Translate this Chinese technical blog post to English. Keep code blocks, URLs, and technical terms unchanged. Return ONLY the translated text, nothing else.\n\nTitle: ${title}\n\nContent:\n${content.slice(0, 12000)}`,
-        }],
+  if (providers.length === 0) return { title, content };
+
+  const prompt = `Translate this Chinese technical blog post to English. Keep code blocks, URLs, and technical terms unchanged. Return ONLY the translated text, nothing else.\n\nTitle: ${title}\n\nContent:\n${content.slice(0, 12000)}`;
+
+  for (const provider of providers) {
+    try {
+      const body: Record<string, unknown> = {
+        model: provider.model,
+        messages: [{ role: "user", content: prompt }],
         temperature: 0.3,
-        max_completion_tokens: 8192,
-      }),
-    });
-    if (!res.ok) return { title, content };
-    const data = await res.json();
-    const translated = data.choices?.[0]?.message?.content || "";
-    // Extract title from first line if it looks like a title
-    const lines = translated.split("\n").filter((l: string) => l.trim());
-    const translatedTitle = lines[0]?.replace(/^#+\s*/, "").replace(/^Title:\s*/i, "") || title;
-    return { title: translatedTitle, content: translated };
-  } catch {
-    return { title, content };
+      };
+      body[provider.maxTokensKey] = 8192;
+
+      const res = await fetch(provider.url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${provider.key}` },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) continue;
+
+      const data = await res.json();
+      const translated = data.choices?.[0]?.message?.content || "";
+      if (!translated) continue;
+
+      const lines = translated.split("\n").filter((l: string) => l.trim());
+      const translatedTitle = lines[0]?.replace(/^#+\s*/, "").replace(/^Title:\s*/i, "") || title;
+      return { title: translatedTitle, content: translated };
+    } catch {
+      continue;
+    }
   }
+
+  return { title, content };
 }
 
 export async function POST(req: NextRequest) {
