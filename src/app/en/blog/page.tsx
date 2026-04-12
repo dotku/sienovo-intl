@@ -8,7 +8,7 @@ export const metadata = {
     "Technical articles on embedded systems, edge AI, FPGA, ARM platforms, and industrial computing solutions from Sienovo.",
 };
 
-export default async function BlogPage({
+export default async function EnBlogPage({
   searchParams,
 }: {
   searchParams: Promise<{ page?: string }>;
@@ -20,7 +20,7 @@ export default async function BlogPage({
     <>
       <Header />
       <main className="min-h-screen bg-gray-50">
-        <BlogList locale="zh" page={page} />
+        <BlogList locale="en" page={page} />
       </main>
       <Footer />
     </>

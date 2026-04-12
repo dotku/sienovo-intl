@@ -54,6 +54,12 @@ export default async function sitemap({
         changeFrequency: "daily",
         priority: 0.8,
       },
+      {
+        url: `${SITE_URL}/en/blog`,
+        lastModified: new Date(),
+        changeFrequency: "daily",
+        priority: 0.7,
+      },
       ...products.map((p) => ({
         url: `${SITE_URL}/products/${p.slug}`,
         lastModified: p.updatedAt,
@@ -90,7 +96,7 @@ export default async function sitemap({
     (enChunkIndex + 1) * POSTS_PER_SITEMAP,
   );
   return slice.map((post) => ({
-    url: `${SITE_URL}/blog/${post.slug}?lang=en`,
+    url: `${SITE_URL}/en/blog/${post.slug}`,
     lastModified: new Date(post.date),
     changeFrequency: "monthly" as const,
     priority: 0.5,

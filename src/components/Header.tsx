@@ -1,12 +1,27 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { useI18n } from "@/lib/i18n/context";
 
 export default function Header() {
   const [open, setOpen] = useState(false);
   const { dict, locale, setLocale } = useI18n();
+  const pathname = usePathname();
+  const router = useRouter();
   const t = dict.nav;
+
+  function switchLocale() {
+    const newLocale = locale === "en" ? "zh" : "en";
+    setLocale(newLocale);
+
+    // Navigate between /blog and /en/blog paths
+    if (pathname.startsWith("/en/blog")) {
+      router.push(pathname.replace(/^\/en\/blog/, "/blog"));
+    } else if (pathname.startsWith("/blog")) {
+      router.push(`/en${pathname}`);
+    }
+  }
 
   const NAV_ITEMS = [
     { href: "/#products", label: t.products },
@@ -40,7 +55,7 @@ export default function Header() {
             ))}
             {/* Language Switcher */}
             <button
-              onClick={() => setLocale(locale === "en" ? "zh" : "en")}
+              onClick={switchLocale}
               className="px-2 py-1 rounded border border-gray-200 text-xs font-semibold text-gray-500 hover:text-accent hover:border-accent transition-colors"
             >
               {locale === "en" ? "中文" : "EN"}
@@ -81,7 +96,7 @@ export default function Header() {
               </a>
             ))}
             <button
-              onClick={() => { setLocale(locale === "en" ? "zh" : "en"); setOpen(false); }}
+              onClick={() => { switchLocale(); setOpen(false); }}
               className="block w-full text-left py-2 text-sm font-medium text-gray-600 hover:text-accent"
             >
               {locale === "en" ? "中文" : "English"}

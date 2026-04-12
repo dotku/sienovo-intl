@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 import BlogArticle from "@/components/BlogArticle";
 
 export async function generateStaticParams() {
-  return getAllPosts("zh").map((post) => ({ slug: post.slug }));
+  return getAllPosts("en").map((post) => ({ slug: post.slug }));
 }
 
 export async function generateMetadata({
@@ -14,7 +14,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const post = getPostBySlug(slug);
+  const post = getPostBySlug(slug, "en");
   if (!post) return { title: "Not Found" };
   return {
     title: post.title,
@@ -22,20 +22,20 @@ export async function generateMetadata({
   };
 }
 
-export default async function BlogPostPage({
+export default async function EnBlogPostPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const post = getPostBySlug(slug);
+  const post = getPostBySlug(slug, "en");
   if (!post) notFound();
 
   return (
     <>
       <Header />
       <main className="min-h-screen bg-white">
-        <BlogArticle post={post} locale="zh" />
+        <BlogArticle post={post} locale="en" />
       </main>
       <Footer />
     </>

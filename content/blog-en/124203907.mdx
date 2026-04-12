@@ -1,0 +1,27 @@
+---
+title: "ZYNQ-Based Mobile Robot Controller Design (3) – Controller Hardware Selection (Continued)"
+date: "2022-04-15"
+slug: "124203907"
+tags: ["#ZYNQ", "#移动机器人", "#控制器"]
+source: "https://blog.csdn.net/yeyuangen/article/details/124203907"
+originalTitle: "基于ZYNQ移动机器人控制器设计（3）控制器硬件方案选型（续）"
+---
+
+**3.1.4 ZYNQ Interface Technology**  
+In this section, we introduce the interface technology of ZYNQ's heterogeneous system—specifically, its internal bus architecture.  
+Before that, let's first compare traditional SoPC (System on a Programmable Chip) designs prior to Zynq.  
+Previously, there were essentially two approaches: one was implementing a soft-core processor on an FPGA, such as Xilinx's MicroBlaze or Altera's NIOS II; the other was pairing an FPGA with a general-purpose embedded processor (such as an ARM). Both approaches had significant bottlenecks: the first mainly suffered from the soft-core's performance being far lower than that of a hard-core, while consuming substantial FPGA resources; the second often faced communication between the FPGA and the general-purpose processor becoming a difficult-to-overcome bottleneck, especially when high-bandwidth, low-latency data transfer was required.
+
+As the first product to tightly integrate a high-performance ARM Cortex-A series processor with a high-performance FPGA on a single chip, the Zynq-7000 offers several advantages over existing solutions such as discrete Cortex-A9 processors combined with Xilinx FPGAs: significantly higher processing performance than soft-cores, elimination of the communication bottleneck between FPGA and ARM, resulting directly in reduced design cost, smaller design footprint, lower design risk, and greater design flexibility. To achieve these benefits, Xilinx faced challenges beyond simply integrating processors and FPGAs with different process characteristics onto a single chip while ensuring yield. A more critical challenge was designing efficient interconnect pathways between the processor system (PS) and the programmable logic (PL).
+
+The ZYNQ platform architecture is shown in Figure 3-9. In fact, any interface located at the boundary between PS and PL (marked by red boxes) can be considered part of PS-PL communication, although they differ slightly in bandwidth, latency, and flexibility. Considering all available interfaces, this paper categorizes PS-PL communication into three types: bus-level interfaces, EMIO-based interfaces, and other methods. We will discuss each in detail below.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/124203907/01_f9ab02f5441a2a586ed7098e5d564bb4.png)
+
+ AXI Interface and Protocol  
+The internal bus of ZYNQ is called the AXI bus. As a new platform capable of supporting heterogeneous system construction, its internal bus architecture has evolved significantly compared to conventional SoCs. During design, we must always consider communication requirements and the characteristics of available options when selecting the appropriate AXI interface type. For example, when interfacing with low-speed peripherals, using the AXI_GP bus with an AXI_Lite interface is sufficient for peripheral control. In this paper, the connection between the ultrasonic module (Ultrasonic IP) and the PS uses an AXI_Lite compliant interface within the AXI_GP bus. A solid understanding is the prerequisite for effective application; therefore, a certain level of analysis and introduction to the AXI bus is necessary.
+
+First is the AXI (Advanced eXtensible Interface) protocol. This is an on-chip bus protocol that describes data transfer methods between master and slave devices. Its advantages include high bandwidth, high performance, and low latency.
+
+ Other Interfaces  
+The remaining interfaces are briefly introduced together here. The main reason is that the two previously mentioned methods primarily handle data transfer between PS and PL, typically involving large data volumes. In contrast, the other interfaces mainly deal with signals and control functions, where data transfer is merely a means to implement functionality and usually involves small data volumes—such as clock signals, for example,

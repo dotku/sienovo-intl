@@ -1,0 +1,45 @@
+---
+title: "Design of Distributed Fiber Optic Sensor System Based on OMAPL138 + FPGA"
+date: "2021-07-15"
+slug: "118756705"
+tags: ["#OMAPL138", "#光纤传感器", "#FPGA", "#分布式"]
+source: "https://blog.csdn.net/yeyuangen/article/details/118756705"
+originalTitle: "基于OMPAL138+FPGA分布式光纤传感器系统设计"
+---
+
+Distributed fiber optic sensors are widely used in various fields due to their advantages such as low cost, high precision, corrosion resistance, and long sensing distance. Based on the principle of Brillouin scattering and using an embedded device as the hardware development platform, a distributed fiber optic sensor software system has been designed and developed. Compared to traditional fiber optic sensing systems, distributed fiber optic sensors based on Brillouin scattering can monitor temperature and strain information of the measured environment, while sensing systems developed on embedded platforms offer advantages including low cost, high performance, and good stability.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118756705/01_7009d209377fd789857373129b76b748.png)
+
+The fiber optic sensing system adopts a C/S architecture, with the design focus on the development and design of the server-side software system. The server-side software system is developed on an embedded platform, connecting downward to the underlying hardware sensing system to control it in performing raw data acquisition tasks, and connecting upward via network to the client system to receive control signals and transmit sensing information. The OMAPL138 is selected as the main control chip for the server system. Its DSP core is responsible for controlling and receiving raw data collected and buffered by the FPGA, then performing high-speed computation and analysis on the raw data. The ARM core runs an embedded Linux system hosting the main server control program, which coordinates the orderly operation of modules such as DSPLINK, data parsing and packaging, and network communication, thereby achieving full control of the sensing system and communication with the client system.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118756705/02_038f3ed91ff4c1f14de8ed1e706d0679.png)
+
+1 Evaluation Board Overview  
+- Features TI OMAP-L138 (fixed/floating-point DSP C674x + ARM9) + Xilinx Spartan-6 FPGA processor;  
+- OMAP-L138 and FPGA connected via uPP, EMIFA, and I2C buses, enabling communication speeds up to 228 MByte/s;  
+- OMAP-L138 operating at 456 MHz, delivering up to 3648 MIPS and 2746 MFLOPS computational performance;  
+- FPGA compatible with Xilinx Spartan-6 XC6SLX9/16/25/45, offering strong platform scalability;  
+- Board exposes abundant peripherals, including Gigabit Ethernet, SATA, EMIFA, uPP, USB 2.0 for high-speed data transfer, as well as common interfaces such as GPIO, I2C, RS232, PWM, and McBSP;  
+- Passed high and low temperature testing certification, suitable for various harsh working environments;  
+- DSP + ARM + FPGA tri-core SOM (System-on-Module), measuring 66mm × 38.6mm, using industrial-grade B2B connectors to ensure signal integrity;  
+- Supports bare-metal, SYS/BIOS, and Linux operating systems.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118756705/03_86e0a472cf2c820b1236f506d88ef18c.png)  
+Figure 1 Front and side views of the evaluation board
+
+The XM138F-IDK-V3.0 is a development board designed based on Shenzhen Xinming's XM138-SP6-SOM core module, fabricated using a 4-layer PCB with lead-free immersion gold process. It provides users with a testing platform for the XM138-SP6-SOM core module, enabling rapid evaluation of its overall performance.
+
+The XM138-SP6-SOM exposes all CPU resource signal pins, making secondary development extremely easy. Customers can focus solely on upper-layer applications, significantly reducing development difficulty and time cost, accelerating time-to-market and enabling timely capture of market opportunities. In addition to providing rich demo programs, detailed development tutorials, and comprehensive technical support are also offered to assist customers with baseboard design, debugging, and software development.
+
+2 Typical Application Areas  
+- Data acquisition, processing, and display systems  
+- Intelligent power systems  
+- Image processing equipment  
+- High-precision instruments and meters  
+- Mid-to-high-end CNC systems  
+- Communication equipment  
+- Audio and video data processing
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118756705/04_b2374155188e057172d60d7e4c7035ab.png)  
+Figure 2 Typical application areas
