@@ -51,12 +51,13 @@ jobs:
           R2_PUBLIC_URL: ${{ secrets.R2_PUBLIC_URL }}
 
       # Step 3: Translate articles to English
-      # Uses Gemini free tier (1,500 req/day), --limit 500 to stay within quota
+      # Priority: Gemini Direct (free) → Vercel AI Gateway (credits)
       # Automatically skips already-translated articles
       - name: Translate articles
-        run: node scripts/translate-blog.mjs --limit 500
+        run: node scripts/translate-blog.mjs
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          VERCEL_AI_GEWAY_API_KEY: ${{ secrets.VERCEL_AI_GEWAY_API_KEY }}
 
       # Step 4: Commit and push new content
       - name: Commit and push changes
