@@ -1,0 +1,55 @@
+---
+title: "Design of a Three-Phase Power Quality Analyzer Based on OMAP-L138 + FPGA"
+date: "2021-07-16"
+slug: "118784562"
+tags: ["#OMAPL138", "#FPGA", "#电能质量分析仪", "#电力电子"]
+source: "https://blog.csdn.net/yeyuangen/article/details/118784562"
+originalTitle: "基于OMPAL138+FPGA的三相电能质量分析仪设计"
+---
+
+With the rapid development of China's economy, electricity has become a vital energy source for people's lives and social production. The increasing variety of electrical equipment has led to numerous unbalanced and non-linear impact loads in the actual power grid, resulting in power quality issues such as supply voltage deviation, frequency deviation, harmonics, interharmonics, three-phase imbalance, voltage sags and swells, and inrush currents. These issues cause equipment malfunctions and economic losses. By strengthening power quality monitoring, users can take appropriate measures to avoid losses, making research into power quality parameter detection highly significant.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118784562/01_699668cac454ed7839d897f1557690b9.png)
+
+This paper analyzes the current research status of power quality parameter detection both domestically and internationally, with a particular focus on fundamental frequency, harmonic, and interharmonic detection methods. Based on national standards for power quality parameters, various research methods for these parameters were investigated, with a focus on algorithms that have existing flaws, and new algorithms are proposed. The main work of this paper includes the following aspects: (1) A new fundamental frequency measurement algorithm is proposed, based on research into FFT+FT spectrum refinement and window functions. To further enhance the algorithm, this paper combines the new algorithm with the golden section search method from one-dimensional search algorithms for further optimization, significantly accelerating computation speed and improving the algorithm's practicality. (2) Addressing the shortcomings of currently common harmonic and interharmonic detection algorithms, and considering practical engineering applications, this paper proposes an improved non-radix-2 FFT detection algorithm. Factors influencing this algorithm, primarily sampling, number of sampling points, and ADC resolution, are studied and analyzed. This algorithm features high accuracy and fast computation speed. (3) Based on software requirements analysis, this paper designs the overall software block diagram for an FPGA+DSP+ARM platform. Detailed designs were carried out for data sampling and preprocessing on the FPGA side, power parameter calculation on the DSP side, data display and human-machine interaction on the ARM side, and inter-core communication, thereby realizing the practical engineering implementation of theoretical algorithms. (4) In accordance with relevant provisions in national standards, the three-phase power quality analyzer presented in this paper underwent corresponding functional and performance tests. Test results indicate that the power quality parameter algorithms used in this paper meet national standard requirements, exhibiting high reliability, feasibility, and good stability. Finally, this paper summarizes the work, points out current research deficiencies, and proposes future research directions based on the summary.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118784562/02_72336a7a47429fb585902cad2ae1fbdf.png)
+
+1 Evaluation Board Introduction
+Based on TI OMAP-L138 (fixed-point/floating-point DSP C674x + ARM9) + Xilinx Spartan-6 FPGA processors;
+OMAP-L138 and FPGA are connected via uPP, EMIFA, and I2C buses, with communication speeds up to 228 MByte/s; OMAP-L138 has a main frequency of 456MHz, offering computing power up to 3648 MIPS and 2746 MFLOPS;
+FPGA is compatible with Xilinx Spartan-6 XC6SLX9/16/25/45, providing strong platform upgrade capabilities;
+The development board exposes rich peripherals, including high-speed data transfer interfaces such as Gigabit Ethernet, SATA, EMIFA, uPP, and USB 2.0, as well as common interfaces like GPIO, I2C, RS232, PWM, and McBSP;
+Certified through high and low-temperature tests, suitable for various harsh working environments;
+DSP+ARM+FPGA tri-core SOM, with dimensions of 66mm*38.6mm, using industrial-grade B2B connectors to ensure signal integrity; Ø
+Supports bare metal, SYS/BIOS operating system, and Linux operating system.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118784562/03_86e0a472cf2c820b1236f506d88ef18c.png)
+Figure 1 Front and side views of the development board
+
+The XM138F-IDK-V3.0 is a development board designed based on Shenzhen Xinmai's XM138-SP6-SOM core board. It features a 4-layer board design with immersion gold lead-free process, providing users with a test platform for the XM138-SP6-SOM core board to quickly evaluate its overall performance.
+
+The XM138-SP6-SOM exposes all CPU resource signal pins, making secondary development extremely easy. Customers only need to focus on upper-layer applications, significantly reducing development difficulty and time costs, enabling rapid product launch and timely capture of market opportunities. It not only provides rich demo programs but also detailed development tutorials and comprehensive technical support to assist customers with baseboard design, debugging, and software development.
+
+2 Typical Application Areas
+Data Acquisition, Processing, and Display Systems
+Smart Power Systems
+Image Processing Equipment
+High-Precision Instrumentation
+Mid-to-High-End CNC Systems
+Communication Equipment
+Audio/Video Data Processing
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118784562/04_b2374155188e057172d60d7e4c7035ab.png)
+Figure 2 Typical application areas
+
+3 Hardware and Software Parameters
+Schematic Diagram of Development Board Peripheral Resources
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118784562/05_f5064ff9318c7bd28e73ecd10140aeb7.png)
+
+Figure 3 Schematic Diagram of Development Board Interfaces
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118784562/06_efa6e7ddb5cfe701944c9379658db2e4.png)
+
+Figure 4 Schematic Diagram of Development Board Interfaces

@@ -1,0 +1,55 @@
+---
+title: "Design of a Heterogeneous Multi-core Motion Controller Based on OMAPL138 + FPGA"
+date: "2021-08-27"
+slug: "119950074"
+tags: ["#运动控制", "#omapl138", "#arm+fpga"]
+source: "https://blog.csdn.net/yeyuangen/article/details/119950074"
+originalTitle: "基于OMPAL138 +FPGA异构多核运动控制器的设计"
+---
+
+Addressing the shortcomings of traditional motion controllers, such as poor stability, low control efficiency, and incomplete software architecture, and leveraging the advantages of heterogeneous multi-core technology, a heterogeneous multi-core processor motion controller is proposed and developed. This paper elaborates on the system's hardware and software design. The hardware design primarily describes a system architecture centered around the OMAPL138 heterogeneous multi-core processor, with FPGA serving as an extension. The software design utilizes different instruction set operating systems and employs SysLink to achieve multi-system platform communication. Considering the characteristics of motion controllers, a heterogeneous multi-core task scheduling strategy is proposed. The features of SysLink's Notify and ListMP components for heterogeneous multi-core communication are analyzed. The rules of the task scheduling strategy are encapsulated into the ListMP table header, and the strategy is implemented using a lookup table method. Experimental results demonstrate that this motion controller exhibits good real-time performance and stability.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/119950074/01_a30102578736a2a64177469a98bb2735.png)
+
+By analyzing the limitations of PC-based CNC systems and embedded CNC system architectures, and combining them with the functional requirements of open CNC systems, a modular embedded reconfigurable Computer Numerical Control (CNC) system with industrial Ethernet capabilities was designed. This system improves upon the traditional ARM+DSP+FPGA-based embedded system design architecture and extends it with industrial Ethernet functional modules. Based on this, a system hardware platform was built, and the system hardware composition and software implementation are presented. The central digital control unit of this system is no longer a general-purpose single-CPU system but an embedded multi-CPU system. It not only offers strong computing power, flexible structure, and low cost, but also features strong versatility, composability, easy expandability, scalability, and openness.
+
+1 Evaluation Board Introduction
+Based on TI OMAP-L138 (Fixed-point/Floating-point DSP C674x + ARM9) + Xilinx Spartan-6 FPGA processor;
+OMAP-L138 and FPGA are connected via uPP, EMIFA, and I2C buses, with communication speeds up to 228 MByte/s; OMAP-L138 main frequency 456MHz, with computing power up to 3648 MIPS and 2746 MFLOPS;
+FPGA compatible with Xilinx Spartan-6 XC6SLX9/16/25/45, strong platform upgrade capability;
+The development board provides rich peripheral interfaces, including high-speed data transfer interfaces such as Gigabit Ethernet, SATA, EMIFA, uPP, USB 2.0, as well as common interfaces like GPIO, I2C, RS232, PWM, and McBSP;
+Certified through high and low-temperature testing, suitable for various harsh working environments;
+DSP+ARM+FPGA triple-core SOM, dimensions 66mm*38.6mm, uses industrial-grade B2B connectors to ensure signal integrity; Ø
+Supports bare-metal, SYS/BIOS operating system, and Linux operating system.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/119950074/02_86e0a472cf2c820b1236f506d88ef18c.png)
+Figure 1 Front and side views of the development board
+
+The XM138F-IDK-V3.0 is a development board designed based on the Shenzhen Xinmai XM138-SP6-SOM core board. It features a 4-layer board design with immersion gold lead-free process, providing users with a test platform for the XM138-SP6-SOM core board to quickly evaluate its overall performance.
+
+The XM138-SP6-SOM exposes all CPU resource signal pins, making secondary development extremely easy. Customers only need to focus on upper-layer applications, significantly reducing development difficulty and time costs, enabling rapid product launch and timely market capture. It not only provides rich demo programs but also detailed development tutorials and comprehensive technical support to assist customers with baseboard design, debugging, and software development.
+
+2 Typical Application Areas
+Data acquisition, processing, and display systems
+Smart power systems
+Image processing equipment
+High-precision instrumentation
+Mid-to-high-end CNC systems
+Communication equipment
+Audio and video data processing
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/119950074/03_03f44811b3c48cebd50bca516410c1e5.jpeg)
+Figure 2 Typical application areas
+
+3 Hardware and Software Parameters
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/119950074/04_b8b71c37266c08c94fd72bc1aa2b41ce.jpeg)
+Schematic diagram of development board peripheral resource block diagram
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/119950074/05_f5064ff9318c7bd28e73ecd10140aeb7.png)
+
+Figure 3 Schematic diagram of development board interfaces
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/119950074/06_efa6e7ddb5cfe701944c9379658db2e4.png)
+
+Figure 4 Schematic diagram of development board interfaces

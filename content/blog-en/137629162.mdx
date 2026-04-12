@@ -1,0 +1,148 @@
+---
+title: "FPGA Applications in Healthcare, Illustrated by 4K Medical Endoscopy"
+date: "2024-04-11"
+slug: "137629162"
+tags: ["#fpga开发"]
+source: "https://blog.csdn.net/yeyuangen/article/details/137629162"
+originalTitle: "FPGA在医疗的应用，以4K医疗内窥镜为例"
+---
+
+**Introduction**
+
+With technological advancements, medical imaging—one of the major achievements of modern science—has found diverse applications in non-invasive diagnosis and treatment. One such application is endoscopy, which became more widespread in the 1990s when charge-coupled devices made it possible to transmit images to displays. To assist doctors in better identifying and locating lesions, manufacturers have continuously improved endoscope resolution, progressing from 1080P to today’s 4K for human medical endoscopes. In addition, innovative technologies such as fluorescence and 3D imaging have been integrated to further aid physicians in accurate diagnosis and surgical procedures. Recently, China's Ministry of Industry and Information Technology released the *Medical Equipment Industry Development Plan (2021–2025)*, which outlines detailed strategic directions for key areas of medical equipment development, including the **strategic goal of breaking through in key technologies for medical endoscopes and other diagnostic imaging devices**.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/137629162/01_2b448c0b191ca08ed12bc616e4ab2bd2.jpeg)
+
+**Technical Challenges**
+
+In clinical settings, the maximum allowable image latency for endoscopic applications ranges between 50 and 150 milliseconds. However, during surgery, endoscopes must respond in real time or near real time while simultaneously performing image correction, color noise reduction, edge enhancement, zooming, and other functions. Additionally, the end device should be as compact as possible, support 4K resolution, 3D imaging, fluorescence, and be compatible with SDI/HDMI interfaces. While 4K requires only one high-definition camera, fluorescence and 3D each require an additional HD camera, posing significant challenges to core board resources, data transmission speed, processing throughput, and algorithmic efficiency.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/137629162/02_a0b9d965053c712574f2878a2bebdaf6.jpeg)
+
+**Solution**
+
+An endoscopic system built around FPGA SoC technology can deliver real-time 4K video streaming. A 4K image sensor captures visual data, while image signal processing is handled by the **Mercury+ XU8 FPGA (SoC)** module. The captured video stream is fed into the Mercury+ XU8 FPGA (SoC) module for preprocessing, then passed through an image management and storage unit before being displayed on a high-resolution monitor via a display interface for the surgeon’s use. The Mercury+ XU8 core module—long featured on Xilinx’s homepage—comes in three models: XCZU4CG, XCZU5EV, and XCZU7EV. Users can easily upgrade to higher-end models when more resources are needed, enabling simple and seamless system evolution.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/137629162/03_9070847ef2a3ca831d6cd8bb11aaa262.jpeg)
+
+**Mercury+ XU8 Core Module**
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/137629162/04_474ac3ef18e6f6c5aa61fd638e6247e5.png)
+
+**Block Diagram**
+
+Besides the Mercury+ XU8 FPGA (SoC), other SoCs such as Mercury+ XU5 and Mercury+ XU9 can also be considered for this application. Using the Mercury+ XU8 FPGA (SoC) module enables **high integration of the hardware system, significantly shortening development time.** Additionally, support for various peripheral interfaces allows faster and more convenient future functionality updates and expansions. Thanks to Ruishu Yingke’s extensive product lineup, users can choose from multiple core module options across Xilinx Kintex-7, Zynq-7000, and Zynq Ultrascale+ MPSoC families. These core modules are pin-compatible within their series (Mars, Mercury, Andromeda), meaning users can plan clear upgrade paths, greatly reducing engineering effort during upgrades—even allowing last-minute core module changes during project development. FPGA core modules have a minimum expected lifecycle of over 10 years, with hardware designs emphasizing long-term availability and performance, ensuring all products remain deliverable for extended periods.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/137629162/05_b92193a5f88c717c8071140944df1374.jpeg)
+
+**Core Module Series**
+
+FPGA (Field-Programmable Gate Array), a key innovation by Xilinx, is renowned for its programmability and flexibility. Initially, FPGAs were used primarily to simulate ASICs before mask processing and mass production. However, ASICs require high customization and become cost-prohibitive at low volumes, so FPGAs and ASICs have coexisted without conflict, each serving distinct roles. Later, with the emergence of accelerators and increased computational demands, FPGAs evolved into parallel computing devices rivaling GPUs in prominence.
+
+Today, FPGAs have entered data center applications, where they offer reduced component count and superior power efficiency compared to CPUs and GPUs. Backed by Xilinx’s three strategic pillars—“Data Center First,” “Accelerating Core Markets,” and “Driving Adaptive Computing”—its ACAP platform and Alveo accelerator cards have become highly competitive in the data center market.
+
+Beyond that, Xilinx has demonstrated its “integrated SmartNIC platform” for cloud service providers, “FPGA TCON” solutions for consumer electronics, and Zynq SoC series solutions for industrial applications.
+
+In fact, according to Xilinx, the healthcare sector now represents a significant portion of its revenue and has been growing steadily at 11–15% annually. What FPGA products enable Xilinx to capture this market, and what role do FPGA devices play in medical equipment?
+
+Recently, Xilinx presented its latest achievements in medical science and medical devices to journalists; reporters from 21ic China Electronics Network attended the briefing.
+
+**Where Can FPGA Devices Be Used?**
+
+Data shows that global per capita healthcare spending continues to rise. With an aging population, consumers have high expectations regarding both medical quality and cost. Meanwhile, the pandemic has heightened demand for early disease detection and rapid diagnostic analysis, necessitating lower medical device costs and higher computational power.
+
+FPGA devices offer inherent programmability, allowing developers to avoid the high non-recurring engineering (NRE) costs associated with ASICs, eliminate minimum order quantities, and reduce risks and losses from multi-chip iterations. The medical industry is one of the most closely linked to technological advancement, and as FPGA technology continuously evolves, new devices emerge, driving changes in treatment methods, pathways, and philosophies.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/137629162/06_87c1ef7ef9875967aef0dad3bd81576f.png)
+
+Subh Bhattacharya, Global Business Marketing Lead for Medical Sciences at Xilinx
+
+According to Subh Bhattacharya, Xilinx FPGA applications in healthcare fall into three main categories: clinical applications, medical imaging, and diagnostic analytics.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/137629162/07_da669e6285455aa38667e3d7d7487666.png)
+
+**01**
+
+**Clinical Environments**
+
+Clinical equipment varies widely in type and quantity, requiring highly flexible solutions—making FPGAs ideal. Notably, some devices directly impact patient safety and thus demand extremely fast boot times, high reliability, and low latency; others prioritize portability, requiring low power consumption and small form factors.
+
+As explained by Subh, Xilinx’s Zynq UltraScale+ MPSoC (hereafter referred to as “ZU+ MPSoC”) is a highly integrated platform combining multiple processors with programmable logic, as well as integrated information security and functional safety features. Subh emphasized that this platform’s powerful capabilities and performance make it well-suited for clinical applications ranging from cloud to edge.
+
+Subh presented several examples of how this platform addresses clinical needs:
+
+First, a medical AI solution developed in collaboration with Spline.AI and AWS (Amazon Web Services), using the ZU+ MPSoC ZCU104 platform as an edge device to implement a high-accuracy, low-latency deep learning model and reference design for medical X-ray classification. This solution can autonomously predict diseases from chest X-rays, including COVID-19 and pneumonia, and supports custom model development for clinical use. Additionally, the ZCU104 supports development using the open-source PYNQ framework and can be extended and deployed via AWS IoT Greengrass. This solution leverages the ZU+ MPSoC’s high performance and scalability to deliver precise diagnostics at low cost.
+
+Second, Xilinx supports Olympus in its core endoscope technology, leveraging the ZU+ MPSoC’s fast startup, low power, and low-latency characteristics.
+
+Third, Xilinx powers Clarius’s ultra-portable, high-performance ultrasound system, utilizing the ZU+ MPSoC’s dual on-chip ARM processors and FPGA in a compact package to achieve extreme portability.
+
+Historically, Zynq SoC was Xilinx’s first product integrating ARM cores, launched in 2011. At the time, it was called an “extensible processing platform,” aimed at expanding into embedded applications. Previously, FPGAs were mostly used as auxiliary chips; after integrating more functionalities into a single SoC platform, components such as ARM GPUs, data security processors, and functional safety processors were consolidated onto one chip. Subh noted that this transformation boosted Xilinx’s annual revenue growth from 5–6% to 14–15%, a 2.5x increase attributed entirely to this technological platform.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/137629162/08_b3394d999ebd77f85ca10e8d38cc3ffb.png)
+
+Additionally, Subh demonstrated ZU+ MPSoC’s medical security solutions. “Globally, over 100 million medical IoT devices are currently deployed, projected to grow to 161 million by 2020. Healthcare executives identify 59% privacy concerns, 55% legacy system integration, and 54% security issues as the top three barriers to IoT adoption in healthcare.”
+
+Subh explained that Xilinx leverages its programmable platform to continuously adapt to new security measures—both software and hardware updates. These capabilities are implemented in the SoC as certified and encrypted boot, secure boot, measured boot, secure application communication, and cloud-based monitoring.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/137629162/09_04fdffc61bf42cfb3d58a774fd13ead5.png)
+
+**02**
+
+**Medical Imaging**
+
+The use of FPGA devices in large-scale medical imaging equipment is now standard practice. As Subh explained, major imaging modalities include CT, ultrasound, X-ray, PET, and MRI scanners.
+
+For medical imaging, Zynq UltraScale+ MPSoC remains applicable. Beyond that, Subh highlighted the Versal ACAP series—considered the next-generation MPSoC—which holds significant advantages in imaging applications.
+
+Versal ACAP integrates ARM multi-core processors, programmable logic, and DSP blocks, and adds AI Engines—units based on SIMD and VLIW architectures—capable of parallel processing for similar operations.
+
+Subh showcased a solution for ultrasound image reconstruction and computer-aided diagnosis. With Xilinx’s hardware and software support, this solution reduces power consumption and thermal footprint, lowers overall system cost, extends equipment lifespan, and enables low-latency edge inference. Despite market complexity, Xilinx’s technology significantly enhances productivity.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/137629162/10_9079badae609b23001fe56b1e0f5ae1c.png)
+
+**03**
+
+**Diagnostic Analytics**
+
+Subh noted that beyond SoCs and FPGAs, Xilinx offers plug-and-play Alveo accelerator cards. As PCIe-based solutions, these cards greatly reduce development time. Alveo cards work with any standard PC, accelerating both general CPU tasks and GPU workloads, delivering high throughput and ultra-low latency. Their unique computational power and adaptability significantly speed up various medical applications.
+
+United Imaging, a Chinese company, found that replacing traditional GPUs with Alveo U200 accelerator cards resulted in lower technology costs and power consumption, without sacrificing performance or development timelines.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/137629162/11_9983f1244d234e3da7480a5d594c62fe.png)
+
+**FPGA vs. CPU & GPU**
+
+Solutions using CPUs or GPUs in medical devices are common. Why do FPGAs perform so exceptionally well—possessing an almost “magical” ability to replace CPUs and GPUs? In reality, both CPUs and GPUs follow the von Neumann architecture, whereas FPGAs break through architectural limitations, achieving superior energy efficiency.
+
+Specifically, CPUs and GPUs rely on SIMD (Single Instruction, Multiple Data) to execute operations involving memory, decoders, arithmetic units, and branch logic. In contrast, FPGAs define the function of each logic unit during programming, eliminating the need for instruction decoding. Moreover, CPUs and GPUs share memory, requiring arbitration and maintaining cache coherency across execution units. FPGAs, however, define communication requirements during configuration and do not require shared memory for inter-unit communication.
+
+As a result, FPGAs deliver exceptional floating-point multiplication performance with lower latency than GPUs—even in floating-point operations—because FPGAs support both pipelined and data-level parallelism, while GPUs only support data parallelism.
+
+In terms of computational power, Xilinx has evolved FPGA devices into SoCs for acceleration and adaptability. Scalar engines—including ARM, application processors, and real-time processors—handle acceleration, while the adaptive engine is based on programmable logic (FPGA), supplemented by intelligent engines such as DSPs. On the Versal ACAP platform, AI Engines further enhance acceleration and adaptability.
+
+“In medical applications like endoscopy, patients undergoing surgery share a critical requirement: extremely low latency, often requiring real-time processing. From image capture by the camera, through the processing pipeline, to display output, the entire process may take less than 20 microseconds. CPUs and GPUs cannot achieve such low latency—this is FPGA’s greatest advantage over CPUs and GPUs,” Subh continued. “Additionally, in terms of power, cost, and integration, Xilinx SoC-based FPGAs offer superior benefits.”
+
+“In many fields like visualization, GPUs have been used for years. FPGAs are certainly capable, but we focus on our strengths—efficient data movement within closed systems rather than intermittent memory uploads,” Subh admitted.
+
+**Analyzing FPGA Applications in Healthcare Across Layers**
+
+Xilinx stands alone in the medical field by simultaneously delivering industry-leading AI latency and performance, extended lifecycle, high quality, reliability, security, and real-time deterministic control and interfacing.
+
+Beyond providing FPGA and SoC hardware platforms, Xilinx has developed the Vitis AI unified software platform specifically to lower FPGA development barriers and meet broad market application needs. This software platform has been previously covered extensively; it enables algorithm engineers without hardware design experience to directly implement their algorithms.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/137629162/12_7a3969b184d3a29a2a411d514adb6318.png)
+
+Xilinx’s medical solutions have helped Illumina perform genomic analysis on critically ill newborns, accelerated ICU and critical care patient communication via Eyetech’s eye-tracking tablet, and partnered with Mindray to combat the pandemic. In subtle yet profound ways, FPGAs add a layer of reverence for life.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/137629162/13_6ace4d2ce06126e5d83c109f3ad067c3.png)
+
+In my view, Xilinx’s FPGA devices derive their market competitiveness from two key strengths: high-performance acceleration and adaptability. On one hand, FPGAs, ARM processors, application processors, real-time processors, DSPs, and AI engines are highly integrated via SoC and software, enhancing both computational power and application scalability. On the other hand, the inherent low latency of FPGAs makes them a natural fit for medical applications with stringent timing requirements.
+
+From a market perspective, the pandemic has driven sustained growth in demand for medical devices, particularly those requiring large-scale data analysis and high portability—both aligning perfectly with FPGA SoC capabilities. Meanwhile, rising medical standards and market consolidation (Matthew effect) have increased demand for energy-efficient, low-power FPGA solutions.
+
+From a software standpoint, Xilinx’s Vitis platform serves diverse user groups: hardware engineers fluent in HDL, software engineers skilled in mainstream programming languages, and algorithm engineers experienced with TensorFlow, Caffe, and PyTorch. This flexibility empowers innovative startups to bring creative ideas to life.
+
+As illustrated by Xilinx’s presentation, FPGAs have a place in both large-scale and portable medical devices.
+
+How will Xilinx’s path of medical innovation evolve in the future? Subh stated that Xilinx will continue to increase integration and reduce package size in medical products, while advancing heterogeneous computing to improve efficiency and performance.

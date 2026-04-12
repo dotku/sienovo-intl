@@ -1,0 +1,20 @@
+---
+title: "ZYNQ-based Mobile Robot Controller Design (1) Background"
+date: "2022-04-15"
+slug: "124187113"
+tags: ["#ZYNQ", "#控制器", "#移动机器人"]
+source: "https://blog.csdn.net/yeyuangen/article/details/124187113"
+originalTitle: "基于ZYNQ移动机器人控制器设计（1）背景"
+---
+
+This paper draws inspiration from the hierarchical paradigm of robotics, dividing the mobile robot controller into a drive-sensing layer, a real-time control layer, and an interaction layer. Based on a survey of existing mobile robot controller characteristics, a novel controller solution is proposed. This solution, tailored to the characteristics of mobile robot control, selects the Xilinx ZYNQ All Programmable SoC, which integrates multi-core ARM CPUs and an FPGA, as its hardware platform. On this platform, applying the concept of hardware-software co-design, the following tasks were completed: integrating hardware IP cores for drive sensing on the FPGA; and deploying bare-metal software for real-time control and Linux software for interaction on different CPUs.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/124187113/01_ad0fc96ce77cf44be61e2410cabb3bf0.png)
+
+This controller solution is suitable for application scenarios where mobile robots need to carry numerous sensors and have high real-time requirements. When applied to a wheeled mobile robot, experiments have shown that this mobile robot controller operates stably and exhibits good real-time performance.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/124187113/02_42a9a12c5c8b9207cf2c2752bd4fb84f.png)
+
+Mobile robot controllers exhibit a wide variety of hardware platforms. Some use industrial PCs, such as Pioneer robots which use PC104 as the host processor and a Hitachi H8S microcontroller as the low-level processor; some use DSPs, like BMP which uses TI C2000 as its hardware platform; some use general-purpose processors, such as iRobot; some use specialized processors, such as the custom processor from Hondd used by Japan's Asimo; while others adopt hybrid solutions combining the aforementioned hardware platforms. In terms of software, controller solutions with high control and scheduling requirements often incorporate embedded operating systems, for example, the host controller of Pioneer3-AT runs the Windows 2000 operating system; Linux is common in small robot controllers, such as the Nao robot from France's Aldebaran Robotics, Tecent's educational and entertainment robot Qrobot, and Xilinx's Zrobot smart car; some controllers also adopt hybrid solutions.
+
+Pioneer\[13\] is a series of wheeled robots designed and implemented by ActivMedia Robotics, which has now evolved to its third generation. Key models include the DX type suitable for indoor operation, the AT type with strong obstacle-crossing capabilities, the PeopleBot renowned in human-robot interaction, and the AmigoBot for robot collaboration. The controller hardware platform for Pioneer3-AT uses a 32-bit industrial PC from the SH2 series, and in terms of software, it runs the ARCOS embedded OS. The host and low-level controllers of mobile robots operate in a client-server manner. The low-level controller acts as the server, responsible for managing various low-level details of the robot, such as maintaining platform drive speed, traversing uneven terrain, reading sensor signals

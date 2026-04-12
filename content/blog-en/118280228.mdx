@@ -1,0 +1,112 @@
+---
+title: "信迈基于FPGA ZYNQ的Ethercat高实时工业控制解决方案"
+date: "2022-07-12"
+slug: "118280228"
+tags: ["#ZYNQ", "#Ethercat", "#FPGA", "#XENOMAI"]
+source: "https://blog.csdn.net/yeyuangen/article/details/118280228"
+originalTitle: "信迈基于FPGA ZYNQ的Ethercat高实时工业控制解决方案"
+---
+
+---
+Title: Xinmai's FPGA ZYNQ-Based EtherCAT High-Real-Time Industrial Control Solution  
+
+Content:  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118280228/01_630efec2b03fc5b5ed661b77756a53eb.png)  
+
+Figure 1: Hardware Architecture Diagram  
+
+### EtherCAT Master Hardware Introduction  
+The master hardware consists of three main components (see Figure 4): the PC side, the Zedboard master development board, and the expanded FMC network card. The PC uses a serial terminal to input operating system commands. The EtherCAT network diagnostic and configuration tool, KPA EtherCAT Studio on the PC side, connects to the Zedboard master board via RPC services to configure the master and slave stations and generate network configuration files by scanning. For details on the Zedboard as an EtherCAT master board, refer to [Avnet: Quality Electronic Components & Services](http://zedboard.org/product/zedboard "Avnet: Quality Electronic Components & Services").  
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118280228/02_f380acebe120385514e72fc55c0432cb.png)  
+
+Figure 2: Test Hardware  
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118280228/03_cb2daf53f7b92a560eb07de80f38c996.png)  
+
+Figure 3: Internal Hardware Architecture  
+
+**1.1 Real-Time Data Acquisition Unit**  
+The real-time data acquisition unit uses Hongke's network analyzer, Profishark 100M or Profishark 1G, with two standard 100M/1Gbps Ethernet ports. It supports independent capture of upstream and downstream data and allows the captured packets to be analyzed by software such as Wireshark/Profishark Manager. Additionally, its packet capture timestamp resolution reaches 5ns, ensuring experimental data accuracy, as shown below:  
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118280228/04_8b689e8e755e3fee337944e9b6e73a11.png)  
+
+**2.2 Offline Data Analysis Unit**  
+The offline data analysis unit is implemented using the open-source software Wireshark running on a PC. At the end of the experiment, all captured data is processed and analyzed by this unit.  
+
+**Xenomai**: Xenomai relies on certain library files, which can be downloaded from the official website (e.g., version 2.6.3). After running `make` in the root directory, the library files will be generated.  
+
+**1.3 Test Data**  
+Xinmai Technology's ZYNQ EtherCAT Master FPGA High-Real-Time Implementation with Encryption Supports 32 Axes  
+
+**Performance Advantages**  
+1. Faster cycle time, achieving 31.25µs  
+2. Lower jitter, with jitter time below 0.004µs  
+3. Excellent synchronization performance, with master and slave devices achieving clock synchronization accuracy far below 1µs (50ns measured for 4 axes)  
+
+**Performance Comparison**:  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118280228/05_189d758fec4b5baf792b6af757282279.png)  
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118280228/06_46a68ecebeac947c57b0ab2dfa34b24c.png)  
+
+**More Performance Comparison Summary**:  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118280228/07_422024ab63dd3fc67f7597d8fd4423f0.png)  
+
+**1.4 FPGA-Based EtherCAT Custom Stack Supports Up to 32 Axes**  
+
+### Market Pain Points  
+
+**[PLC Manufacturers' Pain Points]**  
+Currently, most domestic PLC manufacturers achieve motion control by adding motion control modules, which support only a limited number of axes (typically 4–6). These modules are expensive (costing tens of thousands per module). Controlling more axes increases costs further, and the control precision is inadequate, with significant deviations between axes, preventing entry into high-precision control fields.  
+
+**[Application Field Pain Points]**  
+In traditional machining industries, ordinary machine tools often use pulse control, supporting only a few axes (4–8). With industrial upgrades, conventional control solutions struggle to meet the demands of high-precision, high-speed industries and multi-device collaboration scenarios.  
+
+Existing customers typically use traditional bus solutions, which suffer from susceptibility to interference, low bandwidth, complex hardware wiring, and difficulty in rapid fault localization.  
+
+Conventional multi-axis motion control systems often rely on cascading multiple PCI interface motion control cards to expand axis support. However, this significantly increases costs. For example, if a card supports only 4 axes but the system requires 5, two cards must be purchased. As more axes are added, wiring becomes increasingly messy, and the industrial PC must have enough PCI slots.  
+
+### Solution  
+EtherCAT technology addresses the shortcomings of traditional control systems. Using network cables for communication dramatically increases the number of controllable servo drives (up to 65,535). While expanding servo drive support, EtherCAT's specialized protocol ensures real-time data transmission (with microsecond-level synchronization errors), which is critical for multi-axis coordination.  
+
+**[Leading EtherCAT Technology Solution]**  
+For industrial applications, we have developed a PLC functional upgrade solution:  
+1. Based on Altera FPGA's customized EtherCAT protocol stack.  
+2. Faster cycle time (31.25µs), lower jitter (<0.004µs), and excellent synchronization (master-slave clock synchronization accuracy far below 1µs, 50ns measured for 4 axes).  
+3. Supports up to 1,024 I/O points.  
+4. Customizable servo drives (2 models) and I/O devices (DO/DI) based on customer needs.  
+
+**[Performance Metrics]**  
+- Supports up to 32 axes simultaneously with the following precision:  
+  - 8 axes: 125µs  
+  - 16 axes: 250µs  
+  - 32 axes: 500µs  
+- Tested motion control card: 2 billion packets transmitted without loss.  
+- Jitter tested at 500µs, 250µs, 125µs: ±75ns.  
+
+**[Upgrade Method]**  
+Customers need no prior EtherCAT knowledge. Upgrading involves just a few simple steps:  
+- Add an FPGA chip to the existing circuit board.  
+- Use a CPU, ARM, or even an MCU to read/write data as easily as DRAM.  
+- Convert different bus interfaces to EtherCAT.  
+- We provide customized firmware based on the customer's hardware board, enabling functional upgrades in just days.  
+
+**[Hardware Requirements]**  
+- Altera MAX10 chip required.  
+- Interface with PLC controller: Supports parallel ports (EMIF for DSP, GPMC for ARM, FSMC for MCU) or PCIe.  
+
+**[Debugging]**  
+- Easy-to-use register and timing manuals provided.  
+- Technical support available to assist with debugging.  
+
+**[Compatibility]**  
+Tested and compatible with mainstream brands, including Inovance, Delta, Sanyo, Panasonic, etc., with stable performance.  
+
+**[EtherCAT Control System Block Diagram Example]**  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118280228/08_79f64fcb92f2d22891bd7a3e33bae751.jpeg)  
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118280228/09_dbfe8d66166b9208dcd1ae2f088d1bdc.png)  
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118280228/10_035e88d6ef21e1422a113dbd9125bf59.png)  
+
+Xinmai Technology Official Website: [www.szxinmai.com](www.szxinmai.com)

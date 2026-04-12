@@ -51,10 +51,13 @@ jobs:
           R2_PUBLIC_URL: ${{ secrets.R2_PUBLIC_URL }}
 
       # Step 3: Translate new articles to English
+      # Priority: Gemini Direct (free) → Vercel AI Gateway (credits) → OpenRouter
       - name: Translate new articles
         run: node scripts/translate-blog.mjs
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          VERCEL_AI_GEWAY_API_KEY: ${{ secrets.VERCEL_AI_GEWAY_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
 
       # Step 4: Commit and push new content
       - name: Commit and push changes

@@ -1,0 +1,36 @@
+---
+title: "A Design Solution for a High-Speed Industrial Camera Based on RK3399+MIPI+FPGA (Part 2)"
+date: "2023-02-07"
+slug: "128924540"
+tags: ["#fpga开发", "#RK3399+FPGA"]
+source: "https://blog.csdn.net/yeyuangen/article/details/128924540"
+originalTitle: "一种RK3399+MIPI+FPGA的高速工业相机的设计方案（二）"
+---
+
+Image Acquisition Module Circuit Design  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128924540/01_cf9e5db589e77cd794e8e810b514d5ab.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128924540/02_5cae5ce54748971b88179bcb4689dedb.png) 
+
+3.4 Image Processing Module Circuit Design  
+The Spartan-6 chip is manufactured using a 45nm process and contains a total of 43,661 Logic Cells resources. It also features abundant DSP48A1 slices computational units and Block RAM storage units. Additionally, it supports dedicated resources such as CMT (Clock Management Tile) and MCB (Memory Controller Block).
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128924540/03_74a0142ddcc64f05f0efb615c429bc51.png)
+
+3.5 Interface Bridging and Conversion Module  
+3.5.1 Bridge Chip Circuit Design  
+As shown in Figure 3-18, the CrossLink device integrates two MIPI D-PHY hard cores and offers numerous programmable I/O resources, supporting multiple protocols or interfaces. It also includes peripheral components such as a Power Management Unit, GPIOs, and I²C/SPI communication units, making it highly suitable for data type conversion. The specific model used is: LIF-MD6000-6KMG80I.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128924540/04_dd7ce150646a92b762a6a0db934c2d69.png) 
+
+Similarly, the CrossLink chip can be configured via an SPI interface and requires an external Flash memory chip to retain configuration data after power-down and enable automatic program loading upon power-up.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128924540/05_aaf26ad1257fd1e947f71f2fcebe882a.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128924540/06_c01f46550a9410a304cedc84e3fab357.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128924540/07_5b31bae2c43c809163a0733b514644f8.png) 
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128924540/08_a1a6ab35efe5db8aeb650f6cb71f44ef.png)
+
+The RK3399 from Sinming Technology is widely used in machine vision platforms, tablets, and other intelligent terminals due to its high performance and low cost. The CPU adopts the ARM big.LITTLE heterogeneous architecture, featuring dual Cortex-A72 high-performance cores and quad Cortex-A53 power-efficient cores [36]. It supports MIPI/eDP interfaces and enables simultaneous dual-camera data input, with a maximum display resolution of 4224 × 3136. It fully supports operating systems such as Android and Linux, facilitating secondary development.

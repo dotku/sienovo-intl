@@ -1,0 +1,32 @@
+---
+title: "16-Channel High-Speed ADC Data Acquisition System Based on Kintex-7 FPGA + Nvidia TX2"
+date: "2022-07-05"
+slug: "125627285"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/125627285"
+originalTitle: "基于 Kintex-7 FPGA + Nvidia TX2 = 16通道高速ADC数据采集系统"
+---
+
+In previous designs involving ADC sampling, performance considerations typically revolved around resolution and sampling rate. Generally, resolution is either fixed or has a maximum configurable value, while sampling rate—when too high—can lead to inaccurate sampling and often becomes a bottleneck for overall system performance. Therefore, there has always been a desire for a system that enables high-speed ADC sampling with both remote and local data storage capabilities, where the sampling rate and storage speed are both high, and the design offers maximum flexibility. The recently released K7+TX2 platform from XMTech perfectly fulfills this requirement as a prototype system.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/125627285/01_a54831ae052dc37b972c0ce22a79e8c7.jpeg)
+
+**XMTech High-Speed 16-Channel Data Acquisition System**
+
+The latest high-speed data acquisition system from XMTech supports 16-channel, 8-bit ADC analog-to-digital conversion with a maximum sampling rate of up to 3 GSPS (giga samples per second). Most notably, this system implements a unique architecture previously unseen in similar solutions. It ingeniously integrates a Xilinx Kintex-7 FPGA with an Nvidia Jetson TX2 SOM (System-on-Module). Below is the system block diagram (which expands upon the internal structure of the image above):
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/125627285/02_cc085c05900efdb26af488d923dd10b5.jpeg)
+
+Block Diagram of the XMTech High-Speed 16-Channel Data Acquisition System
+
+As clearly shown in the block diagram, the Kintex-7 485T FPGA connects to a high-speed ADC interface through a dedicated port. This system is well-suited for flexible, high-speed I/O tasks, enabling real-time data filtering and DDC (Digital Down-Conversion) to lower frequencies. However, one question arises from the diagram: where are the acquired sample data stored? On the board, the FPGA connects to two 100GbE SFP+ interfaces (or routes through an on-board GbE multiplexer to four GbE ports), enabling data transfer and remote storage over Ethernet. Nevertheless, even with these high-speed interfaces, when all ADC channels operate at full speed, the available bandwidth may still be insufficient to handle the massive volume of Ethernet traffic.
+
+Therefore, local storage is essential to support sustained data capture. This is especially important when onboard processing applications require direct access to acquired data—local storage provides much lower latency and higher convenience compared to retrieving data over Ethernet.
+
+Regarding local storage, the Nvidia Jetson TX2 SOM itself integrates 8GB of LPDDR4 SDRAM on the module. The Kintex-7 FPGA in the system can access this memory via a PCIe Gen 2 x4 interface on the TX2—an interesting and effective architectural choice.
+
+The XMTech K7+TX2 is a 1U, 19-inch rack-mountable module. Its 16 ADC channels can be externally accessed through onboard SMC connectors. Below is a side view of the system’s interface layout:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/125627285/03_81a415f7ba2721f35b556bd29193bed1.jpeg)
+
+This architecture is unlike any the author has previously encountered in embedded board designs. Overall, the system leverages the reconfigurable I/O capabilities of the FPGA to simultaneously support multi-channel ADC conversion, Ethernet connectivity for remote data storage, and access to the TX2’s local memory for on-board data buffering. This dual-storage approach removes data path bottlenecks for applications requiring local data access, while still allowing data to be streamed externally when needed. It's a clever and flexible design, further demonstrating how FPGA-based systems provide critical advantages in terms of adaptability and performance.

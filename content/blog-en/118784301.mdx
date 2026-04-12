@@ -1,0 +1,57 @@
+---
+title: "Design and Implementation of a High-Precision BeiDou Receiver Based on C6748+FPGA"
+date: "2021-07-16"
+slug: "118784301"
+tags: ["#C6748", "#FPGA", "#北斗接收机", "#高精度"]
+source: "https://blog.csdn.net/yeyuangen/article/details/118784301"
+originalTitle: "基于C6748+FPGA的高精度北斗接收机设计与实现"
+---
+
+With the advancement of computer technology, communication technology, and measurement and control technology, satellite navigation technology continues to progress, and its applications are becoming increasingly widespread, especially in military and civilian fields. It is gradually becoming an important benchmark for measuring a nation's military strength and scientific and technological level. China began constructing its BeiDou Satellite Navigation System in the mid-1990s. As of March 30, 2016, China had successfully launched its 22nd BeiDou navigation satellite, and BeiDou had achieved service capability in the Asia-Pacific region, also indicating the continuous improvement and development of Global Navigation Satellite Systems (GNSS).
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118784301/01_3438c34b6ef3cd78b506dc59590d5193.png)
+
+Global Navigation Satellite System receivers are an extremely important part of navigation systems. With the application of large-scale integrated circuit chips, such as Field-Programmable Gate Arrays (FPGAs) and Digital Signal Processors (DSPs), their real-time performance, accuracy, and other characteristics have continuously improved. To meet the requirements for real-time performance and big data storage, this paper adopts the optimal combination of FPGA+DSP and the latest high-performance DSP chips as processors. By designing and optimizing the positioning and solution algorithms, a modest contribution has been made to China's BeiDou satellite positioning system. The main research content of this paper is the study of BeiDou satellite receiver positioning algorithms and their implementation on DSP processors. Firstly, it describes the basic positioning principles of BeiDou-1 and BeiDou-2 satellites, and introduces the demodulation of BeiDou satellite navigation messages and the extraction of observables. Based on this, the principles for calculating BeiDou satellite positions and velocities, as well as user receiver positions and velocities, are introduced. Then, the architecture of the BeiDou receiver is described, detailing the software and hardware design of the receiver's DSP section, and establishing a positioning solution model. Building upon the least squares method, weighted least squares and extended Kalman filtering are particularly introduced. A model is established for pseudorange observation errors, and corrections are applied. Finally, the navigation solution algorithm undergoes systematic experimental verification, and real-time display of the upper computer interface is achieved using VC6.0 software on a PC, to enable fast and high-precision positioning of the BeiDou satellite receiver under both static and dynamic conditions.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118784301/02_ab1b2c57bd5e4f249147279f59438899.png)
+
+Physical BeiDou Receiver Developed by Xinmai Based on C6748+FPGA
+
+1 Evaluation Board Introduction
+- Based on TI OMAP-L138 (fixed-point/floating-point DSP C674x+ARM9) + Xilinx Spartan-6 FPGA processor;
+- OMAP-L138 and FPGA are connected via uPP, EMIFA, and I2C buses, with communication speeds up to 228 MByte/s; OMAP-L138 main frequency 456MHz, with computing power up to 3648 MIPS and 2746 MFLOPS;
+- FPGA compatible with Xilinx Spartan-6 XC6SLX9/16/25/45, strong platform upgrade capability;
+- The development board provides rich peripheral interfaces, including high-speed data transfer interfaces such as Gigabit Ethernet, SATA, EMIFA, uPP, USB 2.0, and common interfaces such as GPIO, I2C, RS232, PWM, McBSP;
+- Certified by high and low-temperature tests, suitable for various harsh working environments;
+- DSP+ARM+FPGA triple-core SOM (System-on-Module), size 66mm*38.6mm, uses industrial-grade B2B connectors to ensure signal integrity;
+- Supports bare-metal, SYS/BIOS operating system, and Linux operating system.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118784301/03_86e0a472cf2c820b1236f506d88ef18c.png)
+Figure 1 Front and side views of the development board
+
+The XM138F-IDK-V3.0 is a development board designed based on Shenzhen Xinmai's XM138-SP6-SOM core board. It features a 4-layer board design with immersion gold and lead-free process, providing users with a test platform for the XM138-SP6-SOM core board to quickly evaluate its overall performance.
+
+The XM138-SP6-SOM exposes all CPU resource signal pins, making secondary development extremely easy. Customers only need to focus on upper-layer applications, greatly reducing development difficulty and time costs, enabling rapid product launch and timely capture of market opportunities. It not only provides rich demo programs but also detailed development tutorials and comprehensive technical support to assist customers with baseboard design, debugging, and software development.
+
+2 Typical Application Areas
+- Data acquisition, processing, and display systems
+- Smart power systems
+- Image processing equipment
+- High-precision instrumentation
+- Mid-to-high-end CNC systems
+- Communication equipment
+- Audio and video data processing
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118784301/04_b2374155188e057172d60d7e4c7035ab.png)
+Figure 2 Typical application areas
+
+3 Hardware and Software Parameters
+Schematic diagram of the development board peripheral resource block
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118784301/05_f5064ff9318c7bd28e73ecd10140aeb7.png)
+
+Figure 3 Schematic diagram of development board interfaces
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118784301/06_efa6e7ddb5cfe701944c9379658db2e4.png)
+
+Figure 4 Schematic diagram of development board interfaces

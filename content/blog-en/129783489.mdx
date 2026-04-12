@@ -1,0 +1,112 @@
+---
+title: "Key Technology Development for Multi-Axis Motion Control Platform Based on ZYNQ – Overall Architecture Design (Part 1)"
+date: "2023-03-26"
+slug: "129783489"
+tags: ["#ZYNQ", "#多轴运动控制器"]
+source: "https://blog.csdn.net/yeyuangen/article/details/129783489"
+originalTitle: "基于ZYNQ 的多轴运动控制平台关键技术研发-总体架构设计(一）"
+---
+
+To meet the real-time communication and synchronized control requirements of a multi-axis motion control platform, the Xilinx Zynq 7020 SoC is adopted as the core processor to design the overall architecture of a dual-core SoC-based multi-axis motion control platform. Based on the functional and interface characteristics of multi-axis motion control systems, the hardware design of the SoC motion control platform is completed, primarily including the SoC minimum system and mainstream communication interface designs such as Ethernet, USB, and UART.
+
+To ensure functional completeness of motion control, a dual-core SoC system is designed comprising a Linux+Xenomai real-time operating system and a servo bare-metal system. Under the Linux system, driver porting for the platform’s communication devices is implemented.
+
+This chapter analyzes the application requirements of a robotic multi-axis motion control platform, proposes a dual-core SoC-based multi-axis motion control platform design, and further completes the overall hardware architecture design of the motion control platform along with the inter-core task communication strategy.
+
+**2.1 Multi-Axis Motion Control Platform Design Analysis**
+
+As shown in Figure 2.1, industrial bus-based motion control systems adopt a distributed system architecture. The motion control system consists of a host computer, a controller, multiple servo drives, and servo motors. The main features of distributed motion control systems are: master and slave stations communicate via fieldbus; multiple slave stations are connected in series, with coordinated control among them ensured through the synchronization function of the bus protocol.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129783489/01_9150a269fcb8114109c089b1518a4eb5.png)
+
+This paper presents an integrated multi-axis motion control platform based on a multi-core SoC, integrating the controller and multiple drives into a single hardware unit, as illustrated in Figure 2.2. The main features of the integrated motion control platform are: high-speed on-chip bus is used for interconnection between the control and drive systems, ensuring efficient and stable data transmission; a unified servo control system manages servo functions for multiple axes, enabling fast information exchange among axes and effectively guaranteeing synchronized multi-axis control. The motion control system connects to the host computer to perform motion trajectory planning and command generation, and communicates data with the servo system; the servo drive system responds to control commands and achieves synchronized multi-axis motion through triple-loop (position, velocity, and current) control.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129783489/02_d4bf07275be98d86f5210a3a06a7c9ae.png)
+
+Based on the above analysis, the design of the multi-core SoC motion control platform must address the following requirements:
+
+(1) How to efficiently utilize multi-core SoC resources to implement both the platform's control system and high-performance servo drive system;  
+(2) How to leverage on-chip bus interfaces to achieve efficient communication between the control system and servo drive system;  
+(3) How to design SoC system communication timing to enable synchronized processing and control of multi-axis motion data;  
+(4) How to utilize SoC peripheral resources to complete platform interface design for external communication and driving functions.
+
+Additionally, the dual-system integration design must consider the following requirements:
+
+(1) How to design a strong real-time operating system to enable real-time processing of motion control tasks;  
+(2) How to design the servo drive system under an AMP (Asymmetric Multi-Processing) architecture to ensure stable operation of the servo system;  
+(3) How to design inter-system communication mechanisms under the AMP architecture to support multi-task communication, including periodic tasks for command/feedback data exchange and non-periodic tasks for system parameter and configuration data exchange.
+
+**2.2.1 SoC Chip Selection and Description**
+
+Based on the requirements of the integrated motion control platform, a multi-core SoC chip with integrated high-performance processors is required. During chip selection, multiple factors must be evaluated, including functional completeness, market adoption, product lifecycle, cost, and power consumption. After comprehensive evaluation, the Xilinx Zynq 7020 is selected as the central processor for the multi-axis motion control platform.
+
+The Zynq 7020 is a highly integrated SoC processor whose internal interconnect architecture is shown in Figure 2.3. It integrates a dual-core ARM Cortex-A9 MPCore processing system (Processing System, PS) and up to 85K programmable logic units (Programmable Logic, PL). The main features of the PS are:
+
+(1) The PS includes two Cortex-A9 processor cores, enabling dual-core system design;  
+(2) It integrates controllers for DDR, SDIO, Gigabit Ethernet, USB 2.0, UART, and other peripherals, enabling the implementation of a minimal SoC system and mainstream communication interface designs;  
+(3) On-chip support for the high-speed AMBA AXI4 bus interface enables high-speed communication between system components;  
+(4) It integrates 256KB of on-chip memory (On-Chip Memory, OCM) for storing shared system data;  
+(5) Each processor core has its own 32KB Level-1 cache (L1 Cache) and shares a 512KB Level-2 cache (L2 Cache), improving CPU data access speed and enhancing overall system performance.
+
+Meanwhile, the PL is based on 28nm programmable logic, ensuring low power consumption and cost; its abundant logic and DSP resources support various application functions; it offers 125 to 200 IO pin options for flexible IO control; and Xilinx provides extensive third-party IP core support, significantly reducing development cycles. Therefore, the Zynq 7020 chip meets the development requirements of this solution.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129783489/03_5cbd704cdeaca3173eda0e6bf91878b6.png)
+
+**2.2.1 Platform Architecture Design and Functional Description**
+
+Based on functional requirements, this paper designs a multi-axis motion control platform architecture using the Zynq 7020 dual-core SoC. As shown in Figure 2.4, the platform primarily consists of the SoC minimum system and platform interfaces, capable of achieving synchronized control of four axes.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129783489/04_e5e36db12f3c690f3fe650bb71638f46.png)
+
+The SoC minimum system comprises Processor 0, Processor 1, and the FPGA, with specific functions as follows:
+
+(1) Processor 0 (CPU0) runs a real-time operating system. Its functions include: executing robot control software to perform motion planning and command generation; achieving multi-task communication with the servo system via system communication interfaces for data exchange; managing SoC peripheral resources, providing peripheral driver support, and enabling communication with external devices.
+
+(2) Processor 1 (CPU1) runs a servo bare-metal system. Its functions include: executing servo control software to perform triple-loop control for four axes; achieving multi-task communication with the operating system via system communication interfaces for data exchange; managing SoC peripherals to enable connection with external devices and signal acquisition.
+
+(3) The FPGA implements custom functional modules. Its functions include: designing a hardware interrupt generator to provide fixed-period interrupt signals to Processor 0 and Processor 1, enabling multi-task communication between the dual cores. Additionally, the FPGA includes multi-axis drive modules such as PWM generators, current sampling circuits, and encoder decoders.
+
+The multi-axis motion platform interfaces are divided into communication interfaces and system interfaces. The communication interfaces include:  
+- RS232 serial port, used for system development, testing, and maintenance;  
+- USB 2.0 interface, for connecting external devices such as keyboards, mice, and USB drives to facilitate user operation and support over-the-air system upgrades;  
+- Gigabit Ethernet interface, for connecting to teach pendants or PCs to enable host communication;  
+- Industrial Ethernet interface, for connecting external servo drives or industrial cameras to extend platform functionality.
+
+The system interfaces are used to achieve four-axis servo drive, system monitoring, and IO control functions.
+
+Based on the functional requirements of the SoC platform, this paper focuses on the development and design of the following key technologies:
+
+(1) SoC hardware system design, including minimal SoC system design, resource allocation, and communication timing design;  
+(2) Platform communication interface technology development, including UART, USB, and Gigabit Ethernet interface design;  
+(3) AMP dual-system design, including the design and implementation of real-time operating system and servo bare-metal system;  
+(4) Dual-core multi-task communication technology development, including communication module design and multi-task communication mechanism design.
+
+Additionally, this paper investigates and designs the platform’s real-time performance and synchronization capabilities to achieve real-time communication and synchronized multi-axis control.
+
+**2.3 Dual-Core System Multi-Task Implementation Strategy**
+
+This paper adopts an AMP dual-core system design, with CPU0 running the operating system and CPU1 running the servo bare-metal system. Data exchange between the two cores is achieved via on-chip shared memory (OCM).
+
+**2.3.1 Embedded Operating System Selection**
+
+The CPU0 operating system primarily runs robot control software, requiring fast trajectory planning and timely command delivery to achieve real-time multi-axis motion control. Additionally, the OS must provide driver support for common peripherals to simplify user development and reduce complexity.
+
+Therefore, the ideal OS for this platform should possess real-time processing capability, strong peripheral driver support, ease of development, and low cost. Further considerations include system openness, human-machine interface functionality, and reliability. During selection, the chosen system must meet design requirements while simplifying development, reducing development difficulty, and minimizing usage cost. Currently popular embedded real-time operating systems include µC/OS-II, Linux+Xenomai, Wince, and VxWorks. Table 2.1 provides a comparative analysis of these four systems.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129783489/05_3be315e4207d21faa0005f206efca1e7.png)
+
+Among them, VxWorks and Wince offer strong real-time performance, but their source code is not open, leading to unpredictable development complexity and potential cross-platform porting issues, along with licensing fees. µC/OS-II is open-source and free, providing real-time capabilities, but lacks support for human-machine interfaces, making future product upgrades inconvenient. The Linux+Xenomai operating system, with Linux extended by Xenomai for real-time functionality, offers advantages such as open-source software, strong portability, and support for human-machine interfaces. After comprehensive evaluation, Linux+Xenomai is selected as the real-time operating system.
+
+**2.3.2 System Multi-Task Implementation Strategy Design**
+
+This paper adopts a shared memory (OCM)-based communication scheme to enable task communication between the dual-core systems of the motion control platform. The implementation process is illustrated in Figure 2.5.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129783489/06_701e658d5283b925b982c85fb296a490.png)
+
+On CPU0, the Linux real-time operating system runs the robot control software and establishes Xenomai real-time motion tasks. In multi-axis motion control, periodic and non-periodic communication tasks are required between the dual-core systems, implemented through service functions. Periodic tasks handle fixed-interval command output and feedback reading, while non-periodic tasks manage operations such as servo parameter read/write and system command delivery. Within the service functions, system calls provide OCM access services to enable data exchange.
+
+CPU1 runs a servo bare-metal system, allowing direct loading and execution of servo control applications. The application provides task communication functions for inter-system communication. Within these functions, official Xilinx API interfaces are called to access the shared memory (OCM).
+
+Meanwhile, the PS and PL communicate via the AXI4 high-speed bus. Xilinx provides a PL peripheral memory-mapping mechanism, allowing PL functional modules to be mapped into the PS system memory space, thereby enabling PS system access to PL modules.
+
+Xinming provides hardware and software solutions combining ZYNQ and motion controllers.

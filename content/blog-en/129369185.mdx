@@ -1,0 +1,61 @@
+---
+title: "Hardware Design of Intel x86 + FPGA-based Smart Cockpit and Advanced Driver Assistance Systems (Part 2)"
+date: "2023-03-06"
+slug: "129369185"
+tags: ["#fpga开发", "#intel", "#智能驾驶"]
+source: "https://blog.csdn.net/yeyuangen/article/details/129369185"
+originalTitle: "基于intel x86+fpga智能驾驶舱和高级驾驶辅助系统硬件设计（二）"
+---
+
+**System Functional Architecture and Module Overview**
+
+The smart cockpit and advanced driver assistance system is an embedded platform for in-vehicle intelligent terminals, integrating both hardware and software capable of running virtualized operating systems. The vehicle-mounted host described in this article includes a hardware main control processor, power management ICs, storage devices, input/output controllers, digital instrument systems, rear-seat entertainment systems, multi-channel camera systems, as well as software components such as virtualized operating systems, real-time operating systems for sub-domains, and automotive manufacturer applications. All components must meet the quality requirements specified by automotive-grade certifications AEC-Q100/AEC-Q101/AEC-Q200.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129369185/01_34f1747cc193386342c6503f0722b4be.png)
+
+Key performance indicators of the SoC A3900 are as follows:
+
+- Based on Goldmont architecture using 14nm process technology  
+- 2–4 CPU cores  
+- CPU operating frequency of 1.1–1.6 GHz  
+- Single-core burst frequency up to 1.8–2.5 GHz  
+- 2 MB cache capacity  
+- Thermal design power (TDP) of 6W–12W  
+- Supports up to 8GB LPDDR4 memory  
+- Supports 6 USB 3.0 ports and 4 PCIe ports  
+
+Supported software on SoC A3900 includes:
+
+- Microsoft Windows 10 Enterprise (64-bit), IoT Operating System (32/64-bit)  
+- Linux Operating System (64-bit)  
+- Open-source Linux Embedded Operating System (64-bit)  
+- Android Operating System  
+- Real-Time Operating System (RTOS)  
+
+3.1.2 Input/Output Controller Function Overview
+
+The system's input/output controller adopts Cypress MB91520 series, based on the high-performance FR81S core originally developed by Fujitsu. It delivers high computational performance and rich peripheral interfaces, enabling control of low-speed CAN bus devices around the vehicle and providing low-level system control functions. Figure 3.2 shows the block diagram of the MB91520 series, which is primarily used to implement the following functions:
+
+- System wake-up control  
+- System reset control  
+- Power management control  
+- Temperature management control  
+- CAN bus communication and vehicle information exchange  
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129369185/02_1fa73a3f7f4ff2428933828bba38441f.png)
+
+**Hardware Platform Circuit Design**
+
+The hardware platform of the smart cockpit and advanced driver assistance system consists of the following components: system power module, main SoC processor, display module, input/output controller module, memory unit, analog video input module, non-volatile flash memory unit, CAN transceiver module, LCD module, wireless network and Bluetooth connectivity module, audio module, USB interfaces, etc. Figure 3.3 illustrates the overall functional block diagram of the hardware system, outlining the primary functions implemented.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129369185/03_da6f2c75f46c6fc54516b8e335f52919.png)
+
+Overview:
+
+The XM-5132 is a fully sealed chassis design by Sinmay based on the Intel platform, operating within a temperature range of -20°C to +70°C. It supports the full series of Intel Mobile 6th generation i7/i5/i3 processors, offering exceptional graphics processing and computational capabilities. It features dual-channel DDR4 support with a maximum capacity of 64GB, integrated Intel® HD Graphics 530, and supports VGA and HDMI display outputs. The system provides four Realtek I211 Gigabit Ethernet ports, one M.2 interface for a 5G module (enabling wireless internet access when paired with a SIM card), and one M.2 interface for a Wi-Fi module with Bluetooth functionality. It includes nine USB ports and one mSATA interface. An ALC662 6-channel high-fidelity audio controller is integrated. The six-layer PCB stack-up design enhances electromagnetic interference (EMI) and electromagnetic compatibility (EMC) performance. Customization services are also available.
+
+Appearance:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129369185/04_589e7a71eb6c0c3ec94de16f8bebd771.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129369185/05_ffe94db335d34e73ebfbdee59e62c145.png)

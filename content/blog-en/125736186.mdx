@@ -1,0 +1,91 @@
+---
+title: "TMS320C6678 + XC7K160T DSP+FPGA+ AD 24bit High-Precision, High-Performance Domestic Mainboard Design Solution"
+date: "2022-09-13"
+slug: "125736186"
+tags: ["#国产AD", "#C6678+AD"]
+source: "https://blog.csdn.net/yeyuangen/article/details/125736186"
+originalTitle: "TMS320C6678 + XC7K160T DSP+FPGA+ AD 24bit 国产高精度高性能主板设计方案"
+---
+
+Recently, while developing a product, we used a domestic high-precision [ADC](http://www.elecfans.com/tags/adc/ "ADC"), the AS1412 from Yuanzi [Semiconductor](https://www.hqchip.com/gongsi.html "半导体"). We learned about its advantages: not only high precision and good linearity, but also low power consumption. It can meet the requirements for many force sensing [measurements](http://www.hqchip.com/app/851 "测量"), such as various weighing scale applications, industrial equipment, instrumentation, etc.
+
+The main components and features of the AS1412 can be seen in the figure below.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/125736186/01_d00658c793d55da193ac024e387d8dbd.png)
+
+This device primarily integrates internally: 1) A MUX (multiplexer) switch for setting sampling of external signals or the internal [temperature sensor](http://www.hqchip.com/app/951 "温度传感器"); 2) A PGA (Programmable Gain Amplifier) with settable gains of ×1, ×2, ×64, ×128; 3) An [ADC](https://dfm.elecfans.com/uploads/software/hqdfm.zip?neilian "AD") core and subsequent digital processing unit, capable of outputting converted data from 10Hz to 1.25kHz after oversampling; 4) An internal temperature sensor achieving +/-1℃ accuracy after 2-point calibration; 5) Auxiliary [circuit](https://bbs.elecfans.com/zhuti_dianlu_1.html "电路") units such as a bandgap reference and [clock](http://www.hqchip.com/app/1045 "时钟").
+
+Below is a schematic diagram of the AS1412 used for weighing and force measurement. The ADC can directly sample the differential output signal of the [sensor](http://www.elecfans.com/tags/%E4%BC%A0%E6%84%9F%E5%99%A8/ "传感器"). The sensor excitation and ADC reference use the same voltage source to reduce system cost. Alternatively, a constant current can drive the sensor to improve anti-interference performance.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/125736186/02_8be35d6d182393df084def77e3c25936.png)
+
+The high integration of the AS1412 chip makes the overall application circuit very concise. In terms of [software](https://yingsheng.elecfans.com/app "软件"), the [MCU](http://www.elecfans.com/tags/mcu/ "MCU") can directly read ADC conversion data via DOUT and SCLK for subsequent processing.
+
+•
+R&D of AI edge computing and vision basic platforms, using FPGAs, DSPs, and ARMs as processors, with form factors including VPX, CPCI-E. Primarily focused on the research and innovation of key technologies such as edge AI, embedded systems, 3D vision, heterogeneous computing, fiber optic communication, and high-speed imaging systems. Providing deeply customizable, integrated hardware/software intelligent edge computing products and solutions, such as: custom multi-layer high-speed boards, FPGA/GPU/DSP parallel computing software, operating system porting and optimization, integrated sensing equipment, etc. Committed to lowering the R&D threshold for edge intelligence, optimizing the composition of information systems, saving project costs, and accelerating the industrialization process of intelligent applications in various fields. Assisting research institutes, key university laboratories, and large listed companies with complete hardware solution custom development and software development, and increasing the proportion of domestically produced equipment.
+
+TMS320C6678 + XC7K160T Embedded Single Board Computer
+
+The C6678_DDR3_6UVPX high-speed signal processing board is a general-purpose processing board based on TI's multi-core DSP TMS320C6678, compliant with the VITA 65 system specification. The board integrates four TI high-performance octal-core signal processors TMS320C6678 and one XILINX K7 FPGA.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/125736186/03_0edf6b8cb40da7959f19958c939e0374.png)
+
+TMS320C6678 Specifications:
+
+It is TI's latest generation Multicore Fixed and Floating-Point Digital Signal Processor.
+
+Based on TI's KeyStone multicore architecture.
+
+The TMS320C6678 features 8 TMS320C66x™ DSP Cores, each capable of operating at 1.0 GHz, 1.25 GHz, or 1.4 GHz.
+
+Each core has 40 GMAC fixed-point processing capability (at 1.25 GHz).
+
+Each core has 20 GFLOP floating-point processing capability (at 1.25 GHz).
+
+Each core features:
+
+›32K Byte L1P cache Per Core.
+
+›32K Byte L1D cache Per Core.
+
+›512K Byte Local L2 cache Per Core.
+
+› 4Mbyte SRAM shared by 8 cores.
+
+Power consumption is less than 10W, operating temperature: -40℃ to +85℃. Extended temperature grade chips (-55℃ to +115℃) are also available.
+
+Below is official TI documentation:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/125736186/04_bdf9c2023037a416d411bca075910184.jpeg)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/125736186/05_849941cbcb326603ec83f82d8b04fb5.jpeg)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/125736186/06_3a1bf35ca38461dd1ffcdfce824d486.jpeg)
+
+Onboard:
+
+· 1024 MB DDR3-1600 memory.
+· 64MB EMIF NAND Flash memory.
+· 16MB SPI NOR Flash memory.
+· 128KB I2C EEPROM memory.
+
+FPGA Section: Optional XC7K160T-2FFG676 or XC7K325T-2FFG676 can be installed.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/125736186/07_cdf563b49f2857c4ee82fd0da75b0078.jpeg)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/125736186/08_9ee4673ce97c8abba3a1f356f53a29b9.jpeg)
+Onboard:
+
+· XilinxXC7K160T-2FFG676orXC7K325T-2FFG676 FPGA.
+
+· DDR3-1600 SDRAM, 2GB.
+
+· 128 MB of Configuration/UserData Flash.
+
+· 16MB SPI NOR Flash.
+
+· 200 MHz LVDS Oscillator(system clock).
+
+· 156.25MHz LVCMOS ConfigurationOscillator.
+
+· 50 MHz LVCMOS Oscillator.

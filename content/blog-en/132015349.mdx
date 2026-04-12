@@ -1,0 +1,46 @@
+---
+title: "Design of an Integrated Drive-Control Robot Controller Based on ARM+FPGA"
+date: "2023-07-31"
+slug: "132015349"
+tags: ["#arm开发", "#fpga开发", "#机器人"]
+source: "https://blog.csdn.net/yeyuangen/article/details/132015349"
+originalTitle: "基于ARM+FPGA的驱控一体机器人控制器设计"
+---
+
+Currently, industrial robots, CNC machine tools, and other multi-axis motion control systems on the market generally adopt a distributed control architecture consisting of a motion controller and servo drives. In this configuration, the controller handles both human-machine interaction and the interpretation and execution of NC code, interpolation calculations, then sends the calculated position commands to individual servo drives via an axis group module. This transmission is typically completed through a fieldbus with a cycle time of 4ms or less. The servo drives receive the position commands, subdivide them, and ultimately drive the motor through a three-loop control system. Usually, one servo drive controls one motor; for example, a six-joint robot requires six drives. Each servo drive independently performs position control, enabling the robot's end-effector to reach the desired position. Data exchange between servo drives relies on the fieldbus, but due to limitations in communication speed, real-time data (such as current) cannot be fully shared among axes.
+
+In practical applications, the distributed robot control system has a relatively decentralized structure. Implementing advanced control algorithms—such as servo control combining robot kinematics and dynamics with current feedforward and feedback linearization, or precise multi-axis synchronization algorithms—is challenging in such systems. Additionally, fieldbus deployment incurs non-negligible wiring costs. Given these drawbacks, there is a clear need to further simplify the motion control system architecture.
+
+An integrated drive-control system combines the previously independent motion controller and servo drives into a single System-on-Chip (SoC), achieving control and drive integration on one chip. The benefits of this approach include:
+
+(1) A more compact motion control system structure, smaller control cabinet size, and higher integration, making it suitable for environments with limited physical space, while also facilitating transportation and installation.
+
+(2) Replacing the traditional multi-unit controller driving multiple motors with a single-chip SoC architecture eliminates reliance on fieldbus communication, reducing both hardware and software interconnection costs. It fully leverages the characteristics of embedded SoC chips to meet both the functional requirements of motion controllers and the real-time demands of servo drives, thereby lowering overall controller costs.
+
+(3) Tighter coupling between controller and drive facilitates implementation of advanced, complex motion control algorithms—such as multi-axis synchronization, velocity and acceleration feedforward, jitter suppression, and friction compensation. Kinematic and dynamic control algorithms can participate in or access current loop computation results from the servo drive, while the drive can predict trajectory planning outcomes, enhancing overall robot control performance.
+
+(4) On-chip buses replace fieldbuses, offering higher bandwidth and better stability. Compared to today’s distributed industrial fieldbus systems, where information exchange relies on serial fieldbuses that are limited by polling mechanisms and serial communication speeds (incurring high cabling costs), parallel on-chip buses ensure excellent synchronization and real-time performance for multi-axis data exchange.
+
+(5) Improved real-time data interaction between controller and drive enables the controller to access drive feedback status information more conveniently and promptly. This allows real-time adjustment of control strategies based on feedback, resulting in superior control performance.
+
+(6) Higher communication rates between controller and drive allow further reduction of the controller’s interpolation cycle and position loop update frequency, contributing to high precision at high speeds—achieving true high-speed, high-precision control.
+
+(7) Enables higher-frequency acquisition of motion variable parameters from the drive, allowing more accurate characterization of parameter trends and facilitating detailed analysis of the robot’s motion state.
+
+**1.3 Research Status at Home and Abroad**
+
+**1.3.1 Current Research Status and Development Trends of Servo Drive Systems**
+
+A typical robot control system is structurally divided into three layers: controller, servo drive, and robot body. In recent years, two distinct development directions have emerged for AC servo drives. The first maintains the motion controller unchanged while integrating the servo drive and servo motor into a single unit. The second keeps the servo motor unchanged while integrating the servo drive and motion controller into one system—moving toward integrated drive-control.
+
+Integrating the servo drive and motor places higher demands on the drive, requiring miniaturization, efficient heat dissipation, and high-frequency performance. Domestic research in this area is still in its early stages. Internationally, Israel’s ELMO company has developed the Twitter servo drive—a miniature, high-power-density drive, as shown in Figure 1-1. It employs "Fast Soft Switching Technology" to achieve efficiency greater than 99% with almost negligible electrical
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/132015349/01_d2bf9cb9719d4579e09c543993d827a5.png)
+
+Keeping the servo motor unchanged while integrating the servo drive and motion controller is another emerging trend—moving toward drive-control integration. Advantages include small size, light weight, low cost, high reliability, flexible deployment, and the ability to execute complex robot algorithms, making it ideal for space-constrained applications. Currently, both domestic and international companies (e.g., Googol, ZOWEE, Delta, KUKA, ABB) have released integrated drive-control products. Most adopt a distributed CPU approach for integration. Domestically, these are used in 3C robotic arms and desktop robotic arms where space is critical; internationally, they are more widely applied in collaborative robotics and automated production lines.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/132015349/02_5c453b97116dd615a20ac0d7ec2135c1.png)
+
+In China, in 2018, the HIT PEED servo team at Harbin Institute of Technology developed a small-batch prototype of an integrated drive-control system based on the Zynq platform, capable of independently controlling 4–6 axes on a single chip, as shown in Figure 1-2 (image sourced from the 2019 Intelligent Manufacturing & China Motion Control Industry Development Summit Forum). The system uses a high-performance SoC chip from Xilinx, where the PL (Programmable Logic) portion handles multi-axis motor driving with high bandwidth and fast response, while the PS (Processing System) portion implements motion control algorithms, communication protocols, and data exchange functions.
+
+In summary, with advancements in signal detection technologies (e.g., high-precision, low-latency sampling), automatic control technologies (e.g., fuzzy control, adaptive control, predictive control), drive control technologies (e.g., PWM modulation, dead-zone and nonlinear compensation), and chip technologies (especially SoC), servo systems are evolving toward higher performance, greater integration and modularity, generalization and specialization, and increased networking and intelligence.

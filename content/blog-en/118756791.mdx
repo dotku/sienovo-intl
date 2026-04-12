@@ -1,0 +1,40 @@
+---
+title: "Design of a Wireless Digital Remote Blasting System for Seismic Exploration Based on OMAPL138+FPGA"
+date: "2021-07-15"
+slug: "118756791"
+tags: ["#OMAPL138", "#FPGA", "#无线遥曝", "#地震勘探"]
+source: "https://blog.csdn.net/yeyuangen/article/details/118756791"
+originalTitle: "基于OMAPL138+FPGA地震勘探无线数字遥爆系统设计"
+---
+
+Seismic exploration technology is one of the effective geophysical exploration techniques in the energy exploration field, widely applied in oil and gas resource exploration. With the rapid development of the global economy, energy demand is increasing, making the update and development of exploration technologies and equipment a top priority in energy exploration. As a critical component in seismic exploration systems, the performance of the remote blasting subsystem significantly impacts the overall performance of the seismic exploration system. Therefore, to meet the demand for domestic production of key seismic exploration equipment, independently designing a seismic exploration remote blasting subsystem is imperative. This paper, based on an enterprise-level project, completes the software design and development for a digital remote blasting subsystem, summarized as follows: 1. Based on the design objectives of the remote blasting subsystem and its hardware platform, the overall software architecture, development process, and data communication protocols were designed. A host computer development platform was built using VMware virtual machine and Ubuntu 14 system. An embedded application environment was established through the porting of an embedded Linux system and the loading of asynchronous notification drivers. Actual tests confirmed that both the host computer platform and the embedded application environment operate normally and stably. 2. The software of the remote blasting subsystem was divided into four functional modules for development: GPS timing and positioning, EMIF communication, time synchronization, and Bluetooth parameter read/write. The GPS timing and positioning module can extract real-time satellite data to set the system's operating time and determine the current latitude and longitude information to achieve system positioning, facilitating subsequent data analysis. The EMIF communication module, by combining the Linux system's asynchronous notification mechanism with external interrupts, enables mutual read/write functionality between the Linux system and the FPGA processor, forming the basis for wireless data communication within the system. The time synchronization module achieves operational time synchronization between the encoder and decoder within the remote blasting subsystem, ensuring accurate execution of subsequent system operations. The Bluetooth read/write module acts as a communication bridge between the mobile client and the remote blasting subsystem, enabling the client to read, display, set, and update the operating parameters of the encoder and decoder. 3. Functional verification of the system software was performed based on the remote blasting subsystem's hardware platform and embedded software development environment. Test analysis confirmed that the embedded Linux system operates normally and stably, and all functions, including GPS timing and positioning, EMIF communication interaction, operational time synchronization, and Bluetooth parameter read/write, were successfully implemented, proving that the remote blasting subsystem software designed and implemented in this paper meets the design requirements.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118756791/01_4a8eb77078471d13d1717f51159b5ec6.png)
+
+1 Evaluation Board Introduction
+Based on TI OMAP-L138 (fixed/floating-point DSP C674x + ARM9) + Xilinx Spartan-6 FPGA processor;
+OMAP-L138 and FPGA are connected via uPP, EMIFA, and I2C buses, with communication speeds up to 228 MByte/s; OMAP-L138 has a main frequency of 456MHz, offering computing power up to 3648 MIPS and 2746 MFLOPS;
+FPGA is compatible with Xilinx Spartan-6 XC6SLX9/16/25/45, providing strong platform upgrade capability;
+The development board provides rich peripheral interfaces, including high-speed data transfer interfaces such as Gigabit Ethernet, SATA, EMIFA, uPP, USB 2.0, as well as common interfaces like GPIO, I2C, RS232, PWM, and McBSP;
+Certified through high and low-temperature tests, suitable for various harsh working environments;
+DSP+ARM+FPGA triple-core module, with dimensions of 66mm*38.6mm, uses industrial-grade B2B connectors to ensure signal integrity; Ø
+Supports bare-metal, SYS/BIOS operating system, and Linux operating system.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118756791/02_86e0a472cf2c820b1236f506d88ef18c.png)
+Figure 1 Front and side views of the development board
+
+The XM138F-IDK-V3.0 is a development board designed based on Shenzhen Xinmai's XM138-SP6-SOM core board. It features a 4-layer board design with immersion gold and lead-free process, providing users with a test platform for the XM138-SP6-SOM core board to quickly evaluate its overall performance.
+
+The XM138-SP6-SOM exposes all CPU resource signal pins, making secondary development extremely easy. Customers only need to focus on upper-layer applications, significantly reducing development difficulty and time costs, enabling rapid product launch and timely market capture. It not only provides rich demo programs but also detailed development tutorials and comprehensive technical support to assist customers with baseboard design, debugging, and software development.
+
+2 Typical Application Areas
+Data acquisition, processing, and display systems
+Smart power systems
+Image processing equipment
+High-precision instrumentation
+Mid-to-high-end CNC systems
+Communication equipment
+Audio and video data processing
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118756791/03_b2374155188e057172d60d7e4c7035ab.png)
+Figure 2 Typical application areas

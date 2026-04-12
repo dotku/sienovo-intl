@@ -23,37 +23,33 @@ config({ path: join(PROJECT_ROOT, ".env.local") });
 // ── Config ──────────────────────────────────────────────────────────────────
 const SOURCE_DIR = join(PROJECT_ROOT, "content/blog");
 const TARGET_DIR = join(PROJECT_ROOT, "content/blog-en");
-const DELAY_MS = 1500; // Rate limiting between API calls
+const DELAY_MS = parseInt(process.env.TRANSLATE_DELAY_MS || "500", 10); // Default 500ms, increase for bulk runs
 
 // ── Provider definitions ────────────────────────────────────────────────────
 const PROVIDERS = {
-  cerebras: {
-    name: "Cerebras",
-    url: "https://api.cerebras.ai/v1/chat/completions",
-    key: process.env.CEREBRAS_API_KEY,
-    model: "qwen-3-235b-a22b-instruct-2507",
-    format: "openai",
-  },
-  gateway: {
-    name: "Vercel AI Gateway",
-    url: "https://gateway.ai.vercel.app/v1/chat/completions",
-    key: process.env.VERCEL_AI_GEWAY_API_KEY,
-    model: "google/gemini-2.5-flash",
-    format: "openai",
-  },
-  openrouter: {
-    name: "OpenRouter",
-    url: "https://openrouter.ai/api/v1/chat/completions",
-    key: process.env.OPENROUTER_API_KEY,
-    model: "google/gemini-2.5-flash",
-    format: "openai",
-  },
+  // Daily sync: Gemini free tier (1,500 req/day) is more than enough
   gemini: {
     name: "Gemini Direct",
     url: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
     key: process.env.GEMINI_API_KEY,
     model: "gemini-2.5-flash",
     format: "gemini",
+  },
+  // Fallback: Vercel AI Gateway (uses credits, reliable for bulk)
+  gateway: {
+    name: "Vercel AI Gateway",
+    url: "https://ai-gateway.vercel.sh/v1/chat/completions",
+    key: process.env.VERCEL_AI_GEWAY_API_KEY,
+    model: "google/gemini-2.5-flash",
+    format: "openai",
+  },
+  // Fallback: OpenRouter
+  openrouter: {
+    name: "OpenRouter Gemini",
+    url: "https://openrouter.ai/api/v1/chat/completions",
+    key: process.env.OPENROUTER_API_KEY,
+    model: "google/gemini-2.5-flash",
+    format: "openai",
   },
 };
 

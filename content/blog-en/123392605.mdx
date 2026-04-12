@@ -1,0 +1,58 @@
+---
+title: "Low-Cost, High Real-Time EtherCAT Motion Controller Solution Based on ARM+FPGA"
+date: "2022-03-10"
+slug: "123392605"
+tags: ["#fpga开发", "#arm", "#嵌入式硬件"]
+source: "https://blog.csdn.net/yeyuangen/article/details/123392605"
+originalTitle: "基于ARM+FPGA低成本高实时Ethercat运动控制器解决方案"
+---
+
+As a core component of CNC systems, motion controllers are widely used in high-end robotics, CNC machine tools, industrial automation, and other fields.
+
+This article, set against the backdrop of practical engineering applications and aiming to develop an efficient, highly reliable, and feature-rich motion controller, conducts research and analysis on motion controllers and motion control algorithms. This work holds significant theoretical importance and practical application value for achieving high-speed, high-efficiency, and high-precision motion control.
+
+Based on an ARM+FPGA hardware architecture, a comprehensive hardware design scheme was proposed. The motion controller's hardware circuit, main control board, and expansion board were designed, and a 3D motion control platform was built. A comprehensive software design scheme for the motion controller was also proposed. A serial communication program was designed based on the MODBUS protocol, and a dynamic linked list was designed to store motion control information from the host computer (touch screen) into external EEPROM, providing convenience for practical operation. Communication modules and acceleration/deceleration modules for ARM and FPGA were designed using the Verilog HDL hardware description language, and an HMI control interface was designed to enable human-machine interaction.
+
+The basic principles and implementation process of traditional DDA (Digital Differential Analyzer) for planar line and circular arc interpolation were analyzed and verified through MATLAB simulations. The improved DDA for planar line and circular arc interpolation was studied, and simulation comparisons showed that the improved interpolation algorithm has higher interpolation efficiency. The specific steps for implementing spatial line interpolation using DDA were investigated. A spatial circular arc interpolation algorithm was analyzed, and simulation results indicated that this algorithm ensures all interpolated points lie on the circular arc, with no cumulative error.
+
+The implementation processes of trapezoidal and S-curve acceleration/deceleration algorithms were elaborated. Based on an analysis of stepper motor torque-frequency characteristics and acceleration/deceleration characteristics, research was conducted on the discretization method for stepper motor acceleration/deceleration curves and the method for establishing speed data tables.
+
+Finally, the performance and algorithms of the motion controller were tested. The results show that the motion controller designed and developed in this paper exhibits good functionality and performance. This motion controller has already been applied in the control of automation equipment such as dispensing machines, demonstrating promising application prospects.
+
+Currently, the mainstream architectural forms for CNC systems developed based on embedded processors are as follows [38,39]:
+
+(1) ARM+DSP Architecture: This architecture offloads ARM's data processing tasks by leveraging the DSP's powerful floating-point computation capabilities, ensuring system real-time performance. However, control over the number of motors and digital I/O is limited.
+
+(2) ARM+FPGA/CPLD Architecture: This architecture effectively expands interface processing capabilities. However, interpolation algorithms and other computations are entirely handled by the ARM. If the ARM's data processing capability is insufficient, both the accuracy and real-time performance of the control system will be affected.
+
+(3) ARM+DSP+FPGA/CPLD Architecture: This form can fully utilize ARM's data processing capabilities, as well as DSP's and FPGA's real-time computation and interface processing capabilities. However, the structure is complex, which is detrimental to maintenance and development.
+
+Through the above analysis, and considering the system's real-time requirements, data processing requirements, and practical application needs, the motion controller hardware system studied in this project adopts an ARM+FPGA architectural form. ARM is used as the main control chip, primarily responsible for control tasks such as interpolation algorithms, human-machine interaction, and data storage. The auxiliary FPGA chip handles functions such as parallel pulse output for each axis, output control (e.g., controlling switch actions via relays), acceleration/deceleration control, home position detection, communication module processing, and differential input signal processing. The block diagram of the motion controller is shown in Figure 2-1.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/123392605/01_ccdb07ac97c6a7248c44baf8f099c472.png)
+
+Considering the real-time and flexibility requirements of the control system, the STM32F407 produced by STMicroelectronics was selected as the main control chip.
+
+Regarding the selection of the FPGA chip, it was first necessary to consider whether the pin resources and interface voltage levels matched those of the STM32F407. At the same time, factors such as platform development costs and the availability of complete documentation were also important considerations. Considering multiple factors, the FPGA chip selected for the motion controller described in this paper is Altera's EP2C8Q208C8N.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/123392605/02_9ab64e18e29f0a0d40561c8d9cbc66b9.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/123392605/03_5b3c6ec3e7a8f3b2e7d146bbeb7537f6.png)
+
+In addition to communicating with the STM32F407, the FPGA also needs to control stepper motors and input/output signals. However, the FPGA's driving capability is very limited and cannot directly control stepper motor drivers, etc. Therefore, level shifting is required to achieve the corresponding functions. The expansion board designed in this paper includes 4-channel pulse output circuits and 20-channel isolated input/output circuits.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/123392605/04_e5cdedb8d4c18f050bd690194075fd5d.png)
+
+Figure 2-15: Physical Diagram of the Main Control Board
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/123392605/05_c1ab490ee43bb661ccbc93a6e169e032.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/123392605/06_df0d434a792904cf9274e204b10141a8.png) 
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/123392605/07_2b60d9b2ea7b6b31a3b8c92bac32be84.png) 
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/123392605/08_5673a3d756c5f66c9cb2f867663e2de5.png) 
+
+EtherCAT section to be supplemented.
+
+Welcome for technical exchange and to obtain more resources. WeChat: 13670212541

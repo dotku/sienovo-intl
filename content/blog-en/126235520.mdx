@@ -1,0 +1,147 @@
+---
+title: "RK3399+XILINX K7 FPGA Applied in Radar, Communication, Telemetry, Imaging, and Other Fields"
+date: "2022-08-15"
+slug: "126235520"
+tags: ["#RK3399+K7", "#RK3399+FPGA"]
+source: "https://blog.csdn.net/yeyuangen/article/details/126235520"
+originalTitle: "RK3399+XILINX K7 FPGA 应用于雷达通信遥测成像等领域"
+---
+
+xdma driver compilation on ARM, cross-compiler configuration, and kernel compilation.
+
+Here's an image first.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/126235520/01_0b3cb910e96e57f729d3d06da5545613.jpeg)
+
+The following refers to [XILINX FPGA+RK3399 PCIE X4\_FPGA零下的博客-CSDN博客](https://blog.csdn.net/wcdlove/article/details/112839141 "XILINX FPGA+RK3399 PCIE X4_FPGA零下的博客-CSDN博客")
+
+xdma Compilation Instructions
+1. Install cross-compiler (official version 6.3 is used)
+
+// An highlighted block
+   1、 mkdir -p /opt/FriendlyARM/toolchain/  # Create a new directory
+   2 、cp gcc \-linaro-7.4.1-2019.02-x86\_64\_aarch64-linux-gnu.tar  /opt/FriendlyARM/toolchain/
+   3、tar xvf gcc-linaro-7.4.1-2019.02-x86\_64\_aarch64-linux-gnu.tar # Extract the compiler to the current directory
+   4、 mv  gcc-linaro-7.4.1-2019.02-x86\_64\_aarch64-linux-gnu  gcc-linaro-7.4.1    # Shorten the name
+   5 、source setEnv.sh  # Set temporary environment variables, only valid in the current terminal, source before each compilation.
+  
+Verify aarch64 \-linux-gnu-gcc -v
+2. Modify kernel path in Makefile, specify your own compiler
+
+// An highlighted block
+obj-m += xdma.o
+xdma-objs := xdma-core.o xdma-sgm.o xdma-ioctl.o xdma-bit.o
+
+KERNELDIR ?=/home/ycd/project/rk3399/kernel/kernel-rockchip-nanopi4-linux-v4.4.y 
+PWD       := $(shell pwd)
+
+ROOT := $(dir $(M))
+XILINXINCLUDE := -I$(ROOT)../include -I$(ROOT)/include
+
+GCC49 :=aarch64-linux-gnu-
+all:
+    $(MAKE) -C $(KERNELDIR) M=$(PWD) modules
+
+install: all
+    $(MAKE) -C $(KERNELDIR) M=$(PWD) modules\_install
+    depmod -a
+    install -m 644 10-xcldma.rules /etc/udev/rules.d
+
+clean:
+    rm -rf \*.o \*.o.d \*~ core .depend .\*.cmd \*.ko \*.ko.unsigned \*.mod.c .tmp\_versions \*.symvers .#\* \*.save \*.bak Modules.\* modules.order Module.markers \*.bin
+
+CFLAGS\_xdma-core.o := -Wall -DDEBUG $(XILINXINCLUDE)
+
+ifeq ($(GCC49),1)
+    CFLAGS\_xdma-core.o += -Wno-error=date-time
+endif
+
+CFLAGS\_xdma-sgm.o := $(XILINXINCLUDE)
+CFLAGS\_xdma-bit.o := $(XILINXINCLUDE)
+CFLAGS\_xdma-ioctl.o := $(XILINXINCLUDE)
+
+After compiling xdma.ko, import it to the development board, and it can then be inserted into the kernel.
+
+\=============Below is the C6678+K7 platform solution, for comparison====================
+
+1. RK3399 is domestically produced, and K7 also has a corresponding Fudan Micro domestic replacement;
+
+2. The C6678 chip is already 10 years old and has no new iterations.
+
+A binocular intersection visual image processing system platform based on FPGA and DSP collaborative processing architecture. This platform uses one TI KeyStone series multi-core floating-point/fixed-point DSP TMS320C6678 as the core processing unit to execute visual image processing algorithms, and one Xilinx Kintex-7 series FPGA XC7K325T as the video co-processing unit to perform video image encoding/decoding, caching, and pre-processing. This system can adapt to various video format inputs and outputs, achieve target measurement, tracking, and recognition based on binocular intersection, and can be widely applied in airborne or vehicle-mounted equipment.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/126235520/02_9ebdf55c94f2c15f4ef751b1d8b9e4b1.png)
+
+FPGA + Multi-core DSP Collaborative Processing Architecture;
+
+Video Image Interface Performance:
+
+ 1. 1-channel CameraLink Base digital video input;
+
+ 2. 1-channel PAL analog composite video input, resolution 720x576, 25 fps;
+
+ 3. 1-channel PAL raw video output, resolution 720x576, 25 fps;
+
+ 4. 1-channel PAL processed video output, resolution 720x576, 25 fps;
+
+ 5. 1-channel HD-SDI high-definition digital video input, resolution 1920x1080@30p;
+
+ 6. 1-channel HD-SDI high-definition raw video output, resolution 1920x1080@30p;
+
+ 7. 1-channel HD-SDI high-definition processed video output, resolution 1920x1080@30p;
+
+ 8. 1-channel DVI display output interface, supports 1080P resolution;
+
+Processing Performance:
+
+ 1. DSP Fixed-Point Operations: 40 GMAC/Core * 8 = 320 GMAC;
+
+ 2. DSP Floating-Point Operations: 20 GFLOPs/Core * 8 = 160 GFLOPs;
+
+Dynamic Storage Performance:
+
+ 1. DSP Processing Node: 64-bit, 4 GByte DDR3-1333 SDRAM;
+
+ 2. FPGA Processing Node: 64-bit, 2 GByte DDR3-1600 SDRAM;
+
+Interconnect Performance:
+
+ 1. DSP and FPGA: SRIO x4@5Gbps/lane;
+
+ 2. DSP and FPGA: PCIe x2@5Gbps/lane;
+
+Physical and Electrical Characteristics
+
+ 1. Board Dimensions: 158 x 217mm
+
+ 2. Board Power Supply: 3A max@+12V (±5%)
+
+ 3. Cooling Method: Natural air cooling
+
+Environmental Characteristics
+
+ 1. Operating Temperature: -40°~﹢85°C, Storage Temperature: -55°~﹢125°C;
+
+ 2. Operating Humidity: 5%~95%, non-condensing
+
+**Software Support**
+
+ 1. Optional integrated Board Support Package (BSP):
+
+2. DSP low-level interface drivers;
+
+3. FPGA low-level interface drivers;
+
+4. Board-level interconnect interface drivers;
+
+5. Multi-core processing low-level drivers based on SYS/BIOS;
+
+ 6. Can provide customized algorithms and system integration according to customer requirements:
+
+**Application Scope**
+
+1. Machine Vision;
+
+2. Optoelectronic Information Processing;
+
+3. High-Speed Graphics Processing;

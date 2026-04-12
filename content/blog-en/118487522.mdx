@@ -1,0 +1,84 @@
+---
+title: "基于AM5728的PROFIBUS 通信测试"
+date: "2021-07-05"
+slug: "118487522"
+tags: ["#AM5728", "#PROFIBUS", "#工业总线"]
+source: "https://blog.csdn.net/yeyuangen/article/details/118487522"
+originalTitle: "基于AM5728的PROFIBUS 通信测试"
+---
+
+---
+Title: PROFIBUS Communication Testing Based on AM5728  
+
+Content:  
+**PROFIBUS Communication Testing**  
+
+#### **Ø 1. Hardware Connection**  
+
+Connect the debug serial ports of two XM5728-IDK-V3 development boards to the PC using Micro USB cables, and open the serial debugging windows. Use jumper wires to connect the PROFIBUS interfaces of the two XM5728-IDK-V3 boards: connect A to A, B to B, and GND to GND. Ensure the terminal blocks are removed before connecting, as poor terminal contact previously caused signal transmission issues. For hot-plug testing, cut one wire (e.g., the A wire) in the middle and manually connect/disconnect it instead of doing so at the terminal blocks (which may cause problems). **Wire connection inspection is critical.**  
+
+Insert the prepared master/slave SD boot cards into the respective SD card slots of the XM5728-IDK-V3 boards. Power both boards using 12V-2A DC power supplies.  
+
+#### **Ø 2. Communication Testing**  
+
+First, power on the XM5728-IDK-V3 board configured as the slave device. No additional configuration is required for the slave device during this test—it will wait for the master device to connect after booting. The following output can be observed in the serial debugging window:  
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118487522/01_517392cc293bbb002c0dfea036bd6c9b.png)  
+
+After starting the slave device, power on the XM5728-IDK-V3 board configured as the master. Open the serial debugging window, where the following information will be printed:  
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118487522/02_4d9300915f8f426655ad36b616bf2c7f.png)  
+
+Figure 131  
+
+When the prompt "press any key to continue" appears, quickly press Enter to proceed with configuration. If no key is pressed within the timeout period, the system will skip configuration, requiring a restart of the master device. The following steps involve configuring the communication baud rate, slave number, and slave address.  
+
+Configure the communication baud rate, which must not exceed 500K. Select the desired baud rate from the options—for this test, choose 500K by entering the corresponding number **4**, as shown below:  
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118487522/03_858b1d5f299bc695d3d39421b074665c.png)  
+
+Figure 132  
+
+For this test, set the slave number to **1** and the slave address to **4**, as shown below:  
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118487522/04_eeae7e7530dccf2fbce6d1ed2ec692dc.png)  
+
+Figure 133  
+
+After configuration, the master device's serial debugging window will display the following output:  
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118487522/05_077405fd698af181778c46062e6746fb.png)  
+
+Figure 134  
+
+Once configured, switch to the slave device's serial debugging window, where continuous data printing indicates successful reception of data from the master device:  
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118487522/06_bdc0c645ad403e1d82c59fad85626447.png)  
+
+Figure 135  
+
+**27.3**  
+
+**Hot-Plug Testing**  
+
+The PROFIBUS interface supports hot-plugging. If communication is ongoing between the two boards, disconnecting the PROFIBUS interface will cause the master device's serial port to print:  
+
+```  
+Slave out of state DataExchange: 4  
+```  
+
+Simultaneously, the slave device will stop receiving data and printing information. Reconnecting the PROFIBUS interface will restore communication, with the master device printing:  
+
+```  
+Slave in state DataExchange: 4  
+```  
+
+The slave device will resume data reception and printing. The master device's serial output is shown below:  
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118487522/07_91397757ce3d1f46c55b9d0da618cb6a.png)  
+
+Figure 136  
+
+Profibus test:  
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118487522/08_792b9866919514b15fd890f301a230bb.png)

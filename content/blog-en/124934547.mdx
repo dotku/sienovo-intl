@@ -1,0 +1,183 @@
+---
+title: "Design and Implementation of a ZYNQ+AD9361-based Software Defined Radio Platform (2)"
+date: "2022-05-23"
+slug: "124934547"
+tags: ["#ZYNQ", "#AD9361", "#无线电"]
+source: "https://blog.csdn.net/yeyuangen/article/details/124934547"
+originalTitle: "基于ZYNQ+AD9361的软件无线电平台设计与实现 （2）"
+---
+
+## [Design and Implementation of a ZYNQ+AD9361-based Software Defined Radio Platform (1)](https://blog.csdn.net/YEYUANGEN/article/details/122832172 "Design and Implementation of a ZYNQ+AD9361-based Software Defined Radio Platform (1)")
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/124934547/01_212b48ba2dbe438676179d00ee0e47ff.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/124934547/02_59b185b3e3f27a0832fa50264bd104be.png)
+
+### **1 Evaluation Board Introduction**
+
+Xinmai Technology XM-ZYNQ7045-EVM is a high-end heterogeneous multi-core SoC evaluation board designed based on Xilinx Zynq-7000 series XC7Z045/XC7Z100 high-performance processors. The processor integrates a dual-core ARM Cortex-A9 on the PS (Processor System) side and 28nm Kintex-7 architecture programmable logic resources on the PL (Programmable Logic) side. The evaluation board consists of a core board and an evaluation baseboard. The core board has undergone professional PCB layout and high/low temperature testing, ensuring stability and reliability for various industrial application environments.
+
+The evaluation board offers rich interface resources, including dual Gigabit Ethernet ports, four SFP+ optical ports, CameraLink, HDMI, FMC HPC, GTX, PCIe, USB, and Micro SD interfaces. This facilitates rapid product solution evaluation and technical pre-research for users.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/124934547/03_abb519f5fe21616f5da49a290b43cc8b.png)
+
+Figure 1 Xilinx Zynq-7000 Processor Functional Block Diagram
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/124934547/04_bcea5f6903127e8ef5f1da56458a3595.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/124934547/05_0cb420fdaa86a0a51f96adb50975f765.png)
+
+Figure 2
+
+### **2 Typical Application Areas**
+
+*   Software Defined Radio
+*   Radar Detection
+*   Optoelectronic Detection
+*   Video Tracking
+*   Image Processing
+*   Underwater Detection
+*   Positioning and Navigation
+*   Deep Learning
+
+### **3 Software and Hardware Parameters**
+
+****3.1**** ****Hardware Parameters****
+
+Table 1
+
+CPU
+
+CPU: Xilinx Zynq-7000 XC7Z045/XC7Z100-2FFG900I
+
+2x ARM Cortex-A9, main frequency 800MHz, 2.5DMIPS/MHz Per Core
+
+1x Kintex-7 architecture programmable logic resources
+
+ROM
+
+PS Side: 8GByte eMMC
+
+PS Side: 128/256Mbit SPI NOR FLASH
+
+RAM
+
+PS: Single-channel 32bit DDR bus, 1GByte DDR3
+
+PL: Single-channel 32bit DDR bus, 1/2GByte DDR3
+
+Logic Cell
+
+XC7Z045: 350K, XC7Z100: 444K
+
+OSC
+
+PS Side: 33.33MHz
+
+B2B Connector
+
+2x 140pin male high-speed B2B connectors, 2x 140pin female high-speed B2B connectors, total 560pin, pitch 0.5mm, mated height 7.0mm
+
+LED
+
+2x Power indicator LEDs (1 on core board, 1 on evaluation baseboard)
+
+1x PL side DONE LED (1 on core board)
+
+3x PS side user-programmable LEDs (2 on core board, 1 on evaluation baseboard)
+
+2x PL side user-programmable LEDs (2 on evaluation baseboard)
+
+KEY
+
+1x Power reset button
+
+1x System reset button
+
+1x PS side user input button
+
+1x PL side user input button
+
+SD
+
+1x Micro SD interface (PS side)
+
+XADC
+
+1x Pin header interface, 2x 2pin specification, 2.54mm pitch, single-channel dedicated differential input, 1MSPS
+
+Ethernet
+
+1x PS RGMII, RJ45 interface, 10/100/1000M adaptive (PHY located on core board)
+
+1x PL RGMII, RJ45 interface, 10/100/1000M adaptive
+
+Watchdog
+
+1x Watchdog, 3pin pin header, 2.54mm pitch, configured via jumper cap
+
+UART
+
+1x Debug UART, Micro USB interface (PS side)
+
+1x RS232 UART, DB9 interface (PL side)
+
+1x RS485 UART, 3pin 3.81mm green terminal block (PL side)
+
+CAN
+
+2x CAN, 3pin 3.81mm green terminal block (PL side)
+
+USB
+
+4x USB 2.0 HOST interfaces, expanded using HUB (PHY located on core board)
+
+PCIe
+
+1x PCIe, derived from two GTX groups, total two lanes, x4 gold finger connection (PL side)
+
+IO
+
+1x 400pin FMC connector, 1.27mm pitch, HPC standard
+
+SATA
+
+1x 7pin SATA interface, 150MHz LVDS differential clock (PL side)
+
+HDMI
+
+1x HDMI OUT (PL side)
+
+1x HDMI IN (PL side)
+
+DISPLAY
+
+1x LCD RES resistive touchscreen, 40pin FFC connector, 0.5mm pitch (PL side)
+
+CAMERA
+
+2x CAMERA, 2x 10pin female header, 2.54mm pitch (PL side)
+
+CameraLink
+
+2x CameraLink Base interfaces, supporting Full mode (PL side)
+
+SFP+
+
+4x SFP+ optical ports, supporting 10 Gigabit optical modules, derived from high-speed serial transceivers (GTX)
+
+LVDS
+
+1x Pin header interface, 2x 15pin specification, connectable to general-purpose LVDS display, 2.00mm pitch (PL side)
+
+SMA
+
+1x GTX CLK
+
+1x GTX RX
+
+1x GTX TX
+
+RTC
+
+1x RTC socket, compatible with button cells ML2032 (3V rechargeable), CR2032

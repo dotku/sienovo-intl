@@ -1,0 +1,38 @@
+---
+title: "Interview Question [1]: Is i++ an atomic operation? Explain why."
+date: "2014-02-21"
+slug: "19612795"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/19612795"
+originalTitle: "面试题【1】：i++是否原子操作？并解释为什么？"
+---
+
+No, it is not an atomic operation. Reasons:
+
+**1. i++ consists of three stages:**
+
+- Load from memory to register  
+- Increment in register  
+- Write back to memory  
+
+These three stages can be interrupted and separated.
+
+**2. The behavior of ++i depends on how the compiler compiles it.**
+
+Some compilers, such as VC, in non-optimized builds, may generate the following assembly code:
+
+```asm
+__asm
+{
+    mov eax, dword ptr[i]
+    inc eax
+    mov dword ptr[i], eax
+}
+```
+
+In this case, it is definitely not an atomic operation, and mutual exclusion via locking is required.  
+Suppose optimization is enabled—will it always be compiled into `inc dword ptr[i]`? The answer is no. It depends on the compiler. If the result of ++i is to be used afterward, it definitely won't be compiled into the `inc dword ptr[i]` form.  
+
+Now, suppose it *is* compiled into `inc dword ptr[i]`. Since this instruction is atomic, does that mean locking is unnecessary? On a single-core machine, skipping locks may not cause issues. However, on a multi-core machine, not using locks can lead to serious problems: two CPUs may simultaneously execute the `inc` instruction, yet after both executions, the value may have only been incremented once.
+
+The only assembly instruction that truly ensures atomicity without "extra" locking is `lock inc dword ptr[i]`. The `lock` prefix temporarily locks the bus, preventing other CPUs from accessing the corresponding memory location. However, no current compiler compiles ++int into this form.

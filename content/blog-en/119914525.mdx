@@ -1,0 +1,62 @@
+---
+title: "77GHz Automotive Anti-collision Radar Signal Processing Design and Implementation"
+date: "2021-08-25"
+slug: "119914525"
+tags: ["#OMPAL138", "#FPGA", "#防撞雷达", "#信号处理"]
+source: "https://blog.csdn.net/yeyuangen/article/details/119914525"
+originalTitle: "77GHz汽车防撞雷达信号处理设计与实现"
+---
+
+In recent years, automotive autonomous driving has received increasing attention. Millimeter-wave automotive radar is one of the key technologies for automotive autonomous driving, offering advantages such as stable performance, high measurement accuracy, and low cost. This paper focuses on the signal processing part of automotive anti-collision radar systems, including the construction of the signal processing platform and research on related algorithms for range and velocity measurement.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/119914525/01_d9369879c2c6a8135daa7d6bd719defa.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/119914525/02_f05dd3a503c3f7364c2a22d2af21423b.png)
+
+Firstly, the research background and current status of automotive anti-collision radar are outlined, and the basic principles and overall scheme of 77GHz automotive anti-collision radar are introduced. The communication design between the DSP board based on the OMAPL138 platform and the millimeter-wave front-end is studied, as well as the communication methods between OMAPL138 and HMC703, AD8285, AD8334, and the gyroscope. The principles of range, velocity, and angle measurement for Frequency Modulated Continuous Wave (FMCW) radar are introduced, and MATLAB and Code Composer Studio simulation implementations of the radar algorithms are provided. The final algorithm implementation runs correctly on OMAPL138 and provides high accuracy when tested. Finally, this paper describes the optimization of the radar range measurement algorithm. Due to the picket-fence effect, FFT cannot provide accurate signal frequencies. This paper introduces several commonly used frequency estimation algorithms and their frequency deviation estimation errors. Based on this, a hybrid frequency estimation algorithm based on FFT coefficients and M-Rife is proposed and implemented. This hybrid algorithm uses FFT coefficients, avoiding the problem of amplitude information alone being susceptible to noise interference. When calculating the frequency offset, the M-Rife algorithm is used to ensure the accuracy of frequency estimation.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/119914525/03_17044da40b44b8a73f15dd0153821cd0.png)
+
+1 Evaluation Board Introduction
+Based on TI OMAP-L138 (fixed-point/floating-point DSP C674x + ARM9) + Xilinx Spartan-6 FPGA processor;
+OMAP-L138 FPGA connects via uPP, EMIFA, I2C bus, with communication speeds up to 228 MByte/s;
+OMAP-L138 main frequency 456MHz, with computing power up to 3648 MIPS and 2746 MFLOPS;
+FPGA compatible with Xilinx Spartan-6 XC6SLX9/16/25/45, strong platform upgrade capability;
+The development board provides rich peripherals, including high-speed data transfer interfaces such as Gigabit Ethernet, SATA, EMIFA, uPP, USB 2.0, and also common interfaces like GPIO, I2C, RS232, PWM, McBSP;
+Certified through high and low-temperature testing, suitable for various harsh working environments;
+DSP+ARM+FPGA triple-core SOM, with dimensions of 66mm*38.6mm, using industrial-grade B2B connectors to ensure signal integrity;
+Supports bare-metal, SYS/BIOS operating system, Linux operating system.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/119914525/04_86e0a472cf2c820b1236f506d88ef18c.png)
+Figure 1 Front and side views of the development board
+
+The XM138F-IDK-V3.0 is a development board designed based on Shenzhen Xinmai's XM138-SP6-SOM core board. It features a 4-layer board design with immersion gold and lead-free process. It provides users with a test platform for the XM138-SP6-SOM core board, for quickly evaluating the overall performance of the XM138-SP6-SOM core board.
+
+The XM138-SP6-SOM exposes all CPU resource signal pins, making secondary development extremely easy. Customers only need to focus on upper-layer applications, greatly reducing development difficulty and time costs, allowing products to be launched quickly and seize market opportunities in a timely manner. It not only provides rich demo programs but also detailed development tutorials and comprehensive technical support, assisting customers with baseboard design, debugging, and software development.
+
+2 Typical Application Areas
+Data acquisition, processing, and display systems
+Smart power systems
+Image processing equipment
+High-precision instrumentation
+Mid-to-high-end CNC systems
+Communication equipment
+Audio and video data processing
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/119914525/05_03f44811b3c48cebd50bca516410c1e5.jpeg)
+Figure 2 Typical application areas
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/119914525/06_b8b71c37266c08c94fd72bc1aa2b41ce.jpeg)
+
+3 Software and Hardware Parameters
+
+Schematic diagram of development board peripheral resource block diagram
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/119914525/07_f5064ff9318c7bd28e73ecd10140aeb7.png)
+
+Figure 3 Development board interface schematic
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/119914525/08_efa6e7ddb5cfe701944c9379658db2e4.png)
+
+Figure 4 Development board interface schematic
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/119914525/09_a2acbcb8257f476697b113fcb5939cb9.jpeg)

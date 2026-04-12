@@ -1,0 +1,67 @@
+---
+title: "Research and Design of Gas Well Industrial Gateway Based on Domestic Loongson CPU (Part 1)"
+date: "2023-02-17"
+slug: "129077999"
+tags: ["#工业网关", "#RTU", "#油田"]
+source: "https://blog.csdn.net/yeyuangen/article/details/129077999"
+originalTitle: "基于国产龙芯 CPU 的气井工业网关研究与设计（一）"
+---
+
+Currently, the level of automation in China's gas fields has not yet been fully popularized, and there remains a certain gap compared to the widespread automation levels seen in gas well stations in other countries. In nations with relatively abundant natural gas resources, substantial investment and long development cycles have led to successive generations of automated extraction systems. As a result, their automation levels are higher, and digital monitoring systems are more mature.
+
+For example, global energy giants such as Shell have established highly comprehensive automation control systems. These systems not only increase energy output but also enhance returns and profitability. Therefore, the research and promotion of gas well automation systems have become particularly important. Applying the domestically developed Loongson CPU to gas well controllers not only expands the application scope of Loongson chips but also provides a new research and development approach for gas well controllers. Thus, the conceptual framework of this study represents a technological innovation, offering new directions for the development of energy resources such as natural gas and for processor applications.
+
+Moreover, CPU development represents the core of information technology advancement and is a critical component in military informatization across nations. In the past, China's CPU chip development progressed slowly, relying heavily on foreign imports, which constrained the development of related industries and posed significant national security risks due to imported chips \[7\]. Hence, independently developing CPUs with Chinese intellectual property rights has become urgent to drive overall industry growth. The successful development and application of the domestic Loongson CPU have accelerated the rapid development of China’s information industry, resolving the long-standing "chip-less" dilemma in China's information sector.
+
+By leveraging the Loongson chip's advantages—low power consumption, low cost, high execution efficiency, and suitability for field environments—it becomes feasible to achieve remote control of gas wells. This is of great significance for enhancing China's independent R&D capabilities and reducing reliance on foreign core components. Furthermore, while strengthening core R&D capacity, it also reduces data acquisition and monitoring costs in China's natural gas extraction processes, thereby improving energy development efficiency.
+
+In summary, the research on a gas well controller based on the Loongson CPU represents a novel attempt. This paper uses the Loongson platform as the hardware foundation, ports the Linux operating system, and customizes it according to system requirements, effectively reducing software development costs. Applying the Loongson CPU in the design of gas well controllers holds significant industrial and practical value for promoting domestic Loongson technology and advancing the localization of gas well control equipment.
+
+**2.2 System Requirements Analysis**
+
+Based on field research at the Changqing Gas Field, the current RTUs (Remote Terminal Units) at natural gas well sites have three primary application requirements.
+
+(1) Data Acquisition and Monitoring Requirements
+
+This study takes Lower Paleozoic and Upper Paleozoic natural gas wells as examples. The main characteristics of Lower Paleozoic gas reservoirs are the presence of components such as carbon dioxide and hydrogen sulfide, making them dry gas reservoirs with a high carbon-to-sulfur ratio. Typically, these wells use unrestricted production at the wellhead without on-site metering—the metering is instead performed at gathering stations. These wells operate under high production pressure, and only parameters such as tubing pressure and casing pressure are collected on-site. Upper Paleozoic gas wells are primarily located in the Sulige area of the Changqing Oilfield and generally contain no carbon dioxide or hydrogen sulfide \[16\], but include small amounts of wet gas with heavy hydrocarbons (C7+). In addition to collecting tubing and casing pressures, data such as gas flow rate and emergency shutoff valve status must also be acquired.
+
+(2) Security Requirements
+
+1) Image Capture and Upload  
+Due to their remote and often harsh environments, gas wells require digital management systems capable of monitoring and uploading on-site images. However, image upload rates are currently low due to limitations in field communication methods and the functional constraints of existing gas well RTUs.
+
+2) Voice Alarm  
+Gas well sites are typically high-pressure hazardous facilities. Since most wells are unattended and located in remote areas, there is a risk of local villagers entering the site, potentially damaging equipment or endangering personal safety. Therefore, infrared detection devices and voice alarm systems must be installed on-site. A closed-loop system combining passive infrared alarms, voice alerts, and image capture enables security alarms to trigger alerts, capture images, and store evidence—ensuring on-site traceability and accountability.
+
+(3) Wide Adaptability Requirements
+
+1) Diversity of Instrument Types  
+Currently, gas field applications involve various types, specifications, manufacturers, and protocols of instrumentation. To meet the needs of digital integration on-site, gas well RTUs must support strong secondary development capabilities.
+
+2) Diversity of On-site Networks  
+Given the variety of data transmission methods used at gas wells, RTUs must have rich communication interfaces to flexibly connect to multiple communication networks and support data upload functions.
+
+3) Special Power Supply Requirements  
+Most gas well sites do not have direct access to industrial power. Instead, field equipment typically uses hybrid wind-solar power systems providing DC24V. However, due to climatic conditions and weather such as rain and snow, the supply voltage can be unstable with large fluctuations. Therefore, the power system design for gas well equipment must offer higher adaptability and reliability.
+
+**2.3 Overall System Architecture Design**
+
+The RTU designed in this paper, along with the selected Ancong integrated photovoltaic controller, is installed near natural gas well stations. A host monitoring system is deployed at the monitoring center, which stores and analyzes real-time data collected from the well stations, enabling control over the gas well operations. Based on system requirements analysis, data from pressure transmitters and gas flow meters are transmitted via communication ports to the monitoring center. The center continuously monitors well site conditions and uses data analysis to perform intelligent operations such as controlling emergency shutoff valves, capturing images, and triggering voice alarms—improving the automation level of gas well production. Figure 2-2 shows a schematic diagram of the gas well station monitoring system.
+
+According to the design requirements of this paper, the main interfaces include wide-range power input, analog input, TTS voice output, RS232, RS485, 4G, and Ethernet communication ports. The key technical parameters of the gas well controller system design are listed in Table 2-1.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129077999/01_9adc5933ef2a067832a548341f0e2a4b.png)
+
+**2.4 Introduction to the Loongson 1B Core Board**
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129077999/02_4d4b19f7969773a3f21ac3070904b659.png)
+
+The main control module of the gas well controller designed in this paper is the Loongson 1B core board developed by Shenzhen Xinmai. This core board uses the Loongson 1B processor from Loongson Technology Corporation Limited as the main control unit. It integrates 64MB of DDR2 SDRAM, 128MB of NAND FLASH, and 512KB of SPI FLASH memory, meeting the requirements for low-cost cloud terminals, data acquisition, and network devices \[17\]. Additionally, the Loongson 1B core board operates at 3.3V, powered by an external power source through a voltage conversion circuit on the gas well RTU baseboard. Figure 2-3 shows the physical appearance of the Loongson 1B core board, and its design parameters are listed in Table 2-2.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129077999/03_a1a459410d885286d10e16bea2a8eebb.png)
+
+The Loongson 1B is a system-on-chip based on the GS232 processor core \[18\], featuring a dual-issue processor with a frequency range of 200–233 MHz, configurable up to 266 MHz. To improve pipeline efficiency, it employs technologies such as branch prediction, register renaming, out-of-order execution, way-prediction instruction caching, non-blocking data caching, and write-combining fetch techniques \[19\]. This CPU offers high cost-effectiveness and is widely used in industrial control, home gateways, information kiosks, medical devices, and security applications. A major advantage of this processor is its rich peripheral set, enabling RTUs to achieve extensive I/O and communication functions without external expansion. Additionally, the processor has low power consumption, with an operating power of only 0.3–0.5 watts, significantly reducing operational costs.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129077999/04_653de1ee3955493c3b712a170f284d42.png)
+
+Xinmai provides integrated hardware and software solutions based on Loongson.

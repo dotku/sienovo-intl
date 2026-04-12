@@ -1,0 +1,124 @@
+---
+title: "The Competitive Edge of FPGA+x86 in Building High-Performance Domestic Network Testers"
+date: "2023-07-18"
+slug: "131792557"
+tags: ["#fpga开发", "#网络"]
+source: "https://blog.csdn.net/yeyuangen/article/details/131792557"
+originalTitle: "FPGA+x86构建高性能国产网络测试仪竞技之道"
+---
+
+As is well known, Ethernet has become ubiquitous in our daily lives. Enterprises, campuses, large data centers, and homes all rely heavily on networks; without them, our lives would be severely impacted.
+
+Ethernet interface speeds have also evolved rapidly: from 10M, 100M, GE, 10GE, 40GE, and 100GE, to the now increasingly mature 2.5GE, 5GE, 25GE, 50GE, and even 400GE—essentially following a trend of tenfold speed increases every decade.
+
+Many data centers and operators are already preparing to upgrade their networks from 100GE to 400GE to support the bandwidth and latency requirements of emerging technologies such as fifth-generation wireless (5G), artificial intelligence (AI), virtual reality (VR), the Internet of Things (IoT), and autonomous vehicles.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131792557/03_.png)![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131792557/02_270d206b6328dcd407e2298cf054c0b5.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131792557/03_.png)
+
+However, every stage—from the development and research of new network interface rates and network equipment to product commercialization and the deployment of new network technologies—relies heavily on testing and validation, which presents significant challenges. Meanwhile, the development of high-performance, stable high-speed network testers has somewhat lagged behind the pace of network equipment innovation.
+
+**Therefore, the development of high-speed, stable network testers is urgent, especially for domestically produced instruments that master core technologies.**
+
+Large-scale testing scenarios conducted by domestic telecom operators on data center switches or core routers place extremely high demands on test equipment.
+
+*   **· Stability**  
+    Must support long-term stable traffic generation, statistics collection, and protocol simulation, such as 7x24-hour continuous operation;
+*   **· Repeatability**  
+    Under identical physical environments and network conditions, repeated test results must be consistent;
+*   **· Accuracy**  
+    Test results must accurately reflect the true performance metrics of the device or system under test, including precision in throughput, latency, jitter, traffic scheduling, and traffic statistics;
+*   **· High Performance**  
+    Must support line-rate traffic generation and statistics for all packet lengths (e.g., 64–16000 bytes or IMIX mixed lengths), ultra-high-capacity routing and switching protocol simulation (e.g., multi-session BGP/OSPF/ISIS/PPPoE/IPoE/EVPN), and large-scale multi-port (e.g., over 100x 100GE/10GE) and multi-service (e.g., IPv4/IPv6/MPLS/Multicast) traffic scenario simulation;
+*   **· Standard Compliance**  
+    Must comply with international testing standards such as RFC-2544, RFC-2889, RFC-3511, and RFC-3918;
+*   **· Rich Interface Types**  
+    Support various interface types including 1GE/2.5GE/5GE/10GE/25GE/40GE/50GE/100GE/400GE, and support multi-chassis cascading to build large-scale test environments.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131792557/04_8f331b8d2a69c6f61c7c2fd9f1e20344.png)![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131792557/07_.png)![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131792557/07_.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131792557/07_.png)
+
+Currently, there are primarily two architectures for network testers available on the market.
+
+###### x86+DPDK+NIC-Based Testers
+
+x86-based systems are relatively easy to program, offer richer debugging tools, and have certain cost advantages, making them a good choice for functional testing with moderate requirements.
+
+###### FPGA+x86 Hybrid Architecture Testers
+
+The FPGA+x86 hybrid system, combining hardware and software, is suitable for high-performance, full-coverage testing scenarios with large scale and complex service requirements.
+
+The FPGA+x86 hybrid architecture leverages the increasing parallel processing power of FPGA at the hardware data level, while also benefiting from the CPU's flexibility in control-plane processing. Since both FPGA and CPU are inherently programmable systems, the boundary between hardware and software processing can be flexibly adjusted based on application needs, enabling comprehensive optimization of the entire workflow.
+
+Based on the complex testing requirements outlined above for telecom operators, here is a comprehensive comparative analysis of the two architectures:
+
+**Line-Rate Traffic Generation and Statistics for Packet Lengths from 64 to 16000 Bytes**
+
+**x86+DPDK+NIC:** Taking the illustrated 100G network as an example, at a packet length of 64 bytes, approximately 150 million packets per second need to be transmitted and received. Current CPU computing and memory access capabilities cannot handle this load, whereas FPGA-based testers face no such limitation. According to the latest publicly available data from the DPDK official website (October 9, 2019) [Source: DPDK website www.dpdk.org], using the system configuration shown in Figure 1, it is evident that the x86 system cannot achieve line-rate transmission and reception at small packet sizes such as 64, 128, and 256 bytes.
+
+**FPGA+x86:** Capable of line-rate packet transmission and statistics for all packet sizes.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131792557/08_ea9ab3c24eaf05b3231deb1b403d5fe0.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131792557/09_.png)
+
+Figure 1. x86+DPDK Test System Configuration
+
+The achievable line-rate performance for small packet sizes is shown below (Figure - x86 system performance across various packet lengths).
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131792557/10_93142be7f4688a1a9fe440eda753e87c.png)![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131792557/11_.png)
+
+###### Precision of Latency and Jitter Measurement
+
+Latency measurement accuracy is a critical metric in network testing.
+
+**x86+DPDK+NIC:** The x86 system is designed for general-purpose computing and inherently lacks high-precision reference clocks. OS scheduling introduces errors on the order of microseconds. If the NIC in an x86 system does not support physical-layer timestamp insertion, software must handle latency measurement, introducing further inaccuracies. Consequently, achieving the nanosecond-level (e.g., 10ns) precision required for network testing is typically unattainable on general-purpose x86 platforms.
+
+**FPGA+x86:** On an FPGA platform, using crystals with 0.1–0.001 PPM precision to generate clocks up to 400 MHz, latency precision can be controlled at the 2.5ns level.
+
+###### Flexibility of Memory Systems
+
+**x86+DPDK+NIC:** Designed for general computing, mainstream x86 systems use DDR4 memory, which offers high bandwidth but also high access latency and potential jitter depending on read/write patterns.
+
+**FPGA+x86:** FPGA memory systems can be flexibly configured using on-chip RAM (for cache functionality), DDR, QDR, RLDRAM, and other memory technologies to optimize for either bandwidth-intensive or low-latency access requirements.
+
+###### Protocol Acceleration Capability
+
+**x86+DPDK+NIC:** Lacks additional resources to implement protocol acceleration features such as TCP offloading.
+
+**FPGA+x86:** As a programmable hardware system, FPGA can flexibly partition processing tasks with the x86 system based on available hardware resources and application needs, enabling protocol acceleration features like TCP offloading. Computationally intensive, stateless protocol tasks can be parallelized in hardware, significantly enhancing overall system processing capability.
+
+###### Precision of Layer 2–3 Traffic Scheduling
+
+**x86+DPDK+NIC:** x86 systems cannot achieve line-rate transmission for small packet sizes on high-speed ports, let alone precise traffic scheduling.
+
+**FPGA+x86:** For increasingly complex and large-scale switches and routers, FPGA-based systems can generate tens of thousands of traffic flows (e.g., up to 64K flows in high-end testers) and precisely control bandwidth ratios and scheduling patterns for each flow—even down to five decimal places.
+
+###### Real-Time Performance and Accuracy of Statistics
+
+**x86+DPDK+NIC:** CPU-based test software is fundamentally a sequential instruction set. While multi-core and hyper-threading technologies enable partial parallelism at the instruction level, certain statistics—such as real-time frames-per-second counts—require two parameters: a time interval (delta) and the number of packets transmitted/received within that interval. If both parameters are read on a single CPU core, instruction serialization introduces significant error. If read across two cores, current CPU technology cannot achieve nanosecond-level inter-core synchronization, resulting in inaccurate statistics.
+
+**FPGA+x86:** Within the FPGA, hardware programming enables easy implementation of statistical snapshot functions, ensuring strict correspondence between the two parameters.
+
+###### System Scalability
+
+**x86+DPDK+NIC:** For large-scale systems under test, neither x86 software-only nor FPGA+x86 hybrid systems can complete testing on a single unit. System cascading with synchronization at the 10ns level is essential. While x86 systems can achieve multi-node synchronization via NTP, the synchronization accuracy of NTP falls short of the requirements for latency testing.
+
+**FPGA+x86:** In FPGA+x86 hybrid systems, high-precision synchronization techniques such as local cabling, GPS, or 1588v2 can be implemented via FPGA, ensuring precise timing for latency measurements.
+
+Additionally, in the FPGA+x86 hybrid implementation, Layer 2–3 traffic processing is handled entirely within the FPGA, bypassing the CPU protocol stack or upper-layer applications. The CPU only handles lightweight tasks such as configuration distribution and UI rendering, avoiding the inherent limitations of CPUs in line-rate traffic processing. On the x86 side, DPDK can be flexibly deployed to accelerate pure protocol processing, combining the strengths of FPGA and x86 for highly efficient service processing.
+
+**Clearly, the FPGA+x86 hybrid system is the optimal choice for building high-performance network testers.**
+
+*   In recent years, Ethernet testing technology abroad has advanced rapidly, with new products emerging constantly. Leveraging years of technical accumulation, U.S. companies Spirent and Keysight have long dominated the global Ethernet testing market and remain at the forefront of the industry.
+*   Domestic research on Ethernet testing technology began in the early 21st century. After more than a decade of effort, China has made significant progress in independently designing and developing related test products.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131792557/13_.png)
+
+Network testers adopt a chassis-based design with pluggable modules. The overall hardware solution uses a distributed computing architecture, logically separating the data plane and management plane. The test modules and control modules are independently designed, implementing the goal of high-performance network testing using an FPGA+x86 hybrid architecture.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131792557/13_.png)![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131792557/14_267929518581816738eb24ecae6e12f4.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131792557/15_.png)

@@ -1,0 +1,20 @@
+---
+title: "Design and Implementation of a ZYNQ+AD9361 Based Software-Defined Radio Platform"
+date: "2022-02-08"
+slug: "122832172"
+tags: ["#ZYNQ", "#ARM+FPGA", "#AD9361"]
+source: "https://blog.csdn.net/yeyuangen/article/details/122832172"
+originalTitle: "基于ZYNQ+AD9361的软件无线电平台设计与实现"
+---
+
+Software-Defined Radio (SDR) is a system and technology that uses a general-purpose hardware platform as its foundation and custom software as its core to implement various wireless communication system functionalities. Literally, the term "Software-Defined Radio" is not profound. "Radio" refers to communication technology that uses electromagnetic wave propagation in space to transmit and receive information; the original definition of "software" is a series of commands that control a computer system. Therefore, it can also be said that a Software-Defined Radio system is a computer system specifically designed for communication.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/122832172/01_b1442e7f0e704479c453e184d0c87781.png)
+
+The AD9361 is a high-performance RF transceiver module manufactured by ADI, and it is also the industry's first highly integrated agile transceiver. Traditional RF modules are built from discrete components, which present numerous drawbacks in terms of R&D, debugging, application, and upgrades. As a highly integrated chip, it includes all modules such as filtering, amplification, gain control, and frequency synthesizers on a single chip. This not only minimizes the size, power consumption, and cost of the RF transceiver module but also fully meets the requirements of all current communication standards in terms of performance. Its operating frequency range is 70MHz to 6.0GHz, and its operating bandwidth is 200KHz to 56MHz. It can be applied in various communication systems for communication and data acquisition.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/122832172/02_7c2e5785f2b6f5ec9c1496f0d64250fa.png)
+
+Figure 2 ZYNQ+AD9361 Overall Design Framework
+
+As shown in the figure above, the RF section of this platform is intended to use ADI's AD9361 transceiver. The AD9361 connects to the ZYNQ platform via an FMC interface, offering seamless FPGA connectivity. This device integrates an RF front-end with a flexible mixed-signal baseband section. Parameter configuration for the entire RF module can be achieved via the SPI interface reserved on this integrated transceiver. The platform has already developed driver modules for customers. Using these driver modules, information exchange between ZYNQ and AD9361, such as configuring RF parameters and reading status information, can be completed. ZYNQ is based on a fully programmable, scalable processing platform architecture, which integrates a processing system with feature-rich dual-core ARM9 multi-core processors and programmable logic within a single
