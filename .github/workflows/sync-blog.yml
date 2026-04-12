@@ -12,7 +12,7 @@ permissions:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 60
 
     steps:
       - name: Checkout repository
@@ -33,13 +33,11 @@ jobs:
       - name: Install xvfb
         run: sudo apt-get install -y xvfb
 
-      # Step 1: Update article list (find new articles)
       - name: Update article list
         run: xvfb-run --auto-servernum node scripts/update-article-list.mjs
         env:
           DISPLAY: ":99"
 
-      # Step 2: Fetch new articles with images → R2
       - name: Fetch new articles
         run: xvfb-run --auto-servernum node scripts/fetch-csdn.mjs --resume
         env:
@@ -50,25 +48,15 @@ jobs:
           R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
           R2_PUBLIC_URL: ${{ secrets.R2_PUBLIC_URL }}
 
-      # Step 3: Translate articles to English
-      # Priority: Gemini Direct (free) → Vercel AI Gateway (credits)
-      # Automatically skips already-translated articles
-      - name: Translate articles
-        run: node scripts/translate-blog.mjs
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          VERCEL_AI_GEWAY_API_KEY: ${{ secrets.VERCEL_AI_GEWAY_API_KEY }}
-
-      # Step 4: Commit and push new content
-      - name: Commit and push changes
+      - name: Commit synced articles
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add content/blog/ content/blog-en/ scripts/article-list.txt
+          git add content/blog/ scripts/article-list.txt
           if git diff --staged --quiet; then
             echo "No new articles to commit."
           else
-            COUNT=$(git diff --staged --name-only -- content/blog/ content/blog-en/ | wc -l | tr -d ' ')
-            git commit -m "sync: add ${COUNT} new blog articles from CSDN"
+            COUNT=$(git diff --staged --name-only -- content/blog/ | wc -l | tr -d ' ')
+            git commit -m "sync: fetch ${COUNT} new blog articles from CSDN"
             git push
           fi
