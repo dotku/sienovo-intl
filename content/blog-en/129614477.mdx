@@ -1,0 +1,24 @@
+---
+title: "Autonomous Mobile Robot (AMR) Controller Design and Experimentation (Part 1)"
+date: "2023-03-17"
+slug: "129614477"
+tags: ["#ui"]
+source: "https://blog.csdn.net/yeyuangen/article/details/129614477"
+originalTitle: "自主移动机器人AMR控制器设计与试验（一）"
+---
+
+In recent years, with the advancement of society and technology, autonomous navigation has become a crucial capability required by robots in various fields such as warehousing and logistics\[1], autonomous driving\[2], and express delivery\[3]. However, this also poses significant challenges to their long-term robustness. During long-term robot operation, especially in outdoor environments, environmental changes pose challenges to robot operation, making the improvement of robot mobility robustness a popular research topic. Regarding sensor selection, while sensors like 3D LiDAR can directly provide robust spatial geometric information, effectively enhancing the robustness of localization and perception algorithms, they are expensive. Comparatively, lower-cost visual sensors are more favored. However, visual sensors are sensitive to environmental changes and have lower robustness. Therefore, improving the robustness of visual sensors in long-term operation becomes a crucial aspect for the practical deployment of mobile robots.
+
+From an implementation perspective, robot autonomous navigation generally involves two key problems: localization and navigation. Localization involves calculating the robot's pose based on sensor information, addressing the question of 'where the robot is'; while navigation involves calculating control commands based on localization information and target point position, addressing the question of 'how to get there'. In a purely visual approach, visual sensor information is used to accomplish two tasks: first, building an environmental map and performing localization, providing global environmental information and robot position for path planning; second, perceiving the local environment to obtain obstacle and traversable area information, providing local environmental information for trajectory planning. During long-term operation, the environment inevitably changes: some are structural changes, such as building reconstruction or road widening; others are appearance changes, such as seasonal transitions or day-night shifts. Similar to the human eye, visual sensors are particularly sensitive to these changes. Structural changes often manifest as object changes in images, while appearance changes are often reflected in variations of attributes like illumination and style.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129614477/01_7cc01672e352182fecae7fa5076168e.png)
+
+ ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129614477/02_0966fb3cffe711033732461c23b2632c.png)
+
+ ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129614477/03_9359b1e4073b0d6eab2dea5de3f24c5d.png)
+
+ ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129614477/04_a0279aa58aaf1a2235743f5174009110.png)
+
+ ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129614477/05_8a320911df5853f1fe1c07d4daac8af2.png)
+
+A multi-sensor synchronization module was designed, and based on this, a test vehicle and a data collection vehicle were built. The synchronization module uses the IMU clock as the unified time source, recording timestamps for each sensor through a hardware solution. Experiments show that the synchronization module can effectively achieve hardware synchronization. Using the data collection vehicle, a series of sensor data was collected, covering the same locations at different times, which will be used for long-term visual localization and perception research in subsequent sections.

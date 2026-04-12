@@ -1,0 +1,78 @@
+---
+title: "Hardware Design and Development of an Airborne Radar Servo Control System Based on DSP+FPGA"
+date: "2023-02-20"
+slug: "129131345"
+tags: ["#fpga开发", "#DSP+FPGA", "#雷达"]
+source: "https://blog.csdn.net/yeyuangen/article/details/129131345"
+originalTitle: "基于DSP+FPGA的机载雷达伺服控制系统的硬件设计与开发"
+---
+
+Airborne radar is a general term for various radar antennas carried by aircraft, primarily used for aerial reconnaissance, surveillance, and ensuring accurate and safe navigation [1]. With the rapid development of aerospace technology and the widespread application of new technologies such as microelectronics, computers, and high-speed integrated circuits in the military field [2], many countries have developed numerous new types of fighter jets and missiles. The targets tracked and measured by airborne radar have also gradually shifted from surface vessels to faster aircraft and missiles. This requires airborne radar equipment to be able to quickly and precisely acquire targets [3].
+
+The airborne radar servo control system is a critical component of airborne radar. Its function is to control the rotation of the radar antenna to achieve precise target tracking and rapid positioning. Its servo accuracy directly affects the radar's performance [4][5]. Airborne radar operates for extended periods under harsh conditions such as shock, vibration, interference, and salt spray. Additionally, due to the limited space on aircraft, strict restrictions are placed on the volume and weight of airborne radar [6]. All these factors pose significant challenges to the design of airborne radar servo control systems. Therefore, research into airborne radar servo control systems to improve their control accuracy and response speed holds significant military importance.
+
+**2.1 Functional Requirements and Performance Specifications**
+
+**2.1.1 Functional Requirements**
+
+(1) Capable of two-axis motion: azimuth and elevation;
+
+(2) The azimuth axis can achieve preset, continuous scan, and sector scan functions;
+
+(3) The elevation axis can achieve preset function.
+
+**2.1.2 Performance Specifications**
+
+(1) Motion range: Azimuth rotation range is , elevation rotation range is ;
+
+(2) Angular velocity: Maximum azimuth angular velocity is 100º/s, maximum elevation angular velocity is 40º/s;
+
+(3) Angular acceleration: Maximum azimuth angular acceleration is 90º/s²;
+
+(4) Static positioning error: 0.1º (maximum);
+
+(5) Angular resolution: 0.01º;
+
+(6) System power supply: Voltage is 27V, starting current is 6A, operating current is 2.5A;
+
+(7) Electrical interface: Uses RS-422 transmission protocol, host computer downlink frequency is 100Hz, controller uplink frequency is 200Hz, baud rate is 115200bps;
+
+(8) Environmental adaptability: Temperature range is −40℃ to 60℃, humidity range is 10% to 90%, altitude greater than 3000m, shock is 25g (11ms);
+
+(9) Features fault feedback, overvoltage protection, overcurrent protection, and power-on self-test functions.
+
+**2.2 Overall Scheme of the Airborne Radar Servo Control System**
+
+Figure 2.1 shows the overall structural layout diagram of the airborne radar servo control system. The upper part is the azimuth section, located between the bracket and the aircraft skin. Inside the azimuth cylinder are components such as a rotary joint, slip ring, azimuth motor, and azimuth angle encoder. The lower part is the elevation section, located inside the radome, and contains components such as the antenna, elevation motor, and elevation encoder.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129131345/01_a6462f3853cd1f9d421bce261b3c7edc.png)
+
+The airborne radar servo control system can be divided into a control unit, a drive unit, and a servo mechanism. The control unit is the key part for realizing servo control functions and is the focus of this paper's design. The drive unit primarily performs power amplification and current sampling closed-loop functions. The servo mechanism carries the antenna load to perform various functions. The overall system design is shown in Figure 2.2:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129131345/02_9e8dcf4f667dcda9b576b5ed8801b553.png)
+
+The control unit in Figure 2.2 is the core of the system, employing a DSP+FPGA combination as the control processor. The DSP is mainly used to implement various control algorithms. The FPGA is primarily used for data interfacing, capable of both data exchange with the DSP via the XINTF interface and generating control timing for peripheral circuits, completing operations such as data acquisition and transmission. This combination fully leverages the advantages of both chips, ensuring timing stability and improving the processing speed of control algorithms.
+
+The drive unit mainly consists of azimuth and elevation axis drivers, which amplify the control signals provided by the control unit to drive the motors. The drivers feature over-temperature, over-voltage, and over-current protection functions, as well as fault alarm functions. The servo mechanism is the executive component of the control system, performing specified functions under the control of the control unit and drive unit. In addition to carrying the antenna load, the servo mechanism also includes components such as motors, angle encoders, slip rings, bearings, and counterweights.
+
+**2.3 Control Unit Hardware Circuit Design**
+
+**2.3.1 Overall Circuit Design**
+
+In this servo control system, the control unit is the key design object, and its circuit design scheme is shown in Figure 2.3.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129131345/03_758e743df5ed7a12a44bf4477c360a8f.png)
+
+As shown in Figure 2.3, the control processor uses a DSP+FPGA combination, where the DSP primarily implements control algorithms and can exchange data with the FPGA via the XINTF interface. The FPGA is mainly used to implement the control timing for peripheral circuits. Since the FPGA resets after power-off, a configuration chip XCF08P is added to program the FPGA. The remaining circuits are introduced as follows:
+
+(1) The left side of Figure 2.3 shows the host communication interface circuit, implemented jointly by the full-duplex transceiver MAX491 and the optocoupler HCPL0600. To isolate noise interference introduced by the host communication cable, an isolated power supply is used to power this interface circuit.
+
+(2) The bottom of Figure 2.3 shows the SSI interface circuit, used to acquire data from the azimuth and elevation axis angle encoders. The optocoupler HCPL0600 can isolate interference and perform level conversion. The DS26C31 chip converts the single-ended clock signal output by the FPGA into a differential signal, and the DS26C32 chip converts the differential angle signal returned by the encoder into a single-ended signal. The angle data returned by the encoder needs to be provided to the driver to achieve closed-loop functionality.
+
+(3) The right side of Figure 2.3 shows the drive control circuit, which mainly includes DI/DO interface circuits and a DA interface circuit. The DI circuit is used to receive fault alarm signals output by the driver, and the DO circuit is used to output driver enable and mode selection signals. Both DI/DO circuits use the optocoupler PS2802 for implementation, and the DO circuit adds the SN74LVTH245 chip to enhance driving capability. The DA interface circuit converts the control commands calculated by the DSP into voltage signals and outputs them to the driver. The DA interface circuit is mainly composed of the D/A converter chip AD5547, op-amp AD8512, and reference source ADR01.
+
+(4) The upper right part of Figure 2.3 shows the power supply circuit. The DC/DC power module converts the external input 27V DC voltage into 5V and ±15V voltages. The 5V voltage is used for digital circuits and is converted into different voltages via various LDO chips; the ±15V voltage is used for analog circuits to power the op-amp and reference source of the DA interface circuit.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129131345/04_a4a3e4b5b1aa8138b9e4a54aa8de5799.png)
+
+This airborne radar servo control system adopts a three-closed-loop control strategy, namely current loop, speed loop, and position loop. The current loop and speed loop are implemented in the drive circuit, while the position loop is implemented in the control circuit. The current loop uses a Proportional-Integral (PI) control method, collecting motor current as closed-loop feedback to control the motor to output a stable torque. The speed loop also uses a Proportional-Integral (PI) control method, with its closed-loop feedback derived from the differential of angle data collected by the angle encoder. The speed loop can suppress fluctuations in the current loop's output torque and control the motor to output a stable rotational speed. The position loop uses a Proportional (P) control method, collecting encoder angle as closed-loop feedback, enabling the system to point to the angular position commanded by the host computer. After completing the closed-loop debugging of the control system, joint testing and debugging can be performed on the system, primarily to debug the preset, continuous scan, and sector scan functions, and simultaneously test static positioning error and speed error. First, various cables between the control board, drivers, and servo mechanism are soldered. To simulate the actual operating conditions of airborne radar, the entire servo control system is debugged after being inverted. Figure 6.19 shows a physical diagram of

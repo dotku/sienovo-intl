@@ -1,0 +1,31 @@
+---
+title: "Domestically Developed FPGA-based EtherCAT Slave Real-time Low-Cost Motion Control System Solution"
+date: "2022-08-29"
+slug: "126587946"
+tags: ["#fpga ethercat从站"]
+source: "https://blog.csdn.net/yeyuangen/article/details/126587946"
+originalTitle: "国产FPGA Ethercat从站实时低成本运动控制系统方案"
+---
+
+What is an EtherCAT slave?
+What are its characteristics and advantages compared to others? How to implement an EtherCAT slave using an FPGA, and how to design and implement the basic communication link of an EtherCAT slave based on FPGA state machine design and verify it.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/126587946/01_443d6f5d1d5562504b3c339f628577ef.jpeg)
+
+Abstract: EtherCAT is one of the widely used fieldbuses in industrial control. The EtherCAT Slave Controller (ESC) is crucial for slave modules to achieve EtherCAT protocol data communication. Achieving independent and controllable slave control chips is an important foundation for the domestic research and development of industrial control systems. Based on the EtherCAT communication protocol and basic communication functional logic, FPGA state machines for key communication nodes such as EBUS encoding/decoding, Auto-forwarder, and Loop-back funcTIon were designed. By analyzing data state changes at each stage, the correctness of communication data at each node was verified. Experimental results show that implementing the basic communication link of an EtherCAT slave using an FPGA based on the aforementioned state machines is entirely feasible.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/126587946/02_aeb3bfa6d2edaf4e9eba6145b4c9a0a2.png)
+
+0 Introduction
+EtherCAT, proposed by BECKHOFF, is one of the widely used fieldbuses in industrial control. This bus supports full-duplex operation mode, enabling data transmission based on master-slave connections, and features low latency and high security. The EtherCAT Slave Controller (ESC) is crucial for slave modules to implement the EtherCAT communication protocol. Currently, domestic implementations of EtherCAT-based communication functions primarily rely on slave chips like ET1100/ET1200 [1-4]. However, besides basic communication functions, these chips also possess numerous other functionalities. These additional communication mechanisms are not disclosed to Chinese technical personnel, making it impossible to achieve complete independent control over such communication chips. Furthermore, discussing the adoption of effective security mechanisms to enhance system security is out of the question. As information security issues in the industrial control sector become increasingly prominent, the use of such non-independently controllable communication chips introduces certain security risks to the operation of China's core control systems. To achieve complete independent control over communication chips used in control systems, autonomous development of the EtherCAT communication protocol based on FPGAs is highly necessary. It is also an important prerequisite for enhancing the communication system's security capabilities by adopting proprietary security mechanisms.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/126587946/03_7a3e13c59cf7399447267165c9def492.png)
+
+The basic communication link is the core for transmitting and receiving EtherCAT protocol data. Therefore, this study designs FPGA state machines for key communication nodes based on EtherCAT protocol characteristics and data transmission mechanisms. It verifies the feasibility of implementing the basic communication link function of an EtherCAT slave controller using an FPGA, laying an important foundation for improving other EtherCAT communication functions and security mechanisms.
+
+1 EtherCAT Slave Controller Architecture
+The communication link between the EtherCAT master and each slave is shown in Figure 1. During communication, data frames traverse all slave devices. When a data frame passes through a slave, the slave device analyzes the message command to address its own message and reads/writes data to the specified location. After the data frame reaches the last slave, that slave sends the processed data frame back to the master. The master processes the returned data upon receiving this upstream telegram, and one communication cycle ends [5-6].
+
+An EtherCAT slave controller primarily includes a data frame processing unit, EBUS interface encoding/decoding module, Auto-forwarder module, Loop-back funcTIon module, and so on. Taking the ET1100/ET1200 slave controller as an example, its internal architecture is shown in Figure 2. It mainly comprises MII, EBUS interface, EtherCAT data frame processing unit, Fliedbus Memory Management Unit (FMMU), SyncManager (SM), Distributed Clock, PDI interface, ESC address space (including registers and user data memory), EEPROM control, as well as status control, interrupts, watchdog, and physical layer management.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/126587946/04_2399440a345be4b594f03bd170fcd5df.png)

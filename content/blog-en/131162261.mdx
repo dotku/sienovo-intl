@@ -1,0 +1,20 @@
+---
+title: "【Domestic Virtual Instruments】ZYNQ-based Acoustic Emission Acquisition System Solution"
+date: "2023-06-12"
+slug: "131162261"
+tags: ["#数据采集", "#声音", "#虚拟仪器"]
+source: "https://blog.csdn.net/yeyuangen/article/details/131162261"
+originalTitle: "【国产虚拟仪器】基于 ZYNQ的声发射采集系统方案"
+---
+
+The overall design process of the system involves selecting hardware equipment according to the aforementioned design requirements and building the hardware platform for the acoustic emission acquisition system. On this platform, the acoustic emission acquisition board will be designed, and the host software will be designed according to the requirements. The working process of this system is as follows: The host software connects to the lower-layer device via Ethernet using a pre-set IP address and port number, and sends a "start acquisition" command to the lower-layer device.
+
+Upon receiving the command, the lower-layer device returns an "acquisition started" command to the host software and waits for data acquisition. The sensor module continuously monitors the acquired signal. The signal is amplified by the amplification module and then transmitted to the ZYNQ 7010 board via the A/D analog-to-digital conversion module. When the signal exceeds a threshold, transmission begins. The data is then transmitted to the host software via the Ethernet port using the LwIP UDP protocol for feature parameter extraction and waveform plotting.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131162261/01_3db6572d2010438bd5b9a0385e6e48e5.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131162261/02_f9ecd5bedc3d82d44aaf907c208c8536.png)
+
+Based on the functional analysis of the hardware system described above, the hardware system is divided into four major modules: the sensor signal acquisition module, the pre-filtering and amplification module, the A/D analog-to-digital conversion module, and the ZYNQ 7010 data processing and transmission core module. The overall design block diagram of the hardware system is shown in Figure 2-2. Subsequently, a detailed analysis of the requirements for each module will be conducted to complete the module selection for the hardware system.
+
+ ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131162261/03_87ae6d048ee27fb0712b318c0c9c1f02.png)

@@ -1,0 +1,74 @@
+---
+title: "基于RK3588/RK3568/RK3288的全国产储能“大脑”——EMS管理系统"
+date: "2023-10-29"
+slug: "134104351"
+tags: ["#EMS", "#国产储能", "#储能方案"]
+source: "https://blog.csdn.net/yeyuangen/article/details/134104351"
+originalTitle: "基于RK3588/RK3568/RK3288的全国产储能“大脑”——EMS管理系统"
+---
+
+#### What is EMS (Energy Management System)?
+
+When it comes to energy storage, the public's first thought is usually batteries. Their quality affects important aspects such as energy conversion efficiency, system lifespan, and safety. However, for energy storage to function as a valuable system, the core component acting as its "brain" — the EMS (Energy Management System) — plays an equally crucial role.
+
+On one hand, the EMS is directly responsible for the control strategies of the energy storage system. These control strategies, in turn, influence the battery degradation rate and cycle life within the system, thereby determining the economic viability of energy storage. On the other hand, it also monitors faults and anomalies during system operation, playing a vital role in promptly protecting equipment and ensuring safety. If the energy storage system is likened to the human body, then the EMS is the human brain and mind. The brain and mind determine a person's occupation, regulate the body's work-rest balance, and provide self-protection in case of accidents.
+
+#### Different Requirements for EMS in Grid-Side Energy Storage vs. Commercial and Industrial Energy Storage
+
+Since the energy storage industry initially emerged with large-scale storage, specifically on the power generation and grid sides, energy storage EMS was initially designed and implemented for grid-side scenarios. Considering the data isolation of the grid side and the product design inertia of SCADA systems in the power industry, energy storage EMS was designed as a standalone, localized solution. Because data could not be transmitted externally by default, power stations required local operation and maintenance teams with personnel on duty. Furthermore, due to grid-side monitoring regulations, the EMS also needed to be configured with relevant hardware, including but not limited to: workstations, printers, fault recorders, and remote terminal units (RTUs). We can refer to this type of energy storage EMS as traditional energy storage EMS.
+
+Can traditional EMS be directly applied to commercial and industrial energy storage? The answer is no. This is because the scenarios are different, and so are the cost requirements.
+
+Commercial and industrial energy storage sites typically have small capacities, are numerous, widely dispersed, and have high demands for O&M costs. They cannot support local manned operation, thus necessitating remote O&M monitoring. This means arranging regional O&M teams to systematically manage multiple energy storage stations using a digital O&M platform. A digital O&M platform requires that data from commercial and industrial energy storage stations be uploaded to the cloud in real-time, and O&M efficiency be improved through cloud-edge interaction. The localized/standalone design of traditional EMS is inherently unsuitable for this scenario, hence commercial and industrial energy storage EMS requires a new product design.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/134104351/01_c3c706e0f6af9bc2e328c59112ba8751.jpeg)
+
+Figure 1: Grid-Side Energy Storage O&M vs. Commercial and Industrial Energy Storage O&M
+
+#### Design Principles for Commercial and Industrial Energy Storage EMS
+
+Based on the scenario differences mentioned above, commercial and industrial energy storage EMS requires the following design principles:
+
+**01 Full Data Access**
+
+Although commercial and industrial energy storage systems have smaller capacities, they are 'small but complete,' meaning the EMS still needs to interface with numerous devices: PCS, BMS, air conditioners, electricity meters, smart circuit breakers, fire alarm panels, various sensors, indicator lights, etc. Therefore, the EMS must first be compatible with and support various protocols to fully access devices and their data. In particular, the access to device alarm information needs to be real-time and comprehensive. This tests the EMS's acquisition performance; to implement relevant protections, the EMS must achieve data acquisition once per second.
+
+**02 Cloud-Edge Integration**
+
+To achieve bidirectional data flow between the energy storage station and the cloud platform, the EMS must implement cloud-edge integration at the system level. This means ensuring that station data is reported to the cloud platform losslessly and in real-time, and that commands from the cloud platform can be securely and promptly transmitted to the station.
+
+There are many technical routes for cloud-edge integration, but the ultimate choice depends on actual operational performance. Considering that many commercial and industrial energy storage systems connect to the internet via 4G (lacking conditions for wired network deployment), and communication interruptions occur, key considerations include: how to ensure data consistency between cloud and edge, how to resume broken data transmissions, how to quickly self-heal interrupted channels, and how to ensure the security of cloud-to-edge remote control.
+
+A common technical route is to connect the cloud and edge using mainstream IoT protocols (MQTT). However, unlike scenarios such as photovoltaics or building energy management, energy storage, due to the massive data collection and transmission from batteries and the demand for real-time, secure remote control from cloud to edge, can easily become constrained if such technical routes are used. This entails very high costs and risks, requiring careful selection.
+
+Therefore, new technical routes are emerging, such as the Nova IoT platform developed by Qingzhou Energy Technology. This platform incorporates core technologies like distributed time-series databases and encrypted network tunnels to address issues of full data synchronization at second-level granularity, data compression, and financial-grade security for cloud-edge communication. The ultimate goal is to reduce network communication costs, server storage costs, and O&M security risks for power stations.
+
+**03 Flexible Scalability**
+
+Commercial and industrial energy storage capacities range from 100kWh to tens of MWh, depending on the actual project. With the current trend of standardized energy storage cabinet products becoming mainstream, where cabinets are assembled like building blocks to meet different energy demands, the EMS needs flexible scalability. It must quickly adapt to varying numbers of energy storage cabinets and interface with different orders of magnitude of equipment, especially for PCS interfacing and group control, enabling rapid project construction, delivery, and commissioning.
+
+**04 Intelligent Strategies**
+
+Commercial and industrial energy storage primarily uses peak shaving and valley filling as its main application scenario, combined with demand control strategies and anti-reverse current protection to achieve objectives such as dynamic capacity expansion and off-grid backup power. Due to variations in the number and capacity of on-site transformers, the EMS faces diverse requirements for demand control and anti-reverse current protection. For example, with multiple grid connection points, it might be necessary to implement demand protection for certain transformers and anti-reverse current protection for the main transformer. These need to be flexibly configurable within the EMS to achieve the protection goals.
+
+Concurrently, with the recent boom in commercial and industrial photovoltaics, the integration of energy storage and PV is increasing in the C&I sector. This introduces new requirements for energy storage strategies, such as the need for energy storage to reasonably arrange battery charging and discharging based on PV generation to maximize clean energy utilization, while also implementing relevant protection strategies. Due to the uncertainty of PV generation and the volatility of loads, static energy storage strategies struggle to meet these scenarios, necessitating more dynamic and intelligent strategies.
+
+Intelligent strategies, by combining time-of-use electricity prices, PV forecasts, load fluctuations, and protection objectives, can dynamically formulate charging and discharging strategies in real-time. This effectively achieves overall economic benefits, reduces excessive battery degradation through reasonable battery usage, and ensures the economic viability of the energy storage itself.
+
+Finally, the EMS also requires corresponding strategic protections for energy storage system safety. This not only involves timely coordination of different devices in response to equipment alarms to effectively complete local protection, but also requires predicting risks based on relevant algorithms and issuing early safety warnings.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/134104351/02_6410d85427c886d5bd997ac026873bc9.jpeg)
+
+Figure 2: Schematic Diagram of a Typical Network for Commercial and Industrial Energy Storage EMS
+
+#### Main Functions of EMS
+
+Commercial and industrial energy storage EMS shares similarities with traditional energy storage EMS in terms of functions, but also has differences. Generally, it includes:
+
+1.  **System Overview**: Displays the current operational overview of the energy storage system, including: energy storage charge/discharge volume, real-time power, SOC, revenue, energy flow diagrams, multi-power operation diagrams, etc., serving as the main monitoring page.
+2.  **Device Monitoring**: Views real-time operational data for various devices by type, including but not limited to PCS, BMS, air conditioners, electricity meters, smart circuit breakers, fire alarm panels, various sensors, etc., and supports device control.
+3.  **Operational Revenue**: Displays energy storage revenue and electricity consumption/generation information, which is the most important function for owners.
+4.  **Fault Alarms**: Consolidates fault alarms from various devices, allowing queries by time, status, level, etc.
+5.  **Statistical Analysis**: Queries historical operational data and related reports for devices, also supporting data export.
+6.  **Energy Management**: The core function of the EMS, configuring energy storage strategies, including manual and automatic modes, to meet the needs of commissioning, maintenance, daily operation, and upkeep scenarios.
+7.

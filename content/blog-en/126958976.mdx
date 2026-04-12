@@ -1,0 +1,60 @@
+---
+title: "Design of an Intelligent Human-Machine Interaction System Based on Domestic ARM + FPGA + Codesys Motion Control Platform"
+date: "2022-09-20"
+slug: "126958976"
+tags: ["#fpga开发"]
+source: "https://blog.csdn.net/yeyuangen/article/details/126958976"
+originalTitle: "基于国产 AＲM + FPGA+Codesys运动控制平台的智能人机交互系统设计"
+---
+
+Abstract: To meet the requirements of display systems for intelligent protection devices in the field of relay protection, a design scheme for an intelligent human-machine interaction system based on domestic ARM processors and FPGAs is proposed. This scheme focuses on elaborating the functional architecture and hardware design of the intelligent human-machine interaction system, and introduces the software design process for data exchange and human-machine interaction. Experimental results show that the scheme has a simple hardware structure, its system materials are independently controllable, and the system is safe and stable, capable of meeting the functional requirements of intelligent protection devices in power systems.
+
+**0 Introduction**
+
+With the large-scale promotion and application of third-generation intelligent substations, intelligent protection devices, characterized by information digitalization and platform networking, are gradually playing an increasingly important role in power systems [1].
+
+As an important component of intelligent protection devices, the human-machine interaction system is becoming increasingly important in tasks such as information viewing, setting value configuration, trip output, and device debugging [2]. The safety and stability of its hardware functions are related to the reliability of the protection device's operation.
+
+Currently, the human-machine interaction systems of mainstream domestic intelligent protection devices are designed with an ARM + switch chip architecture. This architecture can meet most interaction requirements of intelligent protection devices, but it is slightly insufficient in terms of network storm suppression and debugging convenience. Current mainstream human-machine interaction systems are designed based on foreign chips, which always carry the risk of being restricted. To address the above problems, this paper proposes an intelligent human-machine interaction system based on domestic ARM processors and FPGAs. It implements both the human-machine interaction and device debugging functions for intelligent protection devices. The programmability of the FPGA provides a guarantee for future functional development and upgrades of the intelligent HMI.
+
+**1 System Architecture and Principle**
+
+**1.1 System Architecture**
+
+As the human-machine interaction window for intelligent protection devices, the intelligent human-machine interaction system not only serves as the operation interface for relay protection debugging tasks such as device information viewing, setting value configuration, and trip output, but also provides important interfaces for tasks such as device hardware debugging, device fault analysis, and protection device software upgrades. The intelligent human-machine interaction system proposed in this paper communicates with the intelligent protection device management unit via a 100-megabit Ethernet interface. It converts digitized and networked internal device information into visual displays, completing important functions such as human-machine interaction, device debugging, and device fault analysis for intelligent protection devices. The overall functional architecture of the system is shown in Figure 1.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/126958976/01_acb9454920d6d46a596615bab79543ad.png)
+
+The system mainly includes the following functions:
+
+① Data exchange function: The FPGA provides three 100-megabit Ethernet interfaces, connecting to the ARM processor, debugging network port, and protection device, respectively. It interacts with human-machine interaction information, user debugging information, and internal device information.
+
+② Human-machine interaction function: The ARM processor drives the LCD screen, displaying information output by the protection device. At the same time, it receives user information input from the LCD screen and buttons, and sends it to the FPGA.
+
+③ Program storage and loading function: The FPGA bitstream is stored in external Flash. During power-up, the FPGA actively reads the bitstream from the external Flash via the SPI interface. After the program loading is complete, the FPGA begins data exchange.
+
+**1.2 Working Principle**
+
+The intelligent human-machine interaction system as a whole adopts a scheme of LCD screen + ARM controller + FPGA. The ARM controller, LCD screen, buttons, and LED lights form the human-machine interaction interface. It provides the operation interface for the protection device and accepts user button input. The ARM controller inputs the user's button information to the FPGA via the RMII interface. The FPGA transmits the button information from the ARM controller and debugging information from the debugging network port to the protection device management unit. The LCD display information and LED indicator information output by the protection device management unit are transmitted to the ARM controller via the FPGA. The ARM controller parses the display information, refreshes the LCD screen, and illuminates the LED indicators.
+
+**2 System Design**
+
+The system uses GigaDevice's GD32F450ZI chip, an ARM Cortex-M4 series based controller, to complete the acquisition of user input information and LCD screen display. At the same time, PGL12G-6ILPG144 chip from Unigroup Guoxin is used as a 100-megabit Ethernet switch chip. It simulates the exchange function of 100-megabit Ethernet information, achieving data exchange for human-machine interaction information, user debugging information, and internal device information. The intelligent human-machine interaction system provides an LCD screen, LED lights, and buttons for user interaction. It also provides a debugging network port for debugging personnel to debug the device. An Ethernet interface is provided internally for the protection device to input LCD display information, LED indicator information, and internal device information. The overall hardware design of the system is shown in Figure 2.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/126958976/02_ce7aabc930985a268a0f9bc050a846b4.png)
+
+rk3399pro Introduction
+rk3399pro是 瑞星微新出来的带NPU的ARM芯片，在发布之前，NPU的算力2.4TOPS， 而发现之后实测达到了3.0TOPS，如此强大的计算能力，jetson nano的计算能力是0.47TFlops，两个单位有区别，只能用实际的网络计算来比较二者的算力。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/126958976/03_35618cc0e987bf39afc940be958701a9.jpeg)
+
+rk3399pro Computing Power Test
+Test Conditions
+Hardware: TB-RK3399Pro 3GB RAM + 16GB Flash
+toolkit version: toolkit 1.0.0
+Test Results
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/126958976/04_793c11f327029fbb01cf0936b244cf0f.png)
+
+Test Conclusion
+The performance of yolov3 is very strange, but in the forum, toolkit 0.9 can reach 30fps, while this is only 10fps. It's possible that some modifications were made to the network in the official test data. Overall, the computing power of rk3399pro is very strong, much better than I expected. It can be used directly without major modifications to the network. However, this is also its drawback: for some custom network layers, it may not be convertible, and an updated version is needed.

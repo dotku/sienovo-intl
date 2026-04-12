@@ -1,0 +1,44 @@
+---
+title: "LS1028+TSN+VxWorks Real-time System Solution"
+date: "2023-04-19"
+slug: "130228181"
+tags: ["#tsn", "#vxworks"]
+source: "https://blog.csdn.net/yeyuangen/article/details/130228181"
+originalTitle: "LS1028+TSN+Vxworks实时系统解决方案"
+---
+
+TSN (Time-Sensitive Networking) is gaining traction across various markets. It can provide real-time communication for new applications that previously didn't exist.
+
+For example, decoupling control functions from drives and moving them to edge computing. Next-generation automated controllers can process various workloads in parallel, such as video streams and control streams, run all deep learning algorithms on a single machine, and simultaneously communicate with other controllers in the factory. To ensure deterministic behavior in such an environment, real-time operating systems must be installed at both ends.
+
+For applications that require both time synchronization (coordinated events) and timeliness (timely events), such as robotic arms, motion controllers, or autonomous vehicles, it is necessary to combine TSN with the VxWorks Real-Time Operating System (RTOS) to synchronize device networks and thus enhance deterministic behavior. Combining TSN with the real-time behavior of the VxWorks operating system enables customers to precisely control time-sensitive cycles.
+
+TSN is a set of IEEE standards that defines a set of protocols for transmitting time-sensitive data over Ethernet. The real-time features in VxWorks, including hard real-time schedulers, real-time network stacks, etc., can all help optimize packet processing. TSN also defines rules for time synchronization and timeliness, thus enabling fast data transmission between systems, while VxWorks helps design a real-time control system for distributed deterministic networks.
+
+Ultimately, TSN has become a cost-effective technology that merges IT (Information Technology) and OT (Operational Technology). It is not limited to Ethernet and can be applied in many industrial scenarios, thereby improving production efficiency and reducing costs. The key to the successful application of this technology lies in interoperability.
+
+**LNI 4.0 TSN Testbed Workshop**
+
+Wind River recently hosted an event related to the TSN testbed. During this engineering event, Wind River connected two different circuit boards to the TSN network. Both boards were running an early version of the next-generation VxWorks (SR0640). This version supports multiple TSN standards, including 802.1AS, 802.1Qbv, and 802.1Qbu. One of the boards was an NXP LS1028ARDB reference platform, and the other was an Intel UP2 board equipped with an i210 NIC.
+
+The LNI 4.0 TSN testbed first tested VxWorks' compatibility with Precision Time Protocol (IEEE1588) and other devices. The 802.1AS profile was primarily used in this event. Tests showed that VxWorks devices could correctly interoperate with all other connected devices. VxWorks clocks could synchronize quickly, limiting the master clock offset to within tens of nanoseconds, thus enabling direct connection. The two circuit boards used for testing were: NXP LS1028ARDB and an Intel UP2 equipped with two i210 interfaces.
+
+Then, VxWorks devices were configured to send packets to the TSN network, the format of which was defined by the LNI 4.0 TSN testbed sender application. This application periodically sends Ethernet packets with specific offsets in a 1000-millisecond test cycle environment. According to the 802.1Qbv standard, packets can only be sent within pre-defined time windows of the cycle to ensure smooth delivery to the receiver. This test demonstrated that VxWorks devices, with their fixed periodicity and low deviation characteristics, could successfully transmit packets. In a five-minute test, 1000 packets were transmitted per second, and all packets arrived at the receiver within the standard time, with a deviation of only 10 nanoseconds.
+
+There are huge opportunities in this market segment, not only for TSN testing itself but also for the entire network! Thanks to Dominik Rohrmus and Frank Schuberth for organizing this event!
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/130228181/01_7f0d901fcffd2edb0b418834b3b366ad.png)
+
+**Wind River's Support for TSN Standards**
+
+Wind River is committed to a pragmatic approach to advancing TSN and, together with hardware partners, fully leverages VxWorks' precise real-time performance to maximize TSN hardware capabilities. The latest VxWorks includes technologies that implement TSN features, supports many hardware implementations of TSN features, and complies with the following standards:
+
+*   IEEE Standard 802.1AS – A time and clock synchronization protocol standard that allows all devices connected to the TSN network to synchronize to a global time with high precision, with deviations within a few nanoseconds. Because it provides support for every device connected to the network, this standard forms the basis for traffic queue scheduling.
+*   IEEE Standard 802.1Qbv – A scheduling protocol standard that establishes multiple queues to coordinate data transmission between devices and, combined with time-aware shaping, ensures that data transmission latency can be effectively managed. This enables the convergence of critical and non-critical data traffic within the same network.
+
+VxWorks also advances TSN in other areas, including:
+
+*   IEEE Standard 802.1Qbu – An enhancement to 802.1Qbv that prevents large non-critical data from monopolizing network bandwidth and allows critical data to preempt non-critical data to achieve minimal communication latency and optimal bandwidth utilization.
+*   Simplified configuration and deployment – This reduces TSN configuration complexity and simplifies debugging, optimization, and deployment to achieve optimal VxWorks integration in both centralized and distributed TSN network environments.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/130228181/02_daa843f2ec85f6e86af2f1941a1b0a13.png)

@@ -1,0 +1,143 @@
+---
+title: "Cost-Effective All-Domestic RK3568-Based EMS Energy Storage Solution (Part 2) Design Scheme"
+date: "2023-10-29"
+slug: "134104001"
+tags: ["#EMS", "#储能方案"]
+source: "https://blog.csdn.net/yeyuangen/article/details/134104001"
+originalTitle: "基于RK3568高性价比全国产EMS储能解决方案（二）设计方案"
+---
+
+**Table of Contents**
+
+[Revision History](#_Toc147746227)
+
+[1. Product Introduction](#_Toc147746228)
+
+[1.1. What is](#_Toc147746229) XM3568-EP
+
+[1.2. Product Features](#_Toc147746230)
+
+[1.3. Enclosure Dimensions](#_Toc147746231)
+
+[1.4. Enclosure Appearance](#_Toc147746232)
+
+[1.5. Specifications](#_Toc147746233)
+
+[2. Device Usage Introduction](#_Toc147746234)
+
+[2.1. Download Required Drivers and Debugging Tools](#_Toc147746235)
+
+[2.2. Starting the Gateway](#_Toc147746236)
+
+[2.3. How to Use the DEBUG Serial Port](#_Toc147746237)
+
+[2.4. LED Indicator Description](#_Toc147746238)
+
+[3. Using the Linux System](#_Toc147746239)
+
+[3.1. Distribution Type and Kernel Version](#_Toc147746240)
+
+[3.2. System Pre-installed Software](#_Toc147746241)
+
+[3.3. System Default Login Accounts and Passwords](#_Toc147746242)
+
+[3.4. Network Connection Configuration and Function Test](#_Toc147746243)
+
+[3.5. HDMI Terminal](#_Toc147746244)
+
+[3.6. (DI) Digital Input](#_Toc147746245)
+
+[3.7. (DO) Digital Output](#_Toc147746246)
+
+[3.8. (RS485) Serial Port Debugging](#_Toc147746247)
+
+[3.9. (AI) Analog Input (0.3 - 10V Voltage)](#_Toc147746248)
+
+[3.10. CAN Interface](#_Toc147746249)
+
+[3.11. Device Unique Identifier Serial ID](#_Toc147746250)
+
+[3.12. Adding TF Expansion Card or SATA Hard Drive](#_Toc147746251)
+
+[4. Precautions](#_Toc147746252)
+
+1.  **Product Introduction**
+    1.  
+
+The XM3568-EP is an edge computing gateway (hereinafter referred to as: gateway) integrating multiple interfaces such as serial ports, CAN interfaces, digital inputs, digital outputs, and AI voltage acquisition. It can also be additionally expanded with 4G modules, SATA hard drives, and other plugins. The system is based on an arm64 architecture, features a highly reliable industrial-grade processing core, boasts high-performance 4-core concurrent processing capability, and runs the Linux operating system.
+
+1.  1.  Product Features
+
+Powerful Performance
+
+The gateway has four high-performance cores with a 1.5GHz main frequency and a built-in standard Linux operating system. It can be used not only for data acquisition but also as a conventional server. Users can freely download and install application software such as MySQL, Java, Chrome, and programming language SDKs according to their needs.
+
+High/Low Temperature Resistance and Electromagnetic Compatibility
+
+The gateway complies with national standards such as GB/T2423, GB/T9254, and GB/T17626, meeting various high/low temperature, electromagnetic interference, and magnetic field immunity test levels. It can operate stably in ambient temperatures ranging from -20℃ to +70℃ and in various complex electromagnetic environments, making it suitable for diverse application scenarios such as high-speed, outdoor parks, and industrial computer rooms.
+
+Rich Interfaces
+
+The gateway integrates multiple acquisition and control interfaces, including RS485, digital input interfaces, and digital output interfaces. These rich interfaces allow a single gateway to connect to various industrial devices without the need for external expansion of other acquisition modules.
+
+4G Communication
+
+The gateway has a built-in 4G communication module and uses DHCP by default, requiring no configuration tools. The gateway automatically connects to the network upon power-on, offering convenience, quick setup, and significant labor cost savings.
+
+Video Output
+
+The gateway features an HDMI high-definition multimedia interface and provides several common video resolutions. The default resolution is 1920*1080P@60Hz. Simply plug it into a screen to display high-definition images. It automatically adapts to mouse, keyboard, and touch screen, providing users with the same experience as a desktop PC.
+
+1.  1.  Enclosure Dimensions
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/134104001/01_fcc6cfba196107a68f5375928418886d.png)
+
+1.  1.  Enclosure Appearance
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/134104001/02_bfaed7e13f4501b5e42e0f34f972d58e.png)
+
+1.  1.  Specifications
+
+Motherboard Specifications
+
+Dimensions
+
+439mm(L)X300.2mm(W)X43.5mm(H)
+
+CPU
+
+Quad-core 64-bit 1.5GHz Cortex™-A53 processor
+
+GPU
+
+Mail G31 MP2 (OpenGL ES 3.2/2.0/1.0)
+
+Memory
+
+2GB (DDR3 / LPDDR4)
+
+Onboard Storage
+
+8GB EMMC
+
+Ethernet*2
+
+ETH1(10/100M), ETH2(10/100/1000M auto-negotiating)
+
+Power Supply
+
+Rated Input AC100-240V, 1.2A, 50/60Hz
+
+         DC120-340V, 1.2A ( L(+)  N(-) )
+
+USB*2
+
+Supports 2-channel USB2.0
+
+TYPE-C
+
+DEBUG Serial Port
+
+Video Output
+
+HDMI2.0 (1920x1080p@

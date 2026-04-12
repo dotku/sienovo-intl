@@ -1,0 +1,34 @@
+---
+title: "DSP+FPGA-based Airborne Radar Servo Control System (Part 2) Power Simulation"
+date: "2023-04-11"
+slug: "130075389"
+tags: ["#fpga开发", "#FPGA仿真", "#DSP仿真"]
+source: "https://blog.csdn.net/yeyuangen/article/details/130075389"
+originalTitle: "基于DSP+FPGA的机载雷达伺服控制系统(二）电源仿真"
+---
+
+Analysis and Simulation of Board-Level Power Distribution Networks
+
+In hardware circuit design, the design of the power system is one of the key steps. A good power system ensures the transmission of various signals on the circuit board. This chapter will investigate issues related to power integrity and propose a series of measures to improve power quality.
+
+**3.1** **Power Integrity**
+
+Power Integrity, abbreviated as PI, refers to the ability of the Power Distribution Network (PDN) to meet the power demands of load chips. Its design objectives are mainly twofold: first, to provide clean supply voltage to the load, and second, to provide a low-noise reference path for signals \[21].
+
+With the continuous increase in chip switching speeds and transistor counts, chip power consumption is constantly increasing, and the transient current demand required during switching is growing. These changes pose significant challenges to the design of power distribution networks.
+
+The power distribution network mainly consists of the following parts: power chips, capacitors installed on the PCB, and internal chip capacitors and power networks. This paper primarily focuses on analyzing capacitors, power planes, and ground planes installed on the PCB.
+
+**3.1.1** **Sources of Power Noise**
+
+The sources of power noise mainly include three aspects:
+
+(1) Ripple exists in the output of power chips. This part of the noise is determined by the chip's manufacturing process and operating principles. Once a power chip is selected, the corresponding output noise will be present. Commonly used power chips include switching power supplies and linear power supplies. The advantages of switching power supplies are less heat generation, high conversion efficiency (generally up to 85%), and large output current. The disadvantages are larger output fluctuations and potential spike pulses, which require adding ferrite beads at the output to improve. Linear power supplies, on the other hand, generate more noticeable heat and have lower conversion efficiency. However, linear power supplies offer stable output and smaller ripple. The choice should be flexible based on power supply requirements.
+
+(2) Regulated power supplies cannot respond in time to rapidly changing load current demands. As chip operating frequencies continuously increase, the frequency of current changes required by chips also increases. When this frequency exceeds the regulated power supply's regulation frequency, the regulated power supply cannot provide sufficient current to the load in time, which in turn leads to a drop in output voltage and generates power noise.
+
+(3) Voltage drops exist on power and ground paths \[22]. Because power and ground paths have impedance, when current flows through these paths, voltage drops occur. Consequently, the load voltage fluctuates with changes in current. Vias, package pins, and internal chip power networks also have impedance, all of which contribute to voltage drops.
+
+**3.1.2** **Establishing the Simulation Model**
+
+The simulation software chosen is Cadence's Allegro PCB PI Option XL component. This component can perform power noise analysis and design of high-speed PCB

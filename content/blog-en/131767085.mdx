@@ -1,0 +1,94 @@
+---
+title: "RK3588-Camera: MIPI-CSI and ISP Debugging - Path Analysis"
+date: "2023-07-17"
+slug: "131767085"
+tags: ["#RK3588", "#ISP"]
+source: "https://blog.csdn.net/yeyuangen/article/details/131767085"
+originalTitle: "RK3588-Camera:MIPI-CSI及ISP调试之通路解析"
+---
+
+This article introduces the path analysis for Camera: MIPI-CSI debugging on the RK3588 platform.
+
+The MIPI Alliance, which stands for Mobile Industry Processor Interface (MIPI) Alliance. MIPI (Mobile Industry Processor Interface) is an open standard and specification initiated by the MIPI Alliance, developed for mobile application processors.
+
+The purpose is to standardize internal mobile phone interfaces such as camera, display, RF/baseband interfaces, etc., thereby reducing the complexity of mobile phone design and increasing design flexibility.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131767085/01_25cdacf02200b05c3bc1172317f2767d.png)
+
+CSI & DSI
+
+• CSI (Camera Serial Interface): Camera interface
+
+• DSI (Display Serial Interface): Display interface
+
+## II. Terminology Explanation:
+
+ISP (Image Signal Processor): Refers to the image signal processing module. Its main function is to post-process the signals output by the front-end image sensor. It relies on the ISP to effectively restore scene details under various optical conditions. VICAP (Video Capture): Video capture unit
+
+## III. RK3588 Camera Path:
+
+### Multi-sensor Support:
+
+A single hardware ISP supports up to 4-way multiplexing. The resolutions supported by ISP multiplexing are as follows: 2-way multiplexing: maximum resolution 3840x2160, DTS configures 2 rkisp_vir devices accordingly. 3 or 4-way multiplexing: maximum resolution 2560x1536, DTS configures 3 or 4 rkisp_vir devices accordingly. The hardware supports capturing up to 7 sensors: 6 MIPI + 1 DVP. The multi-sensor software path is as follows:
+
+**The following diagram shows the RK3588 camera connection link, which supports 7 cameras.**
+
+## IV. Link Analysis:
+
+In the diagram: mipi camera2---> csi2_dphy1 ---> mipi2_csi2 ---> rkcif_mipi_lvds2--->rkcif_mipi_lvds2_sditf --->rkisp0_vir2
+
+Corresponding nodes: imx415 ---> csi2_dphy0 ---> mipi2_csi2 ---> rkcif_mipi_lvds2--->rkcif_mipi_lvds2_sditf --->rkisp0_vir2
+
+Connection relationship: sensor---> csi2 dphy---->mipi csi host--->vicap
+
+Solid line link analysis: Camera sensor ---> dphy ---> MIPI protocol parsing via mipi_csi2 module \---> vicap (rkcif node represents vicap)
+
+Dashed line link analysis: vicap ---> rkcif_mipi_lvds2_sditf ---> isp
+
+The connection relationship between each VICAP node and the ISP is indicated by the corresponding virtual XXX_sditf.
+
+## V. RK3588 Hardware Path Block Diagram
+
+RK3588 supports 2 ISP hardware units. Each ISP device can virtualize multiple virtual nodes. In software, image data from each path is sequentially read from DDR into the ISP for processing via a "readback" method. For multi-camera solutions, it is recommended to evenly distribute the data stream across the two ISPs. Readback: refers to data being collected by VICAP into DDR. After the application obtains the data, it pushes the buffer address to the ISP, and the ISP then retrieves the image data from DDR.
+
+## VI. Detailed Analysis:
+
+imx415 : Camera sensor
+csi2_dphy0 : RK3588 supports 2 DPHY hardware units. Here we refer to them as dphy0_hw/dphy1_hw. Both DPHY hardware units can operate in full mode and split mode.
+
+**When using dphy0_hw:**
+
+Full mode: The node name uses csi2_dphy0, supporting up to 4 lanes. When dphy0_hw is used in full mode, the link needs to be configured according to the csi2_dphy1 path, but the node name csi2_dphy1 needs to be changed to csi2_dphy0. In software, the operating mode of the PHY is distinguished by its sequence number.
+Split mode: It is split into 2 PHYs: csi2_dphy1 (using lanes 0/1) and csi2_dphy2 (using lanes 2/3). Each PHY supports up to 2 lanes.
+
+**When using dphy1_hw:**
+
+Full mode: The node name uses csi2_dphy3, supporting up to 4 lanes. When dphy1_hw is used in full mode, the link needs to be configured according to the csi2_dphy4 path, but the node name csi2_dphy4 needs to be changed to csi2_dphy3. In software, the operating mode of the PHY is distinguished by its sequence number.
+Split mode: It is split into 2 PHYs: csi2_dphy4 (using lanes 0/1) and csi2_dphy5 (using lanes 2/3). Each PHY supports up to 2 lanes.
+
+dcphy: RK3588 supports two DCPHYs, with node names csi2_dcphy0/csi2_dcphy1 respectively. Each DCPHY hardware supports simultaneous RX/TX operation; for camera input, RX is used. It supports DPHY/CPHY protocol multiplexing. It should be noted that the TX/RX of the same DCPHY can only use DPHY or CPHY simultaneously. For other DCPHY parameters, please refer to the RK3588 datasheet.
+
+When using the above MIPI PHY nodes, the corresponding physical nodes need to be configured. (csi2_dcphy0_hw/csi2_dcphy1_hw/csi2_dphy0_hw/csi2_dphy1_hw)
+
+Each MIPI PHY requires a CSI-2 module to parse the MIPI protocol. The node names are mipi0_csi2~mipi5_csi2 respectively.
+
+All camera data on RK3588 must pass through VICAP and then link to the ISP. RK3588 only supports one VICAP hardware unit. This VICAP supports simultaneous input from 6 MIPI PHYs and 1 DVP data stream. Therefore, we differentiate VICAP into 7 nodes such as rkcif_mipi_lvds~rkcif_mipi_lvds5 and rkcif_dvp. The binding relationships of each node must be strictly configured according to the node sequence numbers in the block diagram.
+
+The connection relationship between each VICAP node and the ISP is indicated by the corresponding virtual XXX_sditf.
+
+RK3588 supports 2 ISP hardware units. Each ISP device can virtualize multiple virtual nodes. In software, image data from each path is sequentially read from DDR into the ISP for processing via a "readback" method. For multi-camera solutions, it is recommended to evenly distribute the data stream across the two ISPs.
+
+Passthrough and Readback Modes:
+• Passthrough: refers to data being collected by VICAP and directly sent to the ISP for processing, without being stored in DDR. It should be noted that during HDR passthrough, only short frames are truly passthrough; long frames need to be stored in DDR, and the ISP then reads them from DDR.
+
+• Readback: refers to data being collected by VICAP into DDR. After the application obtains the data, it pushes the buffer address to the ISP, and the ISP then retrieves the image data from DDR.
+
+• In DTS configuration, if only one virtual node is configured for an ISP hardware unit, passthrough mode is used by default. If multiple virtual nodes are configured, readback mode is used by default.
+
+## VII. DTS Configuration Description for Single Camera: (Taking IMX415 camera as an example)
+
+**Scenario: Here, a single-camera configuration using csi2_dphy0 is used.**
+**Link Configuration: imx415 —> csi2_dphy0 —> mipi2_csi2 —> rkcif_mipi_lvds2—>rkcif_mipi_lvds2_sditf —>rkisp0_vir2**
+
+```hljs
+&i2c3 {status = "okay";imx415: imx415@1a {status = "okay";compatible = "sony,imx415";reg = < 0x1a >;clocks = < &cru CLK_MIPI_CAMARAOUT_M3 >;clock-names = "xvclk";pinctrl-names = "default";pinctrl-0 = < &mipim0_camera3_clk >;power-domains = < &power RK3588_PD_VI >;pwdn-gpios = < &gpio1 RK_PB0 GPIO_ACTIVE_HIGH >;reset-gpios = < &gpio4 RK_PA0 GPIO_ACTIVE_LOW >;rockchip,camera-module-index = < 0 >;rockchip,camera-module-facing = "back";rockchip,camera-module-name = "CMK-OT2022-PX1";rockchip,camera-module-lens-name = "IR0147-50IRC-8M-F20";port {imx415_out0: endpoint {remote-endpoint = < &mipidphy0_in_ucam0 >;data-lanes = < 1 2 3 4 >;};};};camera_imx219: camera-imx219@10 {status = "disabled";compatible = "sony,imx219";reg = < 0x10 >;clocks = < &clk_cam_24m >;clock-names = "xvclk";rockchip,camera-module-index = < 0 >;rockchip,camera-module-facing = "back";rockchip,camera-module-name = "rpi-camera-v2";rockchip,camera-module-lens-name = "default";port {imx219_out0: endpoint {remote-endpoint = < &mipidphy0_in_ucam1 >;data-lanes = < 1 2 >;};};};};&csi2_dphy0_hw {status = "okay";};&csi2_dphy0 {status = "okay";ports {#address-cells = < 1 >;#size-cells = < 0 >;port@0 {reg = < 0 >;#address-cells = < 1 >;#size-cells = < 0 >;mipidphy0_in_ucam0: endpoint@1 {reg = < 1 >;remote-endpoint = < &imx415_out0 >;data-lanes = < 1 2 3 4 >;

@@ -1,0 +1,213 @@
+---
+title: "RK3568+FPGA+SylixOS Application in Power Products"
+date: "2023-07-07"
+slug: "130061237"
+tags: ["#翼辉", "#RK3568"]
+source: "https://blog.csdn.net/yeyuangen/article/details/130061237"
+originalTitle: "RK3568+FPGA+翼辉操作系统在电力产品的应用"
+---
+
+**What are the advantages of ARM + FPGA architecture?**
+In recent years, with the continuous advancement of China's New Infrastructure and Made in China 2025 initiatives, single ARM processors are increasingly struggling to meet the functional requirements of industrial sites. Industries such as energy and power, industrial control, and smart healthcare often require ARM + FPGA architecture processor platforms to achieve specific functionalities, such as multi-channel/high-speed AD acquisition, multiple Ethernet ports, multiple serial ports, multi-channel/high-speed parallel DI/DO, and high-speed data parallel processing.
+
+**So, what exactly are the advantages of ARM + FPGA architecture?**
+
+ARM: Rich interface resources, low power consumption, excels at multimedia display, logic control, etc.
+
+FPGA: Excels at multi-channel or high-speed AD acquisition, interface expansion, high-speed signal transmission, high-speed data parallel processing, etc.
+
+Therefore, the ARM + FPGA architecture offers comprehensive comparative advantages in terms of performance and power consumption. ARM and FPGA can each perform their respective duties, leveraging the unique strengths of their original architectures, and also collaborate to tackle more complex problems.
+
+**Why is high-speed communication between ARM + FPGA necessary?**
+
+In industrial application scenarios, FPGA typically acts as the data acquisition front-end, often requiring large volumes of data to be transmitted to ARM for processing. For example, in energy and power, FPGA is used for high-speed AD or multi-channel AD acquisition, and then the large amount of generated data is transmitted to ARM for AD data storage and processing. Another example is smart healthcare, where FPGA needs to transmit acquired and processed high-definition video data to ARM, allowing ARM to perform video display, encoding, or storage of the high-speed video data. Therefore, "ARM + FPGA high-speed communication" is a critical success factor for "ARM + FPGA architecture" projects.
+
+****Introduction to SylixOS (M********S-RTOS********) Applications in Power Products****
+
+I. Traditional Power Grid Devices:
+
+1.  Relay protection, measurement and control, stability control, PMU, time synchronization, fault recording, and other devices (transmission and transformation)
+
+AMP solutions are generally used, with a few customers using SMP solutions. In November 2019, China's first 100% domestically produced 500kV relay protection device using SylixOS was put into operation in Henan (Xuji Electric). A month later, customers such as Sifang Relay Protection and NARI Group successively deployed 100% domestically produced relay protection devices using SylixOS at the Sanzhou Substation in Foshan and Liede Substation in Guangzhou. The software block diagram is as follows:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/130061237/01_90a6bc052a2e8e8dc74b4417c3764a69.png)
+
+In October 2020, customers such as NARI Technology, Jicheng Electronics, and Dongfang Electronics conducted grid access tests for relay protection devices at institutions like State Grid Electric Power Research Institute and KEP. Subsequently, companies like Zhonglue Smart and Huaruitai also began developing fully localized devices using SylixOS.
+
+In 2020, State Grid required the top few major companies to achieve full station localization. Leading enterprises that had previously developed based on SylixOS then developed measurement and control, stability control, PMU, time synchronization, and other devices based on their existing platforms.
+
+1.  DTU, FTU, and other devices (distribution)
+
+Early users of SylixOS, such as Sifang Relay Protection and Dongfang Electronics, developed related devices based on their existing software and hardware platforms.
+
+Changyuan Shenrui developed and deployed related devices, including charging piles, PV grid-connected terminals, and microgrid controllers, using SylixOS in a Southern Grid project.
+
+1.  Thermal protection, power station protection devices (power generation)
+
+Similar to protection devices, development of related devices is primarily conducted with Dongfang Electric, largely based on the aforementioned solutions. It is expected that in April 2021, the products will be tested and the testing standards for power station related devices will be refined at the "Energy Industrial Control Security Engineering Laboratory" established by Dongfang Electric and China Power Investment in Sichuan.
+
+1.  UHV DC protection devices (transmission and transformation)
+
+Collaborated with Xuji Electric on the development of UHV DC protection devices.
+
+Notes:
+
+1.  All the above AMP solutions provide:
+
+Inter-core communication methods based on shared memory (dual-system mode can provide communication methods such as virtual network cards, network file systems);
+
+Support for trusted computing;
+
+Support for network firewalls (in conjunction with FPGA functions, passed special network security tests for power monitoring system devices);
+
+Provide production packaging tools;
+
+2.  Competing solutions in the industry:
+
+Linux + bare-metal open-source code mode. For such industry customers, it's crucial to seize the initiative. The AMP mode of Linux + bare-metal is generally developed later by chip manufacturers. SylixOS has certain advantages in this regard, allowing for rapid adaptation and solution deployment. Additionally, SylixOS has experience in full localization, enabling quick adaptation and product launch after subsequent chip replacements. Below is a partial list of commonly used BOMs:
+
+**Component**
+
+**Original BOM**
+
+**Alternative 1**
+
+**Alternative 2**
+
+CPU
+
+ZYNQ-7015(Xilinx)
+
+2K1000(Loongson)
+
+T3(Allwinner)
+
+MCU
+
+MK64FN1M0VLQ12（NXP）
+
+GD32F450VGT6(GigaDevice)
+
+GD32F450VGT6(GigaDevice)
+
+FPGA
+
+ZYNQ-7015(Xilinx)
+
+GW3AT\-100(Gowin)
+
+PGL50H(Unigroup Guoxin)
+
+PGT180H(Unigroup Guoxin)
+
+DRAM
+
+IS43TR16640BL-107MBLI(ISSI)
+
+SCB15H1G160AF(Unigroup Guoxin)
+
+S-NOR
+
+IS25LP256D-JMLE(ISSI)12
+
+GD25S512M(GigaDevice)
+
+_e_MMC
+
+NAND
+
+MTFC4GACAJCN-4M IT(Micron)
+
+IS21S04G(ISSI)12
+
+GD5F4GQ4UBYIG(GigaDevice)
+
+RS-485
+
+SN65HVD82DR(TI)
+
+TP8485E(3PEAK)
+
+BL3085B(Shanghai Belling)
+
+RS-232
+
+MAX202EESE(Maxim)
+
+TP3232N(3PEAK)
+
+Logic
+
+TI/NXP
+
+Nexperia
+
+Crystal Oscillator
+
+EPSON
+
+Tangshan Jingyuan
+
+RTC
+
+DS3232(Maxim)
+
+BL8025T(Shanghai Belling)
+
+FM38025T(Fudan Microelectronics)
+
+Reset
+
+MAX823(Maxim)
+
+SGM706(SGMICRO)
+
+Power
+
+TI
+
+Silergy, UMW
+
+Ethernet
+
+DP83848(TI)
+
+ZX5201(ZTE Microelectronics)
+
+N/A
+
+FRAM
+
+FM24CL64B-GTR(Cypress)
+
+MB85RC64TAPNF(Fujitsu)
+
+N/A
+
+Signal Chain
+
+ADI/TI
+
+N/A
+
+N/A
+
+II. Power Grid Distribution and Consumption Devices (MS-RTOS)
+
+1.  Smart Meters
+
+(Solution details not elaborated)
+
+1.  Smart Switches
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/130061237/02_752f21d8da57386441d20a9148c93885.png)
+
+Small intelligent devices like smart switches and smart meters generally require prior communication with power grid functional agencies or provincial grid companies.
+
+Advantages include: basic applications can be pre-installed with the core module at the factory, defining communication protocols, metering data, and other common components. It provides features such as dynamic loading and security isolation, allowing other manufacturers to develop based on a unified platform.
+
+Currently, smart meter development is underway with China Southern Power Grid, and smart switch development with Chipone Microelectronics.
+
+1.  FTU/DTU
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/130061237/

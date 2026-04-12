@@ -1,0 +1,54 @@
+---
+title: "Design of a Robotic System with Handheld Control Based on IMX8 and Real-time EtherCAT"
+date: "2023-05-23"
+slug: "130829782"
+tags: ["#智能手机", "#机器人"]
+source: "https://blog.csdn.net/yeyuangen/article/details/130829782"
+originalTitle: "基于IMX8 实时ethercat的手机机器人方案设计"
+---
+
+Structure:
+
+1.  The following structure is a control handle, used to acquire human hand motion signals, transmit them to the host computer, and remotely control other devices.
+
+2.  The handle incorporates a robotic arm with 4 motor-driven revolute joints, featuring built-in 16-bit resolution rotary encoders to record angular displacement.
+
+3.  The host computer connects to the handle motors, instrument motors (actuators controlled by the handle's motion output), gantry motors (for linear motion controlled by the handle), and the electrosurgical unit (for on/off control via the handle).
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/130829782/01_debfaa36acf2d7e72b95643345d08c2b.png)
+
+Functional Modules:
+
+*   Forward Control (Handle as Control End):
+
+1.  Handle rotary encoder (5) angular displacement signals control the instrument motors.
+2.  Handle buttons: control the equipment's gantry motors.
+3.  Handle buttons: active braking and release of the handle motors.
+4.  Handle buttons control the power on/off of the electrosurgical unit.
+
+II. Reverse Control (Handle controlled by instrument feedback):
+
+1.  The handle adjusts its pose based on the selected instrument's pose.
+
+Parameter Input:
+
+1.  Host computer communication protocol: RS485/EtherCAT
+2.  Host computer OS: Windows 10, potentially transitioning to Linux later
+3.  Rotary encoder resolution: 16-bit
+4.  Motor output signal: 0-20mA / 4-20mA, RS485
+
+Requirements Implementation:
+
+Phase One:
+
+1.  Individually acquire handle rotary encoder angular displacement signals and output them to the host computer.
+2.  Output the handle's forward/backward button input signals to the host computer and control the gantry motors' operation.
+3.  Monitor if the hover button is pressed, and feedback the signal to the handle motors to achieve active braking/release.
+4.  Acquire the handle's electrosurgical unit switch input signal, output it to the host computer, and control the power on/off of the external electrosurgical unit.
+5.  Monitor handle motor temperature and feedback to the host computer.
+6.  Set boundary regions via software to limit the handle's rotational displacement range.
+
+Phase Two:
+
+1.  Enable instrument motors to operate in accordance with the handle's rotational displacement.
+2.  Feedback the instrument motor rotary encoder angular displacement signals to the handle motors to adjust the handle's pose.

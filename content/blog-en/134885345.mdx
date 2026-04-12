@@ -1,0 +1,22 @@
+---
+title: "Intelligent Fault Diagnosis System for Marine Electrical and Mechanical Equipment"
+date: "2023-12-08"
+slug: "134885345"
+tags: ["#网络"]
+source: "https://blog.csdn.net/yeyuangen/article/details/134885345"
+originalTitle: "船舶机电设备智能故障诊断系统"
+---
+
+1. Expert System for Marine Electrical Equipment Fault Diagnosis
+
+Architecture
+
+The overall system architecture adopts a browser/server (B/S) three-tier architecture (as shown in Figure 1). The B/S model is a system platform based on web technologies. It decomposes the server component of the traditional client/server (C/S) model into a data server and one or more application servers (web servers), forming a three-tier client-server architecture. The three-tier architecture enhances system scalability, effectively improves usability, and reduces system maintenance efforts. Moreover, the client requires only a simple and user-friendly browser, making operations easier for users.
+
+Since different vessels are equipped with different devices during actual voyages, a general-purpose fault diagnosis expert system—designed for multiple devices rather than dedicated to a single device—can be achieved by leveraging the extensibility, scalability, and flexibility of the three-tier architecture. For instance, various expert system development tools (such as OPS5, M.1, GURU, VP-EXPERT, CLIPS, ZDEST, KMIX, TOES, etc.) share one common core: a generic inference engine, yet they can be used to build different expert systems. Therefore, as long as different expert databases (such as the main engine remote control and main engine monitoring databases shown in Figure 1) have the same relational schema and tables with identical attribute fields, this general-purpose fault diagnosis system can be realized. By adding different expert databases for different vessels into the system, dynamic web pages and database technologies enable interaction between users and the system.
+
+When a device fails (e.g., the main engine cannot be remotely shut down), the user logs into the server via a browser, locates the main engine remote control expert database from the database directory, clicks to launch the inference engine component, and then the inference engine identifies the fault cause by continuously querying the user.
+
+[1] The server implements the inference engine using Java component object technology. A key advantage is that during system upgrades, other components interacting with the inference engine do not need to be recompiled—simply replacing the old component with a new one (having the same interface) suffices. Besides the inference engine component, the server also includes a database management interface: functions such as adding, deleting, modifying, sorting, and maintaining databases. For example, each time a new expert database is added, it must be registered in a dedicated Register table (by adding a record). This table contains information such as the database name, address, and descriptions of all tables within the database. Additionally, these databases require regular maintenance—for instance, after each inference, the system updates records in the fault statistics table and, over time, rearranges the order of rules in the table according to the frequency of different faults.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/134885345/01_30078c70c9ba4daedd4992762f0315b3.png)

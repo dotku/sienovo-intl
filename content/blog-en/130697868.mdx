@@ -1,0 +1,147 @@
+---
+title: "AD9680 + JESD204B Interface + FPGA FMC High-Speed Data Acquisition Board"
+date: "2023-05-16"
+slug: "130697868"
+tags: ["#fpga开发"]
+source: "https://blog.csdn.net/yeyuangen/article/details/130697868"
+originalTitle: "AD9680+JESD204B接口+FPGA FMC高速率数据采集板卡"
+---
+
+Board Overview:
+
+【FMC\_XM155】 FMC\_XM155 is a VITA57.1 standard-based FMC daughter card module that implements 2-channel, 14-bit, 500MSPS/1GSPS/1.25GSPS DC-coupled ADC synchronous acquisition.
+
+This module complies with the VITA57.1 specification and can be directly used with an FPGA carrier card. The board's ADC device uses Analog Devices' AD9680 chip, which features two analog input channels and two JESD204B output data lane pairs, capable of sampling broadband analog signals up to 2GHz. The ADC front-end employs a wideband, low-noise, low-power fully differential amplifier with a gain-bandwidth product of up to 8GHz, offering excellent linear performance and up to 12dB gain from DC to 2GHz. This board is primarily designed for applications such as radar, broadband communications, millimeter-wave communications, and automated test equipment.
+\[FMC\_XM121\] FMC\_XM121 is an FMC standard-compliant daughter card module that implements 2-channel, 14-bit, 1GSPS ADC synchronous acquisition and 2-channel, 16-bit, 2.5GSPS DAC synchronous playback.
+This module complies with the VITA57.1 standard and can be directly used with an FPGA carrier card. The board's ADC device uses Analog Devices' AD9680 chip, which features two analog input channels and two JESD204B output data lane pairs, capable of sampling broadband analog signals up to 2GHz. The DAC device uses TI's DAC38J82 chip, which features a JESD204B interface, allowing for flexible configuration and programming, and enabling synchronization of multiple devices. This board is primarily designed for applications such as radar, broadband communications, millimeter-wave communications, and automated test equipment.
+\[FMC\_XM139\] FMC\_XM139 is a 4-channel, 500MSPS/1GSPS, 14-bit AD acquisition daughter card module.
+The board's ADC device uses Analog Devices' AD9680 chip, with a full-power -3dB analog input bandwidth of up to 2GHz. The ADC interfaces with the FPGA host via 8 channels of high-speed serial GTX transceivers. This board is primarily designed for applications such as communications and wireless infrastructure, radar, broadband communications, millimeter-wave communications, and automated test equipment.
+【FMC\_XM148】 An 8-channel, 500MSPS/1GSPS/1.25GSPS sampling rate, 14-bit AD acquisition FMC daughter card module based on the VITA57.4 standard.
+The board's ADC device uses Analog Devices' AD9680 chip, with a full-power -3dB analog input bandwidth of up to 2GHz. The ADC interfaces with the FPGA host via 16 channels of high-speed serial GTX transceivers. This board is primarily designed for applications such as communications and wireless infrastructure, radar, broadband communications, millimeter-wave communications, and automated test equipment.
+Physical board images are shown below:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/130697868/01_1216e49500c16b61d45b3f64348d1548.png)
+
+FMC\_XM155 -- 2-channel, 14-bit, 500MSPS/1GSPS/1.25GSPS
+
+FMC\_XM121 -- 2-channel, 14-bit, 1GSPS acquisition, 16-bit, 2.5GSPS playback
+
+FMC\_XM139 -- 4-channel, 14-bit, 500MSPS/1GSPS
+
+FMC\_XM148 -- 8-channel, 500MSPS/1GSPS/1.25GSPS
+Technical Specifications
+
+FMC\_XM155
+ADC Performance Specifications:
+ Number of Channels: 2 channels;
+ Sampling Rate: 500MSPS/1GSPS/1.25GSPS, configurable;
+ Acquisition Resolution: 14 bits;
+ Effective Number of Bits (ENOB) @10MHz: 10.8 bits;
+ Sampling Rate: Supports 500MSPS/1GSPS/1.25GSPS;
+ Coupling Method: DC-coupled (DC~2GHz);
+ Analog Input: 50 Ohm, SMA;
+ Analog Input Full Power Bandwidth: 2GHz;
+ 95dB Channel Isolation/Crosstalk;
+ Integrated 2 wideband digital processors per channel;
+ Supports JESD204B configuration;
+ Clock Distribution:
+ Supports local sampling reference clock;
+ External input sampling reference clock: 100MHz, -2~10dBm@50Ω, SSMC;
+ Supports external input VCO clock;
+ Other Features:
+ Supports external trigger (3.3V) or internal trigger, trigger level +3.3V;
+ Onboard status indicator LEDs;
+ Physical and Electrical Characteristics
+ Board Dimensions: 84.1 x 69mm
+ Typical Power Consumption: 4W
+ Cooling Method: Natural air cooling
+ Environmental Characteristics
+ Operating Temperature: -40°~﹢85°C;
+ Storage Temperature: -55°~﹢125°C;
+FMC\_XM121
+ ADC Performance Specifications:
+ 2-channel, 1GSPS sampling rate;
+ Resolution: 14 bits, ENOB@10MHz: 10.8 bits;
+ Analog Input Full Power Bandwidth: 2GHz;
+ 95dB Channel Isolation/Crosstalk;
+ Integrated 2 wideband digital processors per channel;
+ Supports JESD204B configuration;
+ DAC Performance Specifications:
+ Resolution: 16 bits;
+ Maximum Sampling Rate: 2.5GSPS;
+ Analog Bandwidth (-3dB): 4.5MHz~2GHz;
+ Coupling Method: AC-coupled;
+ 8 JESD204B serial input lanes;
+ Maximum Input Data Rate: 1.23GSPS;
+ Clock Distribution:
+ Supports external input sampling clock;
+ Supports external input reference clock: 10/20MHz,
+-2~10dBm@50Ω, MMCX;
+ Other Features:
+ Supports external trigger (3.3V) or internal trigger;
+ Onboard status indicator LEDs;
+ Physical and Electrical Characteristics
+ Board Dimensions: 84.1 x 69mm
+ Typical Power Consumption: 4W
+ Cooling Method: Natural air cooling
+ Environmental Characteristics
+ Operating Temperature: -40°~﹢85°C;
+ Storage Temperature: -55°~﹢125°C;
+FMC\_XM139
+ ADC Performance Specifications (AD9680):
+ JESD204B (Subclass 1) encoded digital output;
+ 1.65W total power consumption (at 1GSPS sampling rate);
+ SNR: 65.3dBFS@1GHz, -1dBFS amplitude;
+ SFDR: 85dBFS@1GHz, -1dBFS amplitude;
+ ENOB: 10.8 bits (10MHz);
+ DNL: ±0.5LSB, INL=±2.5LSB;
+ DC Power Supply: 1.25V, 2.5V, 3.3V;
+ Noise Density: -154dBFS/Hz;
+ No missing codes;
+ 2GHz analog input full power bandwidth (-3dB);
+ Internal ADC voltage reference;
+ Mixed JESD204B Lane configuration;
+ Clock and Trigger
+ High-performance clock generator: HMC7044;
+ Supports 100MHz LVDS crystal oscillator, supports external clock input;
+ Supports 1 input/output trigger signal, LVTTL (3.3V) level standard;
+ Supports synchronous input/output;
+ Physical and Electrical Characteristics
+ Board Dimensions: 84.1x69mm;
+ Typical Power Consumption: 6W;
+ Power Supply: +12V;
+ Cooling Method: Natural air cooling;
+ Environmental Characteristics
+ Operating Temperature: -40°~﹢85°C;
+ Storage Temperature: -55°~﹢125°C;
+ Operating Humidity: 5%~95%, non-condensing;
+FMC\_XM148
+ ADC Performance Specifications (AD9680):
+ Board supports 4 ADCs, for a total of 8 analog signal acquisition channels;
+ Sampling Rate: 500MSPS/1GSPS/1.25GSPS, configurable;
+ Acquisition Resolution: 14 bits;
+ JESD204B (Subclass 1) encoded digital output;
+ 1.65W total power consumption (at 1GSPS sampling rate);
+ SNR: 65.3dBFS@1GHz, -1dBFS amplitude;
+ SFDR: 85dBFS@1GHz, -1dBFS amplitude;
+ ENOB: 10.8 bits (10MHz);
+ DNL: ±0.5LSB, INL=±2.5LSB;
+ DC Power Supply: 1.25V, 2.5V, 3.3V;
+ Noise Density: -154dBFS/Hz;
+ No missing codes;
+ 2GHz analog input full power bandwidth (-3dB);
+ Internal ADC voltage reference;
+ Mixed JESD204B Lane configuration;
+ Clock and Trigger
+ High-performance clock generator: HMC7044;
+ Supports 100MHz LVDS crystal oscillator, supports external clock input;
+ Supports 1 input/output trigger signal, LVTTL (3.3V) level standard;
+ Supports synchronous input/output;
+ Physical and Electrical Characteristics
+ Board Dimensions: 84.1 x 69mm;
+ Typical Power Consumption: 6W; Power Supply: +12V;
+ Cooling Method: Natural air cooling;
+ Environmental Characteristics
+ Operating Temperature: -40°~﹢85°C;
+ Storage Temperature: -55°~﹢125°C;
+ Operating Humidity: 5%~95%, non-condensing;

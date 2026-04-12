@@ -1,0 +1,31 @@
+---
+title: "Difference Between Multithreading and Multiprocessing"
+date: "2014-07-31"
+slug: "38318709"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/38318709"
+originalTitle: "多线程和多进程的区别"
+---
+
+(This is a key question—what interviewers care about the most. You must answer comprehensively from various aspects such as CPU scheduling, context switching, data sharing, multi-core CPU utilization, resource consumption, etc. Then, there's one question that will definitely come up: *What resources are private to a thread?* The answer must include *registers*, or you're in trouble.)
+
+**Reentrancy**: There isn't a widely accepted formal definition for this concept, but reentrancy imposes stricter requirements than thread safety. Based on practical experience, "reentrancy" commonly refers to the following scenario: when a program is executing a certain function `foo()`, it receives a signal, causing the currently running function to pause and transfer control to a signal handler. During the execution of this signal handler, it happens to call the same function `foo()` again—this is known as reentrancy. If `foo()` can execute correctly in this nested context, and the previously suspended instance of `foo()` can also resume and complete correctly afterward, then the function is considered reentrant.
+
+**Conditions for Thread Safety**:
+
+To ensure a function is thread-safe, the main concern is shared variables among threads. **Different threads within the same process share the global data area and heap of the process memory space, while each thread's private storage primarily consists of its stack and registers**. Therefore, for different threads in the same process, local variables are thread-private, whereas global variables, local static variables, and variables allocated on the heap are shared. When accessing these shared variables, thread safety must be ensured through mechanisms such as locking.
+
+**Conditions for Reentrancy**:
+
+To ensure a function is reentrant, the following conditions must be met:
+
+1. Do not use static or global data within the function.  
+2. Do not return pointers to static or global data; all data must be provided by the function caller.  
+3. Use only local data, or protect global data by creating a local copy.  
+4. Do not call non-reentrant functions.
+
+**About Thread Stacks**
+
+Let's discuss the issue of thread-specific stacks.
+
+Yes, when a child thread is created, it obtains a portion of the process's stack space, which becomes its nominally independent and private memory area. (Why "nominally"?). Since these threads belong to the same process, if another thread obtains a pointer to some data on your "private" stack, it can freely access that data in your so-called private stack space. (Note: This is not possible with separate processes—because in different processes, the same virtual address will almost certainly not map to the same physical address.)

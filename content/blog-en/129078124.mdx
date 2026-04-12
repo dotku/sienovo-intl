@@ -1,0 +1,38 @@
+---
+title: "Research and Design of a Gas Well Industrial Gateway Based on Domestic Loongson CPU (II)"
+date: "2023-02-17"
+slug: "129078124"
+tags: ["#硬件架构", "#工业网关", "#RTU", "#油井"]
+source: "https://blog.csdn.net/yeyuangen/article/details/129078124"
+originalTitle: "基于国产龙芯 CPU 的气井工业网关研究与设计（二）"
+---
+
+**3.1 Overall Hardware Design of the System**
+
+From a hardware architecture perspective, this RTU primarily includes the design of three major parts:
+
+(1) Peripheral Circuit Design: Power supply circuit design, RTC circuit design, and EEPROM circuit design.
+
+(2) RTU Main Body I/O Port Design: Analog Input (A/I) port design and TTS voice port design.
+
+(3) RTU Communication Port Design: RS232 port design, RS485 port design, 4G communication port design, and Ethernet communication port design.
+
+Additionally, considering that RTUs typically operate in remote and harsh environments, to ensure the normal operation of the RTU in industrial settings, the baseboard incorporates multiple power supplies, and each module features digital signal isolation and power isolation designs.
+
+The overall hardware design scheme is shown in Figure 3-1.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129078124/01_bf856d0992d9aaa0c301012194a00f67.png)
+
+**3.2 Hardware Development Environment and Development Steps**
+
+Altium Designer is integrated electronic development software developed by Altium, providing hardware engineers with schematic design, analog/digital circuit mixed-signal simulation, PCB layout and editing, automatic PCB routing, signal integrity analysis, design rule checking, and other solutions.
+
+This software inherits the basic functions and advantages of the Protel series versions developed by Altium starting in the 1980s, fully extends the board-level design interface, and integrates FPGA design and SOPC design functionalities, thereby enabling developers to unify system design including FPGA, PCB, and embedded design [22]. These improvements and upgrades significantly enhance the design efficiency of electronic product designers.
+
+**3.3 Peripheral Circuit Design**
+
+Peripheral circuit design includes power supply circuit design, RTC circuit design, and EEPROM circuit design. The power supply is the energy station for the core board and various circuit modules. The role of the power module is to convert voltage, transforming AC or DC power into the AC or DC power required by each circuit module. The RTC circuit module primarily provides stable clock signals for the system. The EEPROM circuit implements data retention in case of power loss.
+
+**3.3.1 Power Supply Circuit Module Design**
+
+The power supply is the lifeblood of electronic design; the normal operation of any electronic design system relies on power support, and the performance of electronic systems is inextricably linked to the stability of power quality [27]. Since natural gas well sites are typically located in very harsh industrial environments, automated equipment at natural gas well stations generally uses wind-solar hybrid power supply systems. Therefore, the system power supply in this design uses a photovoltaic system for wide-range power input. The power controller selected is an integrated photovoltaic controller from Beijing Ankon, which can stably output 12V or 24V voltage. Controller functions include: charge status indication, input voltage and current monitoring,

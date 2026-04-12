@@ -1,0 +1,80 @@
+---
+title: "XMC4800 EtherCAT Slave-Based Factory Automation Solution"
+date: "2022-12-22"
+slug: "128410412"
+tags: ["#自动化", "#XMC4800", "#Ethercat从站"]
+source: "https://blog.csdn.net/yeyuangen/article/details/128410412"
+originalTitle: "基于XMC4800 Ethercat从站的工厂自动化解决方案"
+---
+
+**Background**
+
+With the introduction of the concepts of "Industry 4.0" and "Industrial Internet," the idea of "Internet + Manufacturing" has become widely known to the public, often referred to as the Fourth Industrial Revolution. Against this backdrop, new industrial automation has emerged. Smart factories, Industry 4.0 solution providers offering smart factory design and implementation, and technology suppliers have successively appeared. ARROW deeply collaborates with solution providers and technology suppliers to offer channels for realizing smart factories. Servo systems, as one of the most crucial control and execution mechanisms in industrial automation, are widely applied in fields such as machine tools, textile machinery, printing machinery, and packaging machinery. Simultaneously, with the rapid expansion of industries like industrial robots and electronic manufacturing equipment in recent years, the application scale of servo systems in emerging industries has grown rapidly. New industrial automation has high demands for high-performance motor control systems and industrial Ethernet (EtherCAT), and many customers are looking for new solutions that can integrate both.
+
+Factory Automation Scenario 1 (Industrial Robot)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128410412/01_fdff00ba9e3a23feba4b7bdf5b0fd3bc.jpeg)
+
+Factory Automation Scenario 2 (Handling Robot)
+
+![](https://pub-048dcb96257f4766997b113fcb5939cb9.r2.dev/blog/128410412/02_d0a177ad86a4eff54a2ed71407f3a08e.jpeg)
+
+Building upon its previously launched XMC4000 series MCUs based on 32-bit ARM® Cortex™-M cores, Infineon has newly introduced the XMC4800 chip, which integrates an ESC (EtherCAT Slave Controller). The XM-XMC4800 Factory Automation Solution is a development kit based on Infineon's 32-bit XMC4000 series industrial microprocessor, the XMC4800. The kit provides dual-channel EtherCAT network interfaces for EtherCAT slave design. It extends common communication interfaces such as RS485, CAN, and USB-UART. Dedicated motor control interfaces support motors using incremental position encoders. Integrated connectors for USIC/ADC/DAC/IO are provided, and 4 inputs and 2 outputs IO are electrically isolated using optocouplers.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128410412/03_8d7d2f48665d03fb8e817cd106d4750b.jpeg)
+
+ **XMC4800 Hardware**
+
+**Solution Overview**
+
+The XMC4800 adopts a single-board design, reserving motor control interfaces, EtherCAT interfaces, CAN communication interfaces, USB serial ports, expansion buttons, LED display, and expansion pins. The XMC4800 provides dedicated peripheral modules for motion control, such as Capture/Compare Unit 4 (CCU4), CCU8, POSIF, and VADC. This enables the SEED-XMC4800 to perform full closed-loop FOC control for position, speed, and torque loops.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128410412/04_06199bc21ad89ecf237c338c5d4af7da.png)
+
+XMC4800 Kit Block Diagram
+
+Full closed-loop FOC control is a commonly used control algorithm, as shown in the figure below. The torque loop is the innermost layer in the closed-loop control system, including the FOC algorithm, current acquisition, and SVPWM output. The speed loop is in the middle layer, calculating the desired value for the inner torque loop via a PI controller. The position loop is the outermost layer, completing the control of the full closed-loop FOC by controlling the desired value of the position loop.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128410412/05_944e7c5ef57c39220acd34a9a75b6648.png)
+
+FOC Full Closed-Loop Structure Diagram
+
+The XMC4800 kit provides the Micrium uC-Probe XMC tool for real-time inspection of various software parameters. This plays an important role in adjusting software coefficients and determining software structure. The interface of the Micrium uC-Probe XMC tool can be freely defined, including style, color, data range, and so on. For parameters that require continuous observation of changes, its waveform display function can be used. As shown in the figure below, the Micrium uC-Probe XMC tool can control the motor speed and observe changes in software state machines and parameters within the FOC control loop.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128410412/06_cc6afec7c525285bb30aac220bcddf04.png)
+
+Micrium uC-Probe XMC
+
+**EtherCAT Introduction**
+
+Servo systems typically use FOC vector control, while the Industrial Internet adopts EtherCAT industrial Ethernet, which is faster, more flexible in wiring, and easier to implement. Traditional solutions use a PDI interface for communication between the MCU and the ESC. The MCU implements motor control, FOC motor control algorithms such as position loop, speed loop, and current loop, as well as the detection of analog signals like motor temperature, bus voltage, and power stage. The ESC is responsible for network communication and requires a separate EEPROM to store EtherCAT slave information. Figure 5 shows the framework of a traditional EtherCAT slave.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128410412/07_e7a5ac08423e7d4e963bd52d73846471.png)
+
+Traditional EtherCAT Slave Framework
+
+The XMC4800 operates at a frequency of up to 144MHz. It integrates rich peripherals internally, such as high-precision PWM, POSIF (position) interface, and ΔΣ modules, enabling the control of various types of motors. The XMC4800 integrates the ESC as an MCU peripheral within the chip and is fully compatible with Beckhoff's ET1100 ESC, without the need for external EEPROM. The advantage of this is simplified product design. The XMC4800 enables seamless integration between FOC motor control algorithms and EtherCAT communication. Figure 6 shows the framework of an EtherCAT slave using the XMC4800.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128410412/08_90e062464fb5a75f6e09e9cfa9310b6b.png)
+
+XMC4800 Highly Integrated EtherCAT Slave Framework
+
+The XMC4800 is not only fully compatible with Beckhoff's ESC ET1100 but also offers a significant advantage in DPRAM read speed, which significantly improves the operating efficiency of the ESC. Combined with the XMC4800's rich peripherals, simultaneous control of two motors with Encoder or Resolver interfaces can be achieved in a single EtherCAT solution. XMC offers various package types, including LQFP100, LQFP144, and LFBGA196. To achieve dual-axis control, the LFBGA196 package must be selected.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128410412/09_f960d1d5b2f0159f9824ca11b222a805.png)
+
+DPRAM Read Speed
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128410412/10_6da70ac6d5908e6bf9e78626ff76f1e2.png)
+
+EtherCAT Motor Control
+
+**Application Scenarios**
+
+*   EtherCAT Slave Devices
+*   Motor Controller Systems
+*   Industrial Automation Equipment
+*   Industrial Robots
+*   Semiconductor Manufacturing Machines
+*   Automated Assembly Systems
+*   Furniture Production Equipment

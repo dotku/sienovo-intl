@@ -1,0 +1,52 @@
+---
+title: "RK3399 + Kylin Industrial Tablet Solution"
+date: "2023-04-10"
+slug: "130063985"
+tags: ["#RK3399"]
+source: "https://blog.csdn.net/yeyuangen/article/details/130063985"
+originalTitle: "RK3399+麒麟工业平板解决方案"
+---
+
+**1. RK3568 Linux Kylin System Gyroscope Driver Debugging**
+
+　　The gyroscope model MXC6655xa comes with the Ruixingwei development board. Hardware personnel stated that our board is the same as the development board, so we checked the device tree file to find the device description:
+
+　　&i2c5 {
+
+　　status = “okay”;
+
+　　mxc6655xa： mxc6655xa@15 {
+
+　　status = “okay”;
+
+　　compatible = “gs\_mxc6655xa”;
+
+　　pinctrl-names = “default”;
+
+　　pinctrl-0 = 《&mxc6655xa\_irq\_gpio》;
+
+　　 reg \= 《0x15》;
+
+　　irq-gpio = 《&gpio3 RK\_PC1 IRQ\_TYPE\_LEVEL\_LOW》;
+
+　　irq\_enable = 《1》;
+
+　　poll\_delay\_ms = 《30》;
+
+　　type = 《SENSOR\_TYPE\_ACCEL》;
+
+　　power-off-in-suspend = 《1》;
+
+　　layout = 《1》;
+
+　　};
+
+　　};
+
+　　&pinctrl {
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/130063985/01_dccbdd61f7a5c1f0d60c53783ecaa3ea.jpeg)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/130063985/02_9b5084112015ad06293330bcce096283.png)
+
+ ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/130063985/03_bc917c6faef58aded74779cab01f0ceb.png)

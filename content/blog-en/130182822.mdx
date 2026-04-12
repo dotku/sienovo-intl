@@ -1,0 +1,16 @@
+---
+title: "Design of an Underwater Information Fusion System Based on DSP+FPGA+1553B Bus"
+date: "2023-04-16"
+slug: "130182822"
+tags: ["#fpga开发"]
+source: "https://blog.csdn.net/yeyuangen/article/details/130182822"
+originalTitle: "基于 DSP+FPGA+1553B总线的水下信息融合系统的设计"
+---
+
+In a large-scale underwater system, different communication protocols are typically adopted to suit the characteristics of various subsystems. Serial communication, with its strong anti-interference capability and long transmission distance, is suitable for subsystems requiring long-range communication. The MIL-STD-1553B bus offers extremely high reliability and real-time performance in data transmission, making it suitable for inertial navigation and fire control subsystems that demand high signal accuracy and real-time performance [1].
+
+DSP can process data quickly and offers high integration and stability, making it a mainstream processing chip in the control field [2]. However, the DSP's on-chip communication resources are limited and fixed, which can lead to poor system scalability. Furthermore, frequent interrupt responses by the DSP can negatively impact its operational efficiency.
+
+Compared to DSP, FPGA offers the following advantages: it supports parallel operations, can process multiple work units simultaneously, and can achieve real-time data transmission [3]. FPGA can implement logic interfaces found in traditional designs through its own programming, which greatly reduces the complexity of peripheral circuit design and hardware design, and significantly enhances system scalability.
+
+This paper utilizes a DSP chip as the main processor, responsible for application layer design and information scheduling during system operation. An FPGA is employed as the system's coprocessor to acquire multi-channel RS-422 serial signals and cache data. Concurrently, the FPGA is used to implement the functions of BU61580 and extend them as required

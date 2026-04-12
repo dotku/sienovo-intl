@@ -1,0 +1,22 @@
+---
+title: "STM32 ARM+FPGA-based Power Quality Analyzer Solution (Part 2) Software Design"
+date: "2023-06-21"
+slug: "131320640"
+tags: ["#fpga开发"]
+source: "https://blog.csdn.net/yeyuangen/article/details/131320640"
+originalTitle: "基于STM32 ARM+FPGA的电能质量分析仪方案（二）软件设计"
+---
+
+This section primarily introduces the software design of the FPGA+ARM control unit. The FPGA+ARM control unit involves development in Verilog HDL (Hardware Description Language) and C language. The FPGA part mainly controls AD7606 analog-to-digital conversion, digital three-phase phase-locked loop (PLL) and FFT harmonic calculation modules, SDRAM controller design, FSMC interface module, etc. The ARM part primarily completes the porting of the FreeRTOS embedded real-time operating system, data reading and writing between FPGA and ARM, serial communication between ARM and the host PC, and the derivation of various power quality parameters after floating-point operations.
+
+4.1 FPGA Module Software Design
+
+4.1.1 Advantages of FPGA Design
+
+FPGA adopts a top-down design methodology, dividing complex systems into lower-level functional modules, and then further dividing these lower-level modules into sub-modules, continuing until basic modules can be used. This approach significantly improves development efficiency and ease of management. Developing with FPGA offers numerous advantages:
+
+(1) High Operating Speed. FPGA generates the system clock from an external crystal oscillator input, and then uses its internal phase-locked loop (PLL) frequency multiplication function to generate the clocks required by various modules, achieving very high frequencies.
+
+(2) High Code Execution Efficiency. Unlike microcontrollers and DSPs, FPGA breaks the traditional sequential execution model, adopting hardware parallel execution, resulting in higher operating efficiency.
+
+(3)

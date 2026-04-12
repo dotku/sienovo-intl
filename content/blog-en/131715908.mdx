@@ -1,0 +1,16 @@
+---
+title: "Hardware Design of ZYNQ-based Array Eddy Current Testing System (Part 1)"
+date: "2023-07-14"
+slug: "131715908"
+tags: ["#fpga开发"]
+source: "https://blog.csdn.net/yeyuangen/article/details/131715908"
+originalTitle: "基于ZYNQ阵列涡流检测系统硬件设计(一）"
+---
+
+To achieve the overall functionality of the array eddy current testing system, a multi-channel signal acquisition hardware system needs to be developed to work with software programming for time-division excitation and time-division acquisition. Based on these requirements, this chapter introduces the hardware module design of the array eddy current testing system.
+
+3.1 Overall Design of the Array Eddy Current Testing System
+
+The array eddy current testing system requires a DA (Digital-to-Analog) converter chip to provide sinusoidal excitation to the excitation coils. The excitation signal needs an external power operational amplifier to enhance its load driving capability. The induced signal from the induction coils will be acquired by an AD (Analog-to-Digital) converter chip. The PL (Programmable Logic) part of ZYNQ will store the digital output from the AD converter chip in a FIFO. A digital phase-sensitive detection algorithm will be programmed to decompose the induced voltage signal into impedance components, thereby obtaining the real part, imaginary part, and phase difference of the induced signal. Finally, the data is transmitted to the host computer via LWIP for display.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131715908/01_f9319cc6b4855dd619c1bb762f4bc0

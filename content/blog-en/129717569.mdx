@@ -1,0 +1,56 @@
+---
+title: "FPGA Algorithm Implementation of a Shaker Controller Based on Zynq+AD+DA (Part 3)"
+date: "2023-03-22"
+slug: "129717569"
+tags: ["#fpga开发", "#ZYNQ"]
+source: "https://blog.csdn.net/yeyuangen/article/details/129717569"
+originalTitle: "基于 Zynq+AD+DA 的振动台控制器FPGA算法实现（三）"
+---
+
+**4 FPGA Implementation of Shaker Control Algorithms**
+
+**4.1 PID Control Algorithm**
+
+**4.1.1 Incremental PID Control Algorithm**
+
+PID control is a widely used control method in control engineering [33]. Its basic principle block diagram is shown in Figure 4.1, where 𝑢𝑢(𝑡𝑡) is the control signal, 𝑟𝑟(𝑡𝑡) is the system input signal, and 𝑦𝑦(𝑡𝑡) is the system output signal. The control system is mainly composed of three components: Proportional, Integral, and Differential. The system error is processed by the three units of the controller through operations and linear combination to obtain the control quantity, where the system error 𝑒𝑒(𝑡𝑡) can be expressed as
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129717569/01_00800af048b5128c3d91b9d3a6b4fdf3.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129717569/02_85e845c95ba6a782a9d989a44af499b8.png)
+
+As can be seen from the above equation, the incremental PID is only related to the errors of the previous three times. It does not require storing a large amount of data for summation, making the implementation method relatively simple and very suitable for use in digital control systems [34–36]. The flowchart of the incremental PID algorithm is shown in Figure 4.2 [37–39].
+
+**4.1.2 FPGA Implementation of PID Control Algorithm**
+
+In Verilog, the transformation of equation (4-7) can be performed using combinational logic.
+
+The state transition diagram for the PID algorithm implementation is shown in Figure 4.3.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129717569/03_6596e755fcb5c4fa08b2fbfce84c9b00.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129717569/04_7e026b8e34ba6113ae9a044ac8aadb5e.png)
+
+**4.2.2 MATLAB/Simulink Simulation of the Three-Parameter Control Algorithm**
+
+To verify the feasibility of the three-parameter control algorithm and to provide a reference for subsequent parameter tuning, a simulation was conducted in MATLAB/Simulink [44,45], as shown in Figure 4.5.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129717569/05_6241292cb3cffd4504790adb6937dca3.png)
+
+When the input sinusoidal reference waveform (acceleration) has an amplitude of 10 and an angular frequency of 40 rad/s, the displacement, velocity, and acceleration waveforms for feedforward and feedback are obtained as shown in Figure 4.6.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129717569/06_56abab6702674d6d2f58bfb5be50904a.png)
+
+**4.2.3 FPGA Implementation of the Three-Parameter Control Algorithm**
+
+There are two key points in the implementation of the three-parameter control algorithm: the synthesis of velocity feedback and the generation of feedforward quantities. Feedforward quantities can be synthesized from one reference signal to generate the other two signals, or three reference signals can be directly input. For convenience, reference displacement, reference velocity, and reference acceleration were directly downloaded from an earthquake database and input into the system as feedforward signals. Therefore, the focus will be on discussing the synthesis of velocity feedback.
+
+In shaker systems, generally only displacement sensors and accelerometers are available. Therefore, velocity needs to be synthesized using displacement differentiation or acceleration integration [46–49]. Here, a combination of both methods is adopted. Velocity is obtained by differentiating displacement and then low-pass filtering, and integrating acceleration and then high-pass filtering, and then summing the two results, as shown in Figure 4.7. The implementation block diagram of the specific module is shown in Figure 4.8.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129717569/07_745b91f3e3839bac3d93afbc0c0d8333.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129717569/08_0b217b5bcb1c1e233529f5dc8a5757b8.png)
+
+This chapter introduces two commonly used control algorithms in shaker control systems—the PID algorithm and the TVC algorithm. They are implemented in FPGA and integrated into the program architecture of the Zynq controller. Each algorithm module can be easily added to the program architecture, and control algorithms can be switched by issuing commands from the host computer. To provide a basis for subsequent parameter tuning, simulations were also conducted in Simulink. More algorithm modules can be added later to meet the requirements of more vibration testing scenarios.
+
+Xinmai provides customized ZYNQ controller solutions.

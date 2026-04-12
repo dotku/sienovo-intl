@@ -1,0 +1,85 @@
+---
+title: "Domestic Alternative 4-Channel Synchronous Acquisition Card Solution Comparable to NI USB-4431"
+date: "2023-11-01"
+slug: "134164061"
+tags: ["#NI", "#USB4431", "#国产化"]
+source: "https://blog.csdn.net/yeyuangen/article/details/134164061"
+originalTitle: "NI USB-4431对标国产化4路同步采集卡解决方案"
+---
+
+### 102.4 kS/s, 100 dB, 0.8 Hz AC/DC Coupled, 4-Input/Single-Output Sound and Vibration Device
+
+The USB-4431 is designed specifically for sound and vibration applications. The input channels integrate Integrated Electronic Piezoelectric (IEPE) signal conditioning for accelerometers and microphones. The four input channels of the USB-4431 can synchronously digitize input signals. The analog output (AO) channel is ideal for excitation-response testing and can be synchronized with the AI channels.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/134164061/01_e3233191a496925a7e36525be91db933.png)
+
+**III. Product Applications**
+
+The XM-USB-4431 is a data acquisition card based on the USB2.0 bus, which can be directly connected to a computer's USB port to form data acquisition, waveform analysis, and processing systems in various fields such as laboratories and product quality inspection centers. It can also form industrial production process monitoring systems. Its main application scenarios are:
+
+ Sound/Vibration Signal Acquisition and Analysis
+ Electronic Product Quality Inspection
+ Medical Testing
+ High-Precision Synchronous Signal Acquisition
+ I/O Control
+
+**IV. Performance Features**
+
+ A/D Converter: 24-bit Σ-Δ ADC: AD7765 (optional support for 312KSPS AD7764)
+ Low intrinsic noise, high channel isolation;
+ Differential input range: ±10V;
+ Independent programmable gain, 4 adjustable levels: 1x, 10x, 100x, and 1000x;
+ AD Trigger Modes: Software timed trigger, external trigger;
+ Supports pre-trigger, with a maximum pre-acquisition of 2K points;
+ IEPE Constant Current Source: 4.38mA @2% (the board may require an external 5V power supply, depending on the USB port's power capability);
+ IEPE Sensor Excitation Voltage: 15V or 24V;
+ Constant Current Source Output Impedance: >250 kΩ at 1kHz;
+ Constant Current Source Noise: <500 pA/√Hz;
+ Coupling Type: AC/DC;
+ AC Coupling -3dB Cutoff Frequency: 0.53Hz;
+ Analog input signals with TVS clamp protection;
+ Sampling frequency can be set by software (range: 1.95KHz～156.25KHz);
+ Onboard large-capacity memory (4M words), supports continuous acquisition for real-time monitoring;
+ Onboard EEPROM, users can write custom parameters;
+ Board ID recognition (0～15), supports multi-card operation;
+ 8-channel DI/DO; outputs with latch function, automatically cleared on power-up;
+ Provides drivers and dynamic link libraries for WIN7/VISTA/2000/XP;
+ Dimensions (excluding casing): 91(W) × 139(L) (mm);
+
+**V. Technical Parameters**
+
+· Operating Voltage: 5V±0.25V
+· Operating Temperature:
+0℃～70℃
+· Storage Temperature:
+-10℃～85℃
+· Humidity:
+5%～95%
+
+**VI. Working Principle**
+
+**6.1. Block Diagram**
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/134164061/02_97ddafa95323204d96974f3a8258d516.png)
+
+**6.2. Brief Description of Working Principle**
+
+The XM-USB-4431 consists of the following functional modules: USB2.0 bus bridge circuit, address decoding and data latching, AD conversion, data storage, and other functions.
+
+**Address Decoding and Data Latching**: Controlled by a Field-Programmable Gate Array (FPGA) chip. As it uses the USB2.0 bus, users do not need to concern themselves with specific I/O addresses; they can directly call the dynamic link library provided by our company. In 8-bit data mode, the specific I/O addresses are interpreted by the USB master control chip.
+
+**AD Conversion**: External analog signals are input via SMB0..SMB3, pass through 4 levels of programmable gain, and then enter the ADC. The AD control timing is completed by the FPGA.
+
+**Data Storage**: The results of AD conversion are stored in SDRAM. The timing for reading and writing data is controlled by the FPGA.
+
+**Digital I/O**: 8 channels of digital input, 8 channels of digital output. Outputs have a latch function and are automatically cleared on power-up.
+
+**Frequency Measurement Principle**: Measures the interval between two adjacent rising edges of a signal (square wave). For example, when the software issues a measurement command, the interval between two adjacent rising edges of the signal under test is measured using a 4MHz system clock. This interval is represented by the number of system clock cycles, allowing users to easily calculate the signal's frequency. Since the maximum interval count is a 24-bit represented data (maximum 0xFFFFFF, i.e., 16777215), the maximum timing length is 4.19S (16777215 * 0.25 µs ≈ 4.194303S).
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/134164061/03_2474e28c509e50088b911b53fc360451.png)
+
+Explanation: When the START signal is low, the software initiates a frequency measurement, measuring the time width between two adjacent rising edges of the signal under test (which is 5 system clock cycles, with a system clock of 4MHz). In the diagram, the TimerOver signal: 1 indicates frequency measurement is not finished; 0 indicates frequency measurement is finished.
+
+The frequency of the external signal is calculated as Fre = 4×10^3 ÷(XCounter), in KHz.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/134164061/04_6ff913d156a87974f9d6b9813089a922.png)

@@ -1,0 +1,34 @@
+---
+title: "Design and Implementation of an Air Data Measurement Device Based on Domestic FPGA, DSP, and 1553B Bus"
+date: "2023-04-10"
+slug: "130052274"
+tags: ["#国产DSP+FPGA"]
+source: "https://blog.csdn.net/yeyuangen/article/details/130052274"
+originalTitle: "基于国产 FPGA + DSP+1553B总线 的大气数据测量装置的设计与实现"
+---
+
+Air data is used by aircraft control and management systems to provide flight guidance, making real-time and accurate acquisition of air data crucial during flight. This paper designs and implements an air data measurement device based on FPGA and DSP. The measurement device includes five pressure sensors and two temperature sensors, capable of real-time acquisition of pressure and temperature signals from the aircraft surface. After acquisition, conditioning, conversion, and computation, the sensor signals output five pressure values and two temperature values. The obtained pressure and temperature values can be used to compute air data parameters such as Mach number, static pressure, angle of attack, sideslip angle, and total temperature. The aircraft control system uses these parameters to monitor the aircraft's flight status in real-time and make corresponding adjustments and control actions.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/130052274/01_1911024f5658a49054683da3d2c7796a.png)
+
+2 Air Data Measurement Device Scheme Design
+
+2.1 Composition of the Air Data Measurement System
+
+The embedded air data measurement system consists of an air data sensor module, an air data measurement device, and a control system. Pressure ports adopt a five-point distributed model, so the sensor module is composed of five pressure sensors and two temperature sensors, capable of acquiring two temperature signals and five pressure signals from the aircraft surface. The measurement device needs to process the signals obtained by the sensor module, then acquire and convert them into digital signals, and then compute these digital signals into pressure and temperature values, after which air data is calculated using algorithms. The control system sends acquisition control signals to the measurement device via an RS422 interface. Under these control signals, the measurement device controls the sensor module to acquire signals. After processing and computation by the acquisition and computation modules, the signals are transmitted back to the control system via the 1553B bus. The measurement device acts as an RT (Remote Terminal) and communicates with the control system via the 1553B bus. The connection relationship between the systems is shown in Figure 2-1.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/130052274/02_b703bf70a80252cb92489d99aa4d4d27.png)
+
+2.2 Functional Requirements of the Air Data Measurement Device
+
+The data measurement device is a critical component of the air data measurement system, requiring real-time and reliable reception of signals output by the front-end sensor module, as well as signal acquisition, processing, and computation. The air data measurement device designed in this project needs to have the following functions:
+
+1) Capable of 5-channel pressure and 2-channel temperature measurement and compensation, with a temperature measurement range of -40℃~1000℃ and accuracy better than 1% F.S.; pressure measurement range of 5kPa~200kPa, accuracy requirement of ±60Pa, and overpressure peak value up to 250 kPa.
+
+2) Capable of receiving acquisition control signals from the control system via an RS422 interface;
+
+3) Capable of computing temperature values, pressure values, and secondary voltage values;
+
+4) Capable of outputting measured and computed data via the 1553B bus;
+
+5

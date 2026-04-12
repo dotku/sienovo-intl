@@ -1,0 +1,56 @@
+---
+title: "ChatGPT + Robot Controller Integration (Part 1)"
+date: "2023-03-29"
+slug: "129842664"
+tags: ["#chatgpt", "#机器人"]
+source: "https://blog.csdn.net/yeyuangen/article/details/129842664"
+originalTitle: "chatgpt+机器人控制器融合（一）"
+---
+
+**Challenges Facing Modern Robotics, and How ChatGPT Can Help**
+
+Currently, the robot operation workflow starts with engineers or technical users, who need to translate task requirements into system code. Engineers are in the loop of the workflow, constantly writing new code and specifications to correct robot behavior. Overall, this process is slow (users need to write low-level code), expensive (requiring highly skilled users with deep knowledge of robotics), and inefficient (requiring multiple interactions to function correctly).
+
+However, ChatGPT has opened up a new robotics paradigm, allowing potentially non-technical users to participate in the loop, providing high-level feedback to large language models (LLMs) while monitoring robot performance. By following the design principles of the research, ChatGPT can generate code for robotic scenarios. Without any fine-tuning, the research leverages the LLM's knowledge to control different robot morphologies to accomplish various tasks. In this work, researchers demonstrate multiple examples of ChatGPT solving robotics challenges, as well as complex robot deployments in manipulation, aerial, and navigation domains.
+
+**Robots and ChatGPT: Design Principles**
+
+Prompting LLMs is a highly empirical science. Through iterative experimentation, this research established a set of methods and design principles for writing prompts for robotic tasks:
+
+First, the research defines a set of high-level robot APIs or function libraries. This library can be specific to a particular robot and can map to existing low-level implementations within the robot's control stack or perception library. It is crucial to use descriptive names for high-level APIs so that ChatGPT can infer their behavior;
+
+Next, researchers write a text prompt for ChatGPT, which describes the task objective while explicitly stating which functions from the high-level library are available. The prompt can also include information about task constraints, or how ChatGPT should format its answer (specific coding language, use of auxiliary parsing elements);
+
+Users evaluate ChatGPT's code output in the loop, either through direct inspection or by using a simulator. If necessary, users can provide feedback to ChatGPT in natural language regarding the quality and safety of the answer.
+
+If the user is satisfied with the solution, the code can then be deployed to the robot.
+**Enough with the theory, what exactly can ChatGPT do?**
+
+Just as the brain is to humans, the controller is also the most crucial component of a robot, defining its functions and behaviors. Many scholars have researched it or proposed design solutions\[ 1 , 2 , 3 \] $^{\[1,2,3\]}$  \[1,2,3\]  , but discussions on the overall architecture and specific implementation of controllers are scarce, and they are severely out of touch with industrial production, having long been outdated. This article compares controller solutions for two types of industrial robots: robotic arms and mobile robots, analyzes their functional requirements and characteristics, and discusses implementation schemes for open-architecture controllers.![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129842664/01_36c2f4b94ab980b82f5d55d99014297e.jpeg)
+
+　　Robotic Arm Controller　　　　　　　　　　　　　　　　　　　 　Mobile Robot Controller
+　　The above classification is based on robot type. Currently, more controller products on the market are general-purpose motion controllers or motion control cards, which control the movement of various non-standard equipment, such as CNC machine tools, laser cutting machines, and other automated equipment. Of course, these products can also be used to control robots through secondary development.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129842664/02_f7f05df755d08349f22fe11c6f0ef47b.jpeg)
+
+General-Purpose Motion Controller Products
+1 Software and Hardware Solutions
+
+　　We first examine the software and hardware solutions for common industrial robot controllers.
+
+1.1 Robotic Arms
+
+  The development of robotic arm controllers started earlier, and their products are relatively mature. Their implementation solutions are shown in the table below. Most international top-tier brands use X86 chips and build their underlying software using real-time operating systems.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129842664/03_540dd9996eff2fa9561615ff7cce4e3b.png)
+1.2 Mobile Robots
+
+　　Controllers for mobile robots represent a newer direction. AGVs, drones, construction machinery, etc., all fall into this category. Recently popular autonomous driving can also be considered a type of mobile robot. Their underlying control system solutions are shown in the table below.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129842664/04_c7bcde5c294a5461c1a0d4f96dd44a60.png)
+1.3 Comparison
+
+　　Robotic arms have more functional requirements and more degrees of freedom, and higher demands for motion precision and response speed, typically one to two orders of magnitude higher than mobile robots. Therefore, their controllers require high computational power and short cycles. Mobile robots generally have lower requirements for response speed, simpler functions, and relatively lower configurations. Furthermore, mobile robots are usually battery-powered with integrated controllers, thus having requirements for power consumption and heat dissipation. Their controllers often use embedded chips.
+　　Robotic arms typically operate in fixed areas, and their controllers are usually placed inside a cabinet, so their protection rating is not high, typically IP20. Mobile robots, due to their frequent movement, especially outdoor construction machinery, need to consider waterproofing and dustproofing. Their protection rating is higher, typically IP65.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129842664/05_2e80346431236bcac3ee042

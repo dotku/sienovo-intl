@@ -1,0 +1,67 @@
+---
+title: "AM64X/AM62X + FPGA Inter-Core Communication Solution"
+date: "2023-04-04"
+slug: "129954356"
+tags: ["#服务器", "#网络", "#linux"]
+source: "https://blog.csdn.net/yeyuangen/article/details/129954356"
+originalTitle: "AM64X/AM62X+FPGA核间通信解决方案"
+---
+
+IPC for AM64x
+The AM64x processor has two dual-core Cortex-R5F subsystems (R5FSS) and one Cortex-M4F subsystem. In addition, there is a dual-core Cortex-A53 subsystem. The R5FSS supports dual-core mode (Split mode) and single-CPU mode.
+
+**理解IPC（inter-processor communication）**refer link
+IPC SW Architecture
+
+![在这里插入图片描述](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129954356/01_494b83c1fcb61eeb396b399043079609.png)
+
+APIs for exchanging messages between CPUs: IPC Notify and IPC RP Message
+IPC RP Message:
+Features:
+RP Message + VRING protocol implementation
+Uses IPC Notify for interrupts at the lower layer, and shared memory (VRING) as the message buffer.
+Supports message passing between NORTOS, FreeRTOS, and Linux CPUs.
+Logical communication channels can be created using unique "endpoints." This allows multiple tasks on one CPU to communicate with multiple tasks on another CPU using the same underlying HW mailbox and shared memory.
+IPC Notify:
+The underlying implementation will use HW mechanisms to interrupt the receiving core, and it will also use HW FIFOs (when available) in fast internal RAM or shared-memory-based SW FIFOs to transfer message values.
+AM64X uses HW FIFOs based on HW mailboxes to transmit messages and interrupt the receiving core.
+Features:
+Low latency, capable of sending and receiving messages between any CPUs (via a few HW steps, thus requiring user error detection; Combining the message and client ID into a single 32b value; calling a callback function in the interrupt handler).
+The client ID field allows sending messages to different SW clients on the receiving end (multiplexing).
+Ability to register different user handlers for different client IDs.
+Callback-based mechanism for receiving messages.
+Ability to block message transmission or return an error if the underlying IPC HW/SW FIFO is full.
+It is strongly recommended to use SysConfig where available, rather than directly using SW API calls. This will help simplify SW applications and catch common errors early in the development cycle.
+
+The maximum number of supported clients is limited to IPC\_NOTIFY\_CLIENT\_ID\_MAX.
+The maximum message value exchanged is limited to IPC\_NOTIFY\_MSG\_VALUE\_MAX < 32b, so pointers cannot be passed as messages; it is recommended to pass offsets from a known base address as values.
+2. How to enable IPC;
+
+Environment Setup:
+Processor SDK Linux
+Processor SDK MCU
+Typical Boot Flow on AM64x for ARM Linux users
+
+![在这里插入图片描述](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129954356/02_e3f5d07afe19f3490c5bb5b650416bb2.png)
+
+Typically, the bootloader (U-Boot/SPL) starts and loads the HLOS (Linux/Android) on the A53. Then the A53 boots the R5 and M4F cores.
+
+The remoteproc driver is hard-coded to look for specific files when loading the R5F cores. Typically, on the target file system, the Firmware File is soft-linked to the expected executable FW file.
+
+![在这里插入图片描述](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129954356/03_5a10507c03a67542466d84d90cde7dbb.png)
+
+Booting Remote Cores from Linux console/User space
+
+RPMsg Char Driver
+
+![在这里插入图片描述](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129954356/04_8d32db27841f17c6e5c5248d5e008bf7.png)
+The RPMsg character driver exposes RPMsg endpoints to user-space processes. By requesting different interactions with remote services, multiple user-space applications can uniquely use an RPMsg device. The RPMsg character driver supports creating multiple endpoints for each probed RPMsg character device, allowing the same device to be used for different instances.
+RPMsg Device
+Each created endpoint device appears as a single character device in /dev.
+
+The RPMsg bus sits on top of the VirtIO bus. Each VirtIO name service announcement message creates a new RPMsg device, which should be bound to an RPMsg driver. RPMsg devices are created dynamically:
+
+The remote processor announces the presence of a remote RPMsg service by sending a name service announcement message containing the service name (i.e., device name), source address, and destination address. This message is handled by the RPMsg bus, which dynamically creates and registers an RPMsg device representing the remote service. Once the relevant RPMsg driver is registered, the bus immediately probes it, and both parties can begin exchanging messages.
+
+Control Interface
+The RPMsg character driver provides a control interface (in the form of a character device under /dev/rpmsg\_ctrlX) that allows user space to export endpoint interfaces for each exposed endpoint. The control interface provides dedicated ioctls to create endpoint devices.

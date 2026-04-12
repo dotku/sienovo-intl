@@ -1,0 +1,14 @@
+---
+title: "STM32 ARM+FPGA Servo Control System (Part Two) Software and FPGA Design"
+date: "2023-07-14"
+slug: "131730593"
+tags: ["#fpga开发", "#stm32", "#arm开发"]
+source: "https://blog.csdn.net/yeyuangen/article/details/131730593"
+originalTitle: "基于STM32 ARM+FPGA伺服控制系统(二）软件及FPGA设计"
+---
+
+A complete servo system contains many modules, so it's impossible to introduce them all in detail one by one. Therefore, this chapter focuses on the more challenging FPGA part and briefly introduces the ARM-side workflow. The FPGA part mainly includes FOC algorithm, current sampling algorithm, and encoder sampling algorithm, which are the foundation of the entire control system and directly determine the quality of motor control. Due to the special nature of FPGA operation, it is necessary to consider the rationality of design timing and the coordinated scheduling of various tasks, which greatly increases its design difficulty. The design of important FPGA program parts will be explained below, mainly divided into the SVPWM algorithm module, encoder feedback module, and current sampling module.
+
+**4.1 SVPWM Algorithm Program Design**
+
+As known from Section 4 of Chapter 2, the workflow of the SVPWM algorithm is shown in Figure 4-1. First, decode ܷ ߙ and ܷ ߚ to determine the current sector. Then, calculate the active time required for the basic vectors in the current sector. Next, determine the PWM comparison value time points. Finally, perform pulse width modulation and add dead-time to form complementary PWM waves to control the inverter switches, thereby generating the required sinusoidal voltage.![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/1

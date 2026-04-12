@@ -1,0 +1,71 @@
+---
+title: "Software Design of a Gas Well Controller Based on Loongson CPU (Part 3)"
+date: "2023-02-17"
+slug: "129078316"
+tags: ["#linux", "#运维", "#服务器"]
+source: "https://blog.csdn.net/yeyuangen/article/details/129078316"
+originalTitle: "基于龙芯 CPU 的气井控制器的软件设计（三）"
+---
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129078316/01_fe90d421253711d39367a9c157063e5b.png)
+
+**4.1 Overall Design of System Software**
+
+The design of a gas well controller based on a Loongson CPU requires the development of test software for hardware modules. This primarily involves designing drivers and applications for the RTC module, memory module, 4G communication, Ethernet communication, UART serial port, and AI module. Each module is designed as a separate task, and the software design flowchart for the Loongson RTU is shown in Figure 4-1.
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129078316/02_93a3f667619835e9a07ab641a0b40545.png)
+
+**4.2 Embedded Linux Development Environment**
+
+**4.2.1 Building the Embedded Linux System**
+
+With the rapid development of microprocessors, various low-cost, compact CPUs and peripheral connections have formed stable and reliable hardware architectures. Since the late 1980s, embedded operating systems such as VxWorks, pSOS, Nucleus, and Windows CE have successively emerged and matured. However, for products in the embedded field that demand the lowest possible cost, the prices of these commercially developed operating systems are relatively high and often unacceptable. Furthermore, product development in the embedded field has a high demand for open-source operating system code, as open-source code can better inspire the creativity of embedded researchers. From the perspective of upper-layer application developers, factors such as the simplicity of the operating system for embedded development, user-friendliness of the interface, low cost, and high system portability are all crucial. Since its introduction in 1991, the Linux system has evolved into a project playing a central role in the computer industry. Besides its use on desktop and server systems, the Linux system also forms the foundation of the Android operating system, which is used on nearly 1.5 billion mobile devices [37]. The reasons for this are Linux's unique advantages, such as its open-source code, high stability, free software, and ease of customization and porting [38], which have opened up new development opportunities in embedded systems. Consequently, embedded Linux systems have become the primary choice for many developers and designers [39].
+
+In embedded systems, Linux is the most widely used development environment. Its important components include code generation tools, project management tools, version control tools, and debugging tools. Among development tools, code generation tools are a crucial part of development, used to generate embedded executable programs. Other tools can assist in embedded development and accelerate the development process.
+
+Many people simply consider the Linux operating system to be an OS composed of the Linux kernel source code. In reality, a Linux system should include the Linux kernel, a GNU software toolchain consisting of shell programs, libraries, compilers, and tools, as well as a file system and system libraries. These components together form a complete Linux system, and none are dispensable.
+
+Using Linux as an embedded operating system offers the following advantages:
+
+(1) It is suitable for various hardware platforms. Developers can create prototype designs on a hardware platform and then port the hardware design to physical objects. Currently, Linux has been ported to various hardware platforms. From the perspective of development projects and teams with heavy tasks and tight deadlines, the Linux system reduces the complexity of software and hardware development, saves R&D funds, and accelerates work speed. Therefore, Linux attracts many researchers and developers with its unique charm.
+
+(2) Linux can be configured arbitrarily without a license or commercial cooperation. The configuration process is very flexible.
+
+(3) Free and open-source code are the most attractive advantages of the Linux operating system for embedded R&D personnel. Undoubtedly, compared to other expensive operating systems, using the Linux operating system significantly reduces development costs.
+
+(4) Linux has built-in network support, and its network functionality is very powerful.
+
+(5) Linux has a high degree of modularity, making it easy to add various small components.
+
+Based on these advantages of the Linux operating system, developers can customize or port the Linux system according to development requirements in practical applications, in order to achieve a stable operating environment and good compatibility between systems. Embedded Linux systems support the research and development of various CPU architectures and hardware platforms with their excellent performance, ease of customization, and development advantages.
+
+An embedded Linux operating system primarily consists of a BootLoader, a kernel, and a root filesystem [39], as shown in Figure 4-2.
+
+PMON is an open-source software primarily used in embedded systems, possessing some functionalities of a Basic Input/Output System (BIOS) and a BootLoader [40,41]. Additionally, PMON supports BIOS boot configuration, kernel loading, program debugging, memory register display, setting, and memory disassembly [42]. Significant improvements have been made to PMON for Loongson-based systems, making PMON a more complete alternative system for BIOS and BootLoader.
+
+For Linux application software developers, based on design requirements, the first step is to configure the complex Linux kernel to tailor a kernel that meets the design needs. Then, the kernel is compiled, and the compiled kernel is ported to the hardware target board for operation. The Linux kernel compilation process is mainly divided into two steps: first, configure the kernel according to requirements; second, compile the kernel.
+
+After the Linux kernel starts, because the system needs to implement some basic functions, the root filesystem must be loaded first. After the root filesystem is created, various filesystem image creation tools are used to create filesystem images corresponding to the root filesystem directory type.
+
+**4.2.2 Setting up the Linux Environment on the Host Machine**
+
+In the process of embedded Linux system development, the system resources available on the hardware circuit board for software development and debugging are often limited, making it impossible to perform software development and debugging directly. Therefore, this paper uses a VMware Workstation virtual machine running Ubuntu, a Linux distribution, on a PC as the host for the cross-compilation environment [41]. Software development and debugging are then carried out using communication methods such as serial communication or Ethernet communication.
+
+(1) Installing a Virtual Machine
+
+Before the advent of virtual machines, developing embedded Linux systems typically involved installing dual operating systems on one machine. When editing, compiling, or debugging programs, one would switch to the PC-Linux system. When debugging, configuring, or writing documentation, one would switch to Windows. Switching between dual systems meant restarting the computer or installing Linux and Windows on two separate computers, transferring data between them via sharing. With virtual machines, dual systems are like two software applications or two disks on a single computer. Typically, a PC is simulated using virtual machine software within a Win10 system, and then a Linux system is set up within the virtual machine software [43].
+
+VMware Workstation is virtual PC software. Since most computers in daily use have Windows operating systems installed, VMware Workstation can create one or even multiple new hardware environments on an existing Windows operating system, i.e., simulate one or more PCs. The Linux operating system can then run on the established virtual PC. This paper installs VMware Workstation 15.5 Pro. Figure 4.3 shows the virtual machine interface after installation.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129078316/03_5daaa01e8b5a3336dd3a31dff7c90710.png)
+
+(2) Installing Ubuntu System
+
+Desktop environments, databases, media players, and office suites are essential applications for current Linux distributions. Currently, Ubuntu, as a well-developed Linux operating system distribution, is favored by embedded system developers for its excellent desktop environment and ease of development. This paper installs Ubuntu 16.04 LTS. The Ubuntu desktop environment after installation is shown in Figure 4-4.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129078316/04_604ff8a9f48dad67933ac99f0072915.png)
+
+To develop application software for embedded Linux, a cross-development environment should be set up due to the cross-platform nature of the development process [44]. The general computer used for application software development is typically a PC running the Windows operating system. Many developers creating applications on the Windows platform are not familiar with cross-compilers because they are integrated into many IDE software packages. A cross-compiler is an independent compilation tool that runs in one computer environment and generates code that can run in another environment. This compilation process is called cross-compilation. Simply put, it means compiling an executable program for platform B on platform A. If the source code written for an embedded target board is to run on an embedded Linux development platform, it needs to be compiled using a cross-compiler before execution. To perform cross-compilation, we must install the corresponding cross-compilation toolchain on the host platform. After our source code is compiled by the cross-compilation toolchain, the executable program for the embedded target board can be found in the corresponding directory. We currently use the pre-compiled binary toolchain package for the platform, which is `buildroot-2016.02-glibc-gcc-4.7.x-mips32-nofpu.tar.bz2`. After decompressing the prepared cross-toolchain into the root directory of the Linux system, the toolchain's path must also be added to the system environment variables. As shown in Figure 4-5, we can see that the gcc version number is 4.7.4, indicating a successfully established cross-compilation environment.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129078316/05_1ce4df5e665215fe4665246c8f2295c3.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129078316/06_f1b08b314e17f4919a6bf68658aa59d9.png)

@@ -1,0 +1,28 @@
+---
+title: "X86-based Six-wheeled Differential Drive Mobile Robot Motion Controller Design and Implementation (Part 2) Planning and Control Algorithms"
+date: "2023-08-17"
+slug: "132332934"
+tags: ["#算法", "#贪心算法"]
+source: "https://blog.csdn.net/yeyuangen/article/details/132332934"
+originalTitle: "基于X86六轮差速移动机器人运动控制器设计与实现（二）规划控制算法"
+---
+
+MPC Path Tracking Control with Input Constraints
+
+The MPC algorithm is a control method based on a control object model. Its advantage lies in considering various physical constraints of the system during control. Additionally, the method of predicting future robot pose information based on the model and current robot feedback can address the issue of control lag.
+
+4.1 MPC Path Tracking Controller Framework
+
+Based on the algorithmic principles in Chapter 2, a robot controller framework can be established. First, a prediction equation is constructed using the robot's kinematic model. A loss function (also known as an objective function) is then formulated with the minimum control increment as the performance index. The reference path information and the output of the prediction equation are substituted into the loss function, and the current optimal solution is obtained by incorporating the constraints. The optimal solution for the current control increment is combined with the control input from the previous moment to determine the control quantity provided by the controller to the robot at the current moment. This control quantity is then converted into the rotational speeds of individual motors using the robot's mapping matrix, which controls the robot's movement and thus achieves MPC-based path tracking control. The specific framework is shown in Figure 4.1:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/132332934/01_684e310c570b90dfe743d218977dc858.png)
+
+4.2 Linear Time-Varying MPC-based Path Tracking Control
+
+Compared to nonlinear MPC, linear time-varying MPC has advantages such as smaller computational load, simpler solution, and faster control response \[57\]. This section will derive the controller based on the SWDMR kinematic model obtained in the previous section. The lateral displacement ` `, longitudinal displacement ` `, and yaw angle ` ` of the robot in the global coordinate system are chosen as state variables ` `, and the kinematic equations for the robot in the global coordinate system are as follows:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/132332934/02_684e9c312599271e9ffefc2e3f3cb932.png)
+
+4.2.2 Optimization Solution
+
+The objective function is constructed to ensure that the robot can track the desired path while achieving faster response and smoother regulation. This requires not only considering the deviation between the robot's actual operating state and the desired values, but also the trend of control variable changes. This is because if the control variables change too much between consecutive steps during regulation, it will lead to noticeable oscillations in the robot when tracking the desired path. This is not only detrimental to the robot's motion regulation but also imposes significant impact on the body structure of a differential steering robot. Therefore, to ensure a limit on the change of control variables for each sampling period, sudden oscillations during robot regulation are avoided.

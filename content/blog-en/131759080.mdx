@@ -1,0 +1,48 @@
+---
+title: "RK3588+FPGA Real-time Video Processing, Dual-Screen Display, and Storage Solution"
+date: "2023-07-17"
+slug: "131759080"
+tags: ["#fpga开发"]
+source: "https://blog.csdn.net/yeyuangen/article/details/131759080"
+originalTitle: "RK3588+FPGA视频实时处理与双屏显示、存储解决方案"
+---
+
+Schematic Diagram of Main Functional Circuits on the Mainboard Platform
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131759080/01_6cf5ba0adbad0b49ee72c955d48c6248.png)
+
+On the ARM side:
+The footswitch uses dual-channel level input on port 10.
+The touch panel connects to the mainboard via UART, with an external 12V power supply.
+The keyboard is a self-developed product, transmitting UART data transparently over USB and supplying 12V power. USB and Gigabit Ethernet are interfaces on the mainboard, with the USB being a 3.0 host interface.
+The SSD is an internal drive.
+The main video output interfaces include HDMI, DVI, DP, SDI, analog RGB, CVBS, and S-video. Among these, HDMI, DP, and SDI support 4K 60fps. On the FPGA side, image input interfaces include SDI and MIPI. SDI input supports 1080P 60FPS. Its main application scenario is interfacing with external systems to achieve Picture-in-Picture display of image data from multiple devices. MIPI serves as the signal interface for the endoscope, supporting up to 4-lane 4K 60FPS RAW data input.
+The ARM runs a Linux system, which is optimized by stripping unnecessary components to minimize system boot time. Video streams are transmitted between the ARM and FPGA via a PCIe interface. The ARM system can save images or record real-time video streams transmitted from the FPGA. During playback, the images saved by the ARM system are transmitted back to the FPGA for processing and display.
+The mainboard self-starts after power-on and immediately configures the various video interface chips, enabling the system to display a boot screen within 3 seconds. The boot screen is provided by the FPGA system.
+After the system starts, the UI interface provided by the ARM system is composited with the real-time image on the FPGA side, forming a complete endoscope system display.
+
+The PS (Processing System) side of the FPGA is responsible for controlling the endoscope, including detecting endoscope insertion and controlling its power-on, configuring the endoscope upon power-on, receiving and processing endoscope button messages, and transmitting, receiving, and verifying endoscope information.
+Linux System Design Requirements:
+Peripheral Device Drivers:
+(1) MIPI DSI
+(2) MIPI CSI
+(3) PCIe Input/Output
+(4) HDMI
+(5) I2C
+(6) SPI
+(7) SSD Storage
+(8) SD Card
+(9) eMMC Flash
+(10) DDR Memory
+(11) USB 3.0/2.0 (keyboard, mouse, USB drive, etc.)
+(12) GPIO
+(13) Ethernet, TCP/IP protocol
+(14) RTC
+(15) UART
+Software Environment:
+(16) Linux Kernel 5.x
+(17) Gnome or Unity GUI components
+(18) Porting Qt 5.11 and above
+(19) Support for dual-screen independent display
+(20) Hardware encoder, decoder, gstreamer
+(21) All peripheral drivers provide device nodes, allowing software to perform simple write, read, ioctl, and other operations.

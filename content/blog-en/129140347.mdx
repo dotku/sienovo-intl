@@ -1,0 +1,40 @@
+---
+title: "Embedded Linux System Porting and Driver Design Based on Loongson 2K1000 (Part 1)"
+date: "2023-02-21"
+slug: "129140347"
+tags: ["#linux", "#驱动开发", "#运维"]
+source: "https://blog.csdn.net/yeyuangen/article/details/129140347"
+originalTitle: "基于龙芯 2K1000 的嵌入式 Linux 系统移植和驱动程序设计（一）"
+---
+
+2.1 Requirements Analysis
+
+This project uses the Loongson 2K1000 processor as the embedded system's processor. It requires the implementation of a complete embedded software system that can boot normally and run embedded Linux stably. A network device driver needs to be designed to enable network connectivity and file transfer between the board and other network devices. A PCIe device driver needs to be designed to configure and access external PCIe devices connected to the processor. The three components of the software system – the bootloader, Linux kernel, and root file system – can each perform their functions, and when combined, enable the system to operate correctly. The system's bootloader can perform basic operations on devices, such as setting network device IP addresses, and can complete the booting of the Linux kernel. The bootloader's compilation method should be correct to ensure that source code changes take effect. The embedded Linux kernel should boot normally and implement the expected functions of subsystems such as process scheduling, networking, and file management. The root file system needs to perform system initialization configuration and file management.
+
+The processor's internal GMAC controller connects to an external RTL8211E network physical layer chip to form the network system. When users use Linux network-related commands, the network device driver needs to provide corresponding function calls to implement operations such as opening, closing, and setting the IP address of the device. The network device driver needs to enable connectivity and bidirectional data transfer with other network devices. The PCIe device driver needs to perform operations such as detection and removal of PCIe devices composed of CH368 and FPGA. At the same time, the device driver needs to provide necessary software interfaces for upper-layer applications. The driver should provide methods for reading and writing to the PCIe device's configuration space, used to retrieve and modify device configuration parameters. The driver needs to provide function interfaces for upper-layer applications to operate on device files. When an application operates on a device file, the corresponding function in the driver is called to achieve read/write access to the device's I/O space.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129140347/01_0e3a4c2f4a6ecc4bf547a5ab0061842f.png)
+
+2.3 Overall Software Solution
+
+2.3.1 Bootloader Solution
+
+This project requires analyzing the boot process of embedded Linux to clarify the role of the bootloader in the entire boot process. The bootloader will be modified based on the Loongson 2K1000 processor and ported to storage devices, so that embedded Linux can run normally on the Loongson 2K1000 processor.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129140347/02_8bb2f45612bd3520c51f57896b690fe3.png)
+
+The structure of the embedded Linux system is shown in Figure 2-2. The system mainly consists of four parts: BootLoader, Parameter Area, Linux Kernel, and File System.
+
+1) The Bootloader needs to initialize memory and various hardware devices, complete tasks such as resource allocation, and prepare the environment required for the Linux kernel to run. Afterwards, it detects information such as the processor type, passes necessary parameter information to the Linux kernel, and completes the kernel booting process.
+
+2) The Parameter Area stores system parameters necessary for kernel startup and operation. The first part, the Bootloader, obtains and sets the necessary parameters, then stores them in raw data format.
+
+3) The Kernel Image Area contains the embedded Linux kernel image. Typically, embedded systems use compressed kernel files due to limited storage resources. During system startup, after the first-stage bootloader creates favorable conditions for kernel execution, it decompresses and moves the kernel image into memory for execution.
+
+4) The File System Area is a compressed file system. A file system defines how various files are organized on a storage device. It is a critical part of an embedded Linux system. The file system can only function after being decompressed and mounted by the Linux kernel [32].
+
+Commonly used bootloaders primarily include U-Boot and PMON. U-Boot is functionally similar to PMON, offering common operational commands such as viewing devices and setting up networks, and also includes drivers for various devices. Currently, U-Boot is widely used as a bootloader in the embedded field, with a usage scale far exceeding PMON, and offers comprehensive support for various hardware platforms. In embedded development centered around ARM processors, U-Boot is the preferred bootloader. This is because U-Boot originally evolved from ARMBoot, and after years of development and contributions from numerous developers, U-Boot's support for ARM is very mature [33].
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129140347/03_d70c9a6e6f4142a442436b81c18770fd.png)
+
+Xinmai provides Loongson hardware-software integrated solutions and customization.

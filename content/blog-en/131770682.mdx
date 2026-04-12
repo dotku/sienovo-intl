@@ -1,0 +1,54 @@
+---
+title: "RK3399/RK3588+pcie+Zynq Multi-core Architecture Design Solution for Wearable Devices"
+date: "2023-07-17"
+slug: "131770682"
+tags: ["#架构"]
+source: "https://blog.csdn.net/yeyuangen/article/details/131770682"
+originalTitle: "RK3399/RK3588+pcie+Zynq 多核架构可穿戴设备设计方案"
+---
+
+In many fields, there are very high demands for the reliability of wearable devices. These use cases are not only rich and diverse but also complex and dynamic. This means that wearable devices must not only cope with state changes in the applications and the system itself but also consider abnormal situations caused by the device's environment. Therefore, formulating different scheduling strategies for tasks of different safety criticality levels helps wearable devices maximize system reliability in complex operating environments.
+
+3.2 Scheduling Platform Requirements Analysis
+
+Wearable devices are characterized by rich application scenarios and numerous task categories. However, for most scenarios, the available volume for wearable devices is very limited, thus imposing high requirements on system power consumption and heat dissipation. Addressing these characteristics, an analysis of wearable devices leads to the following summarized requirements for the computing platform:
+
+(1) The computing platform needs to be capable of executing various types of computing tasks.
+
+(2) The computing resources of the platform are relatively limited, so application functions should occupy as few computing resources as possible.
+
+(3) For various types of computing tasks, different criticality levels need to be assigned based on their importance to the system.
+
+(4) The platform should be able to adopt different scheduling strategies according to the criticality levels of different tasks to ensure system functionality and performance.
+
+(5) The scheduling platform must guarantee the real-time performance and reliability of the system.
+
+3.3 Wearable Device Hardware Analysis
+
+With the rapid development of semiconductor technology, computer performance has increased dramatically, but in recent years, chip development has reached a bottleneck. Increasingly complex circuits and higher development costs have prevented processor performance from continuing to follow Moore's Law, leading to computational performance failing to meet the demands of data volume. Introducing specific computing units to create a hybrid architecture for computer systems, where each different type of computing unit in the hybrid structure can perform the tasks it is best suited for, has become an effective solution. Although CPUs are relatively weaker in computational power, they excel at management and scheduling; GPUs, while having weaker management and scheduling capabilities, possess stronger computational power and are suitable for processing large blocks of streaming data through multi-process concurrency; FPGAs have long development cycles and high development difficulty, but offer high parallelism and the strongest real-time performance. To ensure reliability and real-time performance while meeting device requirements for power consumption, size, and heat generation, introducing co-processors to implement a heterogeneous computing platform is the optimal solution. Low-power co-processors can not only provide low-energy hardware acceleration for the computing platform but also meet the space requirements of wearable devices. Utilizing Application-Specific Integrated Circuits (ASICs) for hardware acceleration is a good solution, as ASICs feature high performance and low energy consumption. The high energy efficiency of ASICs can balance device performance and power consumption. However, once an ASIC is produced for specific requirements, its circuits and functions cannot be changed, making it difficult to use a general-purpose ASIC to adapt to multiple application scenarios. In this situation, Field-Programmable Gate Arrays (FPGAs) become a better choice. The main advantage of FPGAs lies in their flexibility. In wearable device application scenarios, specific computing tasks under different design frameworks and strategies have varying hardware requirements. In an FPGA, we can arbitrarily modify digital logic according to needs to implement different functions, and its large-scale parallelization characteristics can also make algorithms faster and more efficient.
+
+Mobile devices not only need to perform high-intensity tasks but also ensure sufficient battery life. The number of cores in mobile processors has continuously increased, from early single-core to dual-core, quad-core, and now octa-core. Quad-core was once considered a relatively balanced solution for mobile devices, but in practical use, it was found that processors with four high-power-consumption cores struggled to achieve a good energy efficiency ratio through methods like voltage reduction and frequency scaling. ARM's big.LITTLE architecture effectively solves this problem. big.LITTLE is a heterogeneous processing architecture that combines the high performance of big cores with the low power consumption of LITTLE cores, effectively improving the energy efficiency of mobile devices. In a big.LITTLE system, both big and LITTLE core processors share the same architecture. The Rockchip RK3399 development board used in this paper employs a processor based on the big.LITTLE architecture, featuring low power consumption and high performance. This processor has a combined architecture of dual-core Cortex-A72 and quad-core Cortex-A53, which can well meet the complex requirements of wearable devices.
+
+Based on the previous analysis of application scenarios, this research uses the Rockchip RK3399 + Xilinx Zynq development platform to implement a CPU+FPGA-based system. This architecture not only fully leverages the advantages of heterogeneous processors in control and operating systems but also fully exploits the advantages of FPGAs in parallel data processing. Within the limits of available hardware resources, it maximizes hardware parallelism and data reusability, and improves hardware resource utilization and system throughput. As shown in Figure 3-1, this paper divides the system architecture into six layers. These are:
+
+(1) Application Layer: Available for developers, it abstracts the hardware layer and is responsible for providing a runtime environment for application software. It can be extended according to the needs of the wearable computer.
+
+(2) Application Framework Layer: Provides various API interfaces and service-level processes for the upper application layer.
+
+(3) System Runtime Library Layer: Contains two parts: system libraries and the Android runtime. System libraries include the fundamental libraries supporting the entire system's operation, serving as the foundation for the application framework and an important link between the application framework layer and the Linux kernel layer. Programs run within the Android runtime, divided into core libraries and the Dalvik virtual machine.
+
+(4) Operating System Layer: Reduces the coupling between the system and hardware by defining hardware driver interfaces. The wearable computer operating system in this paper adopts the Android system.
+
+(5) Drivers: Provide support for corresponding hardware requirements by installing different drivers. The wearable computer in this paper mainly includes FPGA drivers and PCIe drivers.
+
+(6) Hardware Support Platform: Composed of the wearable computer and FPGA, it forms the foundation of the entire software platform.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131770682/01_3b6e4ce90a4613a35a7ce46886fc1652.png)
+
+The cooperation between the main processor and co-processors achieves a balance between performance and power consumption for the platform, meeting the requirements of wearable devices through hardware-software co-design. The processor architecture diagram is shown in Figure 3-2.
+
+3.4 Fault-Tolerant Scheduling Algorithm for Critical Tasks
+
+3.4.1 Analysis of Existing Task Scheduling Algorithms
+
+Baruah's AMC model \[44\] provides higher reliability for scheduling by allowing the system to offer additional execution time. This algorithm proposes a

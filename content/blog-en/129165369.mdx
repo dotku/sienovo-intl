@@ -1,0 +1,33 @@
+---
+title: "Software Design for a Multi-parameter Data Logger Test Platform on an RK3399+Linux QT Ground Test Bench (Part 2)"
+date: "2023-02-22"
+slug: "129165369"
+tags: ["#linux", "#qt", "#RK3399"]
+source: "https://blog.csdn.net/yeyuangen/article/details/129165369"
+originalTitle: "基于RK3399+Linux QT地面测试台多参数记录仪测试平台软件设计(二）"
+---
+
+The RK3399 is a high-performance, low-power "Chinese chip" developed by local chip manufacturer Rockchip.
+In April 2016, the RK3399 made its debut at an electronics exhibition held in Hong Kong. The chip uses a hexa-core big.LITTLE processor, including a quad-core Cortex-A53 and a dual-core Cortex-A72, with a main frequency up to 2.0GHz. The chip is compatible with 3G and 4G network communication, boasts rich interface resources, and excellent overall performance, supporting device interfaces such as USB3.0 and MIPI dual cameras. There are also many options for operating systems; users can choose Android/Linux/Debian, etc., as the OS, or lightweight office development environments like Phoenix OS and Flint OS, with compatibility for common software.
+
+In terms of hardware interfaces, the RK3399 provides abundant resources. The appearance and specific interface definitions of the Xinmai RK3399 development board are shown in Figure 2.5. The RK3399 has the following unique advantages:
+
+1. Rich display interfaces. It supports dual-screen simultaneous display or dual-screen differential display as required. For video, it supports numerous mainstream display output ports such as dual MIPI, HDMI, eDP, and DP.
+
+2. Diverse network channels. Dual-band wireless network reception (2.4GHz/5GHz), Gigabit Ethernet port, Bluetooth 4.1 communication. Additionally, the development board includes a Mini PCIe slot for extending 3G and 4G communication.
+
+3. Complete peripheral interfaces. USB2.0/3.0 HOST, independent PCIe interface. Standard serial port debugging, and a 42-pin GPIO interface for convenient developer debugging.
+
+4. Strong operating system compatibility. Open-source operating systems like Linux, Ubuntu, Debian, Android, etc., allow users to choose and flash suitable firmware.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129165369/01_41acfb2595614d903bbc9e7b35e53b2d.png)
+
+Targeting the operational requirements of a certain data logger model, and based on the testing workflow, a fully functional, user-friendly, and easy-to-operate test bench software is designed using Linux-Qt as the primary development tool.
+
+3.1 Software Design Principles
+
+Based on requirements and overall design, the software is divided into three operating modes. The functional module diagram is shown in Figure 3.1. From the figure, it is clear that the software includes three functional windows: Analog Signal Source, Memory Detection and Readback, and Data Processing. Each window's function is independent yet closely integrated. They can work together for testing or perform individual tests independently.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129165369/02_8cf63832e487df81c1937523f3e4dcb1.png)
+
+First is the Analog Source window, primarily responsible for simulating ground data sources before flight experiments. The host computer sends commands to control the main CPU in the test bench, generating 5 channels of digital signals (on/off), 2 channels of analog signals, 1 channel of 422 data, and 5 channels of network data. The purpose is to test the entire system workflow before flight experiments. By sending pre-configured simulated data and storing it in Flash, then reading the data back, and performing initial comparison and further data processing

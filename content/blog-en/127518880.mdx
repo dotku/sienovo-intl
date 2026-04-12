@@ -1,0 +1,73 @@
+---
+title: "Surgical Robot Hardware and Software Design Solution"
+date: "2022-10-25"
+slug: "127518880"
+tags: ["#嵌入式硬件", "#手术机器人"]
+source: "https://blog.csdn.net/yeyuangen/article/details/127518880"
+originalTitle: "手术机器人软硬件设计方案"
+---
+
+Embedded Master Manipulator Handle Requirements
+
+Structure:
+
+1. The following structure is a control handle used to collect human hand motion signals, transmit them to the host computer, and remotely control other equipment.
+
+12. The master manipulator arm within the handle contains 4 motor rotary joints, with a built-in 16-bit resolution rotary encoder to record angular displacement;
+
+23. The host computer connects to the master manipulator handle motors, slave instrument motors (actuators controlled by the handle's motion output), stand motors (for linear motion controlled by the handle), and the electrosurgical unit (for on/off control implemented by the handle).
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/127518880/01_3d99d1ef03d100b80750c9bac8709164.png)
+
+Functional Modules:
+
+Forward Control (Handle as Controller):
+Control the master manipulator handle's output rotary encoder (5) angular displacement signal to control the slave instrument motors;
+Handle buttons: Control equipment stand motors;
+Handle buttons: Active brake engagement and release of handle motors;
+Handle buttons control power on/off of the electrosurgical unit;
+II. Reverse Control (Handle controlled by instrument feedback)
+
+The master manipulator handle adjusts its pose according to the selected slave instrument's pose;
+Handle buttons: Control equipment stand motors;
+Handle buttons: Control active brake engagement and release of master handle motors;
+Handle buttons control power on/off of the electrosurgical unit;
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/127518880/02_4933b746b866fb8b92d6b91ce57c579c.png)
+Parameter Input:
+
+1. Host computer communication protocol: RS485/EtherCAT
+
+2. Host computer operating system: Windows 7/10, may later transition to Linux
+
+3. Rotary encoder resolution: 16-bit
+
+4. Motor output signal: 0:4-20mA RS485
+
+Requirement Implementation:
+
+Phase One:
+
+Independently output the collected master manipulator handle rotary encoder angular displacement signals to the host computer to enable slave motors to operate in conjunction with the master's rotational displacement;
+Feed back the slave motor rotary encoder angular displacement signals to the master motors to adjust the master's pose;
+Output the handle's forward/backward button input signals to the host computer and control the stand motors' operation;
+Monitor whether the hover button is pressed and feed the signal back to the master manipulator handle motors to achieve active brake engagement/release;
+Collect the handle's electrosurgical switch input signals, output them to the host computer, and control the power on/off of the external electrosurgical unit;
+Monitor handle motor temperature and feed it back to the host computer;
+Set boundary regions via software to limit the handle's rotational displacement range;
+Phase Two:
+
+Enable instrument motors to operate in conjunction with the handle's rotational displacement;
+Feed back the instrument motor rotary encoder angular displacement signals to the handle motors to adjust the handle's pose;
+
+EtherCAT motion controller: Uses i.MX8 + Linux + Xenomai + IGH for high real-time performance.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/127518880/03_173e792d5b38eeb57a48673dbc3a7966.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/127518880/04_af063166dc458e4a921cff17a27c1879.png)
+
+Note:
+
+A very good reference on surgical robots:
+
+## [【Paper Interpretation】Analysis and Interpretation of the Working Principles of Surgical Robot Systems](https://blog.csdn.net/weixin_44229927/article/details/112622499?spm=1001.2101.3001.6661.1&utm_medium=distribute.pc_relevant_t0.none-task-blog-2~default~OPENSEARCH~Rate-1-112622499-blog-127518880.pc_relevant_aa&depth_1-utm_source=distribute.pc_relevant_t0.none-task-blog-2~default~OPENSEARCH~Rate-1-112622499-blog-127518880.pc_relevant_aa&utm_relevant_index=1 "【论文解读】手术机器人系统的工作原理分析与解读")

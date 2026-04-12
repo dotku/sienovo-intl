@@ -1,0 +1,55 @@
+---
+title: "Mechatrolink III to EtherCAT Gateway Module Solution"
+date: "2022-12-21"
+slug: "128356770"
+tags: ["#ethercat转换模块"]
+source: "https://blog.csdn.net/yeyuangen/article/details/128356770"
+originalTitle: "Mechatrolink III转EtherCAT网关模块解决方案"
+---
+
+**Overview**
+
+Industrial Ethernet is becoming increasingly popular in the industrial control field, with many types of protocols such as Mechatrolink III, EtherCAT, Powerlink, Profinet, EtherNet/IP, etc. In the CNC machining field, the mainstream protocols are Mechatrolink III and EtherCAT. However, communication and interoperability between various protocols are challenging.
+
+Yaskawa Electric's Mechatrolink III is an advanced Industrial Ethernet technology widely used in the CNC machining field. Servo devices mostly adopt Mechatrolink III, but lack supporting I/O or sensing devices. Domestic I/O or sensing devices mostly use EtherCAT, with relatively abundant resources. The MIE SoC module for Mechatrolink III to EtherCAT Master effectively solves the problem of the Mechatrolink III protocol lacking supporting devices, enabling quick access, reducing system burden, and simultaneously supporting access for multiple I/O devices.
+
+**Mechatrolink III to EtherCAT Solution**
+
+Existing solutions are generally as shown in the figure below:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128356770/01_a3881284a69ee360f39e24dee002ea9f.jpeg)
+
+The main system needs to support two protocols simultaneously, increasing system cost. At the same time, development difficulty is high, requiring more software and hardware development investment, and the CPU burden is heavy, leading to increased costs for system upgrades.
+
+The solution using the MIE SoC module is shown in the figure below:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128356770/02_027cc7dd693e7de3efabec75a0af2ef1.jpeg)
+
+The main system hardware remains unchanged, no hardware development investment is required, and the CPU burden is not increased. Simply adding the MIE SoC module allows for rapid expansion of EtherCAT devices.
+
+**MIE SoC Module Introduction**
+
+The physical appearance and block diagram of the MIE SoC module are shown below. Based on the Intel Cyclone V SoC module, it is a minimal System-on-Chip (SoC) that is self-booting upon power-up. The FPGA integrates two IPs: Mechatrolink III and EtherCAT, as well as message conversion and synchronization processing between Mechatrolink III and EtherCAT. It can not only realize Mechatrolink III Slave to EtherCAT Master conversion but also a dual-master system with Mechatrolink III Master + EtherCAT Master. The on-chip ARM A9 processor in the FPGA handles Mechatrolink III and EtherCAT initialization, periodic interrupt processing, exception handling, etc.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128356770/03_c08f75d819f41c304abdf88e7ba81261.jpeg)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128356770/04_fb773b5fc1cd36e6b5041325a37d497a.jpeg)
+
+Technical Specifications
+
+*   Intel Cyclone V SoC main processing chip
+    *   Integrated ARM-Cortex A9 dual-core processor
+    *   Integrated FPGA
+*   Module Peripherals
+    *   QSPI Flash (16MB)
+    *   DDR3 *16bit (512MB)
+    *   Integrated 4-channel 100M PHY
+        *   Two channels implement Mechatrolink Slave
+        *   The other two channels implement EtherCAT Master
+*   PCB
+    *   12 layers, 54mm*54mm
+    *   Castellated hole design
+
+**Conclusion**
+
+The MIE SoC module is a low-cost Industrial Ethernet protocol conversion module. The FPGA performs hardware-based protocol conversion, offering high efficiency and strong real-time performance. System integration is simple and easy to use, and it can reduce system complexity.

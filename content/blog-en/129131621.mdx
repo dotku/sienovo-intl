@@ -1,0 +1,52 @@
+---
+title: "Development of a High-Definition Image Tracking System Based on DSP+FPGA"
+date: "2023-02-20"
+slug: "129131621"
+tags: ["#fpga开发", "#DSP+ARM", "#图像跟踪"]
+source: "https://blog.csdn.net/yeyuangen/article/details/129131621"
+originalTitle: "基于 DSP+FPGA 的高清图像跟踪系统研制"
+---
+
+Target recognition and tracking technology is currently a key research direction in image processing, possessing broad application value in both military and civilian fields. Examples include precision-guided weapons, missile and aircraft early warning in military applications, and traffic management, criminal investigation in civilian applications. Among these, how to extract, identify, and track specific targets in complex backgrounds is an urgent problem to be solved. This paper introduces the current research status and development trends of image tracking systems at home and abroad, the basic composition and working principles, detailed functions, and performance requirements of image tracking systems. It designs an image tracking system based on DSP+FPGA and conducts experimental verification. The main work includes:
+
+1) The image tracking system designed in this paper is mainly composed of an image tracking circuit, a communication control circuit, and a video interface circuit. It uses high-speed DSP+FPGA as the processing core to establish a high-performance video tracking and communication processing platform, completing video image data acquisition, processing, character overlay, and output functions. It achieves real-time tracking of targets of interest, as well as communication control with other components. The paper provides the schematic diagrams and detailed design methods of the hardware circuits.
+
+2) The software design of the image tracking system adopts a dual-DSP operating mode. DSP-1 primarily undertakes image tracking algorithms, suspicious target detection, and tracked target position information output tasks, which have high real-time requirements. DSP-2 primarily undertakes tasks with lower real-time requirements, such as communication control and auxiliary character control.
+
+3) An alarm function for suspicious small targets on the sea surface was implemented. It uses the Top-Hat detection algorithm and historical motion trajectory information to improve the detection rate and reduce the false alarm rate. Ground target tracking functionality was implemented using a frequency-domain tracking algorithm, which can effectively solve problems such as occlusion and background interference. Suspicious target detection and ground target tracking experiments were conducted multiple times during actual flights.
+
+Experimental results show that the image tracking system designed in this paper operates stably, possesses strong target tracking and anti-interference capabilities, and meets the system's functional and performance requirements.
+
+**2.1** Introduction
+
+An image tracking system is a dedicated image information processing platform. Based on mission requirements, we followed the following principles during system design:
+
+a) While ensuring system performance indicators, we strive for high integration, low power consumption, and miniaturization;
+
+b) The system's hardware and software architecture are algorithm-oriented to achieve a high performance-to-cost ratio;
+
+c) Reasonably allocate hardware and software resources, adopt an optimized architecture, and achieve real-time tracking and system communication tasks;
+
+d) The designed system should possess programmability, expandability, ease of debugging, and maintainability;
+
+e) It should have a good development interface and debugging environment, allowing all tracking system operations to be completed in a simulated environment.
+
+**2.2** Principle and Composition
+
+The image tracking system is mainly composed of an image tracking circuit, a communication control circuit, and a video interface circuit. This system design uses high-speed DSP+FPGA as the processing core to establish a high-performance video tracking and communication processing platform, completing video data acquisition, processing, character overlay, and output, and achieving real-time tracking of targets of interest, as well as communication control with other components. The image tracking system receives video signals from imaging sensors such as visible light cameras and infrared thermal imagers. After being processed by the corresponding video decoding chip circuit to separate synchronization signals and image information from the video, as shown in Figure 2-1, the image information is stored in external memory after processing by the video data acquisition module in the FPGA. At the same time, the DSP chip, according to host computer instructions, uses EDMA read mode to retrieve image information from SRAM for tracking calculations during the search state. The image tracking function, under DSP processing, automatically completes image recognition and tracking calculations, and performs intelligent decision-making, ultimately achieving target localization and feeding back the error signal of the target deviating from the center of the field of view to the communication RAM between the FPGA and DSP. This signal is then transmitted via the FPGA's communication control module to the servo controller, which drives the stabilized platform to track the target. Finally, the digital video and character overlay information are sent together to a video generation chip to produce video output for terminal display.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129131621/01_dcfd65a499d7c4b1d26c4b434f75ced0.png)
+
+When designing the communication function, a soft-core CPU is developed in the FPGA to generate a communication control module that completes all communication functions within the platform system. This module primarily handles communication tasks with the external host computer, receiving control commands and parameters from the host computer, and simultaneously transmitting the operating status and parameters of the tracking system to the servo control system. It can also complete communication control and information exchange functions with components such as visible light sensors, infrared sensors, laser rangefinders, and recorders.
+
+Since this system is a "human-in-the-loop" system with frequent human-machine interaction, to reduce the burden on the target tracking DSP, a microprocessor (MPU) is set up in the system. It handles communication control tasks with the host computer, receives control commands and parameters from the host computer, and transmits the operating status and parameters of the tracking system to the system controller via the bus interface circuit. At the same time, data such as focal length and target distance from the infrared thermal imager and visible light camera on the stabilized platform are also sent to the bus interface circuit via the microprocessor.
+
+An image tracking system acquires video signals from visible light or infrared image sensors, uses image processing algorithms to calculate the target's position relative to the image, and transmits this position information to the servo control component to achieve the tracking function of electro-optical reconnaissance equipment. Image output from imaging sensors generally uses analog or digital signal interfaces. The working principles of analog and digital image sensors are fundamentally the same; image sensors convert the acquired image data into electrical signals through photoelectric conversion and A/D conversion, and output them via analog or digital interfaces.
+
+The deviation of the target's position on the detector plane of a visible light or infrared image sensor relative to the center of the video image is the error signal provided by the image tracking system. This is transmitted to the servo control system to achieve the target tracking function of electro-optical reconnaissance equipment. As shown in Figure 2-2, (Δx, Δy) represents the error of the target deviating from the center. The image tracking system acquires target error information in real-time for each frame and transmits it to the servo system. The servo system controls the electro-optical reconnaissance equipment to move in a certain direction according to the error information, thereby automatically tracking the target.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129131621/02_36d0794011c0b06aae3874bbcd031a8a.png)
+
+**2.3 Main Functions and Technical Requirements**
+
+Airborne electro-optical reconnaissance equipment is primarily used for searching, identifying, and downward-looking surveillance of land and sea

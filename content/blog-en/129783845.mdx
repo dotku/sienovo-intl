@@ -1,0 +1,24 @@
+---
+title: "基于ZYNQ 的多轴运动控制平台关键技术研发-Linux+xenomai开源实时系统设计(二）"
+date: "2023-03-26"
+slug: "129783845"
+tags: ["#linux+xenomai", "#实时系统", "#ZYNQ"]
+source: "https://blog.csdn.net/yeyuangen/article/details/129783845"
+originalTitle: "基于ZYNQ 的多轴运动控制平台关键技术研发-Linux+xenomai开源实时系统设计(二）"
+---
+
+**4. SoC Dual-Core System and Inter-Core Multi-Task Communication Design**
+
+This chapter details the design of the SoC core system under AMP architecture and the implementation methods for inter-core task communication. First, the dual-core system is set up, and device drivers are ported. Then, a communication module based on shared memory is designed. Finally, a multi-task communication solution is proposed to meet the requirements of different communication tasks within the system.
+
+**4.1 Dual-Core System Design and Implementation**
+
+**4.1.1 Linux Real-time System Setup**
+
+**(1) Xenomai Real-time Patch Installation**
+
+Robot control systems require strong real-time capabilities, ensuring real-time processing and response for motion control-related task scheduling and data communication during operation. Due to mechanisms such as kernel preemption, interrupt masking, and priority preemption scheduling, the Linux system cannot provide strict hard real-time performance. There are two methods for optimizing Linux system real-time performance: Linux kernel source code improvement and Linux dual-kernel extension. Among these, the kernel improvement method facilitates performance optimization in specific directions for users but involves a large workload and high modification difficulty.
+
+Therefore, this paper extends the Linux system with Xenomai to achieve a dual-kernel real-time system, which meets system requirements and improves development efficiency. Xenomai uses Adeos (Adaptive Domain Environment for Operating System) technology to ensure hard real-time extension. The dual-kernel architecture is shown in Figure 4.1.
+
+![](https://pub-04

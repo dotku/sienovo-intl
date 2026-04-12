@@ -1,0 +1,91 @@
+---
+title: "RK3568/RK3588+LinuxCNC+EtherCAT Solution"
+date: "2023-06-27"
+slug: "131423799"
+tags: ["#linuxcnc"]
+source: "https://blog.csdn.net/yeyuangen/article/details/131423799"
+originalTitle: "RK3568/RK3588+LinuxCNC+Ethercat解决方案"
+---
+
+The RK3588 is Rockchip's new-generation flagship high-end processor, featuring high computing power, low power consumption, powerful multimedia capabilities, and rich data interfaces. It is equipped with an octa-core CPU (quad-core A76 + quad-core A55) and an ARM G610MP4 GPU, with a built-in NPU offering 6.0 TOPs of computing power.
+
+It boasts five major technical advantages:
+
+1.  Built-in multiple powerful embedded hardware engines, supporting 8K@60fps H.265 and VP9 decoders, 8K@30fps H.264 decoder, and 4K@60fps AV1 decoder; supports 8K30fps H.264 and H.265 encoders, high-quality JPEG encoder/decoder, and dedicated image pre-processor and post-processor.
+
+2.  Built-in 3D GPU, compatible with OpenGL ES1.1/2.0/3.2, OpenCL 2.2, and Vulkan 1.2. A special 2D hardware engine with MMU will maximize display performance and provide a smooth user experience.
+
+3.  Built-in Rockchip self-developed 48MP ISP (Image Signal Processor), supporting numerous algorithm accelerators such as HDR, 3A, LSC, 3DNR, 2DNR, sharpening, defogging, fisheye correction, gamma correction, etc.
+
+4.  The high-performance NPU supports INT4/INT8/INT16/FP16 mixed precision operations. Its powerful compatibility allows easy conversion of network models based on frameworks such as TensorFlow / MXNet/PyTorch/Caffe.
+
+5.  Features a high-performance 4-channel external memory interface (LPDDR4/LPDDR4X/LPDDR5), capable of supporting demanding memory bandwidth.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131423799/01_c9286e96a21ccc862e5235cbd666504d.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131423799/02_e23baee9d1a25969abd93fa1302cfdcf.png) 
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131423799/03_253db56745209d247bd04fd95a9948e6.png) 
+
+Linux+Xenomai+IGH running for 53 hours - Actual test results:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131423799/04_64886016d4d8cdf7a3f989e76d7e44ec.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131423799/05_00e4ef41c9f396f10db99a2a486fdb67.png) 
+
+**II. Comparison of LinuxCNC Systems**
+
+1.  Highly integrated, all-in-one developed CNC system
+2.  CNC system developed based on PLC and axis motion control cards: The motion control part is written to the motion control card, which controls the hardware, while non-real-time operations or computations are placed in the computer, which handles non-real-time tasks.
+3.  Completely software-based motion planning and control system: Real-time tasks are entirely handled by computer software and can respond to hardware interrupts.
+
+![数控系统分类](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131423799/06_90c3d6bf221c6b405317146695914e9a.jpeg)
+This article mainly discusses LinuxCNC, a purely software-based operating system. It is a non-real-time operating system based on Linux. Compared to the previous two types of CNC systems, its superior functionality represents the future trend of CNC. However, at this stage, its response time and real-time accuracy are still not comparable to hardware-controlled systems. Despite minor flaws, its advantages are mainly reflected in its openness.
+All open systems possess the following characteristics:
+
+ ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131423799/07_5329c25574d10a257c9d735c0a19e36f.png)
+
+LinuxCNC consists of four parts:
+
+![在这里插入图片描述](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131423799/08_c796bce9143debef3c172c1ab456cfa8.jpeg)
+Motion Control Module
+
+![在这里插入图片描述](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131423799/09_6738ee8a2ea4a13413ece334eb263068.jpeg)
+
+Task Scheduling Module
+
+![在这里插入图片描述](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131423799/10_533453ba63fa2c42ca39a649ed428b95.jpeg)
+LinuxCNC Communication Methods
+
+ ![在这里插入图片描述](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131423799/11_9e957a4ece26bfb671111d1bd869a448.jpeg)
+
+Minimum configuration requirements for LinuxCNC installation. You can download the user installation manual (already translated into Chinese) from the following URL to get started:
+https://download.csdn.net/download/weixin_44880138/11197220
+
+![在这里插入图片描述](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131423799/12_3e711f339889c55727547cb097839bbf.jpeg)
+Briefly list the steps for stepper configuration using Stepconf:
+
+![在这里插入图片描述](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131423799/13_b6ae81e91794d4595d30574eae83652d.jpeg)
+
+Nowadays, when using LinuxCNC, it is often inevitable to use the EtherCAT protocol.
+Features of the EtherCAT Protocol:
+
+![在这里插入图片描述](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131423799/14_6da85f16c000e9b6d5fd3b12d07ba5c6.jpeg)
+
+Operating Principle of EtherCAT: The explanation of this principle refers to a master's graduate thesis, whose specific name I've forgotten. I hope the author doesn't mind, hahaha.
+
+![在这里插入图片描述](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131423799/15_57357930d53034cbd002417fd33a0fa6.jpeg)
+EtherCAT Master Structure
+
+ ![在这里插入图片描述](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131423799/16_b91a75817b4001df5ed588f945810ed0.jpeg)
+
+Basic functions of the master:
+1.  Reads and parses the slave device description XML file to obtain configuration parameters.
+2.  Captures and sends EtherCAT data frames, completes EtherCAT sub-telegram parsing, packaging, etc.
+3.  Manages slave device status, runs state machines, and completes master-slave state machine setup and maintenance.
+4.  Enables acyclic data communication, completes system parameter configuration, and handles unexpected events during communication.
+5.  Implements cyclic process data communication, enables real-time data exchange, real-time monitoring of slave status, and real-time processing of slave feedback signals, among other functions.
+
+EtherCAT Slave Structure
+
+![在这里插入图片描述](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131423799/17_15748a3d8bc667a521223a780ab0c21c.jpeg)

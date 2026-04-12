@@ -1,0 +1,85 @@
+---
+title: "Research and Development of Key Technologies for ZYNQ-based Multi-axis Motion Control Platform - Linux + Xenomai Open-source Real-time System Design (Part 3)"
+date: "2023-03-26"
+slug: "129784030"
+tags: ["#ZYNQ", "#linux+xenomai", "#实时"]
+source: "https://blog.csdn.net/yeyuangen/article/details/129784030"
+originalTitle: "基于ZYNQ 的多轴运动控制平台关键技术研发-Linux+xenomai开源实时系统设计(三）"
+---
+
+**4.3 Non-periodic Task Communication Technology**
+
+In multi-axis motion control, inter-core non-periodic task communication in a dual-core system is primarily used for the Linux system to read information from the servo system, such as servo parameters.
+
+**4.3.1 Data Link Design**
+
+In non-periodic task communication, the communication data in a dual-core system is diverse, and message lengths are not fixed. Therefore, variable-length mailboxes are used to implement the data link for non-periodic communication, and inter-core semaphores are used to manage the switching of system communication states. The data link for non-periodic task communication is shown in Figure 4.13, with data frame definitions completed on the OCM. Concurrently, both the Linux system and the servo system define corresponding data frames in their applications, used to store destination data frames and response data frames.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129784030/01_3974bdfb306c36c50b4cda0ae253a1f5.png)
+
+During non-periodic communication, an inter-core semaphore is set to indicate the OCM's access status. When the inter-core semaphore is 1, it means the OCM is idle, and non-periodic communication has not started or has completed. When the inter-core semaphore is 0, it means the OCM is busy, and non-periodic communication is in progress. The dual-core system determines the real-time communication status via the inter-core semaphore, thereby performing specific operations and completing state transitions. Variable-length mailboxes are defined on the OCM to store communication data frames. After communication begins, the Linux system initiates task communication, writing the encapsulated data frame into the mailbox. The servo system reads the data frame from the mailbox and parses it. After completing the response, it encapsulates the response data into a new data frame and writes it back to the mailbox.
+
+**4.3.2 Implementation of Non-periodic Tasks Based on Polling Mechanism**
+
+Non-periodic task communication does not occur periodically. Therefore, this paper proposes a communication method based on polling semaphores by the servo system. The servo system continuously queries the semaphore for non-periodic communication to determine if Linux has initiated communication. If communication has been initiated, the servo system performs a response operation to complete the inter-core communication task.
+
+The workflow for inter-core non-periodic task communication is shown in Figure 4.14. The specific operations of the Linux system are as follows:
+(1) Encapsulate the destination data frame according to system commands.
+(2) Read the inter-core semaphore to check for communication errors or timeouts; handle them if present.
+(3) If communication status is normal, write the destination data frame to the mailbox.
+(4) After the data frame is written, set the inter-core semaphore to notify the servo to respond.
+(5) Query the inter-core semaphore to check if the servo has completed its response.
+(6) After the servo responds successfully, read the servo response frame data.
+(7) Linux system task communication ends.
+
+The specific operations of the servo system are as follows:
+(1) Poll the inter-core semaphore via a while(1) loop to check for communication errors or timeouts; handle them if present.
+(2) If Linux has initiated task communication, read the destination data frame from the mailbox.
+(3) Parse the destination data frame and execute the corresponding command operations.
+(4) Encapsulate the response data into a data frame and write it back to the mailbox.
+(5) After the data frame is written, set the inter-core semaphore to notify the Linux system that the response is complete.
+(6) Servo system task communication ends.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129784030/02_27f09f427689765bc6f4f586de78a3d7.png)
+
+**4.4 Periodic Task Communication Technology**
+
+In multi-axis motion control, inter-core periodic task communication in a dual-core system is primarily used for updating periodic control commands and reading servo feedback data, thereby achieving multi-axis motion control.
+
+**4.4.1 Data Link Design**
+
+In periodic task communication, the dual-core system has fixed communication data types and small data volumes. Therefore, fixed-length mailboxes are used to implement the data link for periodic communication, and inter-core semaphores are used to manage the switching of system communication states. Periodic communication data is divided into two categories: control commands and feedback data, which are transmitted unidirectionally between the two cores. To improve data transmission efficiency, separate send mailbox areas and receive mailbox areas are set up. The send mailbox area stores control commands from the Linux system, and the receive mailbox area stores feedback data from the servo system. The periodic task communication data link is shown in Figure 4.15.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129784030/03_61def584ba57089f4bd5e04e73b5c164.png)
+
+During periodic communication, an inter-core semaphore is set to indicate the OCM's access status. When the inter-core semaphore is 1, it means the OCM is idle, and periodic communication has not started or has completed. When the inter-core semaphore is 0, it means the OCM is busy, and periodic communication is in progress. The dual-core system determines the real-time communication status via the inter-core semaphore, thereby performing specific operations and completing state transitions. Send mailbox areas and receive mailbox areas are defined on the OCM to store communication data. Within the communication cycle, the Linux system reads feedback data from the receive mailbox area and writes control commands to the send mailbox area; the servo system reads control commands from the send mailbox area and writes feedback data to the receive mailbox area.
+
+**4.4.2 Implementation of Periodic Tasks Based on Hardware Interrupt Mechanism**
+
+Inter-core periodic task communication uses FPGA hardware interrupts, meaning both the Linux system and the servo system are synchronized with the FPGA. When an FPGA interrupt signal arrives, both dual-core systems respond by executing an interrupt service routine to complete inter-core data communication.
+
+To ensure real-time performance, the Linux system handles interrupt services through Xenomai, as shown in Figures 4.16 and 4.17. A real-time task thread under the Xenomai domain is first created in the user program, which implements the functionality to continuously wait for interrupt signals. When Adeos performs task scheduling, tasks waiting for signals in Xenomai are added to the wait queue, at which point the thread enters a sleep state. When the system receives an interrupt signal from the FPGA, the Xenomai real-time thread will be awakened. After the thread is awakened, it executes the interrupt service function to achieve periodic task communication.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129784030/04_652b83dbcd0cca38bec9ea412ef699a0.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129784030/05_c9708cd3b40324be18f27ba5289fab8c.png)
+
+The workflow for inter-core periodic task communication is shown in Figure 4.18. The specific operations of the Linux system are as follows:
+(1) Clear the watchdog timer and interrupt flag, indicating that the Linux system has received and processed the interrupt.
+(2) Read the inter-core semaphore to check for communication errors or timeouts; handle them if present.
+(3) If communication status is normal, switch the response buffer and read response data from the receive mailbox area.
+(4) After reading, switch the command buffer and write control commands to the send mailbox area.
+(5) After writing, set the semaphore to notify the servo to respond.
+(6) Linux system task communication ends.
+
+The specific operations of the servo system are as follows:
+(1) Clear the watchdog timer and interrupt flag, indicating that the servo system has received and processed the interrupt.
+(2) Poll the inter-core semaphore to check for communication errors or timeouts; handle them if present.
+(3) If Linux has initiated task communication, switch the command buffer and read command data from the send mailbox area.
+(4) After reading, switch the response buffer and write servo response data to the receive mailbox area.
+(5) After writing, set the semaphore, and the periodic task communication status returns to idle.
+(6) Servo system task communication ends.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129784030/06_ebbb65f4b0d66c4343eebcd7f455b637.png)
+
+Xinmai provides real-time motion control solutions based on ZYNQ+LINUX+XENOMAI.

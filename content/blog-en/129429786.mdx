@@ -1,0 +1,52 @@
+---
+title: "Design and Implementation of an Autonomous Driving Domain Controller for Intelligent Vehicles Based on NVIDIA Xavier - Baidu Apollo Architecture (Part 2)"
+date: "2023-03-09"
+slug: "129429786"
+tags: ["#自动驾驶", "#人工智能", "#机器学习", "#控制器"]
+source: "https://blog.csdn.net/yeyuangen/article/details/129429786"
+originalTitle: "基于nvidia xavier智能车辆自动驾驶域控制器设计与实现-百度Apollo架构(二）"
+---
+
+Intelligent Vehicle Operating System
+
+An intelligent vehicle operating system is a crucial component of an intelligent vehicle system. Modern automotive software components are typically first developed by different suppliers and then integrated by manufacturers under limited resources \[42\]. The intelligent vehicle operating system needs to adopt modular and layered design principles to be compatible with modules such as sensors, distributed communication, and general autonomous driving frameworks, thereby enabling autonomous driving functions like environmental perception, motion planning, task decision-making, and vehicle control.
+
+The intelligent vehicle operating system primarily includes multi-kernel design and optimization for heterogeneous distributed systems, Hypervisor virtualization technology, POSIX API, distributed communication mechanisms, management plane, and data plane, as shown in Figure 2.2.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129429786/01_fbb4ac8a717da690af09ffa77dda9fb5.png)
+
+The intelligent vehicle domain controller is a hardware solution based on a heterogeneous chip architecture. The intelligent vehicle operating system needs to adopt a multi-kernel design approach that emphasizes high security and strong real-time performance. The intelligent vehicle operating system needs to load kernel systems of different safety levels according to the specific functional units of the heterogeneous chip architecture, while simultaneously meeting differentiated safety and performance requirements. The types of RTOS kernels currently used in automotive or embedded systems are shown in Table 2.3.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129429786/02_17521d64a044e2c318350d2892993a90.png)
+
+Hypervisor virtualization technology effectively achieves resource integration and isolation. On heterogeneous distributed hardware platforms, applications rely on different kernel environments and drivers but share physical resources like the CPU \[43,44\]. A Hypervisor is an important way to achieve cross-platform applications and improve hardware utilization. By strengthening temporal isolation, real-time systems with different criticality levels can be integrated on a single hardware platform \[45\].
+
+The intelligent vehicle operating system is based on a real-time embedded software unit architecture, interacting with application software and functional software using POSIX APIs across different kernel systems, to meet the demands of autonomous driving for high-performance computing and high-bandwidth communication.
+
+Real-Time System Data Distribution Service (DDS) provides developers with highly configurable middleware, controlling the end-to-end Quality of Service (QoS) of applications through extensive properties \[46\]. An intelligent vehicle operating system based on heterogeneous distributed hardware platforms needs to establish a real-time, efficient, and highly versatile distributed real-time communication mechanism. ROS is middleware based on the Linux kernel, used for data distribution services in distributed systems, facilitating data transfer between "nodes," as shown in Figure 2.3. While the real-time performance, persistence, and reliability of data between "nodes" can meet current technical research needs, ROS relies on the Linux system, which has shortcomings in efficiency, security, and other aspects, making it unable to meet automotive-grade and embedded system requirements.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129429786/03_0795534cd71e42effa4679aa9b246c9d.png)
+
+The management plane and data plane are important functional modules in an intelligent vehicle operating system. The management plane primarily implements functions such as log management, system configuration, and status monitoring. The data plane primarily implements data collection and processing functions.
+
+In summary, the Linux system features open source code, low resource consumption, and stable performance, allowing for continuous long-term operation. ROS middleware provides essential operating system services, including hardware abstraction, low-level device control, implementation of common functions, inter-process messaging, and package management, offering tools and library functions required for obtaining, compiling, writing, and running code across computers. The intelligent vehicle domain controller designed in this paper will be based on the Linux system and ROS system to build a layered and modular software architecture for the intelligent vehicle domain controller.
+
+2.1.3 Intelligent Vehicle System Architecture
+
+An intelligent vehicle system needs to perceive its surrounding environment and vehicle status while driving, and achieve longitudinal and lateral control of the vehicle through decision-making and planning. Therefore, the design of the intelligent vehicle system architecture is a crucial part. After long-term research and development, intelligent vehicle architecture designs primarily adopt multi-sensor fusion solutions, with Lidar, Camera, and Radar being common fusion architectures. Next, typical architectures will be analyzed.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129429786/04_e01f04221ae57e3ca74f429919a57fd9.png)
+
+Baidu's intelligent vehicle Apollo's system architecture primarily consists of two parts: the mobile client (on-board) and the cloud. Data interaction is achieved through communication modules, as shown in Figure 2.4. The mobile client adopts layered and modular design principles, comprising three parts: the vehicle platform, hardware platform, and software platform.
+
+The hardware platform mainly consists of hardware components such as LiDAR, GPS + IMU, cameras, millimeter-wave radar, ultrasonic radar, human-machine interaction hardware, and black box, forming the perception subsystem, control subsystem, localization subsystem, human-machine interaction subsystem, and chassis control interface. The software platform is composed of a real-time operating system, runtime environment, and autonomous driving application software, which respectively implement functions such as perception module recognition, high-precision localization, map search engine, planning and control, and human-machine interaction. The cloud service platform provides intelligent vehicles with high-precision maps, data platforms, security, OTA, DuerOS, and other services through vehicle-to-everything (V2X) technology. Each module in the system runs independently as a ROS node based on CarOS. Distributed communication between module nodes is achieved through publishing and subscribing to specific topics, and the interaction between modules is shown in Figure 2.5.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129429786/05_afcb8035cfe4a9f2bbaf566fa125087e.png)
+
+An intelligent vehicle system based on the Autoware system architecture primarily consists of localization, detection, prediction and planning, and control modules, as shown in Figure 2.6. The localization module uses high-precision maps and SLAM algorithms, augmented by GPS + IMU sensors. The detection module uses cameras and LiDAR, combined with sensor fusion algorithms and deep learning networks for object detection. The prediction module uses the results from localization and detection to predict tracked targets. The planning module primarily performs global and local path planning based on the output of perception. The control module outputs speed and angular velocity adjustments to the intelligent vehicle's drive-by-wire platform. The system achieves the functions of the perception layer, prediction and planning layer, and control layer through these four modules.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129429786/06_b4a9e207a0276be96ec60702807a8d71.png)
+
+Synthesizing the analysis results of the intelligent vehicle system architectures mentioned above, the intelligent vehicle system architecture primarily consists of multi-sensor data fusion for environmental perception, high-definition maps, high-precision localization, planning and decision-making, and vehicle control. Environmental perception is used to detect and identify obstacles and the driving road environment; high-precision localization is used to obtain the vehicle's real-time pose; based on the local map constructed from obstacle and road information, and the vehicle's real-time pose, the planning and decision-making subsystem performs path planning and decision-making, with the control system ultimately executing control actions to complete autonomous driving tasks.
+
+Xinmai provides integrated hardware and software solutions for autonomous driving controllers.

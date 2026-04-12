@@ -1,0 +1,48 @@
+---
+title: "LS1028-Based TSN Switch Software System Design and Implementation (Part 3)"
+date: "2023-04-19"
+slug: "130251781"
+tags: ["#linux", "#TSN"]
+source: "https://blog.csdn.net/yeyuangen/article/details/130251781"
+originalTitle: "基于LS1028 TSN 交换机软件系统设计与实现(三）"
+---
+
+NXP launched OpenIL as a Linux distribution for industrial applications. New additions in OpenIL include extensions supporting real-time operating systems and Time-Sensitive Networking for automated OEMs in industrial plants. The biggest advantage of OpenIL as an open industrial Linux system is that it removes obstacles to real-time computing in networks. OEMs will gradually enter the Industry 4.0 era by leveraging the standard, community-driven OpenIL distribution.
+
+4.1 Basic Design Philosophy of TSN Switch Software
+
+In this paper, the switch software supporting the TSN system uses the Open Industrial Linux system (OpenIL). This is because a key characteristic of TSN is strong real-time performance, and OpenIL is a specialized Linux version developed for industrial applications. It extends real-time operating systems and supports Time-Sensitive Networking for automated OEMs in industrial plants (including stream filtering and policing, time-aware shaper, and 802.1AS time synchronization, etc.). The overall block diagram of the software system is shown in Figure 4-1.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/130251781/01_f95cf4fc095598d9fc38a74209d3b636.png)
+
+OpenIL not only includes IT infrastructure software such as network protocol stacks, web services for configuration management, and scripting tools, but also practical system programs typically found in a Linux distribution. In addition, it includes the following software features for industrial applications:
+
+(1) Xenomai real-time extensions for Unix, simplifying RTOS porting (e.g., VxWorks, pSOS).
+(2) Extensible Markup Language (XML) and NETCONF-based TSN network configuration utilities.
+(3) linuxptp daemon supporting General Precision Time Protocol (gPTP).
+(4) Support for edge computing services.
+(5) SeLinux for security.
+
+Adopting OpenIL can not only enable the TSN features of the switch, but also allow this switch to be used as a TSN END POINT in future large-scale industrial internet platforms, connecting to the entire TSN network**\[26\]**. The directory structure of the OpenIL system is shown in Figure 4-2, with the second and third layers generated during compilation.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/130251781/02_61eb95abd569893a83d6ff45538e30.png)
+
+OpenIL provides the determinism, manageability, industrial networking, and security required by OT (Operational Technology) on top of general-purpose Linux. Xenomai Cobalt is a real-time framework that ports traditional RTOS applications to OpenIL, extending a single Linux kernel into a dual-kernel system (real-time kernel and native Linux kernel **\[27]**). This way, by deploying a single IEEE standard Ethernet network, it can transmit both high-real-time control traffic for OT systems and best-effort ordinary Ethernet traffic for IT systems. In this research, the main work focuses on the implementation of the Xenomai Cobalt dual-kernel in OpenIL.
+
+Figure 4-3 shows the dual-kernel architecture in the OpenIL system. The TSN API is called by applications with real-time requirements, configuring the TSN switch via the real-time Xenomai Cobalt kernel. The kernel also supports the gPTP protocol (General Precision Time Protocol) for time synchronization. The user-space supports general Ethernet applications, as well as TSN-related applications, so a single system can meet both IT and OT requirements, simplifying network deployment and management.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/130251781/03_b47cac64ac461be453d5d4917c4da359.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/130251781/04_4474bdcb46fed86e84bc956dcace4d28.png)
+
+4.3 Functional Modules of TSN Switch Software
+
+4.4 TSN Switch Software Functions
+
+The software functions of TSN are jointly implemented by three main components: the user-space TSN API interface, the in-kernel TSN configuration interface, and the switchdev driver. Figure 4-8 shows the software-level call relationship.![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/130251781/05_65faf7910efeebe0c5874e8a1948b673.png)
+
+The user-space TSN API is distributed as a shared library (libtsn.so), providing a unified interface for developers. All API interfaces are in the form of `tsn_xx_set` or `tsn_xx_get`, where `xx` represents a functional abbreviation. For example, the qbv function setting interfaces are `tsn_qbv_set` and `tsn_qbv_get`.
+
+The implementation principle is to communicate with the kernel's TSN API module via Netlink sockets. This is a common method for user-space to kernel-space communication in Linux, so it will not be elaborated further. We also provide the `tsntool` executable for interactive configuration, and `tsntool` is implemented using `libtsn.so`.
+
+The kernel-space TSN API is compiled into the kernel as a built-in feature. Its compilation can be configured in menuconfig. This module primarily provides the `tsn_port_register(port, optfunc, enable)` interface for the switchdev driver to call. The configuration functions of the interface are ultimately implemented by the callback function `optfunc`. On the other hand, the kernel-space TSN API receives Netlink socket messages (from user-space TSN), parses them, configures via the `optfunc` function, and returns the result to the user.

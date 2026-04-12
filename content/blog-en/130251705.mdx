@@ -1,0 +1,76 @@
+---
+title: "LS1028 TSN Switch Hardware System Design and Implementation (Part 2)"
+date: "2023-04-19"
+slug: "130251705"
+tags: ["#网络", "#TSN", "#LS1028"]
+source: "https://blog.csdn.net/yeyuangen/article/details/130251705"
+originalTitle: "基于LS1028 TSN 交换机硬件系统设计与实现(二）"
+---
+
+3.1 LS1028A Chip Research
+
+Currently, there are few chips on the market that support TSN systems. Among the two larger companies, Broadcom launched its StrataConnect BCM53570 series of Ethernet switches in 2017. The new technologies supported by this series aim to help users address the networking challenges posed by emerging applications such as IoT, automotive networks, and video. The LS1028A, on the other hand, is built on NXP's Layerscape family of SoCs and adds many important features, including two upgraded 64-bit ARM® Cortex-v8 processor cores for real-time industrial control, a dedicated 4-port TSN switch to handle TSN L2 data, two independent TSN Ethernet controllers to support IT and OT network convergence, an integrated 3D GPU and LCD controller for human-machine interaction systems, and the ability to function as a TSN END POINT. The LS1028A provides rich I/O interfaces and high-speed interconnects, meeting the demands of various industrial IoT scenarios, as shown in Figure 3-1.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/130251705/01_7a42fc7d69fb44afd882f5034dc9c163.png)
+
+Although the Broadcom BCM53570 architecture offers superior features and performance and more comprehensive TSN support, it is also better suited for development after accumulating expertise in TSN technology. Therefore, this paper selects NXP's LS1028A for the research and design of a TSN-supported switch. The QorIQ LS1028A processor, combined with 2.5 Gbit Ethernet, features PCI Express Gen 3.0, SATA 3.0, USB 3.0, and Octal/Quad SPI interfaces, providing applicability for many industrial and embedded applications. Furthermore, this device not only offers excellent integration with the latest Time-Sensitive Networking standards but also supports numerous TSN applications. Figure 3-2 illustrates the main functional units within the chip.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/130251705/02_b904d3a8d8d1df321fba603bc7cda8d8.png)
+
+The Layerscape LS1028A series processors include an ideal combination of interfaces optimized for various embedded and industrial use cases. The cores can be configured in symmetric or asymmetric multiprocessing modes, allowing the device to be used for general-purpose networking or computing applications, as well as industrial applications requiring more real-time performance. This necessitates a real-time operating system running independently on one core. Furthermore, the LS1028A features an embedded PCIe Gen 3.0 controller and a 2.5 Gbps TSN Ethernet controller, providing an excellent platform for industrial automation controllers. The PCIe Gen 3.0 controller supports endpoint mode, allowing the chip to connect to a host processor to offload real-time control and provide TSN communication for IC devices. Its dual A72 processors have sufficient capability to handle various real-time control applications.
+
+3.2 TSN Switch Hardware Design
+
+3.2.1 TSN Switch System
+
+TSN Ethernet switches offer a rich set of Ethernet switching features, such as advanced TCAM-based VLAN and QoS processing, and security processing using TCAM-based Versatile Content-Aware Processors (VCAP). The switch device designed in this paper provides Time-Sensitive Networking functionalities, including IEEE 1588 Precision Time Protocol, Time-Aware Shaper, seamless redundancy, per-stream filtering and policing, preemption, and cut-through switching**\[23\]**. The supported TSN functionalities are as follows:
+
+(1) L2 IEEE 1588 hardware timestamping, with one-step and two-step clocks.
+
+(2) Independent clock domains for data path forwarding (L1 Synchronous Ethernet) and timing (IEEE 1588).
+
+(3) Nanosecond precision timestamping.
+
+(4) Hardware support for asymmetry correction.
+
+(5) 64 gate control entries per port for Time-Aware Shaper (qbv).
+
+(6) Seamless redundancy supporting 128 streams (CB).
+
+(7) Per-Stream Filtering and Policing (PSFP) supporting 184 stream filters and 184 stream gates, with 4 gate control entries per gate, and 184 stream policing instances.
+
+(8) Frame preemption and interspersing express traffic (qbu).
+
+(9) Cut-through switching for scheduled traffic.
+
+The logical block diagram of the TSN switch designed in this paper is shown in Figure 3-3. The general structure of this switch is similar to that of a conventional switch, divided into the following major modules: switching module, MCU control module, PHY module, peripheral clock and power modules, etc. The board is configured with dual Armv8 processors suitable for industrial applications, 4 switch ports with TSN functionality, and 2 networking Ethernet controllers with TSN functionality.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/130251705/03_27468f1117c0d549b7a6d2e54eb98fe5.png)
+
+The hardware functionalities of the switch designed in this paper are as follows:
+
+(1) The CPU connects to the LS1028A switch chip via PCIe, performing overall system control and configuration management between interfaces.
+
+(2) The switching unit handles data forwarding, and the LS1028A supports various real-time operating systems.
+
+(3) 4 GB DDR4 SDRAM soldered memory, with a 32-bit DDR4 bus, data rates up to 1600 MT/sec, supporting double-bit error detection and single-bit error correction.
+
+(4) 8 GB eMMC 5.0, full-size SD card slot, 512 MB QSPI NAND flash, and 256 MB XSPI NOR flash.
+
+(5) One RJ45 connector for 1 Gbps Ethernet with TSN and 1588 (SGMII) functionality, connected via PHY. Additionally, four other RJ45 connectors provide 1 Gbps Ethernet switch ports with TSN and 1588 (QSGMII) functionality, connected via PHY.
+
+(6) One USB 3.0 connected to a Type-A connector, and one USB 3.0 connected to a Type-C connector.
+
+(7) One DisplayPort interface, two CAN interfaces connected to DB9 connectors, two RS232 interfaces connected to DB9 connectors, and one 3.5 mm audio output interface.
+
+(8) Peripheral clock and power supply circuit, providing DC power and reference clock source for the board.
+
+3.2.2 TSN Switch Implementation Function Design
+
+Figure 3-4 is a detailed block diagram of the switch chip in the TSN switch designed in this paper. The following text outlines all major modules involved in forwarding operations.
+
+3.2.2 TSN Switch Implementation Function Design
+
+Figure 3-4 is a detailed block diagram of the switch chip in the TSN switch designed in this paper. The following text outlines all major modules involved in forwarding operations.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/130251705/04_9ae098364f673e23e0b48085677a990.png)

@@ -1,0 +1,16 @@
+---
+title: "[Domestic Virtual Instrument] FPGA+JESD204B Clock Dual-Channel 6.4GSPS High-Speed Data Acquisition Design (Part 3) Continuous Multi-Segment Triggered Storage and Transmission Logic Design"
+date: "2023-05-24"
+slug: "130608191"
+tags: ["#fpga开发", "#国产虚拟仪器"]
+source: "https://blog.csdn.net/yeyuangen/article/details/130608191"
+originalTitle: "【国产虚拟仪器】基于FPGA+JESD204B 时钟双通道 6.4GSPS 高速数据采集设计（三）连续多段触发存储及传输逻辑设计"
+---
+
+This chapter will complete the continuous multi-segment triggered storage of 80 channels of parallel sampled data with a data rate of 80MHz and a bit width of 12 bits. First, the overall framework and functional module division of data triggered storage are presented. Then, the MIG user interface, settings, and read/write timing are briefly introduced. Finally, data cross-clock domain module design and memory control module design are carried out to achieve continuous multi-segment triggered storage. The triggered storage data will be transmitted to the AXIe carrier board via a high-speed serial interface, and finally, this chapter will also complete the high-speed serial data transmission.
+
+4.1 Continuous Multi-Segment Triggered Storage
+
+4.1.1 Overall Framework Design for Triggered Storage
+
+As described in Section 2.4 on data triggered storage schemes, this paper ultimately uses DDR3 memory modules to implement triggered storage of acquired data. The trigger control for DDR3 differs from that of a FIFO. The process of implementing triggered storage using a FIFO is shown in Figure 4-1. Here, it is assumed that the pre-trigger depth is half of the storage depth, and the peak of the sine wave is the trigger point. First, the FIFO write enable is activated, and sampled data is written, as shown in Figure

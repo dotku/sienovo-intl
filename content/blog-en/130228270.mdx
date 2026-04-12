@@ -1,0 +1,18 @@
+---
+title: "LS1028 TSN Time-Sensitive Networking Switch Solution (Part 1) Introduction to TSN"
+date: "2023-04-18"
+slug: "130228270"
+tags: ["#tsn", "#网络"]
+source: "https://blog.csdn.net/yeyuangen/article/details/130228270"
+originalTitle: "基于LS1028 TSN时间敏感网络交换机方案（一）TSN介绍"
+---
+
+2.1 Introduction to Time-Sensitive Networking
+
+The predecessor of the Time-Sensitive Networking group was AVB, which stands for Ethernet Audio/Video Bridging (Ethernet AVB) **\[10\]**. Building upon traditional Ethernet, it ensures Quality of Service (QoS) through precise time synchronization, bandwidth reservation, and traffic shaping, thereby supporting various network multimedia applications based on audio and video. Over the past decade, the demand for audio and video entertainment has intensified, rendering the original Ethernet, which was based on static, non-real-time data processing, unsuitable. Packet order and latency were not prioritized. Although Layer 2 networks employed priority mechanisms and Layer 3 networks utilized QoS mechanisms, these could not eliminate resource contention issues between real-time data streams and ordinary asynchronous TCP (Transmission Control Protocol) traffic. The resulting latency and jitter significantly impacted the transmission of real-time data for multimedia applications, failing to provide a good user experience. Based on these issues, the IEEE 802.1 AVB group developed a series of standards, which became the predecessor of the TSN group.
+
+In 2012, the IEEE 802.1 task group officially changed AVB to TSN, and AVB subsequently became just one application within the TSN network.
+
+To correctly understand TSN, some foundational knowledge is required. First, let's understand what network bandwidth is. Suppose there are ten data streams, each with a bandwidth of 1000Mbps. It's uncertain whether these ten data streams can pass through a 1Gbps bandwidth. Networks are serial, so all data frames will line up and be transmitted bit by bit, and received in the same manner. A certain number of data frames form a data stream, and the length of this data stream transmitted per unit of time is called bandwidth. If these 10 data streams could be tightly packed in a queue without gaps, it might be possible to pass them through a 1Gbps bandwidth. However, most of the time, bandwidth is shared by multiple devices, and there is no time-based control, nor is there control over the devices sending traffic, which leads to conflicts or temporal overlaps. At this point, QoS comes into play. If transmission is based on a priority mechanism, some traffic will inevitably be lost. TSN addresses these issues in this area. TSN uses traffic shaping to integrate real-time and non-real-time data streams within the bandwidth, preventing losses caused by overlaps. Shaped traffic is fixed at specific time slots within the bandwidth, allowing non-real-time data streams to be transmitted in the available gaps.
+
+TSN can perform traffic shaping not only at the sender but also at each forwarding node of a switch, ensuring that real-time data streams occupy bandwidth at fixed times without causing conflicts. Traditional Ethernet did not consider real-time data, and if data streams need to be ordered and reliable transmission guaranteed, data buffers are indispensable, which introduces another problem: latency. TSN's series of new standards ensure high-quality, low-latency

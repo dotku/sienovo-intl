@@ -1,0 +1,96 @@
+---
+title: "RK3588-based High-Performance AI Edge Computing Gateway"
+date: "2023-06-07"
+slug: "131095790"
+tags: ["#网络", "#RK3588", "九章云极普惠算力", "加入社区"]
+source: "https://blog.csdn.net/yeyuangen/article/details/131095790"
+originalTitle: "基于RK3588的人工智能边缘计算大算力网关"
+---
+
+The intelligent O&M system is divided into terminal layer, edge layer, platform layer, and application layer from bottom to top, as shown in Figure 1. The terminal layer acts as the nerve endings of the entire system, responsible for on-site data collection, including various sensors, controllers, and other IoT devices, in addition to cameras. The edge layer aggregates unstructured video data and IoT data from various on-site terminals, performs pre-processing, triggers action responses according to predefined rules, and uploads processing results and relevant data to the cloud. The platform layer is responsible for global information processing and storage, undertaking computing tasks that the edge layer cannot perform, issuing business rules and intelligent algorithms to the edge layer, and providing standard API interfaces for open integration with various applications. The application layer utilizes analyzed and processed structured/semi-structured data, combined with specific business requirements and application models, to provide users with concrete vertical application services, such as intelligent inspection, intelligent asset management, and intelligent entry/exit management.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131095790/01_f488a176fa1efea4b7e7ccfb7d8cfb8c.png)
+
+The terminal and edge gateway support serial and parallel networking modes. In serial mode, terminals connect directly to the edge gateway's local interfaces, or they connect to the edge gateway after being aggregated by intermediate devices such as switches or routers. In parallel mode, terminals and edge gateways connect to the cloud platform separately via switches or routers, establishing interactive channels for data such as video streams and IoT data for transmission between them.
+
+4.1.2 Edge Gateway Functional Architecture
+
+The edge gateway consists of main functional modules such as network, edge computing, device interfaces (user-side interfaces, network-side interfaces), operating environment, and management. The overall architecture is shown in Figure 2. The network module primarily implements communication-related functions such as terminal access, data forwarding, and device networking. The edge computing module primarily implements edge computing-related functions such as protocol adaptation, device management, algorithm management, video processing, and intelligent analysis. The device interface module primarily provides physical channels for data access and forwarding. The operating environment module primarily provides the software and hardware environment required for device operation. The management module primarily manages various software and hardware resources, operation and maintenance, access authentication, and firmware versions of the edge gateway.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131095790/02_def6febf7f2e510da4919287b1d29d70.png)
+
+4.2 General Technical Requirements
+
+a) The edge gateway shall adopt an open architecture design with decoupled software and hardware, supporting the deployment and operation of intelligent algorithms from different vendors.
+
+b) The edge gateway shall be designed in a modular, structured, standardized, and integrated manner. The failure of one module or subsystem shall not affect the operation of other modules or subsystems. The hardware system shall have certain self-diagnosis capabilities.
+
+c) The overall structure of the edge gateway shall fully consider flexibility for transportation, installation, maintenance, and expansion, and shall possess sufficient mechanical strength to ensure that the device does not suffer damage or deformation after regular transportation, storage, and installation. Its mounting and fixing methods shall have anti-vibration capabilities.
+
+d) The edge gateway shall adopt a fanless natural heat dissipation structure, with good overall heat dissipation performance.
+
+e) The edge gateway shall support hot-swapping and replacement of M.2 standard packaged 4G or 5G communication modules without disassembling the main casing (except for slot covers). During hot-swapping, other functional components of the edge gateway shall operate normally.
+
+5 Device Function Requirements
+
+5.1 Terminal Access
+
+a) The edge gateway shall support accessing cameras from different manufacturers via standard protocols such as GB/T 28181, ONVIF, and RTSP. It shall also support the installation of third-party SDKs to enable access and control of cameras using corresponding private protocols.
+
+b) The edge gateway shall support accessing various IoT devices (e.g., lighting fixtures, server room access control, IP intercom terminals) via interfaces such as RJ45, RS485, RS232, USB, and DI/DO.
+
+5.2 Network Communication
+
+a) The edge gateway shall support connecting to cloud platforms, including China Tower Video Cloud Platform, via one or more communication methods such as Ethernet, 4G, and 5G.
+
+b) The edge gateway shall possess data communication functions such as switching, routing, and forwarding, and support VLAN and static routing configuration.
+
+c) The edge gateway shall support network protocols such as HTTP, HTTPS, TCP, UDP, FTP, DNS, DHCP, 802.1x, SMTP, UPnP, SNMP, PPPoE, and Modbus. The default configuration shall support IPv4/IPv6 dual-stack, and it shall be able to assign IPv4 and IPv6 addresses to connected devices.
+
+d) The edge gateway shall support VPN protocols such as L2TP, PPTP, IPsec, and GRE, with no less than 6 concurrent tunnels.
+
+e) The edge gateway shall support NTP clock synchronization, enabling automatic network time calibration.
+
+f) The edge gateway shall support DDNS and NAT traversal functions.
+
+g) The edge gateway shall support automatic reconnection upon disconnection. When an abnormal network connection interruption is detected, it shall be able to actively initiate a network connection and automatically request access to the cloud platform once the connection is established.
+
+h) The edge gateway shall have a resume-on-disconnection function. In case of network disconnection or transmission interruption, it shall be able to temporarily store all data pending upload locally until the network is restored, after which it shall actively upload to the cloud platform.
+
+5.3 Device Management
+
+5.3.1 Edge Gateway
+
+a) The edge gateway shall support an active registration mode with a SIP server. If registration fails when the device joins the network, it shall re-register after a random delay. The SIP server address shall support both IP address and domain name formats.
+
+b) The edge gateway shall support local and remote setting and querying of its basic information, such as device description, manufacturer, gateway model, hardware configuration, software/firmware version, IP address, MAC address, and installation location.
+
+c) The edge gateway shall support local and remote operations such as configuration query, modification, deletion, and software/firmware update and upgrade. In case of configuration or upgrade errors, it shall be able to automatically revert to the last known good configuration.
+
+d) The edge gateway shall support remote reboot, and automatic reboot after power recovery, or in cases of device suspension/freezing.
+
+e) The edge gateway shall have an anti-hang mechanism. When system resources are overloaded, it shall be able to release low-priority processes or computing tasks according to a certain strategy, prioritizing the normal operation of system processes and communication functions. The resource release strategy can be adjusted as needed.
+
+5.3.2 Terminal Devices
+
+a) The edge gateway shall support local and remote operations such as adding and deleting connected terminal devices, and support registration management for terminal devices, providing unified registration and authentication services.
+
+b) The edge gateway shall support local and remote setting and querying of basic information for connected terminal devices, such as terminal list, terminal description, terminal type, manufacturer, terminal model, software/firmware version, IP address, MAC address, and installation location.
+
+c) The edge gateway shall support local and remote querying of the status of connected cameras, and support independent adjustment of video encoding parameters for each channel, including resolution, frame rate, bitrate, and video quality level.
+
+d) The edge gateway shall support local and remote control of connected cameras, including real-time video browsing, manual recording/snapshot, PTZ control, preset setting/recall, cruise rule and track setting/recall, electronic fence setting, querying/playback of video files, querying/browsing of snapshot images, real-time voice intercom/broadcast, and alarm arming/disarming.
+
+e) The edge gateway shall support centralized local processing of heartbeat information from connected terminal devices. When a terminal device is found to be operating abnormally, the edge gateway shall immediately send an alarm message to the cloud platform, or perform self-diagnosis or restart operations on the faulty terminal. When no abnormality is detected, it shall send status information to the cloud platform at a set interval, which can be configured from 60 seconds to 24 hours.
+
+5.4 Audio and Video Processing
+
+a) The edge gateway shall comply with relevant requirements of GB/T 28181 for the transmission, exchange, and control of audio/video encoded streams and system information.
+
+b) The edge gateway shall support video encoding and decoding standards such as H.264 and H.265, and audio encoding and decoding standards such as G.711, G.723, and G.729.
+
+c) The edge gateway shall support real-time viewing of connected camera video streams and playback of recorded video files.
+
+d) The edge gateway shall have video frame extraction capabilities and be able to select appropriate decoding and frame extraction strategies to perform unified decoding, frame extraction, image numbering, and storage based on multiple business application requirements corresponding to the same video stream. It shall also select suitable extracted frames for intelligent analysis according to the processing requirements of different AI algorithm models (frame rate, pixels, spatial position, etc.).
+
+e) The edge gateway shall support setting identical or different audio/video storage rules for each connected camera, including storage methods (continuous storage, time/event-triggered storage, etc.), storage duration (0, 1, 7 days, etc.), storage policies (cyclic

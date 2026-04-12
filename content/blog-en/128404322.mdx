@@ -1,0 +1,59 @@
+---
+title: "EtherCAT Slave Design and FOC Servo Motor Current Loop Control"
+date: "2022-12-22"
+slug: "128404322"
+tags: ["#FPGA", "#ethercat从站", "#FOC", "#电流环"]
+source: "https://blog.csdn.net/yeyuangen/article/details/128404322"
+originalTitle: "ETHERCAT从站设计与FOC伺服马达电流环控制"
+---
+
+Introduction to EtherCAT Slave Development Solutions - Including ET9300 Comparison
+
+General EtherCAT Design Requirements (for uC+ESC solutions):
+
+Hardware: Main controller uC + ESC (EtherCAT Slave Controller, selectable from various vendors)
+
+Operating System: No special requirements, determined by product performance, an OS may not even be necessary.
+
+Software: The main controller uC needs to handle EtherCAT message communication. ESCs typically come with development kits for easy porting.
+
+Challenge: How to achieve data interaction between the uC and ESC.
+
+Requirements for Vendors:
+
+Provide high-quality source code (high code efficiency, optimized EtherCAT performance)
+
+Provide at least one hardware platform demo
+
+Provide complete EtherCAT network diagnostic and configuration tools: for testing, etc.
+
+A typical slave includes the following three core components:
+
+Physical Layer: Requires an Ethernet port
+
+Data Link Layer: Includes an EtherCAT Slave Controller (ESC) (this is the communication module) and EEPROM.
+
+Application Layer: Includes a main controller, also known as an application controller or microcontroller (uC) (e.g., DSP28346 or F407).
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128404322/01_b7312bbae20bf242459f3cbc856b8aaf.png)
+
+The ESC, or EtherCAT Slave Controller, can be implemented using an FPGA (Field Programmable Gate Array) or an ASIC (Application Specific Integrated Circuit).
+
+## EtherCAT Slave + FOC Reference Solution
+
+The Infineon XMC4300 microcontroller series reduces the complexity and cost of EtherCAT implementation. XMC4300 microcontrollers feature EtherCAT communication capabilities, with applications including factory automation, industrial motor control, I/O modules, and robotics.
+
+The internal structure of the XMC4300 microcontroller is shown in the figure below:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128404322/02_800b44079b5d13b0aea9419a04ecffbf.jpeg)
+
+The EtherCAT slave is implemented based on the XMC4300, and FOC servo motor current loop control is implemented using Intel PSG MAX10. The system block diagram is shown below:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128404322/03_909116fb5ccae48f04b75cacf0b07faf.jpeg)
+
+This development board provides the following interfaces:
+
+*   EtherCAT Slave x2
+*   USB-> UART
+*   CAN, RS485
+*   DIx8, DO x8

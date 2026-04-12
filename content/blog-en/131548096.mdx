@@ -1,0 +1,18 @@
+---
+title: "VME Bus Controller Design Based on RK3399+FPGA (Part 1) Overall Design"
+date: "2023-07-05"
+slug: "131548096"
+tags: ["#fpga开发", "#RK3399+FPGA", "#VME"]
+source: "https://blog.csdn.net/yeyuangen/article/details/131548096"
+originalTitle: "基于 RK3399+fpga 的 VME 总线控制器设计(一）总体设计"
+---
+
+2.1 Requirements Analysis and Technical Specifications
+
+2.1.1 Requirements Analysis
+
+The VME bus controller needs to implement functions such as data transmission, interrupt handling, and measurement display. It also needs to have an operating system, low-level drivers, and functional interfaces to facilitate user development and use of upper-layer application software.
+
+This project requires the localized development of a VME controller, thus necessitating the selection of a domestic processor as the main control unit. The VME controller needs video interfaces, USB interfaces, network ports, etc., for connecting peripherals, and also requires PCI, PCIe, or other bus interfaces for communication with an FPGA.
+
+Major domestic CPU manufacturers include Phytium, Loongson, Sunway, and Rockchip. Phytium FT-2000A/2 uses the ARMv8 architecture, but its technical support and open-source resources are limited, and related development boards are scarce. The Loongson 2K1000 processor features PCIe, GMAC, USB, and other interfaces, meeting the controller's interface requirements. However, its architecture is MIPS-compatible and is evolving towards Loongson's proprietary instruction architecture, LoongArch, which is less popular than the ARM architecture and has poorer compatibility with the Linux ecosystem, potentially leading to greater design difficulty. The Sunway 421 processor uses the Alpha architecture and supports PCIe interfaces, but lacks other general-purpose peripheral interfaces and has

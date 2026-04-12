@@ -1,0 +1,64 @@
+---
+title: "Design of an Integrated Board Featuring AM62x TSN Switch, FPGA, and High-Speed AD Acquisition"
+date: "2023-03-28"
+slug: "129809274"
+tags: ["#fpga开发", "#TSN", "#高速AD"]
+source: "https://blog.csdn.net/yeyuangen/article/details/129809274"
+originalTitle: "基于AM62x TSN交换机+FPGA+高速AD采集一体化板卡设计"
+---
+
+Recently, Texas Instruments launched its new Sitara AM62 processor, featuring Edge AI, dual-screen display, and other functionalities, significantly boosting industrial HMI upgrades. In TI's new product introduction video for AM62x, Liu Jingwei, Sitara General Purpose MPU Marketing Manager, detailed the various features of the AM62x.
+
+Liu Jingwei stated that the connotation of HMI is shifting from Human Machine Interface to Human Machine Interaction. Its product form has evolved from early physical control panels, buttons, switches, and indicator lights to supporting richer functionalities such as facial recognition, voice recognition, high-definition displays, and graphical interfaces.
+
+To this end, MPUs need continuous innovation to meet the new demands of HMI.
+
+Firstly, MPUs need to have AI support, privacy and IP protection, higher processing performance, and more complex peripherals. Furthermore, as performance and functionality increase, power consumption will also rise accordingly. Therefore, for battery-powered devices, low-power features are also required to ensure longer operation. Even for non-battery applications, power consumption is an important consideration because lower power can simplify system thermal design and help miniaturize the system.
+
+In addition, Liu Jingwei also stated that the industrial market differs from the consumer market, requiring attention to functional safety design, which will increase design complexity and cost.
+
+Thirdly, HMI software application development is becoming increasingly rich. To save development costs and improve product versatility, there is a greater preference for adopting open-source community ecosystems.
+
+Finally, due to the segmentation of HMI products, a flexible platform is required to simultaneously meet the needs of high-end and mid-range HMI products.
+
+**Five Key Differentiators of the Sitara AM62x Series**
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129809274/01_a5e4f9fd31e9be2c9ebc2e1241fb619d.png)
+
+As shown in the figure, including power consumption, security, Edge AI, advanced display, and cost-effective system solutions are the five major product features of the Sitara AM62x.
+
+Firstly, regarding power consumption, when we discuss power consumption, it refers not only to standby power but also to power consumption during operation. The AM62x's core frequency is up to 1.4GHz, yet its operational power consumption remains less than 2W. The main reason for low power consumption is the optimization of the VDD core voltage, reduced from 1V to 0.75V, thereby saving 30% of power. Furthermore, the AM62x supports four low-power operating modes, with a minimum power consumption of only 7mW, which can extend the battery life of powered devices to 5 years.
+
+Secondly, improvements have been made in privacy and security, thereby effectively protecting personal privacy and IP assets. The AM62x integrates an HSM (Hardware Security Module), eliminating the need for external security controllers and memory, and TI also provides security-related software, saving users procurement and development costs through both hardware and software.
+
+Thirdly, Edge AI support has been added. For entry-level AI applications such as facial recognition or gesture recognition, the AM62x can directly execute tasks using its Cortex-A53 core and supports CSI and MIPI interfaces for direct camera connection. In addition, TI has collaborated with third parties to develop many AI-related references, allowing users without an AI background to easily add more intelligent features to HMI.
+
+Fourthly, enhanced display support. The AM62x provides RGB and LVDS interfaces, allowing for the creation of two independent and isolated display outputs. Dual displays, previously only found in high-end products, can now be supported by the AM62x. Furthermore, the AM62x has a built-in GPU, supporting 3D graphics development for platforms like Linux Qt or Android 12.
+
+Finally, a highly integrated system, offering a wealth of industrial peripherals and other functionalities. For example, in terms of power management, users can choose TI's PMIC, and because the power rails are very simple (only two, whereas competitors require eight), it supports discrete power solutions, thereby simplifying design and reducing costs.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129809274/02_5d4e0b9b385802a5a5e1eac8f4ccd806.png)
+
+AM62x Product Block Diagram
+
+**8 Major Upgrades Compared to AM335x**
+
+To facilitate understanding of the AM62x, Liu Jingwei provided a detailed comparison block diagram of the AM335x and AM62x, highlighting 8 major differences. The AM335x is TI's classic industrial MPU. It ushered in an era where the industrial market evolved from MCUs to MPUs, helping the industry rapidly migrate from Arm9 to high-performance Cortex-A8 processors.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129809274/03_deeee4f77efab7f918078c5d851a42f2.png)
+
+Blue box indicates 8 upgrades of AM62x compared to AM335x
+
+Regarding **processor cores**, the AM62x offers a rich selection of core counts (1/2/4) and clock frequencies (800MHz/1GHz/1.4GHz), achieving a truly scalable platform, with performance up to 16.8K DMIPS, far exceeding the AM335x's 2K DMIPS.
+
+**For DDR memory**, upgraded from DDR3 to DDR4, with speeds increasing from 800MT/s to 1600MT/s, doubling the throughput, allowing for smoother operation of popular operating systems.
+
+Added a **400MHz Cortex-M4** heterogeneous computing architecture. This core can be used to run real-time operating systems, access peripherals, and enhance system functional safety, while also serving as a general-purpose MCU.
+
+**In terms of display**, upgraded from 1080P30 to 2K (1080P60), upgraded to a dual-display architecture, and added the LVDS interface commonly used in the industrial market.
+
+**GPU** upgraded from IMG's SGX530 to AXE1-16M, with a 5x performance increase, and supports Vulkan, enabling better 3D functionality.
+
+**Through HSM**, protection of security, privacy, and IP is achieved, and secure boot requirements are met.
+
+**Regarding peripheral interfaces**, the

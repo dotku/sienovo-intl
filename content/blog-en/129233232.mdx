@@ -1,0 +1,60 @@
+---
+title: "RK3399+FPGA+MIPI Solution Details: subLVDS to MIPI Processing"
+date: "2023-02-26"
+slug: "129233232"
+tags: ["#fpga开发"]
+source: "https://blog.csdn.net/yeyuangen/article/details/129233232"
+originalTitle: "RK3399+FPGA+MIPI 方案细节之subLVDS to MIPI处理"
+---
+
+#CROSSLINK Series
+#CROSSLINK vs XO3L
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129233232/01_a4909fa97b6a0b28ca5ccf7e633936be.png)
+
+Overall, XO3L offers greater flexibility and is more akin to a general-purpose CPLD; CROSSLINK is more specialized.
+
+For the requirement of converting subLVDS to MIPI, CROSSLINK has an advantage due to its higher integration, leading to greater stability.
+
+#Key Points
+#CrossLink does not support JTAG download,
+requiring a separate download cable.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129233232/02_0799b7371c87d8a0a255f79646d42b41.png)
+
+#IO Power-up Voltage
+IOs are low before program loading, or at least interpreted as low by the control logic.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129233232/03_83f7a7e242371a49e175cebc12c687bd.png)
+
+#NVCM One-Time Programming (OTP)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129233232/04_0686d383a32a3cea5eda2b1056b9ba67.png)
+If this one opportunity is used to configure the device to boot primarily from NVCM, subsequent operations will be limited to on-line debugging, and modifications to IO configurations will no longer take effect.
+
+#Download Options
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129233232/05_af91ab5baf3ea520a3c78024d161a97b.png)
+
+The actual flash used is MX25L1606EM1I-12G, but the options shown above are supported.
+
+#Dual-Boot EXT-EXT
+External dual-boot method
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129233232/06_1b586902e2e312c079e3c26a0e592ca4.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129233232/07_b1140b9d20b98ae50b34ff9543628dce.png)
+
+#Internal Oscillator
+Can generate low-frequency LFCLKOUT=10KHz and one of the high-frequency HFCLKOUT options: 48M, 24M, 12M, or 6M, controlled by a division factor.
+
+Use the following code for invocation, with the HFCLKDIV parameter for frequency division settings, and HFOUTEN: 1 to enable:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129233232/08_9c57789cfa03b64c2087a9da9e9892b1.png)
+
+#Peripheral Clock Divider
+There are 4 dividers (2 in bank1, 2 in bank2) which can divide external input clocks by factors of 2, 3.5, 4, 7, and 8. The invocation code is as follows:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129233232/09_70f24a910b1ad769a1f69b14eef848c3.png)
+
+If using the dividers can meet the requirements, PLL resources can be saved.

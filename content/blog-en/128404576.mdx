@@ -1,0 +1,50 @@
+---
+title: "Evaluating EtherCAT Slave Node Solutions"
+date: "2022-12-22"
+slug: "128404576"
+tags: ["#TI C2000", "#Ethercat从站", "#F28338"]
+source: "https://blog.csdn.net/yeyuangen/article/details/128404576"
+originalTitle: "评估EtherCAT从站节点解决方案"
+---
+
+Part 1 of this blog series introduced the market opportunity for EtherCAT slave stack solutions for C2000™ microcontrollers and a three-stage quick-start guide for slave stack development. Part 2 detailed the features and benefits of the TI C2000 MCU EtherCAT implementation. Part 3 described the three stages of developing a slave node application using an EtherCAT slave and a C2000 Delfino MCU controlCARD kit, and how the EtherCAT package in TI C2000 controlSUITE™ software supports each stage. This blog post, as Part 4 of the series, will introduce how to develop an EtherCAT slave controller using the latest C2000 TMS320F28388D real-time controller.
+
+The C2000 F28388D MCU incorporates Beckhoff's EtherCAT peripheral module, integrating it onto the chip. Ownership of the EtherCAT peripheral module can be assigned to either CPU1 or CM. To support this functionality, a set of software solutions has been added to C2000Ware (C2000 microcontroller software package). These F28388D EtherCAT software solutions offer the following benefits:
+
+*   Verify the proper operation of EtherCAT on the F28388D ControlCARD or a custom F28388D board.
+*   Evaluate the EtherCAT slave stack and create slave node applications using the F28388D.
+
+**Getting Started**
+
+Before evaluating and verifying EtherCAT on the F28388D, you need to download and install:
+
+*   C2000Ware – which contains all EtherCAT software for the F28388D.
+*   TwinCAT PC/ PLC – Beckhoff EtherCAT Master.
+
+For F28388D EtherCAT example code and more detailed usage documentation, navigate to ~\\C2000Ware\_X\_XX\_XX\_XX\\libraries\\communications\\Ethercat\\f2838x in C2000Ware.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb7.r2.dev/blog/128404576/01_3ca026ea01abdb0805f1d19dbfd21290.png)
+
+**Verifying Operation and Connectivity**
+
+The F28388D EtherCAT software solutions include a set of Hardware Abstraction Layer (HAL) test applications (one for CPU1 and one for CM). These applications verify the ASYNC16 Processor Data Interface (PDI) between the EtherCAT subsystem and the device's central processing unit, ensuring its ability to perform a series of read and write operations to EtherCAT registers and memory. The software stack for this application is shown in Figure 1. Additionally, these applications also include checks to confirm that the device's Electrically Erasable Programmable Read-Only Memory (EEPROM) is programmed with the minimum dataset required for EtherCAT operation.
+
+No EtherCAT slave stack is required to perform this verification. Once this application is downloaded to the device, the EtherCAT master can identify the EtherCAT slave controller on the network, confirming that the physical interface is working correctly. Afterward, you can program the EtherCAT slave's EEPROM and then re-run the application to perform the aforementioned PDI checks.
+
+**Evaluating EtherCAT Slave Node Solutions**
+
+The F28388D EtherCAT software solutions include both EtherCAT slave demonstration and reference solutions. Both include variants that run from CPU1 or from CM.
+
+The EtherCAT slave demonstration application is a simple "loopback" example where data sent from the EtherCAT master is received by the EtherCAT slave controller and sent back to the master. The software stack for the demonstration application is shown in Figure 2. By using TwinCAT PC software to control the EtherCAT master node, you can build a multi-node EtherCAT network on your workbench in just a few minutes.
+
+This demonstration application is provided as a binary image, configured specifically for the F28388D controlCARD. Since this image already integrates the EtherCAT slave stack, there is no need to generate the slave stack code yourself. You simply program the F28388D controlCARD with this application and connect a CAT5 cable from the controlCARD to the EtherCAT master (TwinCAT PC/PLC in this example).
+
+**Creating Your Own EtherCAT Slave Node Solution**
+
+After evaluating with the EtherCAT slave demonstration application, the F28388D EtherCAT software includes a reference solution to help you create your own slave node applications.
+
+The EtherCAT slave reference solution has the same loopback functionality as the demonstration application. However, this solution includes all the **source code** (except for the EtherCAT slave stack itself) required to debug it and develop it in your own applications. Figure 3 details the software stack for this solution. You can obtain the EtherCAT slave stack code through the EtherCAT Technology Group (ETG) Slave Stack Code (SSC) ET9300 tool.
+
+To generate the slave stack code for the F28388D device, a **configuration file** is provided in the F28388D EtherCAT software solutions package. After importing this configuration file into the SSC tool, various F28388D slave configurations can be accessed via the tool's drop-down menu. Once a configuration is selected, the tool generates the slave stack source code for integration into your solution. Further details are provided in the F28388D EtherCAT software user documentation within C2000Ware.
+
+Once the slave stack is generated and linked to the F28388D EtherCAT slave reference solution, you can start running the solution and use it to develop your own EtherCAT slave applications.
