@@ -1,0 +1,114 @@
+---
+title: "Issues Encountered During LCD Porting (AM5728)"
+date: "2021-04-01"
+slug: "115382298"
+tags: ["#AM5728", "#LCD", "#触控屏", "#DSP+ARM", "#QT"]
+source: "https://blog.csdn.net/yeyuangen/article/details/115382298"
+originalTitle: "LCD移植种碰到的问题（am5728）"
+---
+
+**Development Environment: Using Xinmai AM5728 core board, custom-made board, LCD models: AT080TN64, AT070TN94**
+
+**Problems Encountered:**
+
+**1. The /dev/fb0 device node is not created**
+
+**2. LCD character display order is reversed**
+
+**3. LCD color display is incorrect**
+
+LCD-related configuration in the device tree is as follows:
+
+```dts
+aliases {
+    display1 = &lcd;
+    rtc0 = &tps659038_rtc;
+    rtc1 = &isl1208_rtc;
+};
+
+lcd_bl: backlight {
+    compatible = "pwm-backlight";
+    pwms = <&ecap0 0 50000 0>;
+    brightness-levels = <0 51 53 56 62 75 101 152 255>;
+    default-brightness-level = <8>;
+};
+
+lcd: display {
+    compatible = "osddisplays,osd070t1718-19ts", "panel-dpi";
+    enable-gpios = <&gpio3 30 GPIO_ACTIVE_HIGH>;
+    backlight = <&lcd_bl>;
+    label = "lcd";
+
+    panel-timing {
+        clock-frequency = <33300000>;
+        hactive = <800>;
+        vactive = <480>;
+        hfront-porch = <210>;
+        hback-porch = <46>;
+        hsync-len = <20>;
+        vfront-porch = <22>;
+        vback-porch = <23>;
+        vsync-len = <10>;
+        hsync-active = <1>;
+        vsync-active = <1>;
+        de-active = <0>;
+        pixelclk-active = <0>;
+    };
+
+    port {
+        lcd_in: endpoint {
+            remote-endpoint = <&dpi_out>;
+        };
+    };
+};
+
+&dss {
+    status = "okay";
+    vdda_video-supply = <&ldoln_reg>;
+    ports {
+        #address-cells = <1>;
+        #size-cells = <0>;
+        port {
+            reg = <1>;
+            dpi_out: endpoint {
+                data-lines = <24>;
+                remote-endpoint = <&lcd_in>;
+            };
+        };
+    };
+};
+```
+
+**Analysis of Root Causes:**
+
+1. Kernel log repeatedly shows: "Linked as a consumer to regulator.20" followed by "Dropping the link to regulator.20"
+
+2. Incorrect pinmux configuration for the LCD
+
+3. Issue with the driver corresponding to the `compatible` string "panel-dpi"
+
+4. Setting the driver's **`.bus_format = MEDIA_BUS_FMT_RGB888_1X24`** can alter the RGB data format, enabling output of different RGB formats
+
+5. Hardware issue on the LCD driver board
+
+6. Incorrect LCD output timing
+
+**Troubleshooting Process:**
+
+1. Regulator.20 corresponds to the device node under `/sys/class/regulator/`, with a voltage of 1.8V, which was confirmed correct using a multimeter
+
+2. Even after configuring pinmux in the device tree, the device node still did not appear
+
+3. Upon checking the driver directory corresponding to `panel-dpi`, it was found that the driver was not compiled — indicating a device matching issue
+
+4. Changing the format to BGR, GRB, etc., had no effect on display output
+
+5. Measured continuity between pins on the LCD driver board and the core board
+
+6. Used an oscilloscope to verify whether the LCD output timing was correct
+
+**Issues Resolved:**
+
+**1. Changing the compatible string to `compatible = "osddisplays,osd070t1718-19ts", "panel-dpi";` successfully generates the /dev/fb0 device node**
+
+**2. Incorrect LCD color display was traced via multimeter to excessive IO voltage on the LCD driver board; adding a resistor on the driver board, as advised by the hardware team, resolved the issue**

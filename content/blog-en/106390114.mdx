@@ -1,0 +1,226 @@
+---
+title: "Design and Implementation of AM5728 DSP+ARM-Based Logistics Robots for Automated Sorting and Delivery, AGV"
+date: "2020-05-28"
+slug: "106390114"
+tags: ["#AM5728", "#物流机器人", "#DSP+ARM", "#图像识别", "#AGV"]
+source: "https://blog.csdn.net/yeyuangen/article/details/106390114"
+originalTitle: "基于AM5728 DSP+ARM亚马逊物流机器人的设计和实现，实现自动化分拣投递，AGV"
+---
+
+AM5728 DSP+ARM-based logistics robot enabling automated sorting and delivery
+
+![](https://imgconvert.csdnimg.cn/aHR0cHM6Ly90aW1nc2EuYmFpZHUuY29tL3RpbWc_aW1hZ2UmcXVhbGl0eT04MCZzaXplPWI5OTk5XzEwMDAwJnNlYz0xNTkwNTkzNTg4MzgwJmRpPWU1NjE4NjA5MDVkNTI2NTM1YmEyOGE3MTg3YTQ0ZDRhJmltZ3R5cGU9MCZzcmM9aHR0cCUzQSUyRiUyRnprcmVzMS5teXpha2VyLmNvbSUyRjIwMTkwNiUyRjVjZmU0YzE2OGU5ZjA5Njk3NzBmMWNlYl8xMDI0LmpwZw?x-oss-process=image/format,png)![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/106390114/02_dede0e65b49d3982a43403b3138d0c82.png)
+
+Physical view of Amazon logistics robots:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/106390114/03_00e65bff0048dd6e93afd42ae66ff986.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/106390114/04_289d2fe0b331895711727e3cfc3d2b4e.png)![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/106390114/05_3026090c99f9acc53ef05cc52fd7d10b.png)
+
+**Function Overview and Application Areas**
+
+China's logistics industry started relatively late and lags behind in development level, especially in the application of information technology, where it significantly trails developed countries. Many advanced technologies and equipment widely adopted abroad are rarely used domestically. This gap results in hundreds of billions of yuan in economic losses annually due to inefficiencies in logistics. Achieving logistics informatization has thus become an inevitable trend for the modern development of China’s logistics sector.
+
+The implementation of barcode identification systems in express logistics has enhanced the informatization level of logistics enterprises, significantly improving operational efficiency, reducing costs, and minimizing errors.
+
+At the front end of the logistics workflow—immediately after unloading—industrial machine vision technology is employed to automatically scan parcel label barcodes.
+
+This solution uses smart cameras to capture images of shipping labels. The captured images are transferred to an image processing board for algorithmic analysis to extract barcode data. This barcode data is then combined with existing weight and volume information from volumetric weighing machines. Finally, the integrated data is transmitted to a central server via 2G/3G/4G networks, enabling automated sorting at distribution centers.
+
+Applications include automated sorting and delivery systems for major Chinese courier companies such as Yunda, SF Express, YTO Express, and STO Express.
+
+**Overall Design and Key Modules**
+
+▼ Image Acquisition and Processing Hardware System Based on Core Module
+
+  ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/106390114/06_eb76b2ebef94327d22ef1950bac9f886.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/106390114/07_372a2d88c58d07238a562b37fd242ab0.png)
+
+As shown above, the XM5728-DIK-V3 is compact and features a no-edge-design, with all functional interfaces brought out via pin headers. However, the baseboard’s built-in functions alone do not fully meet customer requirements. Therefore, customers designed a custom carrier board, extending required functionalities through MIOe expansion interfaces and direct pin connections from the main module. By using PCB traces instead of cables, the design efficiently integrates all desired functions into the carrier board, quickly and effectively meeting interface, thermal dissipation, mechanical structure, and shock resistance requirements. Xinming provides comprehensive technical support, including schematic review and debugging assistance.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/106390114/08_7348244d5112b9d4c17719d2ea91f145.png)![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/106390114/09_e5f0439dd3773834eec4727c3667e9fb.png)
+
+Visual Inspection Principle of Sorting System
+
+Visual inspection consists of two parts: detecting the color and shape of packages, and recognizing barcodes on shipping labels.
+
+**1. Package Color and Shape Detection**  
+A color camera is used to identify packages. When a package reaches directly beneath the camera, the camera is triggered to capture an image. The AM5728 processor acquires and analyzes the image using algorithms.
+
+The recognition algorithm includes the following steps:
+
+❶ Noise reduction on the captured image;
+
+❷ Image segmentation based on color features to separate the package region from the background. The shape characteristics of the package are calculated from the edge features of the segmented region;
+
+❸ Within the package area in the image, connected component analysis combined with the label’s color and rectangular shape features is used to locate the shipping label. After excluding the label region, the remaining package area is analyzed to determine the package’s color characteristics.
+
+**2. Barcode Recognition**  
+Four cameras simultaneously capture images of the package across its horizontal surface. The number of camera captures is determined based on the previously obtained shape characteristics, ensuring that every longitudinal section of the package surface is imaged.
+
+The barcode recognition algorithm includes:
+
+❶ Noise reduction on the captured images;
+
+❷ Detection of barcode presence in the processed image;
+
+❸ Precise localization and decoding of barcode regions, with results sent to the host computer interface.
+
+**Core Technologies of Fixed-Mount Imaging Smart Cameras – Key Features:**
+
+**Core Module Based on TI AM5728 Multi-Core Heterogeneous Processor**
+
+**1. Dual ARM Cortex-A15 + Dual C66x VLIW Floating-Point DSP C66X Heterogeneous Hybrid Processor**
+
+➢ Features 2x Cortex-A15 @ 1.5GHz, 2x C66x DSP @ 750MHz, 2x Cortex-M4, and 2x PRU
+
+➢ Uses industrial-grade precision BTB connectors to ensure signal integrity, enabling stable, reliable, and easy installation/removal
+
+➢ Supports up to 6 video inputs and 3 video outputs
+
+➢ Supports up to 8 McASP interfaces
+
+➢ Supports up to 2 CAN interfaces
+
+➢ Supports up to 10 UARTs
+
+➢ Supports up to 3 LCD interfaces
+
+➢ Supports up to 4 SPI interfaces
+
+➢ Supports up to 3 MMC interfaces
+
+➢ Supports up to 5 I2C interfaces
+
+➢ Supports up to 2 Gigabit Ethernet ports
+
+➢ Supports 1 SATA-2 interface
+
+➢ Supports 1 USB 3.0 interface
+
+➢ Supports 2 USB 2.0 interfaces
+
+➢ Supports 1 HDMI interface
+
+➢ Supports 1 PCIe 3.0 interface, configurable in 1×2-lane or 2×1-lane mode
+
+➢ Supports Linux 4.14.67, DSP RTOS, and real-time RT-Linux systems
+
+➢ Operating temperature range: -40°C to +85°C (industrial grade)
+
+**2. Multi-Core Heterogeneous Development Platform**
+
+Provides command-line and Qt-based development examples, along with OpenCV, OpenCL, and OpenGL development guides. Also includes environment setup and development tutorials for DSP and PRU.
+
+**3. High-Performance DSP**
+
+The Xinming AM5728 development board integrates a real-time C66x digital signal processor (DSP) running at 750MHz, widely used in audio processing, video processing, and complex data algorithm applications. Xinming provides an OpenCV vision library that includes reference demos combining OpenCV with DSP for edge detection, face recognition, and integration with OpenCL and OpenGL, enabling rapid customer development.
+
+**4. PRU Programmable Real-Time Unit**
+
+Equipped with two dual-core PRU-ICSS modules supporting industrial protocols such as EtherCAT, EtherNet/IP, POWERLINK, PROFIBUS, PROFINET RT/IRT, and SERCOS III. These enable real-time fieldbus communication and provide developers with ultra-low latency and real-time control capabilities essential for industrial applications, with timing precision down to the nanosecond level.
+
+**5. Rich Multimedia Capabilities**
+
+Integrated SGX5443-D and GC320 2D graphics accelerators support advanced graphical user interfaces. The Cortex-M4 IPU2 graphics processing unit is dedicated to IVA hardware video encoding/decoding, supporting hardware decoding of multiple formats including H.264 and MPEG-4. It enables simultaneous multi-channel video decoding at up to 1080p 60fps. Supports MJPEG hardware encoding/decoding. The VPE supports hardware-based image and video scaling and color space conversion.
+
+**6. Extensive Communication Interfaces**
+
+■ Dual Gigabit Ethernet interfaces supporting Ethernet/IP and PROFINET protocols;
+
+■ RS232/RS485 bus support for connection to PLCs, computers, and other systems;
+
+■ Onboard WiFi & Bluetooth combo module and 4G communication support.
+
+**Achieved Technical Performance Metrics**
+
+**In logistics applications, barcodes on shipping documents must be scanned at multiple stages—from pickup to sorting centers, and from sorting centers to final delivery.**
+
+**The barcode reader described in this article eliminates manual operation by being mounted as a fixed station on automated conveyor lines, enabling automatic barcode localization and decoding.** **Based on fixed-mount imaging smart cameras, this system significantly improves both efficiency and accuracy throughout the entire logistics process.**
+
+**Reference solution: Xinming's XM5728-IDK-V3 development board.**
+
+**![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/106390114/10_5f0088358c953e812042bc21f47b2cfb.png)**
+
+![[Sharing] Disassembly and Analysis of Amazon AGV Kiva Robot](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/106390114/11_cfb916c4f543c199407b5b525d8b5161.jpeg)
+
+**System Architecture and Mechanical Structure**
+
+From the outside, each side of the Kiva robot's housing features an **_infrared sensor array and a pneumatic bumper for collision detection and cushioning._** The housing also includes a charging port and a series of status indicator lights.
+
+Each Kiva robot has three independent degrees of freedom: **_two drive wheels and one rotating lift motor._** When the lift motor operates, the two drive wheels rotate in opposite directions, resulting in the platform rising along the ball screw without rotating relative to the ground. Compared to traditional high-load linear actuation methods such as hydraulic or scissor lifts, Kiva’s wheel-based lifting mechanism is clearly simpler and more reliable.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/106390114/12_5c0f84041183cd77bd195c6f161566c2.jpeg)
+
+The top of the lift platform consists of robust X-shaped aluminum castings made from 319-grade general-purpose aluminum. Each casting undergoes secondary precision machining to create reference surfaces and threaded holes. This manufacturing process is commonly used in equipment such as automotive engines and hydraulic pumps.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/106390114/13_b47f6e5afd7b48eaac14b60a43775422.jpeg)
+
+Left: Internal structure of Kiva with housing removed, showing the **infrared array, wireless module, lifting mechanism, and lift motor**. Right: Top view of Kiva, showing the lifting mechanism and battery.
+
+Each infrared sensor has its own dedicated filtering chip and communicates via a serial bus. In the image, you can see the motor and large gear used in the lifting module. Near the bottom of the robot, **_four lead-acid batteries_** are installed.
+
+**Housing**
+
+The orange, streamlined **_plastic housing is vacuum-formed from ABS material_** and includes numerous secondary machined features. The vacuum-forming machine and CNC milling tools used to manufacture Kiva were likely large and expensive. This version of the Kiva housing is both complex and costly; future versions are expected to adopt fully injection-molded structures.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/106390114/14_c37d3075c63ccf5072c7325148813f30.jpeg)
+
+**Collision Sensors**
+
+For a large, streamlined housing like Kiva’s, implementing a traditional integrated collision sensor is extremely difficult. Kiva engineers devised a clever, low-cost solution: **inflating ethylene/rubber tubes and using a simple pressure sensor. Any change in internal pressure immediately triggers the robot to stop all motion.** The black box on the right side of the image processes pressure signals and all infrared sensor data, simplifying communication protocols and wiring with the main controller.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/106390114/15_2ee38b92e93aa035c655aecb28dde7ed.jpeg)
+
+**Lifting Mechanism**
+
+Gearbox, lift motor, and large-diameter ball screw. The lifting mechanism uses a custom ball screw connected to the motor via a standard **_nylon gear._** The same Pittman motor used for lifting is also used for the two drive wheels, capable of delivering approximately 3 N·m of torque and 1 kW of stall power. The motor output shaft connects to a 25:1 Japanese Brother gearbox, producing 46 N·m of torque at 72 rpm. This gearbox costs around $1,000 per unit, though bulk purchasing would likely reduce the price significantly.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/106390114/18_f6971149c2846942a228cd87e5606696.jpeg)
+
+**Chassis and Drive Wheels**
+
+After removing the lifting mechanism, flipping the robot reveals the drive components on the underside. The two drive motors and gearboxes are identical to the lift motor setup. Two custom wheels form a differential drive system capable of in-place rotation.
+
+Three sand-cast aluminum components make up most of the robot's chassis. They are connected with simple U-shaped pin clamps, forming a passive dual suspension system. These aluminum parts are also made from 319 alloy and use a casting followed by precision machining process. Note the machined heat dissipation structures on the chassis, on the back of which are mounted the large MOSFETs of the motor drivers. This design naturally uses the chassis for maximum heat dissipation efficiency.
+
+U-shaped pin clamps connecting the suspension, and heat sinks on the chassis.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/106390114/17_010398d3f6f1fe32e3cf5afc4d54ba7f.jpeg)
+
+**Electronics**
+
+Designing reliable electronics capable of powering Kiva’s three high-power motors and numerous sensors over long periods is a critical challenge.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/106390114/18_f6971149c2846942a228cd87e5606696.jpeg)
+
+**Battery Module**
+
+Battery wiring harness and charging port (top and side views). The entire system is powered by **_four series-connected 12V, 28Ah lead-acid batteries._** Two of the four batteries are equipped with thermocouples to prevent overheating. When battery levels are low, the robot automatically disengages from central controller commands and returns to the charging station. The charging station is designed with ample clearance to ensure reliable charging.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/106390114/19_3decd901d9a84cee24137f7102f3c652.jpeg)
+
+**Cameras and Imaging Module**
+
+Upward- and downward-facing cameras, both mounted inside the ball screw assembly. Located within the lifting mechanism is one of the key components of the Kiva system: a **_custom dual-camera imaging module._** **_One camera looks downward to identify 2D barcodes on the warehouse floor, while the other looks upward at the underside of shelves._** Each camera is equipped with six red LEDs for illumination. Sandwiched between the two cameras is the image processing module, centered around an ADI ADSP-BF548 Blackfin multimedia processor that acquires data via high-speed serial interface and performs data matrix detection.
+
+**Mainboard and Subboards**
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/106390114/20_9420ec35d464b8d6a032c129774c589c.jpeg)
+
+The main logic module shown above orchestrates all operations. The motor driver board is powered by 48V DC from the battery; logic components are powered by a separate filtered power rail. The three-phase brushless DC (BLDC) motor drivers are fully custom, driven by a Lattice LFXP6C FPGA (hidden beneath the mainboard).
+
+All three motor drivers include current sensors (suggesting FOC control), encoders, and six full-bridge MOSFETs (cooled via the chassis). A subboard hosting the FPGA handles coordination of the wireless module, imaging unit, emergency braking, infrared/pressure sensors, power management, and motor drivers, significantly reducing the load on the mainboard. The MCU is a 32-bit, 400MHz Freescale MPC5123, likely running PowerPC Linux. Two Ethernet ports connect to the wireless module and firmware storage via a Microchip KSZ8993 switch. The only off-the-shelf electronic component in the entire robot is the communication module: a Soekris Engineering Net4526 dual-antenna router running a single Winstron NeWeb CM9 wireless module, connected to the mainboard via Ethernet.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/106390114/21_40930d2a7acefdf8e6f4a73aed3ef268.jpeg)
+
+The remarkable lifting module
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/106390114/22_ec01b266719a078c349d0e9fe0d78090.jpeg)
+
+This generation of Kiva robots features many clever design elements, but the standout is undoubtedly the lifting module. It must raise and lower loads up to 1,000 pounds (about half a ton) while maintaining perfect parallelism with the ground—ideally suited for a ball screw mechanism. Typically, commercial ball screws are solid and rarely exceed five centimeters in diameter. Kiva’s custom version, however, has an outer diameter of 28 centimeters and is hollow with internal threading. The two housing bearings are aluminum, cast and then precision-machined like the chassis components. Both parts are surface-oxidized, providing excellent lubrication and corrosion resistance. The inner housing is fixed, acting as a ball nut, with an overmolded ring structure to constrain the balls. The outer housing rotates, with its inner surface contacting the balls and its outer surface connected to the lift motor via gears.
+
+Considering manufacturing complexity, the entire lifting mechanism is estimated to cost around $1,000.
+
+Kiva Systems is one of the few companies capable of seamlessly integrating sophisticated hardware and software into a unified solution, having built a system that profoundly transforms how we buy, sell, and live. Clearly, Kiva employs a team of exceptionally skilled hardware engineers—likely a major reason why Amazon acquired the company in 2012 for a staggering $775 million. This article only discusses the robot itself, but it's important to note that this is just a small (albeit impressive) part of the entire Kiva solution.

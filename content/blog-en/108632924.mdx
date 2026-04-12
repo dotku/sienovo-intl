@@ -1,0 +1,68 @@
+---
+title: "AM5728 OpenCV 4.4 Porting Success Experience Sharing"
+date: "2020-09-16"
+slug: "108632924"
+tags: ["#AM5728", "#OPENCV", "#移植", "#opencv4.4", "#信迈开发板"]
+source: "https://blog.csdn.net/yeyuangen/article/details/108632924"
+originalTitle: "AM5728 Opencv4.4成功移植经验分享"
+---
+
+The porting process described here uses the Xinming AM5728 IDK development board. Our company's project involves power condition monitoring and requires high-definition image processing. The project is based on AM5728 + Lattice FPGA.
+
+OpenCV 4.4 supports 3D image analysis, while the OpenCV 3.1 included in the TI SDK only supports 2D image processing.
+
+1. Copy opencv-4.4.0-bin.tar.gz to the development board (via USB drive or SD card). This file is provided in the cloud storage.
+
+tar -zxf opencv-4.4.0-bin.tar.gz
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108632924/01_5937f49c02e0f194764fabe398359d33.png)
+
+2. Configure the OpenCV 4.4.0 library
+
+   First, back up existing libraries:
+
+   mv /usr/lib/libopencv\* /usr/lib_bk/
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108632924/02_b4422b61d6557869c3f46aa50697bfbf.png)
+
+   Copy files from the lib directory to the system:
+
+   cp ./* /usr/lib/ -r
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108632924/03_2174c8085468c8dcdcee1db698b510e9.png)
+
+   cp -r include/* /usr/include/  
+   cp bin/* /usr/bin/  
+   cp -r share/* /usr/share/
+
+3. Check version
+
+   ./opencv_version
+
+   ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108632924/04_579efe0ea690fd8f1fb68372eb47f180.png)
+
+4. Running results
+
+   Copy the opencv4-example-gray executable file and an image required by the Exam.cpp program to a directory on the ARM platform. The image used here is named 1.jpg.
+
+   Copy the .so files to the /lib directory on the ARM platform.
+
+   Navigate to the directory containing the opencv4-example-gray executable and the image, then run the command. A new image named gray.png will be generated:
+
+   ./opencv4-example-gray
+
+   ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108632924/05_bc02c019499758b0ecfefd94915700f9.png)
+
+   Check dependent libraries:
+
+   arm-linux-gnueabihf-readelf -a opencv4-example-gray | grep "Shared library:"
+
+   ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108632924/06_fcece2505bfcd92b52af95ab0c83a8ea.png)
+
+   Image displayed on PC:
+
+   ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108632924/07_6a2a95a202af383bb148bccd9c153f4c.png)
+
+   Welcome for technical exchange. Contact via WeChat: 13670212541
+
+   ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108632924/08_1ce06d7a215e401f6e7247df957c200d.png)

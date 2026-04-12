@@ -1,0 +1,198 @@
+---
+title: "AM5728 eHRPWM Driver and Interrupt Design Notes"
+date: "2021-01-04"
+slug: "112205483"
+tags: ["#AM5728", "#EHRPWM", "#驱动", "#中断"]
+source: "https://blog.csdn.net/yeyuangen/article/details/112205483"
+originalTitle: "AM5728 eHRPWM 驱动和中断设计随笔"
+---
+
+### ******eHRPWM Waveform Generation Method******
+
+(1) Copy the pwm1.sh script to the /opt/tools directory.
+
+(2) Run the following commands:
+
+root@am57xx-evm:/opt/tools# ****chmod 777**** ****pwm1.sh****
+
+root@am57xx-evm:/opt/tools# ****./pwm1.sh 1000000 500000 200000****
+
+Set APWM1 mode successfully!
+
+root@am57xx-evm:/opt/tools# ****cat /sys/kernel/debug/pwm****
+
+platform/dmtimer-pwm@16, 1 PWM device
+
+ pwm-0   (pwm\_fan             ): requested enabled
+
+platform/48440200.pwm, 2 PWM devices
+
+ pwm-0   (sysfs               ): requested enabled
+
+ pwm-1   (sysfs               ): requested enabled
+
+platform/4843e100.ecap, 1 PWM device
+
+ pwm-0   (backlight           ): requested enabled
+
+root@am57xx-evm:/opt/tools# ****cat /sys/class/pwm/pwmchip1/pwm0/{enable,period,duty\_cycle}****
+
+1
+
+1000000
+
+500000
+
+root@am57xx-evm:/opt/tools# ****cat /sys/class/pwm/pwmchip1/pwm1/{enable,period,duty\_cycle}****
+
+1
+
+1000000
+
+200000
+
+(3) Then measure the EHRPWM2B pin using an oscilloscope.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/112205483/01_ab00cd13fd4d9a3ac1a6326959edad9d.png)
+
+****(********4)********./pwm1.sh 1000000**** ****500000**** ****200000****  ****(Duty cycle can be adjusted)****
+
+(5) Restart to change the period.****./pwm1.sh**** ****2********000000 500000 200000****
+
+## ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/112205483/02_710508bf731f49c9c3c51e44a7800fb1.png)
+
+This debugging is based on the Xinming Technology XM5728-IDK-V3 development board.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/112205483/03_db8c5a96fda52dcb602e5d8a4db4a579.png)
+
+## ******AM5728: Beagle-x15 board the output for EHRPWM2A pins issue******
+
+[https://e2e.ti.com/support/processors/f/791/t/929657?AM5728-Beagle-x15-board-the-output-for-EHRPWM2A-pins-issue](https://e2e.ti.com/support/processors/f/791/t/929657?AM5728-Beagle-x15-board-the-output-for-EHRPWM2A-pins-issue)
+
+## **C6747 EHRPWM Example**
+
+[https://processors.wiki.ti.com/index.php/C6747\_EHRPWM\_Example](https://processors.wiki.ti.com/index.php/C6747_EHRPWM_Example)
+
+## ******Linux/AM6548: ehrpwm******
+
+[https://e2e.ti.com/support/processors/f/791/t/748195](https://e2e.ti.com/support/processors/f/791/t/748195)
+
+TI WIKI:
+
+[https://software-dl.ti.com/processor-sdk-linux/esd/docs/06\_03\_00\_106/linux/Foundational\_Components/Kernel/Kernel\_Drivers/Display/PWM.html](https://software-dl.ti.com/processor-sdk-linux/esd/docs/06_03_00_106/linux/Foundational_Components/Kernel/Kernel_Drivers/Display/PWM.html)
+
+Regarding CTRL\_MMR0 tbclk, you need to enable this in the driver file (pwm-tiehrpwm.c), using register CTRLMMR\_EPWM0\_CTRL/0x00104140.  
+  
+See for example how the CTRLMMR\_OLDI\_DAT0\_IO\_CTRL/0x001041E0 register is used in the following files:  
+  
+linux-4.14.67/drivers/gpu/drm/tidss/tidss\_dispc7.h  
+linux-4.14.67/drivers/gpu/drm/tidss/tidss\_dispc7.c  
+  
+Regards,  
+Pavel
+
+~/XM/kernel/Linux/drivers$ vi pwm/pwm-tiehrpwm.c
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/112205483/04_f8b6742fefae4195c270d9e4da3c1c04.png)
+
+[https://git.ti.com/cgit/apps/tida01555/tree?h=master](https://git.ti.com/cgit/apps/tida01555/tree?h=master)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/112205483/05_c98d2151daef7e76cc2730af12446e95.png)
+
+Page 6931
+
+~/XM/kernel/Linux/drivers$ vi irqchip/irq-crossbar.c
+
+Are these codes useful?
+
+C:\\ti\\processor\_sdk\_rtos\_am57xx\_6\_03\_00\_106\\pdk\_am57xx\_1\_0\_17\\packages\\ti\\csl\\example\\gpio\\gpio\_interrupt.c
+
+C:\\ti\\processor\_sdk\_rtos\_am57xx\_6\_03\_00\_106\\pdk\_am57xx\_1\_0\_17\\packages\\ti\\csl\\arch\\a15\\src\\ interrupt.c
+
+C:\\ti\\processor\_sdk\_rtos\_am57xx\_6\_03\_00\_106\\pdk\_am57xx\_1\_0\_17\\packages\\ti\\csl\\arch\\c66x\\ interrupt.c
+
+Please refer to ~/pdk\_am57xx\_1\_0\_17/packages/ti/osal/src/tirtos/RegisterIntr\_tirtos.c for the OSAL APIs you can use to install ISR in TI-RTOS.
+
+You can also refer to ~/pdk\_am57xx\_1\_0\_17/packages/ti/drv/uart/src/v1/UART\_v1.c as an example of how the APIs are used.
+
+[https://e2e.ti.com/support/processors/f/791/t/931094?CCS-AM5728-EHRPWM-Interrupt-in-DSP-with-TI-RTOS](https://e2e.ti.com/support/processors/f/791/t/931094?CCS-AM5728-EHRPWM-Interrupt-in-DSP-with-TI-RTOS)
+
+In [AM5728](https://www.ti.com/product/AM5728)'s DSP processor, we need EHRPWM Interrupt with TI RTOS. The question is how to register the interrupt ISR?
+
+We need to detect the phase using ehrpwm2A or ehrpwm2B interrupts when the counter decreases from period to zero.
+
+I have configured the registers for interrupt as follows:  
+
+****void**** ****PWM\_InterruptConfig****(****void****)
+
+{
+
+    /\*
+
+     \* AM57x DSP does not have a default Xbar connection for PWM
+
+     \* interrupts; a reserved IRQ Xbar instance must be used for Xbar
+
+     \* interrupt configuration
+
+     \*/
+
+     /\* Use reserved XBAR\_INST\_DSP1\_IRQ\_34 \*/
+
+    ****CSL\_xbarIrqConfigure****(__CSL\_XBAR\_IRQ\_CPU\_ID\_DSP1__, CSL\_XBAR\_INST\_DSP1\_IRQ\_34, __CSL\_XBAR\_PWMSS2\_IRQ\_ePWM1INT__);
+
+    // Disable the ePWM Event interrupt.
+
+    ****CSL\_epwmEtIntrDisable****(PWM\_BASE\_ADDRESS);
+
+    // Configure the interrupt source and interrupt period.
+
+    // Enable event time-base counter equal to zero.
+
+    // Generate an interrupt on the first event.
+
+    ****CSL\_epwmEtIntrCfg****(PWM\_BASE\_ADDRESS, PWMSS\_EPWM\_ETSEL\_INTSEL\_CTR\_0, PWMSS\_EPWM\_ETPS\_INTPRD\_GEN\_FIRST\_EVT);
+
+    // Enable the ePWM Event interrupt.
+
+    ****CSL\_epwmEtIntrEnable****(PWM\_BASE\_ADDRESS);
+
+}
+
+ ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/112205483/06_dbe4276ccb78afe30fae4d47992021fd.png)
+
+But I also need to write an ISR, which must be registered or installed.
+
+How to register it in TI RTOS?
+
+Are these codes useful?
+
+C:\\ti\\processor\_sdk\_rtos\_am57xx\_6\_03\_00\_106\\pdk\_am57xx\_1\_0\_17\\packages\\ti\\csl\\example\\gpio\\gpio\_interrupt.c
+
+C:\\ti\\processor\_sdk\_rtos\_am57xx\_6\_03\_00\_106\\pdk\_am57xx\_1\_0\_17\\packages\\ti\\csl\\arch\\a15\\src\\ interrupt.c
+
+C:\\ti\\processor\_sdk\_rtos\_am57xx\_6\_03\_00\_106\\pdk\_am57xx\_1\_0\_17\\packages\\ti\\csl\\arch\\c66x\\ interrupt.c
+
+Thanks,
+
+## ******How to specify pinmux configuration for EHRPWM0 in motor\_control example for IDK AM437x?******
+
+[https://e2e.ti.com/support/processors/f/791/t/487977?How-to-specify-pinmux-configuration-for-EHRPWM0-in-motor-control-example-for-IDK-AM437x-](https://e2e.ti.com/support/processors/f/791/t/487977?How-to-specify-pinmux-configuration-for-EHRPWM0-in-motor-control-example-for-IDK-AM437x-)
+
+## ******How to get AM335x ePWM interrupt******
+
+[https://e2e.ti.com/support/legacy\_forums/embedded/linux/f/354/p/474058/1705662](https://e2e.ti.com/support/legacy_forums/embedded/linux/f/354/p/474058/1705662)
+
+## ******request\_irq failed********/GPIO Example******
+
+[https://e2e.ti.com/support/processors/f/791/t/395791](https://e2e.ti.com/support/processors/f/791/t/395791)
+
+Dts:
+
+~/XM/kernel/Linux/arch/arm/boot/dts$ vi dra7.dtsi
+
+~/XM/kernel/Linux/arch/arm/boot/dts$ vi am57xx-evm-common.dtsi
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/112205483/07_b76519fb1783acd0f226274d47af5bac.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/112205483/08_9b02fe2d5197d6ebfeab38731754bd15.png)

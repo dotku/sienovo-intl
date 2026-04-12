@@ -1,0 +1,60 @@
+---
+title: "AM5728 High-Performance SoC Meets Industrial Protocol Support, Big Data Computing, and Real-Time Control Needs, Suitable for Image Processing and Power Protocol Management"
+date: "2021-01-03"
+slug: "112163265"
+tags: ["#AM5728", "#实时大数据", "#实时操作系统", "#通讯协议管理", "#电力"]
+source: "https://blog.csdn.net/yeyuangen/article/details/112163265"
+originalTitle: "AM5728高性能SOC,满足工业协议支持、大数据计算、实时控制等需求，适用于图像处理、电力协议管理"
+---
+
+The AM5728 is a high-performance SoC from TI's Sitara series. Thanks to its heterogeneous multi-core processing architecture, the CPU integrates co-processing units such as multi-core DSP, multi-core PRU, IVA-HD, and GPU. These units significantly enhance the CPU’s data and multimedia processing capabilities through hardware acceleration, enabling the chip to meet application requirements in industrial protocol support, big data computing, and real-time control.
+
+Shenzhen Xinmeng has developed an evaluation board based on the TI AM5728 floating-point dual DSP C66x + dual ARM Cortex-A15 processor. The dual-core ARM runs at up to 1.5 GHz, while the dual-core DSP operates at 750 MHz. It is widely used in various industrial applications such as machine vision, power automation, intelligent transportation, medical equipment, automated sorting systems, precision instruments, and high-end CNC systems.
+
+### Case 1: Machine Vision Application
+
+Machine vision uses machines to simulate human visual functions for image measurement and analysis. It is an effective approach to achieving precise control, intelligence, and automation in instruments and equipment. Machine vision can accomplish tasks beyond human capability, while improving product quality and production efficiency. Research into machine vision systems holds significant importance and broad market potential. High speed, integration, and customization are key development trends, necessitating an embedded, general-purpose, high-speed image acquisition and processing hardware platform. Currently, most domestic machine vision vendors primarily rely on代理 (代理 means "agency" or "distribution" — likely a typo or incomplete translation in original text; context suggests "distributing foreign products") foreign products, including hardware, especially for high-end applications requiring high-speed and high-resolution performance. Although domestic vendors have recognized the need to develop their own products, and some research institutions are exploring hardware for image processing, efforts remain largely focused on low-end applications. Therefore, this paper focuses on researching high-speed image acquisition and processing hardware platforms for machine vision systems, designing an embedded general high-speed image acquisition and processing platform (Embedded General High-speed Image Acquisition and Processing Platform, EGHIAPP) based on FPGA + DSP, and investigating key technical issues such as high-speed image acquisition, compression, and storage.
+
+The evaluation board used is the Xinmeng XM5728-IDK-V3.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/112163265/01_a9a5af0514eccafd3b51d08b964aebe8.png)
+
+Evaluation Board Overview:
+
+*   Based on the TI AM5728 floating-point dual DSP C66x + dual ARM Cortex-A15 industrial control and high-performance audio/video processor;
+*   Multi-core heterogeneous CPU integrating dual-core Cortex-A15, dual-core C66x floating-point DSP, dual-core PRU-ICSS, dual-core Cortex-M4 IPU, and dual-core GPU, supporting multi-core development with OpenCL, OpenMP, and SysLink IPC;
+*   Powerful video encoding/decoding capabilities: supports hardware encoding/decoding of 1×1080P60, 2×720P60, or 4×720P30 video streams, and H.265 video software decoding;
+*   Supports up to 1×1080P60 full HD video input and dual outputs via LCD and HDMI 1.4a;
+*   Dual-core PRU-ICSS industrial real-time control subsystem supporting industrial protocols such as EtherCAT, EtherNet/IP, and PROFIBUS;
+*   High-performance GPU with dual-core SGX544 3D accelerator and GC320 2D graphics engine, supporting OpenGL ES 2.0;
+*   Rich peripheral interfaces including dual Gigabit Ethernet, PCIe, GPMC, USB 2.0, UART, SPI, QSPI, SATA 2.0, I2C, DCAN, and other industrial control buses and interfaces, with support for high-speed USB 3.0;
+*   Development board exposes V-PORT video interface for flexible connection to video input modules;
+*   Compact size: only 86.5mm × 60.5mm;
+*   Industrial-grade precision B2B connector with 0.5mm pitch, stable, easy to plug/unplug, reverse-insertion protected; high-speed connectors used for critical high-bandwidth interfaces to ensure signal integrity.
+
+The platform based on the DSP+FPGA architecture offers flexible and highly通用 (generic/modular) structure, suitable for modular design. It significantly improves the stability of image processing, shortens development cycles, and allows for easy expansion and upgrades. In this hardware platform, simple low-level algorithms, system management, task allocation, and logic control are best implemented on the FPGA, while complex core image processing algorithms benefit from the fast computation and flexible addressing modes of the DSP. The two processors complement each other effectively.
+
+This work designs a general-purpose image processing platform based on the AM5728 DSP and FPGA architecture. The FPGA implements microprocessor interface design and performs simple preprocessing of image data, while the DSP handles complex image processing algorithms and logic control, enabling high-speed transmission and real-time processing of image data. The system is applied to chip inspection in pick-and-place machines, and performance evaluation experiments are conducted. The main research contents are as follows:  
+1. Based on the development trends in machine vision, this paper identifies the required functionalities of a high-speed image processing platform and designs a general-purpose high-speed image processing hardware platform based on FPGA+DSP.  
+2. Researches image acquisition from Camera Link and GigE cameras using the AM5728, detailing engineering implementation and addressing challenges. High-speed image acquisition is successfully implemented for two typical cameras: the MC1362 and piA2400.  
+3. Investigates JPEG compression of real-time, high-speed images, solving speed bottlenecks and large buffer requirements in traditional approaches. Parallel multi-channel compression methods are studied, achieving real-time JPEG compression on a single FPGA chip for both the piA2400’s 5-megapixel high-resolution color images and the MC1362’s 500 fps ultra-high-speed grayscale images.  
+4. Studies high-capacity, real-time image storage. The FPGA implements SATA hard drive read/write functionality. Factors affecting disk speed are analyzed, and direct sequential sector read/write methods are adopted to improve storage speed. Parallel storage across multiple hard drives is investigated, with a two-drive configuration used as an example to demonstrate the proposed parallel storage solution.  
+5. Two typical applications in machine vision systems are implemented using the AM5728, demonstrating the platform’s excellent versatility.
+
+Other Applications: To improve imaging quality and real-time performance of infrared focal plane arrays, a real-time digital image processing system for infrared focal planes is proposed, centered on a high-speed signal processor.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/112163265/02_b4fc4b86b3cf9569edf73da4415e9dd3.jpeg)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/112163265/03_552a43d9eeab62e011a7c2cfc94da03e.jpeg)
+
+### Case 2: Design of a High-End Power Grid Communication Protocol Manager
+
+Below is a brief explanation of the application principle of a high-end power grid communication protocol manager. As shown in the figure, the communication protocol manager is based on the TI AM5728 and provides a solution for high-reliability, high-security, multi-protocol communication with extensive Ethernet connectivity. It is suitable for high-reliability, low-latency network communication in substation automation equipment within smart grid transmission and distribution networks. As more power grid devices become Ethernet-based, increasing amounts of data must be transmitted over wide-area networks. The AM5728 supports two Gigabit Ethernet ports and four PRU-based 100 Mbps Ethernet ports, enabling redundant protocols such as HSR, PRP, or other industrial protocols for communication between substation devices.
+
+Terminal devices such as Transformer Terminal Units (TTU), Distribution Terminal Units (DTU), and Feeder Terminal Units (FTU) upload telemetry data via interfaces such as RS232, RS485, CAN, and 10/100/1000Base-T Ethernet. The protocol manager processes this data through protocol conversion logic, aggregates and formats it into a unified data frame, and uploads it in real time to the upper-level master station system. It also receives commands from the master system and forwards them to the respective terminal devices, enabling intelligent remote monitoring and control of various field devices.
+
+![AM5728 High-Performance SoC Meets Industrial Protocol Support, Big Data Computing, and Real-Time Control Needs](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/112163265/04_7987df6b11b768d94aafa0d1587edb6b.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/112163265/05_2d2e4e541049a4aa27110cb1fc9277a7.png)![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/112163265/06_715106b641686afb8e0def95b7235be9.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/112163265/07_792145c654355eeedb675ea1531d9689.png)

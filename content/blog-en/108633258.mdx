@@ -1,0 +1,106 @@
+---
+title: "AM5728 OpenCV 4.4 Porting Experience Sharing Part 2: How to Run Examples"
+date: "2020-09-17"
+slug: "108633258"
+tags: ["#AM5728", "#OPENCV4.4.", "#例程", "#三维图像", "#开发板"]
+source: "https://blog.csdn.net/yeyuangen/article/details/108633258"
+originalTitle: "AM5728 Opencv4.4成功移植经验分享之二：如何运行例程"
+---
+
+This porting effort uses the Xinming AM5728 IDK development board. The company's project involves monitoring power system operating conditions and requires high-definition image processing. The project is based on AM5728 + Lattice FPGA.
+
+OpenCV 4.4 supports 3D image analysis, whereas the OpenCV 3.1 included in the TI SDK only supports 2D image processing.
+
+1. Prerequisites: Install the SDK, which includes the cross-compilation toolchain.
+
+Install the SDK into the default directory, selecting all available components when prompted:
+
+```bash
+./ti-processor-sdk-linux-am57xx-evm-03.01.00.06.bin
+```
+
+2.
+
+1. Create a new demo project
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108633258/01_f1f827042308a0a0ca3d6b84ffa48f11.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108633258/02_2c0e404751dc89855f4e44de289e07fe.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108633258/03_63b07bc179ba2a2171543f404b0e8870.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108633258/04_e3dd57960b0fd7940f05d33bc43827fb.png)
+
+arm-linux-gnueabihf-
+
+/home/mxtech/ti-processor-sdk-linux-am57xx-evm-03.01.00.06/linux-devkit/sysroots/x86_64-arago-linux/usr/bin
+
+Finish
+
+Enter the following code:
+
+```cpp
+#include <opencv2/core.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/imgproc.hpp>
+using namespace cv;
+
+int main() {
+    Mat pic;
+    pic = imread("1.jpg");
+    Mat gray;
+    cvtColor(pic, gray, COLOR_BGR2GRAY);
+    imwrite("gray.png", gray);
+    return 0;
+}
+```
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108633258/05_b015b50804862486062f858f6b718419.png)
+
+2. Right-click the project's include configuration and select Properties, then set the options as shown in the figure.
+
+OK
+
+Note:  
+① `/home/mxtech/ti/opencv-4.4.0/build/install/` is the directory where executable files are stored after running `make install` during cross-compilation — this corresponds to the compressed package we provided.  
+② `/home/mxtech/ti/opencv-4.4.0/build/install/include/opencv4` corresponds to the code `#include <opencv2/core.hpp>`. In my case, the subdirectory under opencv4 is named opencv2, which contains the header files.
+
+3. Right-click the project's library configuration and select Properties, then set the options as shown in the figure.
+
+4. Enable C++11 features
+
+Go to Project -> Properties -> C/C++ Build -> Settings -> GCC C++ Compiler -> Miscellaneous -> Other flags, and change `-c -fmessage-length=0` to `-c -fmessage-length=0 -std=c++11`.
+
+5. Clean and then build the project
+
+Clean the project to prevent building before fully completing the Properties configuration:
+
+Note: "Building file" refers to the original C++ source file, while "Building target" refers to the executable generated from compiling the C++ file.
+
+6. Export the executable and shared object (.so) files and run them
+
+The executable `opencv4-example-gray` is located in the generated Debug directory:
+
+The .so files are those from the library path specified earlier:
+
+Copy the `opencv4-example-gray` executable and an image required by the `Exam.cpp` program (named `1.jpg` in this case) to a directory on the ARM platform.
+
+Copy the .so files to the `/lib` directory on the ARM platform.
+
+Navigate to the directory containing the `opencv4-example-gray` executable and the image, then run the command. A new image file named `gray.png` will be generated:
+
+```bash
+./opencv4-example-gray
+```
+
+Check shared library dependencies:
+
+```bash
+arm-linux-gnueabihf-readelf -a opencv4-example-gray | grep "Shared library:"
+```
+
+Image displayed on the host PC:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108633258/06_5a2a5dcb8f9a5d4b272d0f95102a7711.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108633258/07_1ce06d7a215e401f6e7247df957c200d.png)

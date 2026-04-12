@@ -1,0 +1,67 @@
+---
+title: "XM5728_IDK_V3 Gigabit Network Speed Test Guide Using iperf on AM5728"
+date: "2021-02-20"
+slug: "113887222"
+tags: ["#AM5728", "#Iperf", "#千兆网络", "#网络性能", "#linux"]
+source: "https://blog.csdn.net/yeyuangen/article/details/113887222"
+originalTitle: "XM5728_IDK_V3 基于AM5728 iperf千兆网络速率测试指南"
+---
+
+This test is conducted on the XM5728_IDK_V3 evaluation board based on the TI AM5728 from Xinming Technology.
+
+1. iperf Network Speed Test Guide
+
+iperf is a performance measurement tool for TCP/IP and UDP/IP that provides network throughput information, as well as statistics such as jitter, packet loss rate, maximum segment size, and maximum transmission unit (MTU) size.
+
+The following procedure uses iperf to test network communication speed between the development board and Ubuntu. If iperf is not installed, run "sudo apt-get install iperf" on Ubuntu to install it.
+
+On Ubuntu, execute the following commands to check the IP address and wait for the development board to connect:
+
+****Host****\# ifconfig
+
+****Host****\# iperf -s
+
+On the development board's file system, run the following command to test network speed:
+
+****Target****\# iperf -c 192.168.1.102 -i 1
+
+"192.168.1.102" should be replaced with the actual IP address of the Ubuntu machine.
+
+Important notes during testing:
+
+*   Disable Wi-Fi on the Ubuntu computer.
+*   Disable the firewall using "sudo ufw disable".
+*   Do not use a virtual machine for Ubuntu.
+*   Use a Netgear router if possible, such as the NETGEAR R7800. Standard TP-LINK gigabit routers may not achieve optimal speeds.
+
+2. If testing with Windows:
+
+Reference: https://www.jianshu.com/p/2781fe7a3ee0
+
+iperf -s -p 5553 -i 1  
+
+iperf -c 192.168.1.102 -p 5553 -P 1 -i 1 -C -f k -t 20
+
+When testing on Windows, the speed remains around 110 Mbps and does not improve. It is recommended to use Ubuntu for testing instead.
+
+3. Test Results:
+
+*   XM5728-IDK-V3 1000-second test data:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/113887222/01_66ffc89583ac06e9ca12719dd2870e00.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/113887222/02_7e4233b8e4b691d90a9030d17921bf2d.png)
+
+*   911 Mbps result:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/113887222/03_14a1d418362d1b858c711239a8f8da80.png)
+
+*   Average 840 Mbps over 1800 seconds:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/113887222/04_69c235c3de8ca3a8690ed5f18fee64ce.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/113887222/05_3117a0689c014ef850e86e864815339b.png)
+
+*   No CRC errors or packet loss:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/113887222/06_883d2cd5d42ddb7ecb2d1d8c2f72d09a.png)

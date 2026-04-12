@@ -1,0 +1,74 @@
+---
+title: "High-Speed AD Data Acquisition and Processing Design and Implementation Based on AM5728 DSP+ARM Platform"
+date: "2020-03-18"
+slug: "104951902"
+tags: ["#AM5728", "#DSP", "#ARM", "#高速数据", "#采集"]
+source: "https://blog.csdn.net/yeyuangen/article/details/104951902"
+originalTitle: "基于AM5728 DSP+ARM平台高速数据AD采集处理设计与实现"
+---
+
+Texas Instruments (TI) offers a comprehensive lineup of high-performance video processors, providing complete video processing solutions. The AM5728, as the latest SoC (System-on-Chip) in TI's Sitara series, delivers enhanced computational performance and design flexibility through a heterogeneous multi-core processing architecture, programmable multimedia processing, and ultra-high-speed data communication interfaces. The TI AM5728 industrial automation and machine vision processing technology represents TI’s most advanced high-performance industrial solution today, with broad application prospects in areas such as industrial robots, precision CNC machine tools, 5-axis engraving machines, industrial HMIs, intelligent transportation systems, VR/AR, and many more—thanks to its flexible interfaces and powerful performance.
+
+Module development and customization are based on the Xinming XM5728-IDK-V3 platform.
+
+*   ### Project Overview:
+    
+
+On the TI AM5728's DSP side, EDMA is used to acquire 8-channel AD signals from the AD7606 or ADS8568 module via the GPMC interface. The DSP simultaneously performs FFT processing on 6 of the 8 channels. The 8-channel time-domain data and the 6-channel frequency-domain data (after FFT) are stored in the DSP’s L2SRAM, where they can be viewed using a debugger and CCS software to observe time-domain and frequency-domain waveforms for each channel.
+
+The program saves channel 0's time-domain data and its corresponding FFT-processed frequency-domain data into CMEM (shared memory) space. An IPC component notifies the ARM side to read this data, which is then used by Qt to render waveforms on an LCD display. Finally, the data is saved to a file.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/104951902/01_26b390eeb574a0b35c5c3e3ac3aef69d.png)
+
+*   ### System Architecture Diagram
+    
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/104951902/02_b59440ad73c5829fb64d7477233bfed3.jpeg)
+
+*   ### Hardware Connection Diagram
+    
+
+*   ### Code Explanation
+    
+
+Follow the user manual's instructions to load the program. After execution, the time-domain and frequency-domain waveforms for channel 0 will be displayed on the LCD screen.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/104951902/03_1c61946e38a11ecd2dd1a8e7513cacaa.png)
+
+Time-domain waveform
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/104951902/04_ac92b65e23d11560116e1c49f39f26dd.png)
+
+Frequency-domain waveform
+
+Additionally, time-domain and frequency-domain waveforms stored in the DSP’s L2SRAM can be viewed using CCS software.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/104951902/05_7fbe16124fca2c056a5cb1805fc0d259.png)
+
+Time-domain waveform
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/104951902/06_92bde5b79c3e0549cb4414d30aa702c3.png)
+
+Frequency-domain waveform
+
+Click the zoom button on the toolbar to magnify the view. Enable the cursor tool and click on the X-Axis to observe signal details, as shown in the figure below.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/104951902/07_739c8cddff762dacb780839533e91bbb.png)
+
+The program has already saved the frequency-domain data of six channels into the DSP’s L2SRAM. To view waveforms from other channels, use the same method to access the corresponding channel memory addresses.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/104951902/08_22d00a04f1b6d522e1e3f68fff21e20f.png)
+
+Key Features:
+
+*   Based on TI AM5728 floating-point dual-core C66x DSP + dual-core ARM Cortex-A15 industrial control and high-performance audio/video processor;
+*   Heterogeneous multi-core CPU integrating dual-core Cortex-A15, dual-core C66x floating-point DSP, dual-core PRU-ICSS, dual-core Cortex-M4 IPU, and dual-core GPU, supporting multi-core development with OpenCL, OpenMP, and SysLink IPC;
+*   Powerful video encoding/decoding capabilities: supports 1×1080P60, 2×720P60, or 4×720P30 hardware video encoding/decoding, and H.265 software decoding;
+*   Supports up to 1×1080P60 full HD video input and dual outputs: 1×LCD + 1×HDMI 1.4a;
+*   Dual-core PRU-ICSS industrial real-time control subsystem supporting industrial protocols such as EtherCAT, EtherNet/IP, and PROFIBUS;
+*   High-performance GPU with dual-core SGX544 3D accelerator and GC320 2D graphics engine, supporting OpenGL ES 2.0;
+*   Rich peripheral interfaces: integrated dual Gigabit Ethernet, PCIe, GPMC, USB 2.0, UART, SPI, QSPI, SATA 2.0, I2C, DCAN, and other industrial control buses and interfaces, with support for high-speed USB 3.0;
+*   Development board exposes V-PORT video interface for flexible connection to video input modules;
+*   Ultra-compact size: only 86.5mm × 60.5mm;
+*   Industrial-grade precision B2B connector with 0.5mm pitch—stable, easy to plug/unplug, reverse-insertion protected; high-speed connectors used for critical high-data-rate interfaces to ensure signal integrity
+*   ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/104951902/09_1bd849c7179881a3e45b64f757356dc2.png)

@@ -1,0 +1,53 @@
+---
+title: "Design and Implementation of a Power Quality Analyzer Based on C6748 DSP+FPGA"
+date: "2021-06-07"
+slug: "117655595"
+tags: ["#C6748", "#SPARTAN6", "#电能质量", "#谐波检测"]
+source: "https://blog.csdn.net/yeyuangen/article/details/117655595"
+originalTitle: "基于C6748 DSP+FPGA电能质量检测仪设计和实现"
+---
+
+With the large-scale grid integration of clean energy and the widespread application of power electronic components, the power quality of public grids faces increasingly severe challenges. At the same time, the intelligent development of industrial production and social life makes more power system loads sensitive to power quality, thus users have significantly increased their attention to and pursuit of power quality. As support and basis for addressing power quality issues, the importance of power quality detection and analysis has greatly increased. Implementing power quality detection and analysis on embedded systems also lays a solid foundation for the development of intelligent power meters. This paper investigates the measurement methods of power quality parameters, the feature extraction and classification of power quality disturbance signals, and implements relevant algorithms for parameter measurement and disturbance classification on a Digital Signal Processor (DSP). The specific contents of this paper are as follows: (1) It summarizes the current status of domestic and international research on power quality detection and analysis in terms of parameter measurement and disturbance classification. It compares many cases of implementing power quality detection and analysis on embedded systems. It introduces classic power parameter measurement methods, harmonic detection and analysis methods, and flicker measurement and calculation methods. (2) It derives and analyzes the basic principles and properties of the S-transform. It uses the S-transform to analyze the time-domain and frequency-domain characteristics of common single and composite disturbances. An improved incomplete S-transform algorithm is proposed, which reduces computational complexity and storage space requirements by performing the S-transform only on major frequency rows, and then adjusts the Gaussian window width according to the time-frequency resolution requirements of different frequency bands. A method is designed that uses the improved incomplete S-transform for feature extraction and a decision tree for disturbance classification. Five highly distinguishable feature values are constructed from the results of the incomplete S-transform of disturbance signals. The thresholds for each feature value are determined from the statistical results of a large number of disturbance samples, finally forming a decision tree classifier. MATLAB simulation experiments show that this method can accurately classify 6 types of single disturbances and 7 types of composite disturbances, and maintains a high accuracy level under various noise levels. (3) The aforementioned algorithms for power quality parameter measurement and power quality disturbance classification are implemented on a DSP system. In the software design, the physical storage space for data is reasonably allocated, and the optimized library functions of the DSP itself are fully utilized, thereby reducing development difficulty and accelerating program execution speed. Actual tests show that the DSP can calculate various power quality parameters and identify power quality disturbances from raw sampling sequences.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117655595/01_8244c0781d21a1519fe34d742ebfce12.png)
+
+1 Evaluation Board Introduction
+
+*   Based on TI OMAP-L138 (fixed-point/floating-point DSP C674x + ARM9) + Xilinx Spartan-6 FPGA processor;
+*   OMAP-L138 and FPGA are connected via uPP, EMIFA, I2C bus, with communication speeds up to 228MByte/s;
+*   OMAP-L138 main frequency 456MHz, with computing power up to 3648MIPS and 2746MFLOPS;
+*   FPGA compatible with Xilinx Spartan-6 XC6SLX9/16/25/45, strong platform upgrade capability;
+*   DSP+ARM+FPGA triple-core SOM, size 66mm*38.6mm, uses industrial-grade B2B connectors to ensure signal integrity;
+*   Supports bare-metal, SYS/BIOS operating system, Linux operating system.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117655595/02_86e0a472cf2c820b1236f506d88ef18c.png)
+Figure 1 Front and side views of the development board
+
+The XM138F-IDK-V3.0 is a development board designed based on Shenzhen Xinmai's XM138-SP6-SOM core board, adopting a 4-layer board design with immersion gold lead-free process. It provides users with a test platform for the XM138-SP6-SOM core board for rapid evaluation of its overall performance.
+
+The XM138-SP6-SOM brings out all CPU resource signal pins, making secondary development extremely easy. Customers only need to focus on the upper-layer application, greatly reducing development difficulty and time costs, allowing products to be quickly launched to seize market opportunities. It not only provides rich demo programs but also detailed development tutorials and comprehensive technical support to assist customers with baseboard design, debugging, and software development.
+
+2 Typical Application Areas
+Data acquisition, processing, and display systems
+Intelligent power systems
+Image processing equipment
+High-precision instrumentation
+Mid-to-high-end CNC systems
+Communication equipment
+Audio and video data processing
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117655595/03_03f44811b3c48cebd50bca516410c1e5.jpeg)
+Figure 2 Typical application areas
+
+3 Software and Hardware Parameters
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117655595/04_b8b71c37266c08c94fd72bc1aa2b41ce.jpeg)
+Block diagram of development board peripheral resources
+
+Figure 3 Development board interface diagram
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117655595/05_f5064ff9318c7bd28e73ecd10140aeb7.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117655595/06_efa6e7ddb5cfe701944c9379658db2e4.png)
+
+Figure 4 Development board interface diagram

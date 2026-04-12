@@ -1,22 +1,30 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { MDXRemote } from "next-mdx-remote/rsc";
-import { getAllPosts, getPostBySlug } from "@/lib/blog";
+import { getAllPosts, getPostBySlug, BlogLocale } from "@/lib/blog";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
 export async function generateStaticParams() {
-  const posts = getAllPosts();
-  return posts.map((post) => ({ slug: post.slug }));
+  const zhPosts = getAllPosts("zh");
+  const enPosts = getAllPosts("en");
+  return [
+    ...zhPosts.map((post) => ({ slug: post.slug })),
+    ...enPosts.map((post) => ({ slug: post.slug })),
+  ];
 }
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ lang?: string }>;
 }) {
   const { slug } = await params;
-  const post = getPostBySlug(slug);
+  const { lang } = await searchParams;
+  const locale: BlogLocale = lang === "en" ? "en" : "zh";
+  const post = getPostBySlug(slug, locale) ?? getPostBySlug(slug);
   if (!post) return { title: "Not Found" };
   return {
     title: post.title,
@@ -26,11 +34,15 @@ export async function generateMetadata({
 
 export default async function BlogPostPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ lang?: string }>;
 }) {
   const { slug } = await params;
-  const post = getPostBySlug(slug);
+  const { lang } = await searchParams;
+  const locale: BlogLocale = lang === "en" ? "en" : "zh";
+  const post = getPostBySlug(slug, locale) ?? getPostBySlug(slug);
   if (!post) notFound();
 
   return (

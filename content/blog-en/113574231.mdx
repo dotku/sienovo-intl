@@ -1,0 +1,50 @@
+---
+title: "Porting Xenomai Real-time Operating System to TI AM5728"
+date: "2021-02-02"
+slug: "113574231"
+tags: ["#AM5728", "#XENOMAI"]
+source: "https://blog.csdn.net/yeyuangen/article/details/113574231"
+originalTitle: "基于TI AM5728 移植 实时操作系统Xenomai"
+---
+
+1.  Goal: Implement a real-time kernel using TI Linux 4.4.19 (which runs normally on the board) + Xenomai, i.e., port Xenomai to Linux 4.4.19.
+
+Target board: Xinmai TI AM5728 Development Board
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/113574231/01_ce3a8caff441b9260386b01b8b7f28cb.png)
+
+1.  Problem: After applying the ipipe patch, a compilation error occurred in `timer.c`. After modification, it compiled successfully.
+2.  Reference tutorial: [https://www.cnblogs.com/wsg1100/p/12864199.html](https://www.cnblogs.com/wsg1100/p/12864199.html)
+3.  The compilation process is as follows:
+
+The following error occurred during compilation:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/113574231/02_48ef4ac38fe01e28d54e1df7f396e0d4.png)
+
+Solution: Make the following changes in `arch/arm/mach-omap2/time.c`:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/113574231/03_255e169addc23a7c2be5ddc4f68fae71.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/113574231/04_cc05e5566bd3d3db8193ce0dc84b487.png)
+
+4. Compile user-space libraries:
+
+[xmtech@xmtech-server01:~/xenomai/xenomai-3.1](mailto:xmtech@xmtech-server01:~/xenomai/xenomai-3.1)
+
+./configure CFLAGS="-march=armv7-a -mtune=cortex-a15 -mfloat-abi=hard -mfpu=neon -ffast-math" --host=arm-linux-gnueabihf --with-core= cobalt \--enable-smp --enable-pshared
+
+[xmtech@xmtech-server01:~/xenomai/xenomai-3.1](mailto:xmtech@xmtech-server01:~/xenomai/xenomai-3.1)  mkdir build_fs
+
+make DESTDIR=~/xenomai/xenomai-3.1/build_fs install
+
+mount /dev/sdb2 /opt/tmp
+
+[xmtech@xmtech-server01:~/xenomai/xenomai-3.1](mailto:xmtech@xmtech-server01:~/xenomai/xenomai-3.1) cp -r ./build_fs /opt/tmp/usr
+
+Start the system:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/113574231/05_905cd2e007ee370f6de956d9f39171bc.png)
+
+References: [https://blog.csdn.net/Beliven/article/details/80623696](https://blog.csdn.net/Beliven/article/details/80623696)   IGH on Beaglebone Black (AM3358) with Xenomai
+
+For technical exchange, add Engineer Ye on WeChat: 13670212541

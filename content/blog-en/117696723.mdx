@@ -1,0 +1,280 @@
+---
+title: "Open-Source EtherCAT Motion Control All-in-One Solution Based on AM5728 Linux"
+date: "2022-02-21"
+slug: "117696723"
+tags: ["#AM5728", "#LINUX", "#开源", "#运动控制", "#DSP+ARM"]
+source: "https://blog.csdn.net/yeyuangen/article/details/117696723"
+originalTitle: "基于AM5728 linux开源ethercat运动控制一体机解决方案"
+---
+
+Xinmotion EtherCAT master station with FPGA high real-time performance and encryption support for up to 32 axes
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/01_073c3c79f809e50a1cf62c33769a7f50.png)
+
+**Performance Advantages**
+
+1.  Faster cycle times, down to 31.25μs  
+2.  Lower jitter, less than 0.004μs  
+3.  Excellent synchronization: clock synchronization accuracy between master and slave devices can be far below 1μs (measured at 50ns for 4 axes)
+
+**Performance Comparison:**
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/02_189d758fec4b5baf792b6af757282279.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/03_46a68ecebeac947c57b0ab2dfa34b24c.png)
+
+**Further Performance Comparison Summary:**
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/04_422024ab63dd3fc67f7597d8fd4423f0.png)
+
+The XM5728-ETH bus controller integrates Gigabit Ethernet and USB 3.0 interfaces (supporting various industrial cameras), and supports EtherCAT bus, CAN, RS-232, RS-485, and encoder handwheel interfaces. It also features 16 digital inputs and 16 digital outputs (totaling 32 onboard digital I/Os).
+
+Complex motion control and third-party vision applications  
+Flexible system architecture and broad application scope  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/18_59139e2b008509e9691ec0b68c8c8a9c.png) Suitable for IoT and Industry 4.0 solutions  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/18_59139e2b008509e9691ec0b68c8c8a9c.png) Supports freely adding application software under Linux platform  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/18_59139e2b008509e9691ec0b68c8c8a9c.png) Supports Qt-based HMI development  
+On-chip localized interface with direct memory access for faster communication  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/18_59139e2b008509e9691ec0b68c8c8a9c.png) Up to 32-axis motion control (EtherCAT axis / encoder axis / virtual axis)  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/18_59139e2b008509e9691ec0b68c8c8a9c.png) Encoder interface supports position measurement and can be configured as handwheel input mode  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/18_59139e2b008509e9691ec0b68c8c8a9c.png) 16 channels of NPN general-purpose outputs, including 12 high-speed and 4 low-speed outputs; maximum output current up to 300mA, capable of directly driving certain solenoid valves  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/18_59139e2b008509e9691ec0b68c8c8a9c.png) 16 channels of NPN general-purpose inputs, including 2 high-speed and 12 low-speed inputs; high-speed inputs can be configured as latch signals  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/18_59139e2b008509e9691ec0b68c8c8a9c.png) Up to 4096 isolated input/output points expandable via EtherCAT bus  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/18_59139e2b008509e9691ec0b68c8c8a9c.png) 4 USB interfaces (including 2 USB 3.0), 1 RS-485 interface, 1 RS-232 interface, 2 Gigabit Ethernet interfaces, and 1 100M EtherCAT interface  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/18_59139e2b008509e9691ec0b68c8c8a9c.png) Supports up to 16-axis linear interpolation, arbitrary spatial arc interpolation, helical interpolation, and spline interpolation  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/18_59139e2b008509e9691ec0b68c8c8a9c.png) Supports electronic cam, electronic gear, position latching, synchronized following, virtual axis functions  
+Supports hardware compare output (HW_PSWITCH2), hardware timer, and precise output during motion  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/18_59139e2b008509e9691ec0b68c8c8a9c.png) Supports pulse closed-loop control, pitch compensation, and other functions  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/18_59139e2b008509e9691ec0b68c8c8a9c.png) Supports ZBasic multi-file, multi-task programming  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/18_59139e2b008509e9691ec0b68c8c8a9c.png) Multiple program encryption methods to protect customer intellectual property
+
+**1 Development Kit Overview**
+
+*   Based on the TI AM5728 floating-point dual DSP C66x + dual ARM Cortex-A15 industrial control and high-performance audio/video processor  
+*   Heterogeneous multi-core CPU integrating dual-core Cortex-A15, dual-core C66x floating-point DSP, dual-core PRU-ICSS, dual-core Cortex-M4 IPU, and dual-core GPU processing units; supports OpenCL, OpenMP, and SysLink IPC for multi-core development  
+*   Powerful video encoding/decoding capabilities: supports hardware encoding/decoding of 2K@30fps, 1×1080P@60fps, 2×720P@60fps, or 4×720P@30fps; supports H.265 software decoding  
+*   Supports up to 1×1080P@60fps full HD video input and dual outputs: 1×LCD and 1×HDMI 1.4a  
+*   Dual-core PRU-ICSS industrial real-time control subsystem supporting industrial protocols such as EtherCAT, EtherNet/IP, and PROFIBUS  
+*   High-performance GPU with dual-core SGX544 3D accelerator and GC320 2D graphics engine, supporting OpenGL ES 2.0  
+*   Rich peripheral interfaces: integrated dual Gigabit Ethernet, PCIe, GPMC, USB 2.0, UART, SPI, QSPI, SATA 2.0, I2C, DCAN, and other industrial control buses and interfaces; supports high-speed USB 3.0 interface  
+*   Development board exposes V-PORT video interface for flexible connection to video input modules  
+*   Compact size: only 86.5mm × 60.5mm  
+*   Industrial-grade precision B2B connector with 0.5mm pitch, stable, easy to plug/unplug, reverse-insertion protected; high-speed connectors used for critical high-data-rate interfaces to ensure signal integrity
+
+XM5728-IDK-V3 is a development board designed by Shenzhen Xinmotion based on the TI AM5728 (floating-point dual DSP C66x + dual ARM Cortex-A15) XM5728-SOM system-on-module. It provides a testing platform for evaluating the overall performance of the XM5728-SOM module.
+
+The XM5728-IDK-V3 baseboard uses a 4-layer PCB design with lead-free immersion gold process. It not only provides customers with comprehensive AM5728 getting-started tutorials but also assists in baseboard development, offering long-term, full technical support to help customers accelerate secondary product development and bring products to market quickly. It provides abundant demo programs and DSP+ARM multi-core communication development tutorials, comprehensive technical support, and assistance in baseboard design, debugging, and DSP+ARM software development.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/19_c4ebe255a8cd6b276b216bf623cc498f.png)
+
+Figure 1: Development Kit Diagram
+
+**2 Typical Application Areas**
+
+*   Industrial PCs & HMIs  
+*   Industrial robots  
+*   Machine vision  
+*   Medical imaging  
+*   Power automation  
+*   EtherCAT master/slave controllers  
+*   Industrial multi-protocol smart gateways  
+*   High-end CNC systems
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/20_c1623e9117a137353453f5413dd7b336.png)
+
+****Power Inspection Robots / AGV Logistics Carts****
+
+**3 Hardware and Software Specifications**
+
+**Hardware Block Diagram**
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/21_14f98ebf38a9db35a13c7329dc5d25f6.png)
+
+**Table 1**
+
+**SoC/CPU**
+
+TI AM5728, floating-point dual DSP C66x @750MHz + dual ARM Cortex-A15 @1.5GHz
+
+2 x IPU (Imaging Processing Unit) for image acceleration, each IPU consists of two ARM Cortex-M4 cores, totaling 4 ARM Cortex-M4 cores
+
+2 x PRU-ICSS, each PRU-ICSS contains a pair of PRUs (Programmable Real-Time Units), totaling 4 PRUs, supporting real-time industrial bus protocols such as EtherCAT
+
+1 x IVA-HD Video Codec, supporting hardware encoding/decoding of one 1080P@60fps H.264 video stream
+
+2 x SGX544 GPU 3D graphics accelerators
+
+1 x GC320 2D graphics accelerator
+
+**On-Chip L2 Cache**
+
+ARM Cortex-A15: 1 MByte  
+C66x: 288 KByte
+
+**On-Chip L3 RAM**
+
+2.5 MByte
+
+**ROM**
+
+4/8 GByte eMMC
+
+**RAM**
+
+1/2 GByte DDR3
+
+**Temperature Sensor**
+
+1x TMP102AIDRLT
+
+**B2B Connector**
+
+2x 100-pin male B2B, 2x 100-pin female B2B, 0.5mm pitch, 5.0mm mating height, total 400 pins
+
+**IO EXTENSION**
+
+2x simple header connectors (2x 25-pin), 2.54mm pitch, including expansion signals such as GPMC, SPI, I2C, PWM, TIMER, UART, eQEP, eCAP
+
+**KEY**
+
+1x cold reset button  
+1x warm reset button  
+3x programmable input buttons (including 1 non-maskable interrupt button)
+
+**JTAG**
+
+1x 14-pin TI Rev B JTAG interface, 2.54mm pitch
+
+**DISPLAY (Optional Module)**
+
+1x 7-inch capacitive touch screen, 40-pin FP female connector, 0.5mm pitch
+
+**BOOT SET**
+
+1x 5-bit DIP switch for boot mode selection
+
+**SD**
+
+1x Micro SD interface
+
+**RTC**
+
+1x CR1220, 3V77-LOIH
+
+**Ethernet**
+
+2x RGMII, RJ45 interface, 10/100/1000M auto-negotiation  
+2x PRU MII, RJ45 interface, 10/100M auto-negotiation, supporting industrial bus protocols such as EtherCAT
+
+**USB**
+
+2x USB 2.0 interfaces  
+1x USB 3.0 interface
+
+**CAN**
+
+1x 3-pin 3.81mm Phoenix terminal
+
+**PROFIBUS**
+
+1x 3-pin 3.81mm Phoenix terminal
+
+**UART**
+
+1x UART0 to Micro USB interface, full-duplex mode  
+1x RS232 serial port (UART1), full-duplex mode  
+1x RS485 serial port (multiplexed with UART1), half-duplex mode
+
+**PCIe**
+
+1x PCIe Gen2, single-port dual-lane, maximum communication rate per lane up to 5 GBaud
+
+**SATA**
+
+1x 7-pin SATA hard drive interface
+
+**HDMI OUT**
+
+1x HDMI 1.4a interface
+
+**Camera Module (Optional Module)**
+
+1x VIP parallel camera interface
+
+**LED**
+
+2x power indicator LEDs (1 on baseboard, 1 on core board)  
+5x programmable indicator LEDs (3 on baseboard, 2 on core board)
+
+**FAN**
+
+1x 3-pin 5V fan connector
+
+**POWER**
+
+1x 12V 2A DC input DC417 power jack, 4.0mm outer diameter, 1.7mm inner diameter
+
+**3 Software Specifications**
+
+Table 2
+
+**ARM-Side Software Support**
+
+Linux-4.4.19, RT-Linux-4.4.19, TI-RTOS
+
+**DSP-Side Software Support**
+
+TI-RTOS
+
+**CCS Version**
+
+CCS 7.0
+
+**GUI Development Tools**
+
+Qt
+
+**Inter-Processor Communication Support**
+
+IPC inter-core communication
+
+**Software Development Kits Provided**
+
+Processor-SDK Linux, Processor-SDK RT-Linux, Processor-SDK TI-RTOS
+
+**Linux Driver Support**
+
+Camera  
+DDR3  
+PCIe/PCIe 2.0  
+eMMC  
+MMC/SD  
+USB 2.0/USB 3.0  
+LED  
+BUTTON  
+RS232  
+RS485  
+HDMI OUT  
+DCAN  
+SATA  
+RTC  
+PROFIBUS  
+7-inch Touch Screen LCD (Resistive)  
+SPI  
+AUDIO  
+UART  
+JTAG  
+EMCRYDTIC  
+TEMPERATURE SENSOR  
+KBD  
+HDQ  
+NMI  
+SYS INT  
+eCAP  
+I2C
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/22_e41f4dcc9d6921b76a9b6e9125ca49e8.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/23_8d423b96e005e5cfe0ea10d819ceff25.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117696723/24_7d3ef3283277f55aac945299ca7964b3.png)

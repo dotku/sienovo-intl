@@ -1,0 +1,16 @@
+---
+title: "High-Speed Interface Design for a Heterogeneous Multi-Core Motion Controller Based on AM5728 and FPGA"
+date: "2020-04-16"
+slug: "105565714"
+tags: ["#AM5728", "#运动控制器", "#CNC", "#DSP+FPGA"]
+source: "https://blog.csdn.net/yeyuangen/article/details/105565714"
+originalTitle: "基于AM5728+FPGA的异构多核运动控制器的高速接口设计"
+---
+
+With the expanding application of embedded motion control systems in manufacturing, heterogeneous multi-core embedded controllers have become one of the key development directions. This article first highlights the advantages achieved by heterogeneous multi-core controllers and identifies existing deficiencies in current controllers regarding data communication interfaces. The proposed motion controller is centered on a heterogeneous processor architecture—AM5728 + FPGA—where the AM5728 integrates ARM Cortex-A15 and DSP C66x processor cores. The ARM Cortex-A15 runs a Linux operating system to enhance the controller's ability to coordinate multiple tasks, while the DSP operates without an OS to ensure computational real-time performance. The focus is on the design of high-speed interfaces and firmware for communication between ARM and DSP, DSP and FPGA, as well as between the controller and PC. Experimental results show that the motion controller achieves high data exchange rates, large throughput, and high stability, providing a reference for high-speed communication interfaces in heterogeneous multi-core controllers.
+
+The system adopts AM5728 + FPGA as the core of the embedded motion controller. The AM5728 is a heterogeneous multi-core processor integrating ARM Cortex-A15 and DSP C66x cores [7]. The ARM Cortex-A15 can run an embedded Linux system to handle task scheduling, enhancing the controller’s capability for multi-task coordination. The DSP C66x features hardware multipliers and employs a 128-bit wide Very Long Instruction Word (VLIW) architecture for instruction fetching and execution, enabling complex algorithm processing. The FPGA offers abundant I/O resources and parallel processing capability, facilitating pulse signal generation and enabling synchronized control of multiple motors. Communication between the controller and external devices primarily occurs through two interfaces: Ethernet and a serial communication port (UART). Ethernet is mainly used for long-distance data transmission, while UART is used to output prompt messages during Linux system porting and to report system runtime status. Data exchange between ARM and DSP is achieved via shared memory space, which provides high stability and negligible communication latency [8]. Communication between DSP and FPGA is implemented using the uPP high-speed parallel interface. When the OMAPL138 clock frequency is 456 MHz, the uPP interface clock frequency can reach up to 114 MHz. The high-speed interface architecture of the controller is shown in Figure 1.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/105565714/01_df15958c6ed9e9c121ac61c8f3327556.png)
+
+Figure 1 AM5728-IDK-V3 evaluation board from Xinming for development and evaluation

@@ -1,0 +1,36 @@
+---
+title: "Development of a Rail Transit Sela Door Controller Based on OMAPL138 DSP+ARM Dual-Core CPU"
+date: "2021-03-12"
+slug: "114707833"
+tags: ["#omapl138", "#c6748", "#塞拉门控制器", "#轨道交通", "#FPGA"]
+source: "https://blog.csdn.net/yeyuangen/article/details/114707833"
+originalTitle: "基于OMAPL138  DSP+ARM双核CPU的轨道交通塞拉门控制器研制"
+---
+
+The development of China's high-speed rail industry holds broad prospects. Compared to other modes of transportation, high-speed rail offers greater capacity, lower energy consumption, and advantages such as safety, comfort, and minimal environmental impact. The safety and stability of high-speed train Sela door systems are critical factors for the safe operation of high-speed railways. This project originates from the demand for a high-performance, highly secure Sela door system. By reflecting on and further studying the shortcomings of existing Sela door controllers, this paper investigates a more reliable and secure design approach. First, based on the functional requirements of the Sela door system, a detailed functional design scheme is proposed. Then, the basic architecture and implementation foundation of dual-core communication are introduced, leading to the selection of a dual-core chip as the core control unit for the Sela door controller. Through comparison with earlier Sela door control designs, the OMAPL138 chip from Texas Instruments (TI) is selected as the core processor for this design. Next, based on the Sela door's functions and system architecture, the design fully leverages the chip's features and on-chip resources, with modular schematic design of peripheral circuits, including main processor selection and circuit design, power management module, memory module, voltage and current sampling module, digital input/output module, Ethernet communication module, and CAN communication module. Subsequently, software design is divided into two parts according to the chip's characteristics: implementation of dual-core communication and Ethernet software functions on the master processor, and door open/close control software, timer module design, SPI-to-CAN communication design, and fault diagnosis design on the slave processor. Finally, hardware and software debugging of the developed Sela door controller is conducted. Design optimization is performed based on issues identified during debugging, including dual-core communication tests, Ethernet tests, and basic functionality tests. Long-term testing shows that the system is stable, fully functional, and achieves the intended control objectives for the Sela door.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/114707833/01_c1b141f6d21ccd020febb266dac5f2bb.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/114707833/02_3cd51b06f475763edee47fa672b45caf.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/114707833/03_1bdb93a1682cfe0673d79dd29470c0cc.jpeg)
+
+1 Introduction to the Evaluation Board  
+Based on the TI OMAP-L138 (fixed/floating-point DSP C674x + ARM9) and Xilinx Spartan-6 FPGA processor;  
+OMAP-L138 and FPGA are connected via uPP, EMIFA, and I2C buses, supporting communication speeds up to 228 MByte/s; OMAP-L138 runs at a maximum clock frequency of 456 MHz, delivering up to 3648 MIPS and 2746 MFLOPS computational performance;  
+FPGA compatible with Xilinx Spartan-6 XC6SLX9/16/25/45, offering strong platform scalability;  
+The development board exposes abundant peripherals, including Gigabit Ethernet, SATA, EMIFA, uPP, and USB 2.0 for high-speed data transfer, as well as commonly used interfaces such as GPIO, I2C, RS232, PWM, and McBSP;  
+Certified for high and low temperature operation, suitable for harsh working environments;  
+The DSP+ARM+FPGA tri-core SOM measures 66mm × 38.6mm and uses industrial-grade B2B connectors to ensure signal integrity;  
+Supports bare-metal, SYS/BIOS, and Linux operating systems.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/114707833/04_86e0a472cf2c820b1236f506d88ef18c.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/114707833/05_8d2c1278adf35d525eb4afe8d47e2c25.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/114707833/06_623d70a7ae1d9b40b34a619a72392d13.png)  
+Figure 1 Front and side views of the development board
+
+XM138F-IDK-V3.0 is a development board designed based on Shenzhen Sinmem's XM138-SP6-SOM core board, fabricated using a 4-layer沉gold lead-free process. It provides a testing platform for the XM138-SP6-SOM core board, enabling rapid evaluation of its overall performance.
+
+The XM138-SP6-SOM exposes all CPU resource signal pins, making secondary development extremely easy. Customers can focus solely on application-level development, significantly reducing development difficulty and time cost, accelerating time-to-market and enabling timely capture of market opportunities. In addition to providing rich demo programs, comprehensive development tutorials and full technical support are offered to assist customers with baseboard design, debugging, and software development.

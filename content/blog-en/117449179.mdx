@@ -1,0 +1,44 @@
+---
+title: "High-Speed Data Acquisition and Storage System Based on OMAPL138/C6748 + SPARTAN6"
+date: "2021-06-01"
+slug: "117449179"
+tags: ["#omapl138", "#fpga", "#spartan6", "#ad7606"]
+source: "https://blog.csdn.net/yeyuangen/article/details/117449179"
+originalTitle: "基于OMAPL138/C6748+SPARTAN6高速数据采集存储系统"
+---
+
+## Are these problems in data acquisition/production processing giving you a headache?!
+
+*   Unable to know equipment status in time, and historical records cannot be queried!
+*   Unable to know equipment operating conditions and load!
+*   Equipment utilization and efficiency are unknown!
+*   Tool life and tool management issues are unclear!
+*   Production line data and production progress information cannot be obtained!
+*   Production data and production progress information cannot be obtained!
+*   The production site is not transparent, statistical charts are lacking, and management is extremely difficult!
+
+The Automatic Identification System (AIS) is a digital navigation aid system used at sea for collision avoidance and vessel identification, playing a huge role in maintaining maritime traffic safety. The position information of the AIS system is provided by the Global Navigation Satellite System (GNSS). To improve the reliability of the AIS system, a land-based positioning system, which serves as a backup positioning system for GNSS, is currently being researched in the maritime field. A ship autonomous positioning system based on AIS shore stations has been developed. During the research process of this system, to analyze and process real-time signal information from AIS and GNSS, it is necessary to acquire and store the intermediate frequency (IF) data of AIS and GNSS. This facilitates signal detection and evaluation and provides a large amount of raw data for future use, which has significant value in practical application and research.
+
+This paper designs an IF data acquisition and storage system based on an embedded triple-core platform, capable of acquiring and storing IF data. The designed hardware platform includes an acquisition module, a Xilinx Spartan-6 + OMAPL138 triple-core platform, and SATA storage devices. The ADS830E collector completes the acquisition of AIS signals. Data is transmitted to the FPGA I/O port of the triple-core platform via an interface adapter module. The NJ1006A RF front-end receives signals from the GPS antenna, passes them through a level conversion module, and a power supply module powers this front-end and conversion module. The output of the level conversion module is connected to the FPGA I/O port of the triple-core platform, and finally, the data is stored on a SATA hard drive.
+
+The system software is divided into three parts: acquisition, transmission, and storage. The acquisition program controls the timing of the collector and data reception, written in Verilog and running on the FPGA. The transmission program includes DSP's DMA reception of uPP data and data access between the two processors in shared memory. The DSP and ARM run SYS/BIOS and Linux operating systems, respectively, using TI's SYSLINK dual-core communication component for data interaction. The finally acquired data is stored on the SATA hard drive. After data storage is completed, the system platform is tested and verified. The acquired and stored AIS IF digital data is restored to a waveform in Matlab, and a Fast Fourier Transform (FFT) is performed. The waveform and center frequency are compared with the actual measured signal source on an oscilloscope to verify its accuracy. At the FPGA's GPS IF data reception end, CHIPSCOPE is used to check whether the waveform is consistent with the program logic, thereby verifying its accuracy.
+
+1 Evaluation Board Introduction: Xinmai XM138F-IDK-V3
+Based on TI OMAP-L138 (fixed-point/floating-point DSP C674x + ARM9) + Xilinx Spartan-6 FPGA processor;
+OMAP-L138 FPGA is connected via uPP, EMIFA, I2C bus, with communication speeds up to 228MByte/s; OMAP-L138 main frequency is 456MHz, with computing power up to 3648MIPS and 2746MFLOPS;
+FPGA is compatible with Xilinx Spartan-6 XC6SLX9/16/25/45, with strong platform upgrade capability;
+The development board exposes rich peripherals, including Gigabit Ethernet, SATA, EMIFA, uPP, USB 2.0 and other high-speed data transmission interfaces, as well as common interfaces such as GPIO, I2C, RS232, PWM, McBSP;
+Certified through high and low-temperature tests, suitable for various harsh working environments;
+DSP+ARM+FPGA triple-core module, size 66mm*38.6mm, uses industrial-grade B2B connectors to ensure signal integrity;
+Supports bare metal, SYS/BIOS operating system, and Linux operating system.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117449179/01_86e0a472cf2c820b1236f506d88ef18c.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117449179/02_8d2c1278adf35d525eb4afe8d47e2c25.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117449179/03_623d70a7ae1d9b40b34a619a72392d13.png)
+Figure 1 Front and side views of the development board
+
+The XM138F-IDK-V3.0 is a development board designed based on Shenzhen Xinmai's XM138-SP6-SOM core board. It adopts a 4-layer board design with immersion gold lead-free process, providing users with a test platform for the XM138-SP6-SOM core board to quickly evaluate its overall performance.
+
+The XM138-SP6-SOM exposes all CPU resource signal pins, making secondary development extremely easy. Customers only need to focus on the upper-layer applications, greatly reducing development difficulty and time costs, allowing products to quickly enter the market and seize market opportunities in a timely manner. It not only provides rich demo programs but also detailed development tutorials and comprehensive technical support to assist customers with baseboard design, debugging, and software development.

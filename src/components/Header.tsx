@@ -9,12 +9,12 @@ export default function Header() {
   const t = dict.nav;
 
   const NAV_ITEMS = [
-    { href: "#products", label: t.products },
-    { href: "#features", label: t.features },
-    { href: "#scenarios", label: t.scenarios },
-    { href: "#cases", label: t.cases },
-    { href: "#specs", label: t.specs },
-    { href: "#platform", label: t.platform },
+    { href: "/#products", label: t.products },
+    { href: "/#features", label: t.features },
+    { href: "/#scenarios", label: t.scenarios },
+    { href: "/#cases", label: t.cases },
+    { href: "/#specs", label: t.specs },
+    { href: "/#platform", label: t.platform },
     { href: "/blog", label: t.blog },
   ];
 

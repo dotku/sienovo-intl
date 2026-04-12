@@ -1,0 +1,50 @@
+---
+title: "Design of a 77GHz Automotive Anti-Collision Radar Signal Processing Platform Based on OMAPL138/C6748 + SPARTAN-6"
+date: "2021-06-01"
+slug: "117449374"
+tags: ["#omapl138", "#c6748", "#dsp", "#fpga", "#雷达"]
+source: "https://blog.csdn.net/yeyuangen/article/details/117449374"
+originalTitle: "基于OMAPL138/C6748 + SPARTAN-6 77GHz汽车防撞雷达信号处理平台设计"
+---
+
+In recent years, automotive autonomous driving has garnered increasing attention. Millimeter-wave automotive radar is one of the key technologies for autonomous driving, offering advantages such as stable performance, high measurement accuracy, and low cost.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117449374/01_251ecdd94efc7ab2fe71b32717936a5c.png)
+
+This paper investigates the communication design between the DSP board based on the OMAPL138 platform and the millimeter-wave front-end, as well as the communication methods between OMAPL138 and HMC703, AD8285, AD8334, and a gyroscope. It introduces the principles of ranging, velocity measurement, and angle measurement for frequency-modulated continuous wave (FMCW) radar, and provides MATLAB and Code Composer Studio simulation implementations of the radar algorithm. The final algorithm implementation runs correctly on OMAPL138 and has been tested to provide high accuracy.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117449374/02_b3854d8e15fdc36332cb8f0cf3288fee.png)
+
+Finally, this paper describes the optimization of the radar ranging algorithm. Due to the picket-fence effect, FFT cannot provide accurate signal frequencies. This paper introduces several common frequency estimation algorithms and their frequency offset estimation errors. Based on these, a hybrid frequency estimation algorithm based on FFT coefficients and M-Rife is proposed and implemented. This hybrid algorithm uses FFT coefficients, avoiding the problem of amplitude information alone being susceptible to noise interference, and employs the M-Rife algorithm when calculating frequency offsets to ensure the accuracy of frequency estimation.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117449374/03_0e2fe38437860de0e17baca2b66ed31e.png)
+
+1 Evaluation Board Introduction
+Based on TI OMAP-L138 (fixed-point/floating-point DSP C674x + ARM9) + Xilinx Spartan-6 FPGA processor;
+OMAP-L138 FPGA connects via uPP, EMIFA, I2C bus, with communication speeds up to 228 MByte/s; OMAP-L138 main frequency is 456MHz, with computing power up to 3648 MIPS and 2746 MFLOPS;
+FPGA is compatible with Xilinx Spartan-6 XC6SLX9/16/25/45, offering strong platform upgrade capabilities;
+The development board provides rich peripheral interfaces, including Gigabit Ethernet, SATA, EMIFA, uPP, USB 2.0 and other high-speed data transfer interfaces, as well as common interfaces like GPIO, I2C, RS232, PWM, McBSP;
+Certified through high and low-temperature testing, suitable for various harsh working environments;
+DSP+ARM+FPGA triple-core module, with dimensions of 66mm*38.6mm, using industrial-grade B2B connectors to ensure signal integrity; Ø
+Supports bare-metal, SYS/BIOS operating system, and Linux operating system.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117449374/04_86e0a472cf2c820b1236f506d88ef18c.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117449374/05_623d70a7ae1d9b40b34a619a72392d13.png)
+Figure 1 Development Board Front and Side View
+
+The XM138F-IDK-V3.0 is a development board designed based on Shenzhen Xinmai's XM138-SP6-SOM core module. It features a 4-layer board design with immersion gold lead-free process, providing users with a test platform for the XM138-SP6-SOM core module to quickly evaluate its overall performance.
+
+The XM138-SP6-SOM exposes all CPU resource signal pins, making secondary development extremely easy. Customers only need to focus on the upper-layer application, greatly reducing development difficulty and time costs, allowing products to quickly enter the market and seize market opportunities. It not only provides rich demo programs but also detailed development tutorials and comprehensive technical support to assist customers with baseboard design, debugging, and software development.
+
+2 Typical Application Areas
+Data acquisition, processing, and display systems
+Smart power systems
+Image processing equipment
+High-precision instrumentation
+Mid-to-high-end CNC systems
+Communication equipment
+Audio and video data processing
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/117449374/06_b2374155188e057172d60d7e4c7035ab.png)
+Figure 2 Typical Application Areas

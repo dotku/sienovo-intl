@@ -1,0 +1,440 @@
+---
+title: "Xinming TI OMAP-L138 (Fixed/Floating-Point DSP C674x + ARM9) + Xilinx Spartan-6 FPGA Development Board Specification"
+date: "2021-06-24"
+slug: "118175339"
+tags: ["#OMAPL138", "#C6748", "#DSP+ARM", "#SPARTAN6", "#数据采集"]
+source: "https://blog.csdn.net/yeyuangen/article/details/118175339"
+originalTitle: "信迈TI OMAP-L138（定点/浮点DSP C674x+ARM9） + Xilinx Spartan-6 FPGA开发板规格书"
+---
+
+### **1 Evaluation Board Introduction**
+
+*   Based on the TI OMAP-L138 (fixed/floating-point DSP C674x + ARM9) + Xilinx Spartan-6 FPGA processor;
+*   OMAP-L138 and FPGA are connected via uPP, EMIFA, and I2C buses, supporting communication speeds up to 228 MByte/s; OMAP-L138 runs at 456 MHz with computing performance up to 3648 MIPS and 2746 MFLOPS;
+*   FPGA compatible with Xilinx Spartan-6 XC6SLX9/16/25/45, offering strong platform scalability;
+*   The development board exposes abundant peripherals, including Gigabit Ethernet, SATA, EMIFA, uPP, USB 2.0, and other high-speed data interfaces, as well as common interfaces such as GPIO, I2C, RS232, PWM, and McBSP;
+*   Passed high and low temperature testing, suitable for harsh operating environments;
+*   DSP + ARM + FPGA tri-core SOM (System-on-Module), dimensions 66mm × 38.6mm, using industrial-grade B2B connectors to ensure signal integrity; Ø
+*   Supports bare-metal, SYS/BIOS, and Linux operating systems.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118175339/01_f2305acb97c88f07727d928f5610cad9.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118175339/02_8a788f33c6a2193ce043131caf03238e.png)
+
+Figure 1 Front and side views of the development board
+
+The XM138F-IDK-V3.0 is a development board designed based on Shenzhen Xinming's XM138-SP6-SOM core module, using a 4-layer PCB with lead-free immersion gold process. It provides a test platform for the XM138-SP6-SOM core module, enabling rapid evaluation of its overall performance.
+
+The XM138-SP6-SOM exposes all CPU resource signal pins, making secondary development extremely easy. Customers can focus on application-level development, significantly reducing development difficulty and time cost, accelerating time-to-market and enabling rapid capture of market opportunities. It provides not only abundant demo programs but also detailed development tutorials and comprehensive technical support to assist customers with carrier board design, debugging, and software development.
+
+### **2 Typical Application Areas**
+
+*   Data acquisition, processing, and display systems
+*   Intelligent power systems
+*   Image processing equipment
+*   High-precision instruments and meters
+*   Mid-to-high-end CNC systems
+*   Communication equipment
+*   Audio and video data processing
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118175339/03_c63279af5287cdf2ce31a0e11f2ae245.png)
+
+Figure 2 Typical application areas
+
+### **3 Hardware and Software Specifications**
+
+Block diagram of development board peripheral resources
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118175339/04_c1851d85638831ba9ddadf3be83ae57f.png)
+
+Figure 3 Development board interface diagram
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118175339/05_fadc796c741812c97771df03819d097d.png)
+
+Figure 4 Development board interface diagram
+
+Table 1 Hardware Resources
+
+**CPU**
+
+TI OMAP-L138, fixed/floating-point DSP C674x + ARM9, dual-core 456 MHz
+
+Xilinx Spartan-6 XC6SLX9/16/25/45 FPGA
+
+**ROM**
+
+OMAP-L138 side: 128/256/512 MByte NAND FLASH
+
+Spartan-6 side: 64 Mbit SPI FLASH
+
+**RAM**
+
+OMAP-L138 side: 128/256 MByte DDR2
+
+**B2B Connector**
+
+2 × 80-pin male B2B, 2 × 80-pin female B2B, 0.5 mm pitch, total 320 pins
+
+**IO**
+
+2 × 25-pin IDC3 header, 2.54 mm pitch, for EMIFA expansion signals
+
+2 × 25-pin IDC3 header, 2.54 mm pitch, for FPGA GPIO expansion signals
+
+2 × 15-pin headers, 2.54 mm pitch, including I2C, McBSP, PWM, FPGA differential IO, and other expansion signals
+
+**LED**
+
+2 × power indicator LEDs (1 on baseboard, 1 on core board)
+
+5 × programmable LEDs (3 on baseboard, 2 on core board)
+
+5 × programmable LEDs (3 on baseboard, 2 on core board, FPGA side)
+
+**KEY**
+
+1 × system reset button
+
+3 × programmable input buttons (including 1 non-maskable interrupt button)
+
+5 × programmable LEDs (3 on baseboard, 2 on core board, FPGA side)
+
+**JTAG**
+
+1 × 14-pin TI Rev B JTAG interface, 2.54 mm pitch
+
+1 × 14-pin FPGA JTAG interface, 2.00 mm pitch
+
+**LCD**
+
+1 × LCD touch screen interface
+
+**BOOT SET**
+
+1 × 5-bit DIP switch for boot mode selection
+
+**SD**
+
+1 × Micro SD card interface
+
+**RTC**
+
+1 × RC1220 RTC socket, 3V
+
+**SATA**
+
+1 × 7-pin SATA hard drive interface
+
+**Ethernet**
+
+1 × RJ45 Ethernet port, 10/100M auto-negotiation
+
+**USB**
+
+1 × Micro USB 2.0 OTG interface
+
+1 × USB 1.1 HOST interface
+
+**UART**
+
+2 × RS232 serial ports: UART2 via Micro USB, UART1 via DB9; 4-wire TTL header (TXD, RXD, 3V3, GND) also exposed
+
+**SWITCH**
+
+1 × power toggle switch
+
+**POWER**
+
+1 × 12V 2A DC input DC417 power jack, 4.4 mm outer diameter, 1.65 mm inner diameter
+
+Table 2 Software Resources
+
+**ARM Side Software Support**
+
+Bare-metal, Linux operating systems (Linux-3.3, Linux-2.6.37, Linux-2.6.33)
+
+**DSP Side Software Support**
+
+Bare-metal, SYS/BIOS operating system
+
+**CCS Version**
+
+CCS 5.5
+
+**GUI Development Tools**
+
+Qt
+
+**Dual-Core Communication Components**
+
+SysLink, DSPLink
+
+**Software Development Kits Provided**
+
+MCSDK, DVSDK
+
+**ISE Version**
+
+ISE 14.7
+
+**Linux Driver Support**
+
+NAND FLASH, DDR2, SPI FLASH, I2C EEPROM, MMC/SD, SATA, USB 2.0 HOST, USB 2.0 OTG, LED, BUTTON, RS232, RS485, UART TL16C754C, CAN MCP2515, AUDIO TLV320AIC3106, Ethernet LAN8710 MII, Ethernet LAN8720 RMII, Ethernet LAN9221 EMIFA, 7-inch Touch Screen LCD, VGA CS7123, RTC, ADC AD7606, ADC AD7656, ADC ADS8568, DAC AD5724, CMOS Sensor OV2640, Video Decoder TVP5147, USB 3G ZTE MC2716, USB WIFI RTL8188, USB Mouse, USB Keyboard
+
+### **4 Development Resources**
+
+(1) Provide core module pin definitions, editable baseboard schematics, editable baseboard PCB, chip datasheets—shortening hardware design cycle;
+
+(2) Provide system flashing images, kernel driver source code, file system source code, and abundant demo programs;
+
+(3) Provide complete platform development packages and getting-started tutorials—saving software integration time and enabling quick onboarding;
+
+(4) Provide abundant getting-started tutorials and development examples, including OMAP-L138 and FPGA communication examples;
+
+(5) Provide detailed DSP+ARM dual-core communication tutorials, effectively resolving dual-core development bottlenecks;
+
+(6) Provide Qt-based GUI development tutorials.
+
+Shenzhen Xinming provides extensive development materials, video tutorials, and Chinese datasheets, creating a new landscape for OMAP-L138 platform development and leading the learning wave for OMAP-L138 + Spartan-6 DSP+ARM+FPGA tri-core systems.
+
+Selected development examples are detailed in Appendix A, including:
+
+*   Bare-metal development examples based on ARM
+*   Linux development examples based on ARM
+*   Bare-metal development examples based on DSP
+*   SYS/BIOS development examples based on DSP
+*   SYSLINK-based dual-core development examples
+*   DSPLINK-based dual-core development examples
+*   XM_IPC-based dual-core development examples
+*   PRU assembly development examples
+*   FPGA-side development examples
+
+### **5 Electrical Characteristics**
+
+****Core Module Operating Environment****
+
+Table 3
+
+Environmental Parameter
+
+Minimum
+
+Typical
+
+Maximum
+
+Commercial Temperature
+
+0°C
+
+/
+
+70°C
+
+Industrial Temperature
+
+\-40°C
+
+/
+
+85°C
+
+Operating Voltage
+
+/
+
+3.3V
+
+/
+
+****Power Consumption Test****
+
+Table 4
+
+Category
+
+Typical Voltage
+
+Typical Current
+
+Typical Power
+
+Core Module
+
+3.3V
+
+74mA
+
+0.24W
+
+Entire Board
+
+12.01V
+
+100mA
+
+1.20W
+
+Note: Power consumption test conducted on Shenzhen Xinming XM138F-IDK-V3 development board.
+
+### **6 Mechanical Dimensions**
+
+Table 5
+
+Core Module
+
+Development Board
+
+PCB Dimensions
+
+66mm × 38.6mm
+
+165mm × 110mm
+
+Number of Mounting Holes
+
+4
+
+12
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118175339/06_a5e058e27a50510ffe61291541dd76cb.png)
+
+Figure 5 Core module mechanical dimensions
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118175339/07_d2ec6e445c0025179cf7f8e7fb551ef9.png)
+
+Figure 6 Evaluation board mechanical dimensions
+
+### **7 Product Ordering Models**
+
+Table 6
+
+Model
+
+CPU Frequency
+
+NAND FLASH
+
+DDR2
+
+SPI FLASH
+
+FPGA Model
+
+Temperature Grade
+
+SOM-XM138F-4-4GN1GD2S16-I
+
+456MHz
+
+512MB
+
+128MB
+
+64Mbit
+
+XC6SLX16
+
+Industrial
+
+SOM-XM138F-4-4GN2GD2S16-I
+
+456MHz
+
+512MB
+
+256MB
+
+64Mbit
+
+XC6SLX16
+
+Industrial
+
+SOM-XM138F-4-4GN1GD2S45-I
+
+456MHz
+
+512MB
+
+128MB
+
+64Mbit
+
+XC6SLX45
+
+Industrial
+
+SOM-XM138F-4-4GN2GD2S45-I
+
+456MHz
+
+512MB
+
+256MB
+
+64Mbit
+
+XC6SLX45
+
+Industrial
+
+Note: Default configuration is SOM-XM138F-4-4GN1GD2S16-I. Contact sales personnel for other models.
+
+### **8 Development Board Kit Contents**
+
+Table 7
+
+Item
+
+Quantity
+
+XM138F-IDK-V3 Development Board (with core module)
+
+1 unit
+
+12V/2A Power Adapter
+
+1 unit
+
+Documentation CD
+
+1 set
+
+Micro SD System Card
+
+1 unit
+
+SD Card Reader
+
+1 unit
+
+Straight-through Ethernet Cable
+
+1 piece
+
+Micro USB Data Cable
+
+1 piece
+
+### **9 Technical Support**
+
+(1) Assist in carrier board design and testing to reduce hardware design errors;
+
+(2) Assist in resolving anomalies encountered during operation per user manual;
+
+(3) Assist in product fault diagnosis;
+
+(4) Assist in correctly compiling and running provided source code;
+
+(5) Assist in secondary product development;
+
+(6) Provide long-term after-sales service.
+
+### **10 Value-Added Services**
+
+*   Custom carrier board design
+*   Custom core module design
+*   Embedded software development
+*   Joint project development
+*   Technical training

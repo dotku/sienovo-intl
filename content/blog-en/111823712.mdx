@@ -1,0 +1,41 @@
+---
+title: "Solution to Error E: Package 'unrar' has no installation candidate when installing rar/unrar on Ubuntu"
+date: "2020-12-27"
+slug: "111823712"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/111823712"
+originalTitle: "ubuntu 安装rar/unrar 提示错误E: Package ‘unrar‘ has no installation candidate解决方法"
+---
+
+Background: Ubuntu 16.04
+
+When installing rar/unrar, the following error occurs:
+
+```hljs
+ sudo apt-get install unrarReading package lists... DoneBuilding dependency tree       Reading state information... DonePackage unrar is not available, but is referred to by another package.This may mean that the package is missing, has been obsoleted, oris only available from another source E: Package 'unrar' has no installation candidate
+```
+
+Solution:
+
+1.   Open https://www.rarlab.com/download.htm
+    
+2.   Download RAR 5.71 beta 2 for Linux (choose 32-bit or 64-bit based on your system)
+    
+
+How to determine if your system is 32-bit or 64-bit:
+
+```hljs
+root# getconf LONG_BIT64  # 64-bit system
+```
+
+Installation:
+
+```hljs
+tar -xzpvf rarlinux-x64-5.7.1b2.tar.gz cd rar make
+```
+
+Running `make` will output:
+
+```hljs
+root:/home/work/rar# makemkdir -p /usr/local/binmkdir -p /usr/local/libcp rar unrar /usr/local/bincp rarfiles.lst /etccp default.sfx /usr/local/lib
+```

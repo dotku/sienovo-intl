@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 
 /**
- * Translate Chinese blog articles to English using Gemini API.
+ * Translate Chinese blog articles to English using multiple AI providers.
+ * Supports: Vercel AI Gateway, OpenRouter, Gemini (fallback chain).
  * Reads from content/blog/, writes to content/blog-en/.
  * Skips articles that already have translations.
  *
  * Usage:
  *   node scripts/translate-blog.mjs              # translate all untranslated
  *   node scripts/translate-blog.mjs --limit 10   # translate up to 10 articles
+ *   node scripts/translate-blog.mjs --provider gemini   # force a specific provider
  */
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from "fs";
@@ -21,24 +23,112 @@ config({ path: join(PROJECT_ROOT, ".env.local") });
 // ── Config ──────────────────────────────────────────────────────────────────
 const SOURCE_DIR = join(PROJECT_ROOT, "content/blog");
 const TARGET_DIR = join(PROJECT_ROOT, "content/blog-en");
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const DELAY_MS = 1500; // Rate limiting between API calls
-const GEMINI_MODEL = "gemini-2.5-flash";
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
 
-if (!GEMINI_API_KEY) {
-  console.error("Missing GEMINI_API_KEY env var.");
+// ── Provider definitions ────────────────────────────────────────────────────
+const PROVIDERS = {
+  cerebras: {
+    name: "Cerebras",
+    url: "https://api.cerebras.ai/v1/chat/completions",
+    key: process.env.CEREBRAS_API_KEY,
+    model: "qwen-3-235b-a22b-instruct-2507",
+    format: "openai",
+  },
+  gateway: {
+    name: "Vercel AI Gateway",
+    url: "https://gateway.ai.vercel.app/v1/chat/completions",
+    key: process.env.VERCEL_AI_GEWAY_API_KEY,
+    model: "google/gemini-2.5-flash",
+    format: "openai",
+  },
+  openrouter: {
+    name: "OpenRouter",
+    url: "https://openrouter.ai/api/v1/chat/completions",
+    key: process.env.OPENROUTER_API_KEY,
+    model: "google/gemini-2.5-flash",
+    format: "openai",
+  },
+  gemini: {
+    name: "Gemini Direct",
+    url: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+    key: process.env.GEMINI_API_KEY,
+    model: "gemini-2.5-flash",
+    format: "gemini",
+  },
+};
+
+// Build provider chain: prefer gateway > openrouter > gemini
+const availableProviders = Object.entries(PROVIDERS)
+  .filter(([, p]) => p.key)
+  .map(([id, p]) => ({ id, ...p }));
+
+if (availableProviders.length === 0) {
+  console.error("No AI API keys found. Set VERCEL_AI_GEWAY_API_KEY, OPENROUTER_API_KEY, or GEMINI_API_KEY.");
   process.exit(1);
 }
+
+console.log(`Available providers: ${availableProviders.map((p) => p.name).join(", ")}`);
 
 // ── Parse CLI args ──────────────────────────────────────────────────────────
 const args = process.argv.slice(2);
 const LIMIT = args.includes("--limit")
   ? parseInt(args[args.indexOf("--limit") + 1], 10)
   : Infinity;
+const FORCE_PROVIDER = args.includes("--provider")
+  ? args[args.indexOf("--provider") + 1]
+  : null;
 
-// ── Gemini translation ─────────────────────────────────────────────────────
-async function translateWithGemini(title, content) {
+// ── Translation via OpenAI-compatible API ──────────────────────────────────
+async function translateOpenAI(provider, prompt) {
+  const response = await fetch(provider.url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${provider.key}`,
+    },
+    body: JSON.stringify({
+      model: provider.model,
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.3,
+      max_tokens: 8192,
+    }),
+  });
+
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`${provider.name} error ${response.status}: ${err.substring(0, 120)}`);
+  }
+
+  const data = await response.json();
+  const text = data.choices?.[0]?.message?.content;
+  if (!text) throw new Error(`Empty response from ${provider.name}`);
+  return text;
+}
+
+// ── Translation via Gemini native API ──────────────────────────────────────
+async function translateGemini(provider, prompt) {
+  const response = await fetch(provider.url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.3, maxOutputTokens: 8192 },
+    }),
+  });
+
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`${provider.name} error ${response.status}: ${err.substring(0, 120)}`);
+  }
+
+  const data = await response.json();
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) throw new Error(`Empty response from ${provider.name}`);
+  return text;
+}
+
+// ── Translate with fallback chain ──────────────────────────────────────────
+async function translate(title, content) {
   const prompt = `You are a professional technical translator. Translate the following Chinese technical blog post to English.
 
 Rules:
@@ -54,29 +144,29 @@ Title: ${title}
 Content:
 ${content}`;
 
-  const response = await fetch(GEMINI_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.3,
-        maxOutputTokens: 8192,
-      },
-    }),
-  });
+  const providers = FORCE_PROVIDER
+    ? availableProviders.filter((p) => p.id === FORCE_PROVIDER)
+    : availableProviders;
 
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Gemini API error ${response.status}: ${err}`);
+  if (providers.length === 0) {
+    throw new Error(`Provider "${FORCE_PROVIDER}" not available`);
   }
 
-  const data = await response.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) {
-    throw new Error("Empty response from Gemini");
+  let lastError;
+  for (const provider of providers) {
+    try {
+      const result = provider.format === "gemini"
+        ? await translateGemini(provider, prompt)
+        : await translateOpenAI(provider, prompt);
+      return { text: result, provider: provider.name };
+    } catch (err) {
+      lastError = err;
+      if (providers.length > 1) {
+        process.stdout.write(`[${provider.name} failed, trying next] `);
+      }
+    }
   }
-  return text;
+  throw lastError;
 }
 
 // ── Parse translated response ───────────────────────────────────────────────
@@ -178,8 +268,8 @@ async function main() {
       }
 
       // Translate
-      const translated = await translateWithGemini(fm.title, content);
-      const { translatedTitle, translatedContent } = parseTranslation(translated, fm);
+      const { text: translatedText, provider: usedProvider } = await translate(fm.title, content);
+      const { translatedTitle, translatedContent } = parseTranslation(translatedText, fm);
 
       // Write translated MDX
       const mdx = `---
@@ -196,7 +286,7 @@ ${translatedContent}
 
       writeFileSync(join(TARGET_DIR, file), mdx, "utf-8");
       success++;
-      console.log("done");
+      console.log(`done (${usedProvider})`);
     } catch (err) {
       failed++;
       console.log(`failed: ${err.message.substring(0, 60)}`);

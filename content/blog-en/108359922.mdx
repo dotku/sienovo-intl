@@ -1,0 +1,65 @@
+---
+title: "Implementing a Wireless Magnetic Vehicle Detection Gateway on the AM5728 DSP+ARM Platform"
+date: "2020-09-02"
+slug: "108359922"
+tags: ["#AM5728", "#DSP", "#ARM", "#网关"]
+source: "https://blog.csdn.net/yeyuangen/article/details/108359922"
+originalTitle: "基于AM5728 DSP+ARM平台实现无线地磁车辆检测网关"
+---
+
+#### **1. Principle of Wireless Magnetic Detection Technology**
+
+In the absence of external interference, the Earth's magnetic field remains in a relatively stable state. When an object passes over or stops above the detection area, the magnetic field undergoes subtle changes. Metallic objects, in particular, cause more noticeable disturbances. Wireless magnetometers detect vehicles by analyzing variations in the Earth's magnetic field. When no vehicle is present, the magnetic field remains stable, and the system defaults to a "no vehicle" state. When a vehicle passes over the sensor, it disturbs the magnetic field, which the system interprets as the presence of a vehicle, and the data is then transmitted via wireless communication protocols.
+
+#### **2. Working Principle of the Wireless Magnetic Detection System**
+
+Wireless magnetic sensors embedded in the road surface detect the presence and passage of vehicles. Using low-power radio communication technology, the detection data is transmitted in real time to a nearby gateway (with repeaters added if signal range is limited). Once the data reaches the gateway, it can be forwarded via wired or wireless connections to a cloud-based data management platform or a local server.
+
+#### **3. Main Functions**
+
+- Provides data support for traffic management departments and decision-makers;
+- Detects traffic flow information such as volume, speed, and queue length;
+- Captures vehicle data including speed, length, and inter-vehicle distance;
+- Integrates with intersection data to publish real-time traffic information;
+- Offers various application solutions such as signal control, traffic data collection, and dynamic lane management;
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108359922/01_4dc0fc708668dca3e293588935d2614e.png)
+
+#### **4. Advantages Compared to Other Implementation Solutions**
+
+Currently, the main types of vehicle detectors used in traffic systems worldwide include inductive loop detectors, video-based detectors, and microwave radar detectors. These technologies face various practical limitations due to environmental and operational factors, as summarized below:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108359922/02_8fbbdb2739ebf5586b5b0748fc7f1d70.png)
+
+| **Wireless Magnetometer** | **Inductive Loop** | **Video Detection** | **Microwave Radar** |
+|----------------------------|---------------------|----------------------|----------------------|
+| **Installation**           | No wiring required<br>No road excavation<br>No poles needed | Wiring required<br>Road excavation for burial<br>No poles needed | No wiring required<br>No road excavation<br>Poles required | No wiring required<br>No road excavation<br>Poles required |
+| **Maintenance**            | Durable, maintenance-free for up to 5 years | Prone to damage, requires maintenance every 6–9 months | Durable | Durable |
+| **Environmental Interference** | High resistance to interference | High resistance to interference | Affected by lighting and weather conditions | Affected by lighting and weather<br>Prone to occlusion and missed detection |
+| **Cost**                   | Low | Low | High | High |
+
+#### **5. Application Scenarios for Wireless Magnetic Detection**
+
+Wireless magnetic detection is primarily categorized into two major application scenarios based on data collection purposes:
+
+1. **Traffic Flow Data Collection**: Highway traffic monitoring, urban traffic monitoring, road checkpoint imaging, ETC lanes, approaching vehicle warning, tunnel congestion control, etc.;
+2. **Parking Information Collection**: Parking space guidance systems, fire lane obstruction warning systems.
+
+#### **6. Application of the Xinming AM5728 Core Board as a Wireless Gateway**
+
+Development and customization are based on the Xinming XM5728-IDK-V3 module.
+
+Key Features:
+
+*   Built on the TI AM5728 floating-point dual DSP C66x + dual ARM Cortex-A15 industrial control and high-performance audio/video processor;
+*   Heterogeneous multi-core CPU integrating dual Cortex-A15, dual C66x floating-point DSP, dual PRU-ICSS, dual Cortex-M4 IPU, and dual GPU processing units, supporting multi-core development with OpenCL, OpenMP, and SysLink IPC;
+*   Powerful video encoding/decoding capabilities: supports 1×1080P60, 2×720P60, or 4×720P30 hardware video encoding/decoding, and H.265 software decoding;
+*   Supports up to 1×1080P60 full HD video input and dual outputs via LCD and HDMI 1.4a;
+*   Dual PRU-ICSS industrial real-time control subsystem supporting industrial protocols such as EtherCAT, EtherNet/IP, and PROFIBUS;
+*   High-performance GPU with dual-core SGX544 3D accelerator and GC320 2D graphics engine, supporting OpenGL ES 2.0;
+*   Rich peripheral interfaces including dual Gigabit Ethernet, PCIe, GPMC, USB 2.0, UART, SPI, QSPI, SATA 2.0, I2C, DCAN, and support for high-speed USB 3.0;
+*   Development board exposes a V-PORT video interface for flexible connection to video input modules;
+*   Compact size: only 86.5mm × 60.5mm;
+*   Industrial-grade precision B2B connector with 0.5mm pitch, stable, easy to plug/unplug, reverse-insertion protection; high-speed connectors used for critical high-bandwidth interfaces to ensure signal integrity.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108359922/03_66f8d75e6f5206030b67dd64fdcb0447.png)

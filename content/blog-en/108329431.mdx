@@ -1,0 +1,108 @@
+---
+title: "基于TI AM5728设计3D打印机方案"
+date: "2020-08-31"
+slug: "108329431"
+tags: ["#AM5728", "#3D", "#打印", "#ARM", "#DSP", "AE", "C", "医疗"]
+source: "https://blog.csdn.net/yeyuangen/article/details/108329431"
+originalTitle: "基于TI AM5728设计3D打印机方案"
+---
+
+---
+Title: 3D Printer Design Solution Based on TI AM5728
+
+Content:
+**3D Printer Design Solution Based on TI AM5728**
+
+1. Introduction to 3D Printing
+
+3D printing, also known as additive manufacturing, is a rapid prototyping technology that constructs physical objects layer by layer using digital model files and bondable materials such as powdered metal or plastic.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108329431/01_5ab424b49c1bd263d41addeed7740fc1.png)
+
+2. Applications of 3D Printing
+
+3D printing is typically implemented using digital material printers. It is commonly used in mold manufacturing and industrial design for prototype creation, and has gradually expanded into direct production of end-use parts. Applications span industries including jewelry, footwear, industrial design, architecture, engineering and construction ([AE](https://www.forlinx.com/product/117.html) [C](https://www.forlinx.com/product_index.html)), automotive, aerospace, dentistry and [medical](https://www.forlinx.com/product/40.html) fields, education, geographic information systems, civil engineering, firearms, and more.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108329431/02_2d4e8de31b64efe69b651d4876f9f445.png)
+
+3. Classification of 3D Printing
+
+**1. Common Technology Types:**  
+FDM: Fused deposition modeling, primarily using ABS material  
+SLA: Stereolithography, primarily using photosensitive resin  
+DLP: Digital Light Processing, primarily using photosensitive resin
+
+FDM printers are generally more affordable and have fewer limitations on print size, giving them a dominant market share. However, their print resolution is relatively low (maximum precision around 0.1mm), making them suitable mainly for DIY applications.
+
+Both DLP and SLA use photopolymer resins and are widely applicable in industrial settings. Compared to FDM, photopolymerization technologies offer higher precision and faster printing speeds. While both SLA and DLP are resin-based 3D printing methods, SLA uses a laser (point/line source), whereas DLP uses a projector (area light source). As such, DLP requires higher resolution in image signal output, while SLA has less stringent requirements in this regard.
+
+**2. Common Printer Categories:**
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108329431/03_62f93acd7c67a4fd736b07fcd7d61e71.png)
+
+Desktop                                                                            Industrial
+
+Industrial-grade printers typically use X86 platforms, which come with the disadvantage of very high costs.
+
+Desktop models can be built using processors such as IMX6, 4412, or 4418 depending on performance requirements, and even low-end microcontrollers may suffice for basic functionality.
+
+4. 3D Printing Process
+
+The process begins with 3D modeling on a computer. The model file is then transferred to the 3D printer via SD card or USB flash drive. After configuring the print settings, the printer begins fabrication. The working principle of a 3D printer is fundamentally similar to that of a traditional printer, consisting of control units, mechanical components, print heads, consumables, and media. The key difference lies in the pre-printing step: a complete 3D digital model must first be designed on a computer before physical output can occur.
+
+5. Advantages of 3D Printing
+
+Taking 3D-printed shoe soles as an example, 3D printing offers the following advantages over traditional manufacturing:
+
+Unrestricted by molds:
+
+**Traditional mold-based product development to production flow**
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108329431/04_35bf6709112e0d013d8087d97bbb9400.png)
+
+**3D printing development to production flow**
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108329431/05_86826f17211d45f9080d9ba008a84ab6.png)
+
+For a full-size range of shoes (e.g., sizes 34–44), each size requires a dedicated mold pair. These molds are typically replaced or retired annually. In contrast, 3D printing eliminates the need for mold design, manufacturing, and adjustment, enabling direct design and batch production.
+
+Unlimited by sales volume:  
+Traditional footwear products require long market presence and high sales volume (typically 100,000 pairs) to recoup costs before the next product iteration can be developed. With 3D printing, production cost remains consistent regardless of volume, removing volume-based constraints.
+
+Superior for complex structures:  
+Athletic footwear emphasizes design innovation and structural complexity. 3D printing significantly expands design possibilities, enabling the creation of intricate sole geometries that are difficult or impossible to achieve with conventional molds.
+
+6. 3D Printing Control System
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108329431/06_a94d540aedfce28725373e60da1eda46.png)
+
+1. **Computer (Host System):** Acts as the design and configuration terminal, initializing the ARM microcontroller-based main control board. It processes the 3D model using slicing software to generate machine instructions, which are then stored in the data storage module.
+
+2. **ARM Controller Main Control Board:** Reads instructions from the storage module, which contain motion path planning and control data. The board parses these instructions and generates corresponding control signals to operate the 3D printer.
+
+3. **Servo Motor Driver Module:** Controls the precision of linear actuators and filament feeders in the 3D printer.
+
+4. **Temperature Control Module:** Regulates temperature to facilitate material curing and shaping.
+
+5. **LCD Display:** MIPI screen that displays the 3D printer’s operational menu, captures user input, and sends commands to the ARM-based main control board.
+
+6. **UV Projector:** Outputs a high-resolution video signal via HDMI, which is then optically focused to project UV light onto photosensitive liquid resin, curing it into the desired shape. Simultaneously, the projector’s UV intensity and on/off state are controlled via USB interface. The UV projector also feeds real-time UV intensity data back to the ARM processor for closed-loop control. In summary, USB signals control the UV projector, while HDMI delivers high-resolution image data.
+
+7. Recommended ARM Processor
+
+Based on the Xinming XM5728-IDK-V3 for module development and customization.
+
+Key Features:
+
+*   Built around the TI AM5728 floating-point dual DSP C66x + dual ARM Cortex-A15 industrial control and high-performance audio/video processor;
+*   Heterogeneous multi-core CPU integrating dual Cortex-A15, dual C66x floating-point DSPs, dual PRU-ICSS, dual Cortex-M4 IPU, and dual GPU units, supporting multi-core development with OpenCL, OpenMP, and SysLink IPC;
+*   Powerful video encoding/decoding capabilities: supports 1×1080P60, 2×720P60, or 4×720P30 hardware video encoding/decoding, and H.265 software decoding;
+*   Supports up to 1×1080P60 full HD video input and dual outputs via 1×LCD and 1×HDMI 1.4a;
+*   Dual PRU-ICSS industrial real-time control subsystem supporting industrial protocols such as EtherCAT, EtherNet/IP, and PROFIBUS;
+*   High-performance GPU with dual-core SGX544 3D accelerator and GC320 2D graphics engine, supporting OpenGL ES 2.0;
+*   Rich peripheral interfaces including dual Gigabit Ethernet, PCIe, GPMC, USB 2.0, UART, SPI, QSPI, SATA 2.0, I2C, DCAN, and support for high-speed USB 3.0;
+*   Development board exposes V-PORT video interface for flexible connection to video input modules;
+*   Compact size: only 86.5mm × 60.5mm;
+*   Industrial-grade precision B2B connector with 0.5mm pitch, stable, easy to plug/unplug, reverse-insertion protection, and high-speed connectors on critical data interfaces to ensure signal integrity.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108329431/07_51c5ddb787a7b06c188fd2359efbb38a.png)

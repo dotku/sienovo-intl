@@ -1,0 +1,24 @@
+---
+title: "OMAPL138 Duntai I2C LCD Touchscreen Driver Porting"
+date: "2021-04-04"
+slug: "115430239"
+tags: ["#OMAPL138", "#C6748", "#LCD", "#触控", "#驱动移植"]
+source: "https://blog.csdn.net/yeyuangen/article/details/115430239"
+originalTitle: "OMAPL138 墩泰I2C LCD触控屏驱动程序移植"
+---
+
+Hardware Analysis:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/115430239/01_ebd050ba17d5f0321eda80613cdf2127.png)
+
+Software Configuration:
+
+The GT811 is connected to I2C1 of the OMAPL138 via the I2C interface. Therefore, the two pins of I2C1 on the AM335x need to be configured for I2C functionality. GPIO1_27 needs to be configured as an interrupt input, falling edge triggered. The interrupt number can also be determined; it's pin 27 of GPIO1 (the kernel can convert the pin to an interrupt number). Finally, for the RESET pin, the driver needs to manipulate the RESET pin during GT811 initialization, and the GT811 resets on a low signal. Thus, pin 26 of GPIO1 can be set as an output with a specific level. From previous articles, we know that DTS can configure pinmux, and by analyzing the kernel's DTS files, we can see that DTS can also pass connection information to the kernel. After analysis and reference, I made the following modifications to the TQ335x.dts file:
+
+Step 1. Check I2C pinmux configuration
+
+Searching for i2c1 will lead to the i2c1 node. The pinctrl-0 of this node points to a phandler that configures the two pins of i2c1, so no modifications are needed here.
+
+Step 2. Configure INT and RESET pins
+
+Add pin configuration information within the am33xx_pinmux node, as detailed below:
