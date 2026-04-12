@@ -31,12 +31,18 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Priority: Gemini Direct (free) → Vercel AI Gateway (credits)
+      # Try Gemini free first, fallback to Vercel AI Gateway
       # Automatically skips already-translated articles
-      - name: Translate articles
-        run: node scripts/translate-blog.mjs
+      - name: Translate articles (Gemini free)
+        run: node scripts/translate-blog.mjs --provider gemini
+        continue-on-error: true
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
+      - name: Translate remaining (Vercel AI Gateway)
+        run: node scripts/translate-blog.mjs --provider gateway
+        continue-on-error: true
+        env:
           VERCEL_AI_GEWAY_API_KEY: ${{ secrets.VERCEL_AI_GEWAY_API_KEY }}
 
       - name: Commit translations
