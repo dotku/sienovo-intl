@@ -1,0 +1,108 @@
+---
+title: "Data Acquisition Card: 16-Channel, 16-Bit, 250KHz ADC, Supports Single-Point Acquisition and Programmable Gain"
+date: "2024-01-11"
+slug: "135539421"
+tags: ["#fpga开发"]
+source: "https://blog.csdn.net/yeyuangen/article/details/135539421"
+originalTitle: "数据采集卡：16通道16位250KHz AD，支持单点采集，程控增益"
+---
+
+Overview
+
+The USB-XM1603 is a highly cost-effective, multi-functional, general-purpose A/D board. Meticulously designed, it utilizes a USB 2.0 bus, supporting hot-swapping and plug-and-play functionality without the need for address jumpers. It is suitable for measurement applications such as transmitter output and DC voltage measurements. The USB-XM1603 features 16-channel single-ended 16-bit programmable gain analog inputs, 4-channel 16-bit analog outputs, 16 digital I/O channels (8 TTL inputs and 8 TTL outputs), 2 frequency measurement channels, 2 PWM pulse output functions, and 1 (1-255) frequency divider. The logic control of the USB-XM1603 is implemented using Field-Programmable Gate Arrays (FPGAs) to enhance reliability. Additionally, digital ground (GND) and analog ground (AGND) are separated with single-point grounding to eliminate ground loop interference. This board offers very stable performance, with AD sampling stable at the mV level.
+
+Key Features and Performance
+
+A/D Converter: 250KHz, 16-bit no-missing-code A/D
+
+Excellent Linearity:
+
+±1LSB typ, ±1.5LSB max INL; ±0.6LSB typ, ±1LSB max DNL
+
+±1mV max offset; ±12LSB typ gain error
+
+16 single-ended inputs, input impedance 10MΩ, -14V ≤ input voltage ≤ +14V, IDC-26 input connector
+
+Bipolar input range: ±5V, Unipolar input range: 5V, 10V
+
+Programmable gain control, with four selectable amplification factors. The U18 position on the USB-XM1603 card houses a high-performance programmable amplifier chip; soldering AD8251 results in Type A, and soldering AD8253 results in Type B. The factory default is Type A.
+
+Type
+
+Amplification Factor
+
+Type A
+
+1
+
+2
+
+4
+
+8
+
+Type B
+
+1
+
+10
+
+100
+
+1000
+
+Note: The input signal of an AD channel, when multiplied by its amplification factor, must not exceed the AD's range.
+
+For example: If the user's AD range is ±5V (refer to AD input range selection for AD range settings), and a channel is set to 10x amplification, then the input signal range for that channel is ±0.5V.
+
+Software-configurable AD sampling frequency, range (91.6Hz to 250000Hz)
+
+Software-configurable AD start channel and number of channels, with individual amplification factor settings for each channel
+
+Supports external clock and external trigger, 4K-word FIFO memory
+
+4-channel 16-bit D/A, output voltage 5V or 10V. 16-bit resolution, analog output settling time: 30
+
+Analog output linearity: ±1/2 LSB, where DA0 and DA1 can output synchronously; DA2 and DA3 can output synchronously.
+
+Analog output drive capability: ±5mA max.
+
+16 digital I/O channels, TTL level, 8 inputs, 8 outputs. IDC-34 pin flat cable socket for input and output. Digital outputs: low level after power-on or reset.
+
+Input Voltage:
+
+Low: Min. 0V ; Max. 0.8V; High: Min. +2.0V
+
+Input Load:
+
+Low: +0.5V @ -0.2mA max.; High: +2.7V @+20mA max.
+
+Output Voltage:
+
+Low: Min. 0V ; Max. 0.4V; High: Min. +2.4V
+
+Drive Capability:
+
+Low: Max. +0.5V at 8.0mA(Sink); High: Min. 2.7V at 0.4mA(Source)
+
+2 frequency measurement functions (measures square waves). Frequency measurement range 0.12Hz to 2MHz, 1 (1-255) frequency divider.
+
+2 PWM pulse outputs
+
+High-performance Hurricane II FPGA for overall digital logic control
+
+Onboard SW 4-bit DIP switch for identifying card ID, supports multi-card operation
+
+Open EEPROM operation, allowing users to store and retrieve relevant information on the USB-XM1603 card. Data is retained after power-off.
+
+USB 2.0 bus, supports hot-swapping, truly plug-and-play.
+
+Provides drivers and dynamic link libraries for WIN7 /WIN8/WIN10/NT/XP/vista.
+
+Enclosure Dimensions: 12(W) X 10(L) X 2.7(H) (cm)
+
+**Board Appearance:**
+
+**Board Dimensions:**
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/135539421/01_7d3240c65f1f6f71ea80661a3c41091b.png)

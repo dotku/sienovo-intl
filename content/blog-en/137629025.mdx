@@ -1,0 +1,34 @@
+---
+title: "Xilinx Zynq UltraScale+ MPSoC Drone Controller"
+date: "2024-04-11"
+slug: "137629025"
+tags: ["#无人机", "#fpga开发"]
+source: "https://blog.csdn.net/yeyuangen/article/details/137629025"
+originalTitle: "Xilinx Zynq UltraScale+ MPSoC无人机控制器"
+---
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/137629025/01_bb33ec0c2318d50339c727aab4178c2d.jpeg)
+
+The official term is Unmanned Aerial Vehicle (UAV), which is a bit clunky, so we prefer to say drone. Over the past few decades, drone technology has made tremendous progress. We developed a flight and video controller for a drone for a client.
+
+**Client Challenge**
+
+The client required a hybrid FPGA/CPU hardware whose performance met the requirements, while being lightweight, compact, and energy-efficient. A passive cooling solution would be effective for this. Additionally, the hardware needed to operate reliably under harsh conditions (vibration and extreme temperatures).
+
+**Solution**
+
+The previous generation of successful drone controllers was built on Xilinx Zynq-7000. For this upgrade, our engineering team adopted the Xilinx Zynq UltraScale+ MPSoC, whose CPU handles position control and flight path tracking. Sensors and actuators are connected via FPGA logic; the number and type of these interfaces vary significantly depending on the application of the controlled vehicle, so all these interfaces are dynamically configurable. It has all the sensors required for a drone controller, including GPS from the highly integrated VectorNav VN-300 IMU.
+
+![瑞苏盈科](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/137629025/02_6ea9f87c0c87a4f564f8c7ea940bfd1e.png)
+
+The controller supports redundancy through two mutually supervised parallel flight controller units. If the currently active flight controller fails, the backup unit automatically takes over all tasks. In addition to the Zynq UltraScale+, it is also equipped with a radiation-tolerant Polarfire FPGA and a safety-certified MCU (synchronized with the Zynq), which can take over control if the Zynq fails. It has several communication interfaces: such as Ethernet, 2-wire automotive Ethernet, ARINC429, RS232/422/485, and CAN, which needs to be switched in case of a fault in the Polarfire FPGA.
+
+In addition to flight control functions, the controller also prepares and compresses full HD video signals (HD-SDI) from cameras for transmission via radio. It has 4 HD-SDI video inputs and 2 HD-SDI video outputs, supporting up to 6G / 4K resolution.
+
+![2.png](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/137629025/03_8721f887140e0d4abca37842f95e131a.png)
+
+Both generations of drone controller circuit boards have dimensions of 105×65mm. The previous generation controller did not have redundant FPGA/MCUs and used a single-board design. The new generation controller, incorporating many new features/devices, adopted a dual-board folded design.
+
+**Technologies Used**
+
+Xilinx® Zynq® UltraScale+®, Mentor Graphics PADS®, HD-SDI, VHDL, C, C++

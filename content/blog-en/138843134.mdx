@@ -1,0 +1,62 @@
+---
+title: "XM1553B Avionics Bus Protocol Module (Built-in Bus Transceiver)"
+date: "2024-05-14"
+slug: "138843134"
+tags: ["#1553b"]
+source: "https://blog.csdn.net/yeyuangen/article/details/138843134"
+originalTitle: "XM1553B 航电总线协议模块（内置总线收发器）"
+---
+
+It is a high-performance 1553B module with a 4Mbps data rate, compatible with 1Mbps communication speed, supporting single function (BC, or RT, or BM) and multi-function (BC & 1 RT & BM). This module integrates 32K×16bit dual-port RAM and a 4Mbps 1553B transceiver internally.
+
+The host interface supports serial port and SPI. The serial port is a TTL-level UART interface, which can connect to external transceivers to support RS232/RS422/RS485, with 1553B bus rates up to 4Mbps (compatible with 1Mbps). The SPI interface supports a maximum synchronous clock of 22MHz.
+
+The XM1553B-M utilizes a self-developed intelligent 1553B protocol processor, which enables precise scheduling, real-time transmission/reception, and response for 4Mbps 1553B bus messages. Specifically, for applications involving sending vector words, the Condition Block of the BC function module can automatically send aperiodic messages. The RT function module can automatically clear the Service Request bit after receiving an aperiodic message sent by the BC. The message processing does not require host intervention, truly achieving intelligent message handling.
+
+The XM1553B-M is powerful and compact, making it suitable for embedded environments with stringent power consumption and size requirements. It easily enables the expansion of a 4Mbps 1553B bus interface on embedded single boards.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138843134/01_2115b4bdf9afcc3d1852573c86dc80ed.png)
+
+Features
+
+*   Supports 1 dual-redundant 4Mbps/1Mbps 1553B channel
+*   Communication rate: 4Mbps/1Mbps
+*   Supports single function (BC, or RT, or BM) and multi-function (BC & 1 RT & BM)
+*   Chip automatically processes 1553B bus messages, requiring minimal host intervention
+*   Optimized for sending vector word applications, significantly reducing host involvement in the processing
+*   32K×16bit internal RAM
+*   Provides bus transmission status indication and control signals
+*   Provides 48-bit time tag
+*   Provides an interrupt queue, capable of buffering multiple interrupt messages
+*   Built-in protocol processing logic, data channels, and internal RAM self-test
+*   Integrated bus transceiver. External 1553B signals must be connected to this module via an isolation transformer.
+*   Companion development board: CAV-4M1553B-M-DB
+
+Host Interface
+
+*   Serial Port: Supports up to 4Mbps, TTL-level UART interface, can connect to external transceivers for RS232/RS422/RS485 support
+*   SPI Interface: Supports 4-wire mode, clock up to 22MHz
+
+Software Support
+
+*   Provides a complete C language API
+*   Provides over 20 example routines written in ANSI C
+
+BC
+
+*   Supports sending periodic and aperiodic messages
+*   Supports real-time conditional jumps
+*   Supports message retry and automatic bus switching
+*   Supports multiple data buffers
+
+RT
+
+*   Supports programmable response time and status word
+*   Service Request bit automatically cleared by hardware
+*   Supports multiple data buffers
+*   Supports RT monitoring function
+
+BM
+
+*   Monitoring and error detection for all 1553B bus messages
+*   Supports filtering and triggering functions

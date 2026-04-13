@@ -1,0 +1,94 @@
+---
+title: "Multi-core Real-time Operating System Solution for DSP Processors"
+date: "2024-05-09"
+slug: "138597411"
+tags: ["#fpga开发"]
+source: "https://blog.csdn.net/yeyuangen/article/details/138597411"
+originalTitle: "面向DSP处理器的多核实时操作系统解决方案"
+---
+
+## Multi-core Operating System for DSP Processors
+
+Networked electricity, space, deep sea, near space, phased array radar, cluster processing, distributed computing, etc., place higher demands on system processing capability, real-time performance, precision, and dynamic range. However, single-core chips, constrained by physical limits, manufacturing costs, processing power, as well as power consumption and heat dissipation, have become a system bottleneck.
+
+To improve processing performance, the traditional approach is to increase the number of single-core chip boards, but this leads to various problems such as complex interactions, complex design, high hardware investment, and poor maintainability. Traditional hardware is evolving from FPGA+PPC+DSP towards multi-core DSP+SOC. Multi-core processors will integrate more IP blocks that are simple in structure and easy to use. Heterogeneous multi-core architectures and accelerators are the major trends in processor development.
+
+**Key issues for multi-core processor operating systems:**
+
+Ø Task scheduling mechanism: scheduled by a master core, or by each core independently?
+
+Ø Implementation mechanism for locks and semaphores: provided by the operating system, or by drivers?
+
+Ø Memory consistency management: does it require user involvement?
+
+Ø Inter-processor communication: must be completed efficiently.
+
+Ø Resource sharing issues: for example, the use of processor peripherals.
+
+On DSP processors, which excel in computational speed, load balancing has little practical value. Phoenix RTOS is essentially a single-core operating system, operating in an AMP (Asymmetric Multiprocessing) mode on multi-core systems (private data segments, shared code segments). Each core runs an independent OS instance and performs its own scheduling. It encapsulates an inter-core communication mechanism based on zero-copy memory, providing a unified message interface API for inter-core communication, intra-processor communication, and even inter-DSP communication. This eliminates master-slave core relationships, making it easier to implement robust systems with redundancy mechanisms.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138597411/01_2f108d892e3e7a521518f0914422aa42.jpeg)
+
+**Multi-core DSP Operating System Running Mode**
+
+The key to multi-core DSP operating systems is to first run independent operating system instances on each processor core, and then integrate them into a deterministically operating system through technologies such as zero-copy memory management, interface encapsulation, and operating system configuration.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138597411/02_a501397ac4b6afbbf9b2bc96790bebd0.png)
+
+**Zero-copy Inter-core Communication Technology**
+
+Single-core Real-time Operating System for DSP Processors
+
+Phoenix RTOS is a proven hard real-time embedded operating system, designed for complex DSP processor products, and particularly suitable for multi-core homogeneous and heterogeneous embedded processors. Phoenix RTOS ensures system robustness through various methods. Whether it's runtime exceptions or user code exceptions, once caught by the kernel, they are centrally reported by Phoenix RTOS. On some processors, Phoenix RTOS can also enter power-saving management mode when the system is idle or delayed. Phoenix RTOS provides all the functionalities required by modern real-time kernels, including resource management, task synchronization, and communication. It also offers features not found in many other real-time kernels in the industry, such as stack and message integrity checks, Hook functions, and direct message sending to tasks.
+
+**Main Technical Features:**
+
+Ø Scalable, with a minimum kernel code size of approximately 10KB
+
+Ø Fast interrupt response and task switching algorithms (interrupt response time approx. 100ns@1GHz)
+
+Ø Efficient memory management algorithms, especially suitable for embedded real-time systems
+
+Ø Rich fault tolerance and detection mechanisms, capable of monitoring complex scenarios such as message overwrites and stack overflows
+
+Ø Centralized error handling mechanism reduces user code and improves debugging efficiency
+
+Ø Priority-based preemptive scheduling, with each task having its own independent stack
+
+Ø Each task has its own message queue, enabling efficient inter-task communication based on zero-copy
+
+Ø Supports multiple synchronization methods such as events, timers, semaphores, and messages
+
+Ø Supports waiting for multiple kernel objects and interrupt nesting
+
+Ø Easy to program, easy to configure, shortening software time-to-market
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138597411/03_9ef3a641134609b8130794c4c2165c9f.jpeg)
+
+**Phoenix RTOS Module Composition**
+
+Phoenix RTOS cannot detect all software defects, and in fact, no such operation exists that can detect all defects. Runtime errors are particularly difficult to catch.
+
+Phoenix CDA can process memory data after a crash and generate kernel analysis results:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138597411/04_05a67cc4c26ab9a4aaadef67922ac5bd.jpeg)
+
+**Phoenix RTOS CDA Tool**
+
+**The source files of Phoenix RTOS are mainly composed of the following modules:**
+
+Ø Platform-dependent module: used to specify different processor core architectures;
+
+Ø Error management module: centrally manages all errors occurring in the operating system;
+
+Ø Event management module: primarily used for task synchronization, cannot carry data;
+
+Ø Interrupt management module: a way to respond to sudden events, which can be triggered by hardware or by software events within the system;
+
+Ø Memory management module: adopts a fixed-size memory block management mechanism, supports dynamic memory allocation, and provides message memory pool management methods;
+
+Ø Message management module: can contain optional data payloads for inter-task communication, and can also serve for task synchronization;
+
+Ø Semaphore management module: used for synchronous or exclusive access to shared resources by multiple tasks, cannot transmit data;
+
+Ø Task management module: through OS task scheduling, multiple tasks run concurrently, taking turns to acquire CPU time.

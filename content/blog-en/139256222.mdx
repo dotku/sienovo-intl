@@ -1,0 +1,68 @@
+---
+title: "【ARM+Codesys Case Study】Application of RK3568 + Codesys Soft PLC Solution in Electroplating Production Lines"
+date: "2024-05-28"
+slug: "139256222"
+tags: ["#codesys"]
+source: "https://blog.csdn.net/yeyuangen/article/details/139256222"
+originalTitle: "【ARM+Codesys案例】RK3568 +Codesys 软PLC方案在电镀生产线的应用"
+---
+
+**1 Introduction to Electroplating Production**
+
+Electroplating is a crucial process. Products treated with electroplating not only achieve improved quality but also significantly enhanced performance, while extending their service life. An electroplating production line is a complete system coordinated by an electrical control system, combining various electroplating treatment tanks, electroplating hoist movement devices, power supply equipment, circulation filtration devices, testing instruments, heating devices, air agitation devices, drainage systems, and pollution treatment devices, all according to specific electroplating process requirements. Automatic electroplating production lines reduce material consumption, alleviate human labor intensity, minimize human contact with chemical pollutants, and simultaneously improve production efficiency and quality. They also facilitate the digital and centralized management of equipment and production processes. The operation of the hoist and the temperature of the electroplating system directly impact product quality and efficiency. The core control solution utilizes Xinmai's Q-series advanced motion controller, developed based on **CODESYS** software. Combined with an EtherCAT servo system, it can achieve high-speed, high-precision, and flexible movement of each plated part. Concurrently, a PID algorithm ensures rapid, stable, and reliable response for system temperature control.
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/139256222/01_e4aed04f77589b032e6f2345ae8ecdd3.png)
+
+Figure 1 Electroplating Control System Framework
+
+**2 Basic Workflow of an Electroplating Production Line**
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/139256222/02_c972ff4c833b5bcdf19e3af2e17222b0.png)
+
+Figure 2 Electroplating Production Process Flow
+
+The production stages of an automatic electroplating line are generally divided into three phases: pre-treatment, electroplating process, and post-treatment. Pre-treatment is the preparatory stage for electroplating, where the workpiece surface undergoes preparation before plating, primarily to remove metal oxide layers or oil stains. This reduces impurities during electroplating, ensuring the quality of the plating layer. Generally, pre-treatment processes mainly include degreasing, electrolytic degreasing, electropolishing, electro-etching, activation, and rinsing. The electroplating process involves placing the workpiece into a plating tank for electroplating. The most crucial aspects are controlling the temperature, voltage, current, and plating time of the plating solution, which can last for several hours. Post-treatment primarily involves chromate rinsing to ensure the quality of the electroplating.
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/139256222/03_80445c03ae9bdd6976411f1d297b24f4.png)
+
+Figure 3 Schematic Diagram of an Electroplating Production Line Site
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/139256222/04_239e7cc91086a50ede2e8096e0c72e4a.png)
+
+Figure 4 Human-Machine Visualization Interface of an Electroplating Production Line
+
+**3 Electrical Configuration and Control Description of the Electroplating Production Line**
+
+The electrical configuration is shown in Figure 5. The hoist primarily consists of a lifting servo motor for vertical movement of the workpiece and a translation servo motor for horizontal movement. The servo positioning is mainly achieved through the MC_MoveAbsolute absolute positioning function provided by **CODESYS**. According to process requirements, the servo-driven mechanism completes cleaning in the cleaning tank and the full combination of various electroplating stations in the plating tank, ultimately completing the electroplating process for the workpiece.
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/139256222/05_5b294c3694d06b38208ad268071b9cb5.png)
+
+Figure 5 System Topology of Electroplating Production Equipment Site
+
+The system offers two control modes: manual control and automatic control. Automatic control is further divided into single-cycle and continuous control. Subroutines are used for programming, with the main program handling system initialization settings and subroutine calls. The times for electroplating, recovery, and cleaning can be set and modified on the touchscreen based on different workpieces and ambient temperatures, achieving optimal control, ensuring product quality, and improving work efficiency.
+
+**4 PID Temperature Control Process for Electroplating Production Lines**
+
+PID control is widely used in closed-loop control systems due to its advantages such as not requiring a mathematical model of the controlled object, simple structure, ease of implementation, strong flexibility and adaptability, and user-friendliness. For controlling the temperature of the plating bath solution, it is first necessary to overcome the influence of factors such as variability, nonlinearity, noise, asymmetric gain characteristics, and significant pure lag of the object's characteristics to achieve precise temperature control. During electroplating, the temperature of the plating bath solution should be controlled within a certain range for the plating layer crystals to be fine and uniform. Therefore, in this example, PID control is used to maintain a stable temperature of the controlled object to meet production process requirements and ensure electroplating quality. When performing PID control of analog values using a Q0 PAC developed on the **CODESYS** software platform, system function blocks provided by **CODESYS** can be utilized.
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/139256222/06_3a72403c90f9449340cf5f2aa8bd8bf7.png)
+
+Figure 6 Human-Machine Interface for Electroplating Production Line
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/139256222/07_29e60604ab7f321cca2afe1a2ec76765.png)
+
+Figure 7 PID Control Schematic Diagram
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/139256222/08_5ec87d85b812f380ddbd097463fad153.png)
+
+Figure 8 Electroplating Tank Temperature Control Schematic
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/139256222/09_fb225609be543797438a34fe19e625d4.png)
+
+Figure 9 PID Temperature Control Implementation Program
+
+PID (Proportional, Integral, Derivative) control is characterized by good robustness, ease of implementation, simple algorithms, strong flexibility, and high accuracy, making it widely applicable in temperature control. PID has three key parameters: proportional coefficient KP, integral coefficient KI, and derivative coefficient KD. In the PID control algorithm, proportional (P) control is the simplest control method, where the controller's output is proportional to the input error (KP). As soon as an error occurs, proportional action immediately adjusts to reduce the error. The integral (I) component is primarily used to eliminate steady-state error. Steady-state error refers to the difference between the output value and the setpoint after the system stabilizes. The integral component is essentially the process of accumulating errors, adding the accumulated error to the original system to counteract the steady-state error caused by the system. Derivative parameter: The derivative signal reflects the rate of change or trend of the error signal. Based on the trend of the error signal, anticipatory adjustment is performed, thereby increasing the system's rapid response.
+
+**5 Conclusion**
+
+With the development of automation technology and industry, industrial equipment is becoming increasingly advanced and intelligent. Electroplating equipment production lines are also continuously innovating and moving towards a new stage, driven by the demands of upstream and downstream industries and the market. The maturity of the motion control industry and the prominence of cost-effectiveness have led to the increasing application of servo motors in various equipment. Their compact structure, high speed, high precision, ease of development and design for technical personnel, and strong adaptability are driving the deep integration and development of servo control systems with traditional industries, empowering traditional equipment towards intelligent upgrades. For electroplating industrial scenarios, the on-site environment is relatively harsh, containing various chemicals harmful to humans. The intelligence of equipment and the unmanned production process across the entire line avoid direct human contact with hazardous environments. Moreover, a high degree of automation improves product quality and production system efficiency, significantly reduces raw material consumption, thereby achieving quality improvement, efficiency gains, cost reduction, and promoting human health and development.

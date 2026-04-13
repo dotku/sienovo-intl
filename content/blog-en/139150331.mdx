@@ -1,0 +1,32 @@
+---
+title: "Camera ISP Image Quality Tuning Customization Service Based on ARM|DSP+FPGA+NVIDIA AI Platforms"
+date: "2024-05-23"
+slug: "139150331"
+tags: ["#ISP"]
+source: "https://blog.csdn.net/yeyuangen/article/details/139150331"
+originalTitle: "基于ARM|DSP+FPGA+NVIDIA AI平台的摄像头ISP图像画质调试定制服务"
+---
+
+Basic Framework and Algorithm Introduction
+ISP (Image Signal Processor), which is image processing, primarily post-processes signals output by front-end image sensors. Its key functions include linear correction, noise reduction, bad pixel correction, interpolation, white balance, automatic exposure control, etc. Relying on ISP, it can better restore scene details under various optical conditions. ISP technology largely determines the imaging quality of a camera. It can be divided into two forms: standalone and integrated.
+
+ISP firmware consists of three parts: one is the ISP control unit and basic algorithm library, another is the AE/AWB/AF algorithm library, and the third is the sensor library. The basic idea of firmware design is to provide the 3A algorithm library separately. The ISP control unit schedules the basic algorithm library and the 3A algorithm library. Meanwhile, the sensor library registers function callbacks with both the ISP basic algorithm library and the 3A algorithm library to achieve differentiated sensor adaptation. The ISP firmware architecture is shown in the figure below.
+
+Different sensors register control functions with the ISP algorithm library in the form of callback functions. When the ISP control unit schedules the basic algorithm library and the 3A algorithm library, it will obtain initialization parameters and control the sensor through these callback functions, such as adjusting exposure time, analog gain, digital gain, controlling lens stepping focus, or rotating aperture, etc.
+
+1. Test Pattern------Test Image
+Test Patterns are primarily used for testing. There is no need to store image data in on-chip ROM beforehand. Generated test images are used directly for subsequent module testing and verification. Below are two commonly used test images.
+
+2. BLC (Black Level Correction)------Black Level Correction
+Black Level defines the signal level corresponding to image data being 0. Due to the influence of dark current, the actual raw data output by the sensor is not the black balance we need (data is not 0). Therefore, an effective method to reduce the impact of dark current on the image signal is to subtract a reference dark current signal from the acquired image signal. Or more precisely: when the analog signal is very weak, it might not be converted by the A/D converter, leading to loss of detail in dark areas of the image when the light is very dim. Therefore, sensors generally apply an offset to the analog signal before A/D conversion to ensure that the output image retains sufficient detail. Black level correction primarily determines this offset through calibration. This ensures that subsequent ISP module processing maintains linear consistency.
+
+Generally, in a sensor, the actual pixels are more than the effective pixels. The first few rows of the pixel area serve as a non-photosensitive region (in fact, this region also has RGB color filters) for automatic black level correction. Their average value is used as the correction value, and then this correction value is subtracted from the pixels in the subsequent regions, thereby correcting the black level. As shown in the figure below, the left image is before black level correction, and the right image is after black level correction.
+
+Black level correction is calibrated and calculated under a 1x system gain. For some sensors, the OB (Optical Black) difference can be significant at high and low gains. In this case, it's necessary to acquire black-masked RAW data under different gain environments and analyze the mean values for the R/Gr/Gb/B channels. The analyzed mean values are the OB values for each channel. If fine-tuning is required, it can be done based on the calibrated OB. For example: if there is a bluish tint under low illumination, the amplitude of the B channel can be increased based on the ISO range to mitigate the bluish phenomenon.
+
+For the principle and specific algorithm of BLC, please refer to: ISP——BLC(Black Level Correction)
+
+3. LSC (Lens Shading Correction)------Lens Shading Correction
+When a camera images at a longer distance, as the field of view gradually increases, the oblique light rays passing through the camera lens will gradually decrease. This results in images that are brighter in the center and darker at the edges, a phenomenon known as vignetting in optical systems. The uneven image brightness caused by vignetting affects the accuracy of subsequent processing. Therefore, the digital signals output from the image sensor must first pass through a lens correction functional block to eliminate the effects of vignetting on the image. Additionally, because the refractive index of lenses varies for different wavelengths of light, the R, G, and B values at the image edges will also deviate, leading to the occurrence of CA (chromatic aberration). Therefore, when correcting vignetting, the differences in each color channel must also be considered.
+
+A common implementation method for lens correction is to first identify a region in the center of the image where brightness is relatively uniform; pixels in this region do not require correction. Cent

@@ -1,0 +1,84 @@
+---
+title: "【ARM+Codesys Case Study】Raspberry Pi + Codesys SoftPLC Solution Applied to Filling and Capping Machines in the Packaging Industry"
+date: "2024-05-28"
+slug: "139255838"
+tags: ["#codesys"]
+source: "https://blog.csdn.net/yeyuangen/article/details/139255838"
+originalTitle: "【ARM+Codesys案例】树莓派+Codesys软PLC方案在包装行业灌装旋盖机的应用"
+---
+
+ARM series supports: Allwinner T3, RK3568, Raspberry Pi
+
+**Machine Model Definition: Dual-Station Capping Machine**
+
+Capping machines are primarily suitable for capping (screwing/rolling) various materials and cap specifications. Applicable to screw caps, anti-theft caps, tamper-evident caps, press-on caps, etc. Pressure can be easily adjusted, and the cap pickup position can be set according to the cap size. The structure is compact and reasonable, allowing for easy integration with other equipment to form a production line. Machine advantages: Linear design, facilitating easy and aesthetically pleasing integration into a production line.
+
+**Control Process and Key Points**
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/139255838/01_77a2773720f948015a04e46f25a230e9.png)
+
+**Key Control Points:**
+
+1. The equipment operates as part of a production line, requiring precise synchronized motion. Electronic cams are used to achieve synchronized speed and ensure capping synchronization.
+
+2. The equipment has dual stations. The first station (the second machine in the production line) performs capping for odd-numbered bottles detected by the optical sensor, and the second station handles even-numbered bottles. In the program, the number of bottles detected by the optical sensor is divided by 2, and actions are triggered based on whether the remainder is 0 or 1.
+
+3. The belt speed and capping torque require tuning. In the program, the conveyor belt frequency is acquired via a high-speed counting module and calculated through conversion. The conveyor belt's speed in meters per second is calculated as (conveyor belt circumference * conveyor belt frequency) / 1000.
+
+4. Both stations have corresponding position buttons on the screen for convenient operator positioning. Horizontal waiting positions and support waiting positions can be set on the screen, facilitating operation during automatic running. The screen also features clear alarm and reset buttons.
+
+**Heshin Control Solution**
+
+Control System: CTH300 series controller developed based on **CODESYS** + DIT16 + DQT16 + HSC + A4N servo
+
+The main controller uses an EtherCAT bus to connect 7 high-performance A4N servo drives.
+
+**Control System Configuration Diagram**
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/139255838/02_36b1f59095896c59b4813b6d570ee39d.png)
+
+**On-site Photos**
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/139255838/03_e3d92e76bda460847bf1130dc51e074e.png)
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/139255838/04_be6a4efbdc6d8547c07122465a635c0d.png)
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/139255838/05_904d2cfc1374def2fbec1ec841f3464f.png)
+
+**Control System Advantages**
+
+ **_1_** CTH300 series medium to large-scale PLCs developed based on **CODESYS** offer large program and data memory, strong expandability, and fast processor scan speeds.
+
+ **_2_** **CODESYS** integrates mainstream industrial bus protocol stacks. This solution uses a high-speed EtherCAT bus to control the servo system, resulting in simplified wiring, high control precision, fast speed, and real-time response.
+
+ **_3_** The **CODESYS** software allows for effective viewing and tracking of variable trend curves, facilitating adjustment.
+
+ **_4_** **CODESYS** integrates complex motion control functions: Supports electronic cams, allowing custom cam curves and offering rich built-in configuration options for freely adding/removing cam followers and trigger types; Supports CNC functions, compliant with the DIN 66025 G-code standard, utilizing forward and inverse kinematic transformation algorithms and path preprocessing function blocks for various mechanisms; Supports robot programming, including extensive kinematic transformation libraries to support the development of industrial robots with different kinematics, such as Delta robots, SCARA robots, and gantry robots; Supports virtual axes, allowing project testing using virtual axes linked to real axes. The use of electronic cams on the capping machine allows for better control of the process.
+
+**CODESYS** Motion Control Advantages
+
+**CODESYS** unifies motion control and logic control, integrating them into the IEC61131-3 standard **CODESYS** programming system and **CODESYS** real-time runtime system, forming the **CODESYS** SoftMotion (CNC) toolkit. From single-axis motion to complex CNC control and robotic applications, all can be programmed using **CODESYS** SoftMotion (CNC).
+
+Unlike traditional motion control solutions, **CODESYS** SoftMotion (CNC) provides a toolkit directly integrated into the **CODESYS** programming environment to implement all motion control functions. The **CODESYS** SoftMotion (CNC) toolkit is based on the international standard IEC 61131-3 programming language, allowing users to develop the most complex motion control applications.
+
+**CODESYS** SoftMotion Features
+
+(1) Motion control programming is independent of the bus and drives.
+
+(2) Can be used with drives for numerous standard motion controllers, such as CiA DSP 402 controllers, stepper motors, frequency inverters, virtual axes, etc.
+
+(3) Bus and drives can be configured directly within the **CODESYS** programming environment.
+
+(4) Provides a POU library containing all motion control function blocks, enabling fast and efficient development of simple motion programs.
+
+(5) Supports designing electronic cams in the integrated editor.
+
+(6) Supports the integrated DIN 66025 editor (with G-code support) for planning and editing complex movements.
+
+(7) Develop multi-axis robot controllers by using PLCopen Motion Part 4 and the axis group editor.
+
+(8) Rich set of library functions, including geometric data processing (path preprocessing), spline curve calculation, CNC tool position correction, etc.
+
+(9) Includes extensive exchange libraries (for backup and data exchange) to support the development of industrial robots with different kinematics, such as Delta robots, SCARA robots, portal robots, and gantry robots.
+
+(10) Supports online CAM editor and CNC editor, allowing machine operators to graphically create and edit CNC programs.

@@ -1,0 +1,158 @@
+---
+title: "RK3568+CODESYS Runtime: Runtime Software System for Smart Automation"
+date: "2024-05-28"
+slug: "139253094"
+tags: ["#自动化", "#运维", "#Codesys", "#软PLC"]
+source: "https://blog.csdn.net/yeyuangen/article/details/139253094"
+originalTitle: "RK3568+CODESYS Runtime：智能自动化的运行时软件系统"
+---
+
+**CODESYS Runtime Overview**
+
+To enable hardware devices to be programmed using the IEC 61131-3 standard-based programming environment CODESYS IDE, the CODESYS Runtime System must be ported to the corresponding hardware device. The CODESYS Runtime System is an industrial-grade real-time operating system kernel. By porting the CODESYS Runtime System to a hardware platform, any embedded device or PC-based device can be transformed into an IEC 61131-3 compliant industrial controller.
+
+The CODESYS code execution mechanism is compiled execution, meaning that IEC code written in the CODESYS IDE is compiled into machine code by an integrated compiler and then downloaded to the CODESYS Runtime via Ethernet or serial port. CODESYS Runtime can leverage hardware platform resources (such as clock resources, memory resources, etc.) to process these instructions. CODESYS technical engineers are responsible for deploying CODESYS Runtime to the hardware platforms selected by customers, and we provide open CODESYS Runtime interfaces to support user-specific secondary development.
+
+CODESYS Runtime can perform the following main tasks:
+
+1. Downloading and executing IEC 61131-3 based applications
+2. Debugging and monitoring applications
+3. Performing I/O operations
+4. Communicating with the CODESYS programming system
+5. Communicating with other controller devices
+6. Routing data information within the controller network
+
+Furthermore, this real-time runtime system also includes important add-on components such as fieldbus, motion control, and visualization, enabling your controller to communicate with other components in the industrial field or implement other complex functions.
+
+CODESYS Runtime is cross-platform compatible, meaning it can be deployed on hardware platforms with different architectures and operating systems.
+
+Some standard CPUs supported by CODESYS Runtime include:
+
+① Intel 80x86; Pentium, Atom (32-bit or 64-bit), etc.;
+
+② ARM-Based CPUs (ARM v6-v9 architecture, such as ARM 7, ARM 9, ARM 11, etc.);
+
+③ ARM Cortex CPUs (Thumb2 instruction set: Mx, Ax, Rx, such as M3/M4/M7, A8/A9, A15, A53, etc.);
+
+④ PowerPC;
+
+⑤ Domestic CPUs such as Loongson CPU, Tianjin Phytium CPU, etc.
+
+CODESYS Runtime can also be deployed on the following target devices:
+
+*   Infineon TriCore
+*   Renesas RZ/N1, RX
+*   Analog Devices Blackfin
+*   NXP (Freescale) ColdFire
+*   Texas Instruments DSP C2xxx / 28x
+
+Operating systems supported by CODESYS Runtime include:
+
+*   Windows 7/8/10/Embedded (32/64 Bit);
+*   WinCE;
+*   Linux (OSADL real-time extension);
+*   VxWorks;
+*   QNX;
+*   No operating system or micro-operating systems (e.g., uCOS, eCOS, freeRTOS);
+*   Domestic operating systems.
+
+**CODESYS Runtime Toolkit**
+
+The CODESYS Runtime Toolkit is a comprehensive software development kit for programmable controllers. CODESYS Runtime can transform any embedded platform or industrial PC into an IEC 61131-3 standard-based controller, and it provides open Runtime interfaces, allowing users to perform secondary development according to industry requirements and functional needs. Therefore, the CODESYS Runtime Toolkit supports users in developing controller products with independent intellectual property rights.
+
+For end-users, controllers developed based on CODESYS Runtime can be used directly, and CODESYS IDE (Integrated Development Environment) can be utilized for project applications. For OEM customers, the CODESYS Runtime Toolkit can be used to develop their own branded controllers based on various platforms and requirements, supporting customized development of necessary functions.
+
+Scope of supply for the CODESYS Runtime Toolkit:
+
+*   Source code or partial source code of the CODESYS Runtime (real-time runtime system), depending on the hardware platform selected by the user.
+*   Source code examples for I/O drivers and libraries.
+*   Comprehensive documentation regarding the porting of CODESYS Runtime to the target system.
+*   Essential and add-on components required for the real-time runtime system of specific hardware devices.
+*   Training provided by our experienced engineers to assist customers in porting the CODESYS real-time runtime system to target devices.
+
+The CODESYS Runtime porting process is as follows:
+
+*   Install the CODESYS real-time runtime system toolkit with available basic and add-on components.
+*   Configure and select components for the required real-time runtime system functions using a boot tool.
+*   Configure the operating system interface to implement custom drivers or integrated additional functions (external libraries), connect external systems, etc.
+*   Link and compile all components into an executable real-time runtime system and deploy it on the target device.
+*   Provide drivers (device description files) for device usage within the CODESYS IDE.
+
+**CODESYS PLCHandler**
+
+PLCHandler establishes communication between third-party clients and PLCs developed based on CODESYS. PLCHandler encapsulates the complete underlying communication protocol and provides an API interface. This API interface offers access to all available functions and services.
+
+PLCHandler provides the following functions and services:
+
+① Establish or terminate communication with the PLC.
+
+② Read the PLC's variable list.
+
+③ Cyclically read PLC variables.
+
+④ Synchronously read PLC variable values.
+
+⑤ Synchronously write variable values to the PLC.
+
+⑥ Enable simultaneous communication with multiple PLCs.
+
+⑦ Automatically reconnect to the PLC after disconnection.
+
+⑧ Automatically restart the program after downloading from CODESYS to the PLC.
+
+⑨ Send signal events (data changes, status changes) to the client.
+
+⑩ Get and set the status of PLC applications.
+
+⑪ Access the PLC's underlying file system.
+
+As a Software Development Kit (SDK), PLCHandler includes all C/C++ header files, PLCHandler libraries, example configuration files, and demo source code, among others.
+
+A typical PLCHandler library functions as a static link library (e.g., PLCHandlerLink.lib or PLCHandlerLinkMFC.lib for WIN32 systems), encapsulating C++ classes and additional C interfaces. For the Windows platform, PLCHandler also provides dynamic link libraries (PLCHandlerDll.dll) and ActiveX-Control (PLCHandlerX.ocx) plugins.
+
+Internal Structure of PLCHandler and API Interface
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/139253094/01_b44afa8ada637e8b60f064a293da8e4d.png)
+
+**CODESYS OPC UA Server**
+
+OPC UA is the standard interface for realizing smart factories and Industry 4.0. OPC UA (Unified Architecture) is the next generation technology under the OPC standard, which not only allows data transfer between machines and factories but also supports machine-readable descriptions of this data. OPC UA is a platform-independent standard based on TCP. The protocol stack can be used by all members of the OPC organization.
+
+Based on the componentized architecture of CODESYS Runtime, the CODESYS OPC UA Server can be ported as an add-on component into CODESYS Runtime. Therefore, the CODESYS OPC UA Server can be integrated into almost all CODESYS-based devices, performing comparably to TCP/IP and real-time clocks. To deploy the OPC UA Server within CODESYS Runtime, device manufacturers must obtain the protocol stack source code from the OPC organization.
+
+The OPC UA Server receives data from the CODESYS higher-level development environment and communicates with OPC UA clients.
+
+OPC UA Functions and Features:
+
+*   Automatic establishment of communication with clients
+*   Automatic triggering when data values and data status change
+*   Browsing variable lists
+*   Managing data cache entries
+*   Direct access to items in the controller (no caching)
+*   OPC communication with CODESYS V2.3 versions
+
+**CODESYS Redundancy**
+
+An extension of redundancy functions within the IEC 61131-3 standard-based higher-level development environment, supporting users in developing their own redundant controllers. Two independent industrial controllers simultaneously execute an IEC 61131-3 application without interruption and in synchronization. In the event of an unexpected situation, the redundant controller automatically switches to become the primary controller, and control is not interrupted or paused. However, only the active controller communicates with the I/O system.
+
+Redundancy Functions:
+
+*   Simultaneous startup mechanism for two controllers
+*   Configuration of IP addresses and controller timeouts
+*   Automatic synchronization and updating of redundant controllers, even if one controller is replaced by another
+*   Reaction to errors in IEC 61131-3 applications
+*   Switching between controllers via IEC application function calls or OEM runtime system components (e.g., when monitoring temperature processes, fieldbus error diagnostics, or manual switching via visualization).
+
+## XM3568-SOM + CODESYS Core Board
+
+1. Core Board Introduction
+
+The XM3568-SOM is a quad-core ARM Cortex-A55 fully domestic industrial core board designed based on Rockchip RK3568J/RK3568B2 processors, with a main frequency of up to 1.8GHz/2.0GHz. All components of the core board, including CPU, ROM, RAM, power supply, crystal oscillator, and connectors, adopt domestic industrial-grade solutions, achieving a 100% localization rate.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/139253094/02_79772437b095c2e493ca71df90c59a0f.png)
+
+The core board exposes interfaces such as GMAC, USB, SATA, PCIe, HDMI, LVDS, RGB, MIPI, SDIO, CAN, UART, SPI, PDM, and eDP through industrial-grade B2B connectors. It supports multi-screen display, Mali-G52-2EE GPU, 1080P@60fps H.265/H.264 video encoding, 4K@60fps H.265/H.264 video decoding, and has a built-in 1TOPS NPU computing power. The core board has undergone professional PCB layout and high/low-temperature testing and verification, ensuring stable and reliable quality that meets the requirements of various industrial application environments.
+
+When users perform secondary development with the core board, they only need to focus on upper-layer applications, enabling rapid product solution verification, reducing development difficulty, shortening R&D cycles, thereby lowering overall costs, and seizing market opportunities.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/139253094/03_c4d4fd8e4243b1c6887ba9521ebbb7a6.png)
