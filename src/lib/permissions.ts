@@ -27,7 +27,9 @@ export type Permission =
   | "knowledge.write"
   | "chat.access"           // admin AI chat
   | "system.usage"
-  | "team.manage";          // manage team members
+  | "team.manage"           // manage team members
+  | "marine.read"           // view vessels & sessions
+  | "marine.write";         // manage vessels, relay access
 
 const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   owner: [
@@ -41,6 +43,7 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "chat.access",
     "system.usage",
     "team.manage",
+    "marine.read", "marine.write",
   ],
   sales: [
     "admin.access",

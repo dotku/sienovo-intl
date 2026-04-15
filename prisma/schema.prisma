@@ -303,6 +303,46 @@ model OutreachStep {
   @@index([campaignId])
 }
 
+// ==================== Marine System ====================
+
+model Vessel {
+  id            String          @id @default(cuid())
+  deviceId      String          @unique // e.g. "BOAT-A3F8"
+  name          String?                 // friendly name e.g. "湖边一号"
+  type          String          @default("bait-boat") // bait-boat, patrol, survey
+  secretKey     String                  // for pairing authentication
+  lastLat       Float?
+  lastLng       Float?
+  lastHeading   Float?
+  lastBattery   Float?
+  lastSignal    Float?
+  lastBaitLevel Float?
+  isOnline      Boolean         @default(false)
+  lastSeenAt    DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  sessions      VesselSession[]
+
+  @@index([isOnline])
+}
+
+model VesselSession {
+  id           String    @id @default(cuid())
+  vesselId     String
+  vessel       Vessel    @relation(fields: [vesselId], references: [id], onDelete: Cascade)
+  controllerId String?   // e.g. "CTRL-X9F2"
+  startedAt    DateTime  @default(now())
+  endedAt      DateTime?
+  totalDistance Float?    // meters
+  maxSpeed     Float?    // m/s
+  baitUsed     Float?    // percentage used
+
+  @@index([vesselId])
+  @@index([startedAt])
+}
+
+// ==================== Outreach System ====================
+
 model OutreachEmail {
   id          String           @id @default(cuid())
   campaignId  String

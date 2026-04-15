@@ -11,7 +11,11 @@ import { join } from "path";
 
 const PROJECT_ROOT = new URL("..", import.meta.url).pathname;
 const LIST_FILE = join(PROJECT_ROOT, "scripts/article-list.txt");
-const BLOG_URL = "https://blog.csdn.net/yeyuangen/article/list";
+const CSDN_CHANNELS = [
+  { username: "yeyuangen", name: "YEYUANGEN" },
+  { username: "ARM_FPGA_AI", name: "ARM_FPGA_AI" },
+  { username: "szxinmai", name: "szxinmai" },
+];
 
 async function launchBrowser() {
   const browser = await chromium.launch({
@@ -41,20 +45,18 @@ function getExistingIds() {
   return ids;
 }
 
-async function main() {
-  const existingIds = getExistingIds();
-  console.log(`Existing articles in list: ${existingIds.size}`);
-
-  const { browser, page } = await launchBrowser();
+async function scrapeChannel(page, channel, existingIds) {
+  const baseUrl = `https://blog.csdn.net/${channel.username}/article/list`;
   const newArticles = [];
   let pageNum = 1;
   let foundExisting = false;
 
-  // Scrape pages until we find articles already in the list
+  console.log(`\n=== Scraping channel: ${channel.name} (${channel.username}) ===`);
+
   while (!foundExisting && pageNum <= 50) {
     try {
-      const url = `${BLOG_URL}/${pageNum}`;
-      console.log(`Scraping page ${pageNum}...`);
+      const url = `${baseUrl}/${pageNum}`;
+      console.log(`  Page ${pageNum}...`);
       await page.goto(url, { waitUntil: "networkidle", timeout: 20000 });
       await page
         .waitForSelector(".article-list, .article-item-box", { timeout: 10000 })
@@ -83,7 +85,7 @@ async function main() {
       });
 
       if (articles.length === 0) {
-        console.log(`  No articles found on page ${pageNum}, stopping.`);
+        console.log(`    No articles found, stopping.`);
         break;
       }
 
@@ -92,18 +94,32 @@ async function main() {
           foundExisting = true;
           break;
         }
-        newArticles.push(article);
+        newArticles.push({ ...article, source: channel.username });
+        existingIds.add(article.id);
       }
 
-      console.log(
-        `  Found ${articles.length} articles, ${newArticles.length} new so far`
-      );
+      console.log(`    Found ${articles.length}, ${newArticles.length} new from this channel`);
       pageNum++;
       await new Promise((r) => setTimeout(r, 1500));
     } catch (err) {
-      console.log(`  Error on page ${pageNum}: ${err.message.substring(0, 50)}`);
+      console.log(`    Error: ${err.message.substring(0, 50)}`);
       break;
     }
+  }
+
+  return newArticles;
+}
+
+async function main() {
+  const existingIds = getExistingIds();
+  console.log(`Existing articles in list: ${existingIds.size}`);
+
+  const { browser, page } = await launchBrowser();
+  const newArticles = [];
+
+  for (const channel of CSDN_CHANNELS) {
+    const channelArticles = await scrapeChannel(page, channel, existingIds);
+    newArticles.push(...channelArticles);
   }
 
   await browser.close();
@@ -125,11 +141,11 @@ async function main() {
   const oldCount = countMatch ? parseInt(countMatch[1], 10) : 0;
   const newCount = oldCount + newArticles.length;
 
-  // Build new entries
+  // Build new entries (include source channel)
   const newEntries = newArticles
     .map(
       (a, i) =>
-        `   ${i + 1}. ${a.title}\n      ${a.url}`
+        `   ${i + 1}. [${a.source}] ${a.title}\n      ${a.url}`
     )
     .join("\n");
 
