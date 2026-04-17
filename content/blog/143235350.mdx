@@ -1,0 +1,212 @@
+---
+title: "基于国产PCIE4.0/5.0 SWITCH 的AI服务器PCIe拓扑及PCIe5.0 Retimer 卡应用研究（三）"
+date: "2024-10-25"
+slug: "143235350"
+tags: ["#人工智能"]
+source: "https://blog.csdn.net/szxinmai/article/details/143235350"
+---
+
+ 
+
+HPL性能分析
+
+HPL(HighPerformanceLinpack)测 试 可 以
+
+表征3种拓扑在双精度浮点运算中的表现。Bal
+
+anceMode、CommonMode和 CascadeMode3种
+
+拓扑的 HPL性能测试结果如表3所示。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143235350/01_4881bc6774954f2e936eb491a46c25ef.png)
+
+为清晰表征3种拓扑在 HPL 性能测试中的
+
+表现差异,以 BalanceMode的测试分数为基准,得
+
+到 Common Mode 和 Cascade Mode2 种 拓 扑
+
+HPL性能测试分数对 BalanceMode分数的占比,
+
+如图6所示。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143235350/02_7adbba8a95874b13bffaa728bc5a8b45.png)
+
+HPL测试 需 要 使 用 处 理 器 与 主 内 存,由 于
+
+Dualroot的拓扑上行带宽和内存使用率提升,性
+
+能将会优于 Singleroot的拓扑,故 Balance Mode
+
+和 CommonMode在 HPL 测试中的分数会高于
+
+CascadeMode的。另外,Balance Mode结构将 8
+
+个 GPU 平均挂载在2颗 CPU 下,可以利用2颗
+
+CPU 及内存的资源来完成浮点运算;在 Common
+
+C M P o U de 间 中 的 ,虽 U 然 PI 所 连 有 接 G 速 P 度 U 够 都 快 挂 , 载 CP 于 U C 间 PU 的 0 单 下 条 ,但 UP 因 I
+
+连接速度高达10.4GT/s,同时运行8个 GPU 的
+
+浮点运算时,可以通过 UPI来与 CPU1通信,且共
+
+享内存。故整体而言,BalanceMode的 HPL性能
+
+会略高于 CommonMode的。
+
+3.2.3
+
+深度学习性能分析
+
+深度学习 DL(DeepLearning)通过多个处理
+
+层构成的计算模型进行图像、视频和音频等的处理
+
+和识别\[6\],常用模型有自动编码机、受限玻尔兹曼
+
+机、深度神经网络、卷积神经网络和循环神经网络
+
+等,其中卷积神经网络\[7\]在图像处理方面应用较为
+
+广泛,如图7所示。
+
+Figure7 Imageprocessingusingconvolutionalneuralnetwork
+
+图7 卷积神经网络处理图像
+
+在 2017 年 的 GPU 技 术 大 会 (GTC)上,
+
+NVIDIA 发布了基于 volta的 V100GPU。V100
+
+GPU 是第1个包含“张量核心”的 NVIDIA GPU,
+
+这是4×4矩阵乘法操作设计的核心,是深度学习
+
+模型的主要部分\[8\]。
+
+深度学 习 训 练 模 型 主 要 使 用 2 种 分 布 策
+
+略———数据并行型和模型并行型\[9\],本文实验采用
+
+数据并行型策略。对于数据并行,每个 GPU 都有
+
+一个深度学习模型的完整副本。每个 GPU 接收
+
+数据 的 不 同 部 分 进 行 训 练,然 后 将 其 参 数 通 过
+
+RingAll-Reduce的方式更新到所有 GPU,以便与
+
+所有 GPU 共享其训练输出。如图8所示,以 Bal
+
+anceMode为例,在运行数据并行的深度学习训练
+
+模型时,当多台机器运行时,GPU 的通信流通过
+
+IB(InfiniBand)卡实现机器之间的信息传递;当单
+
+台机 器 运 行 时,基 于 NCCL(NVIDIA Collective
+
+CommunicationsLibrary)通信库,8个 GPU 卡的
+
+信息传递构成环形通信流。与 GPU 之间的通信
+
+带宽相比,减小的 CPU 和 GPU 之间的通信带宽
+
+会影响 GPU 获取数据集所需要的时间,即完成一
+
+个 Batchsize所需的时间。
+
+Figure8 Dataparallelcommunication
+
+modeforBalancemode
+
+图8 Balance模式数据并行的通信模式
+
+深度学习训练模型种类繁多,不同模型有不同
+
+的优势,可以应用于各类实际应用场景。如图9所
+
+示,ResNet计算模型借鉴了 HighwayNetwork思
+
+想,利用残差网络构建,其优化的目标为输出和输
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143235350/03_3b985c6f72d646b182fe4f2da34e9686.png)
+
+在 2017 年 的 GPU 技 术 大 会 (GTC)上,
+
+NVIDIA 发布了基于 volta的 V100GPU。V100
+
+GPU 是第1个包含“张量核心”的 NVIDIA GPU,
+
+这是4×4矩阵乘法操作设计的核心,是深度学习
+
+模型的主要部分\[8\]。
+
+深度学 习 训 练 模 型 主 要 使 用 2 种 分 布 策
+
+略———数据并行型和模型并行型\[9\],本文实验采用
+
+数据并行型策略。对于数据并行,每个 GPU 都有
+
+一个深度学习模型的完整副本。每个 GPU 接收
+
+数据 的 不 同 部 分 进 行 训 练,然 后 将 其 参 数 通 过
+
+RingAll-Reduce的方式更新到所有 GPU,以便与
+
+所有 GPU 共享其训练输出。如图8所示,以 Bal
+
+anceMode为例,在运行数据并行的深度学习训练
+
+模型时,当多台机器运行时,GPU 的通信流通过
+
+IB(InfiniBand)卡实现机器之间的信息传递;当单
+
+台机 器 运 行 时,基 于 NCCL(NVIDIA Collective
+
+CommunicationsLibrary)通信库,8个 GPU 卡的
+
+信息传递构成环形通信流。与 GPU 之间的通信
+
+带宽相比,减小的 CPU 和 GPU 之间的通信带宽
+
+会影响 GPU 获取数据集所需要的时间,即完成一
+
+个 Batchsize所需的时间。
+
+\=================PCIe5.0 Retimer 卡==============
+
+\*消除确定性抖动与随机抖动  
+\*Tx/Rx 按通道性能可调  
+\* 2\*MICROx8接口  
+\*支持热插拔  
+\* 低功耗，低延时  
+\*符合PCIe5.0基本规范.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143235350/04_610ad6d137154414a8f3a0540cdd7716.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143235350/05_d16032a4167e4c52874c309efc6a3fc3.png)
+
+功能特性
+
+* * *
+
+· 高性能 32GT/s SerDeS ;
+
+·2\*MICROx8接口;
+
+· Tx/Rx 按通道性能可调;
+
+· 支持通道极性翻转;
+
+·支持热插拔;
+
+·低功耗，低延时;
+
+·符合PCIe5.0基本规范;
+
+* * *
+
+☑支持OEM/ODM定制服务

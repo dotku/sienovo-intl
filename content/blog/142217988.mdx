@@ -1,0 +1,87 @@
+---
+title: "【AI国产服务器】Nvidia卡出现 HW Power Brake Slowdown 的临时解决方案，国产pcie 4.0/5.0 switch用于GPU扩展卡、NVMe存储卡，替代博通"
+date: "2024-09-13"
+slug: "142217988"
+tags: ["#人工智能", "#服务器"]
+source: "https://blog.csdn.net/szxinmai/article/details/142217988"
+---
+
+ 
+
+新装了tesla显卡功耗总是上不去，250w的TDP，满载只能跑到70w。ubuntu看不到核心频率信息，只能通过 nvidia-smi -q -d PERFORMANCE来查看问题：
+
+~$ nvidia \-smi -q -d PERFORMANCE  
+   
+\==============NVSMI LOG \==============  
+   
+Timestamp                                 : Sun Oct 23 12:36:25 2022  
+Driver Version                            : 515.65.01  
+CUDA Version                              : 11.7  
+   
+Attached GPUs                             : 1  
+GPU 00000000:84:00.0  
+    Performance State                     : P0  
+    Clocks Throttle Reasons  
+        Idle                              : Not Active  
+        Applications Clocks Setting       : Not Active  
+        SW Power Cap                      : Not Active  
+        HW Slowdown                       : Active  
+            HW Thermal Slowdown           : Not Active  
+            HW Power Brake Slowdown       : Active  
+        Sync Boost                        : Not Active  
+        SW Thermal Slowdown               : Not Active  
+        Display Clock Setting             : Not Active
+
+ 多方google后猜测问题出现在主板太老（我的是浪潮x79）不能识别tesla显卡的 power brake slowdown信号线导致的，我也没有找到可以升级的主板驱动，于是问题陷入了无法解决的境地。
+
+后来在nvidia社区看到有人通过胶带封住pcie的第30针脚来解决的，我决定尝试一下。
+
+RTX A5000 stuck at 400-500MHz due to HW Power Brake Slowdown on Ubuntu 20.04.3 - #2 by jvnugteren - Linux - NVIDIA Developer Forums
+
+首先查询一下pcie针脚定义
+
+PCI-E的针脚定义的简单讲解（备忘）\_015646的博客-CSDN博客\_pcie接口引脚定义
+
+其中关键位置：
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142217988/01_7f767ba6f6584e93842cfb4f4bfacfaa.png)
+
+可以看到第30针左侧有个reserved保留针脚，估计是tesla显卡 包括某些quatro显卡都对其进行了扩展，定义了Power Brake Slowdown信号，我们的主板又不知道这件事，所以一直对该口输出信号，导致供电跟不上。那么我们的任务就是封掉它。
+
+需要注意第30针脚是从电源测第一针开始数的，不要跳过电源的11个针脚数。见下图
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142217988/02_c8e6bd90ecdc41189c9cb114eb3ed13e.png)
+
+准备好绝缘胶带（不建议普通胶带），同时为了胶带能够不滑，我们需要将胶带剪成1.5mm宽，2cm长的细条，越过显卡金手指两面粘在第30针左右两侧（如图）。如果只粘一侧，插入pcie时会将胶带顶开。
+
+重启查看显卡：
+
+~$ nvidia-smi -q -d PERFORMANCE  
+   
+\==============NVSMI LOG==============  
+   
+Timestamp                                 : Sun Oct 23 12:58:18 2022  
+Driver Version                            : 515.65.01  
+CUDA Version                              : 11.7  
+   
+Attached GPUs                             : 1  
+GPU 00000000:84:00.0  
+    Performance State                     : P0  
+    Clocks Throttle Reasons  
+        Idle                              : Not Active  
+        Applications Clocks Setting       : Not Active  
+        SW Power Cap                      : Not Active  
+        HW Slowdown                       : Not Active  
+            HW Thermal Slowdown           : Not Active  
+            HW Power Brake Slowdown       : Not Active  
+        Sync Boost                        : Not Active  
+        SW Thermal Slowdown               : Not Active  
+        Display Clock Setting             : Not Active
+
+ 已经没有问题了，测试功耗也可以达到200+w。
+
+注意事项：
+
+1\. 胶带如果粘歪了，可能会出现其他故障，所以请谨慎操作。特别是如果使用的不是绝缘胶带，可能导致短路。
+
+2\. 由于30针右侧也被封住了，pcie通道数可能会降低，在我的场景下测试暂时没有影响，但这个问题需要留意。![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142217988/03_bb5db0eee48246cf85e65548d2a19637.jpeg)![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142217988/04_00c76774f7fb4bfab614e4454f4ecb17.jpeg)

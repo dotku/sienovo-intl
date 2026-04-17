@@ -1,0 +1,59 @@
+---
+title: "AI国产服务器：GPU power brake， 国产pcie 4.0/5.0 switch用于GPU扩展卡、NVMe存储卡，替代博通"
+date: "2024-09-13"
+slug: "142217808"
+tags: ["#服务器", "#人工智能"]
+source: "https://blog.csdn.net/szxinmai/article/details/142217808"
+---
+
+ 
+
+Power brake 分为主动触发（proactive）和被动触发（Reacive） 
+
+主动触发（proactive）操作步骤 
+
+1、进入UEFI --》 选择system settings --》 选择power --》 将“pcie power brake”选项改为“proactive” --》 关机 
+
+2、插入的PSU必须符合以下规定 
+
+（机器总电源“瓦数”必须超过PSU“瓦数”的1/3） 
+
+3、开机就会触发power brake，会在xcc web events log 将看到“【图一】”的效果 
+
+4、运行GPU压力，将看到“【图二】”效果 
+
+（GPU power 并没有跑满） 
+
+被动触发（Reacive）操作步骤： 
+
+1、进入UEFI --》 选择system settings --》 选择power --》 将“pcie power brake”选项改为“Reacive” --》 重启进入OS 
+
+2.拔下一颗风扇 
+
+(部分机器需要吹风机加热) 
+
+3、稍后会在xcc web events log 将看到“【图一】”的效果 
+
+（xcc已经触发power brake） 
+
+4、运行GPU压力，将看到“【图二】”效果 
+
+（GPU power 并没有跑满） 
+
+另外： nvidia GPU还需要检查driver 有没有被触发power 
+
+输入命令"nvidia-smi.exe -q" 
+
+检查是否和“【图三】”显示一致 
+
+【图一】 
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142217808/01_6f4c7e5171da47a5a380600940b28590.png)
+
+【图二】 
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142217808/02_c9beac735ce34370b47d4102052a6bb9.png)
+
+【图三】 
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142217808/03_c73590a2e1e6480d9789d8bb1d682bff.png)

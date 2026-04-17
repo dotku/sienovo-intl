@@ -1,0 +1,309 @@
+---
+title: "基于ARM+FPGA的电力通信管理机IEC61850规约通信机的实现"
+date: "2024-11-15"
+slug: "143802990"
+tags: ["#fpga开发"]
+source: "https://blog.csdn.net/szxinmai/article/details/143802990"
+---
+
+ 
+
+本章通过对比传统的通信管理机方案对需要支持多RS485端口的不足之处， 以及在进行海量数据处理时的性能瓶颈，本文使用Intel全新的Cyclone V SoC  FPGA芯片，充分发挥FPGA的高速并行运算特性以及现场可配置优势，并且结合 ARM处理器的灵活运算和控制能力，设计了基于异构计算架构的硬件可配置电力 通信管理机系统\[8\]。本章将结合第二章介绍的 光 伏方阵对通信管理机的基本要求， 结合SoC FPGA的自身硬件特点，分析了SoC FPGA针对光伏电力通信系统管理 机的可实现性。
+
+3.1 SoC FPGA的基本概念   
+Intel Cyclone V SoC FPGA是Intel PSG（原Altera）于2013年发布的一款在单 一芯片上集成了双核的ARM Cortex-A9处理器和FPGA逻辑资源的新型SoC芯片， 相较于传统的单一ARM处理器或FPGA芯片，Intel Cyclone V SoC FPGA既拥有 了ARM处理器灵活高效的数据运算和事务处理能力，同时又集成了FPGA的高速 并行处理优势，同时，基于两者独特的片上互联结构，使用时可以将FPGA上的 通用逻辑资源经过配置，映射为ARM处理器的一个或多个具有特定功能的外设， 通过高达128位宽的AXI（Advanced Extensible Interface）高速总线进行通信，完 成数据和控制命令的交互\[9\]。由于片上的ARM处理器是经过布局布线的硬线逻辑， 因此其能工作的时钟主频较高，因此单位时间内能够执行的指令也更多\[8\]。  3.2 SoC FPGA架构相较于传统架构的优势  3.2.1 SoC FPGA架构相较于独立处理器架构的优势   
+在SoC FPGA架构出现之前一般的嵌入式系统通常使用各种处理器或单片机 作为系统核心，如ARM、X86、PowerPC等。这些处理器的最大局限在于其芯片 上的外设数量是确定的，一旦选定一款特定的处理器，则其本身能够提供的各种 功能也就确定了，例如选择S3C2410这款处理器，则该芯片本身有且仅有3个 UART串口，当系统所需的串口数量大于3个时，不得不采用另外的方法来扩张实 现，例如使用各种串口扩展芯片，另外，由于这些处理器芯片片上外设功能都是 固定的，仅支持在一定程度上设置其工作模式，却无法实现非常灵活的个性化定 制，例如S3C2410处理器的片上UART 控制器 带有16个字节的FIFO缓冲，但是在某些大数据量的应用中，希望有更大容量的FIFO来满足功能开发需求，则片上 的UART控制器不能完全满足要求，只能通过软件的方式处理\[10\]。   
+SoC FPGA由于芯片上包含有现场可编程逻辑门阵列，可以根据实际应用需求 设计相应的逻辑电路，如带有256个字节的 FIFO 的UART控制器。而且，得益于 SoC FPGA芯片上FPGA和HPS部分独特的高速互联架构，FPGA侧设计的功能 电路可以直接连接到HPS的总线上，从而映射为HPS的一个外设，由HPS对其 进行读写操作，该操作就像处理器操作本身片上含有的外设一样简单方便。   
+相较于传统的硬件功能固定的处理器，SoC FPGA能够突破硬件功能限制，根 据实际应用需求灵活设计功能电路并连接到处理器的总线上，由处理器对其进行 控制。   
+3.2.2 SoC FPGA架构相较于独立FPGA系统的优势   
+FPGA作为一种可以随时更改其实现的逻辑电路功能的器件，在高速并行数据 处理方面有天然的优势。由于FPGA实现的是硬件逻辑功能，其执行效率相较于 使用程序指令实现功能的处理器来说要高很多，例如执行3个数据的乘加运算， FPGA可以使用两个乘法器和一个加法器，在一个时钟周期内完成运算并输出结 果，而CPU则可能需要将将该操作拆分成1条乘加指令和1条乘法指令，即使高 性能的CPU，也需要2个指令周期才能完成该操作。同时，FPGA也可以利用功 能复制的方式，在一个芯片上实现大量相同的功能，例如设计好一个高速数据采 集+FIR数字滤波功能模块，然后可以直接将其例化多次，实现一个高速多路数据 采集处理系统。   
+然而，单独的FPGA设计的系统也有其不足之处，由于FPGA实现功能都是 通过功能固定的逻辑电路实现的，那么当应用中需要灵活的控制和人机交互或者 复杂的以太网协议通信时，使用FPGA实现就会有较大的难度，即使使用复杂的 状态机能够勉强实现功能，也面临者功能固定，修改难度大的问题，例如在上述 多路采集系统之中，当需要将多路采集到的数据在液晶显示屏上绘制为波形或者 使用TCP/IP协议传输到远端服务器时，单纯的FPGA就难以胜任了，而ARM处 理器，尤其是运行了嵌入式操作系统的ARM处理器，在图形界面显示和网络传输 方面有较大的优势，如果将FPGA实现的多路高速数据采集系统的采集结果交给 ARM处理器来实现波形显示或者网络传输，则只需要简单的软件编程即可实现。   
+SoC FPGA作为一种在单一芯片上集成了FPGA和高性能处理器的新型芯片 架构，即拥有FPGA高速并行处理和灵活功能定制的优势，同时又拥有ARM处理 器实现灵活控制、图形界面显示和网络传输方面的优势。而且，这两者在芯片上并不是相互独立的存在，而是通过片上的高速互联架构有机的连接到了一起， FPGA采集的数据可以通过F2H Bridge桥直接写入到HPS侧的存储器中，然后由 HPS将数据读取，使用高级的图形界面编程工具，例如Mini GUI（Graphical User  Interface）或者Qt来设计图形界面并显示波形，也可以使用 Web Server网络服务 器将数据组织起来并传递给远端计算机接收。  3.2.3 SoC FPGA架构相较于SOPC技术的优势   
+为了解决单独的FPGA在灵活多变应用中的不足，在SoC FPGA技术推出之 前，各大FPGA厂家已经推广了有多年的SOPC（System-on-a-Programmable-Chip） 技术。和SoC FPGA不相同的是，SOPC是在单纯的FPGA芯片上使用FPGA的逻 辑和存储器资源搭建一个软核CPU系统，由该软核CPU实现所需处理器的完整功 能。最具代表性的就是Altera的NIOS II处理器和Xilinx的MicroBlaze处理器。   
+由于是使用FPGA的通用逻辑搭建的CPU，因此具有一定的灵活性，用户可 以根据自己的需求对CPU进行定制裁剪，增加一些专用功能，例如除法或浮点运 算单元，用于提升CPU在某些专用运算方面的性能，或者删除一些在系统里面使 用不到的功能，以节约逻辑资源。另外也可以根据用户的实际需求，为CPU添加 各种标准或定制的外设，例如UART（Universal Asynchronous Receiver/Transmitter）、 SPI（Serial Peripheral Interface）、IIC（Inter-Integrated Circuit）等标准接口外设， 同时，用户也可以自己使用FPGA的逻辑资源，编写各种专用的外设，然后连接 到CPU总线上，由CPU进行控制，以实现软硬件的协同工作，在保证系统性能的 同时，增加了系统的灵活性。而且，如果单个的软核CPU无法满足用户需求，可 以添加多个CPU软核，搭建多核系统，通过多核CPU协同工作，让系统拥有更加 灵活便捷的控制能力和较强的运算处理能力。   
+但是，由于CPU是使用FPGA的通用逻辑资源搭建的，相较使用经过布局布 线优化的硬核处理器来说，软核处理器够运行的最高时钟主频要低一些，而且也 会相应的消耗较多的FPGA逻辑资源以及片上存储器资源，因此SOPC方案仅适 用于那些对于数处理器整体性能要求不高的应用，例如整个系统的初始化配置， 人机交互，多个功能模块间的协调控制等功能。   
+从架构的角度来说，SOPC和SOPC FPGA是统一的，都是由FPGA部分和处 理器部分组成。在SoC FPGA中，嵌入的是ARM公司的Cortex-A9硬核处理器， 简称HPS(Hardware Processor System)，而SOPC技术中，嵌入的是NIOS II软核处 理器，两者指令集不一样，处理器性能也不一样。Cortex-A9硬核处理器性能远远 高于NIOS II软核处理器。 
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143802990/01_ed4195e7e7464db1aedbfd13dd7ddf40.png)
+
+● CPU+NPU+ GPU
+
+\-CPU: Rockchip RK3568, Quad-Core ARM Cortex-A55, up to 2.0GHz
+
+\-NPU: 1.0 TOPS
+
+\-GPU: Mali-G52
+
+● 4 x GbE LAN
+
+(扩展方案可选：①可选4 x GbE电口；②可选2 x GbE电口+2 x 百/千兆光口）
+
+● 8 x RS232/RS485 / 16 x RS232/RS485
+
+● 1 x M.2 B-Key, 1 x M.2 M-Key
+
+● 1 x MPCle (w/USB2.0)
+
+● 4 x DO继电器应用 (常开/常闭可选), 4 x DI (NPN/PNP可选), 2KV隔离
+
+● 2 x USB2.0 HOST Type-A
+
+● 1 x USB OTG internal (用于系统烧录和调试)
+
+● 双电源设计: AC/DC 220V input
+
+● OS: Debian10 server
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143802990/02_33b44aa2b79d4599bb6314d35d69b0f7.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143802990/03_d58d8f58d01b42bdba15cdde647b63bc.png)
+
+**硬件平台**
+
+处理器
+
+\-CPU: Rockchip RK3568, Quad-Core ARM Cortex-A55, up to 2.0GHz
+
+\-NPU: 1.0 TOPS
+
+\-GPU: Mali-G52
+
+内存
+
+4GB LPDDR4 （可扩展至8G）
+
+存储
+
+32GB eMMC 5.1（可扩展至64G）
+
+**接口类型**
+
+USB
+
+2 x USB2.0 host, type-A
+
+网口
+
+2 x GbE port by RJ45 with YT8531C Controller WOL - LAN1/LAN2
+
+2 x GbE port by RJ45 with YT6801 WOL - LAN3/LAN4
+
+两种扩展方案可选：
+
+①4 x 电口扩展板 (RJ45, w/LED, 10/100/1000M自适应)
+
+②2 x 电口 (RJ45, w/LED, 10/100/1000M自适应)+2 x 100/1000Base光口
+
+M.2
+
+1 x M.2 B-Key 3042/3052 USB3.0，for 4G/5G
+
+1 x M.2 M-Key 2242/2280 SATA，for Storage
+
+MPCIE
+
+1 x MPCIE (w/USB2.0), 支持WIFI/BT
+
+SIM
+
+1 x 1.8V/3V SIM/UIM卡
+
+串口
+
+8 x RS232/RS485, 凤凰端子接口, 9600~115200Kbps, 2KV光电隔离
+
+1 x RS232/GPIO/电源, 2 x 4 Pin header, PH=2.54mm 母座 (COMx), 内部连接
+
+1 x UART, TTL for Debug
+
+DI/DO
+
+4 x DI，干节点，2.5KV光电隔离
+
+4 x DO，继电器输出，默认常开输出
+
+CAN
+
+2 x CAN 2.0 A/B
+
+2 x CAN FD by MPCIE--可选
+
+电源接口
+
+2 x 220V AC/DC，凤凰端子，电源模块支持交直流冗余输入
+
+交流：AC220V±20%
+
+直流：DC110/220V±20%
+
+支持远程重启
+
+复位键
+
+1 x 复位键，恢复远程端口IP
+
+USB OTG
+
+1 x USB OTG，用于系统烧录
+
+LED
+
+Power / RUN / LAN / COM / user define
+
+B码对时
+
+1 x TTL
+
+**Display**
+
+HDMI
+
+1 x HDMI, Up to 4096 x 2304@60Hz
+
+**物理特性**
+
+结构
+
+外框铁壳 (SECC)，铁件烤漆，烤漆黑色工艺，铝散热片，阳极原色
+
+安装方式
+
+Rack mount
+
+尺寸
+
+1U, 444(L) \* 255(W) \* 44mm(H)
+
+工作温度
+
+\-20~60°C
+
+储存温度
+
+\-40~70°C
+
+相对湿度
+
+5 to 95%@ 40˚C, non-condensing
+
+认证
+
+Meet CE/FCC Class A
+
+**系统**
+
+OS
+
+Debain 10 Server
+
+\===============四网口方案==========
+
+ ● 工业级设计，金属外壳，无风扇控制器
+
+● Rockchip瑞芯微 RK3568，基于ARM架构的四核Cortex-A55处理器，主频最高可达2.0GHz
+
+● 4GB DDR4，最高支持8GB
+
+● 4 x GbE LAN
+
+● 8 x RS485(2KV 隔离)
+
+● 5 x DI 干接点，NPN/PNP 可选，2KV 光电隔离
+
+● 5 x DI 湿接点，NPN/PNP 可选，2KV 光电隔离
+
+● 4 x DO，继电器应用，常开/常闭可选，2KV 光电隔离
+
+● 1 x M.2 B-Key、1 x M.2 E-key、1 x M.2 M-Key
+
+● 操作系统：Debain 11 Server
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143802990/04_ca2a9555767845bb8fd4deffc9a0ca46.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143802990/05_c72dc014a5394ace95afd331e37b9ea5.png)
+
+**硬件平台**
+
+处理器
+
+Rockchip瑞芯微 RK3568 4核ARM Cortex-A55处理器，主频最高可达2.0GHz
+
+内存
+
+4GB DDR4 （可扩展至8G）
+
+存储
+
+32GB eMMC 5.1（可扩展至64G）
+
+**接口类型**
+
+USB
+
+2 x USB2.0 host, type-A
+
+网口
+
+4 x GbE LAN by RJ-45
+
+M.2
+
+1 x M.2 B-Key 3042/3052 内部 (w/USB3.0)，支持 4G/5G
+
+1 x M.2 M-Key (SATAIII)，2242/2280，支持SATA SSD
+
+1 x M.2 E-Key (SDIO/UART/PCIe)，2230，支持无线/蓝牙
+
+SIM
+
+1 x 1.8V/3V SIM/UIM卡
+
+串口
+
+8 x RS485，凤凰端子接口，波特率范围9600~115200Kbps，2KV光电隔离
+
+DI/DO
+
+5xDI 干接点，2KV 光电隔离
+
+5xDI 湿接点，2KV 光电隔离
+
+4xDO 常开/常闭可选，2KV 光电隔离
+
+CAN
+
+2 x CAN 2.0 A/B
+
+复位键
+
+1 x 复位键，恢复远程端口IP
+
+USB OTG
+
+1 x USB OTG，用于系统烧录
+
+**功耗**
+
+供电范围
+
+DC 9~36V
+
+**物理特性**
+
+工作温度
+
+\-20~60°C
+
+储存温度
+
+\-30~70°C
+
+相对湿度
+
+10~90%
+
+**系统**
+
+OS
+
+Debain 11 Server、Ubuntu20.04

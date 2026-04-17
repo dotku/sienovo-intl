@@ -1,0 +1,115 @@
+---
+title: "基于国产PCIE4.0/5.0 SWITCH 的AI服务器PCIe拓扑及PCIe4.0X16转接卡应用研究（四）"
+date: "2024-10-25"
+slug: "143240638"
+tags: ["#人工智能", "#服务器", "#运维"]
+source: "https://blog.csdn.net/szxinmai/article/details/143240638"
+---
+
+ 
+
+AI服务器中的 GPUPCIe拓扑切
+
+换设计
+
+针对不同的深度学习训练模型,结合实际应用
+
+场景,往 往 需 要 在 同 一 台 服 务 器 中 切 换 不 同 的
+
+GPUPCIe拓扑,来实现性能最优化。手动更改线
+
+缆连接方式需要开箱操作,用户体验不友好,还有
+
+可能导致维护人员手指划破等工伤事件。
+
+有如 下 2 种 方 案 可 以 实 现 BMC(Baseboard
+
+ManagementController)远程一键拓扑切换。
+
+(1)基于 PCIeSwitchFW 技术的 GPU 拓扑
+
+远程一键切换
+
+如图11所示,PCIeSwitch0的Port0始终为
+
+上行端口,Port1始终为下行端口;PCIeSwitch1
+
+的 Port0始终为上行端口,Port1始终为上行端
+
+口。拓扑的切换通过配置PCIeSwitch1的FW 或
+
+发送 PCIeSwitch1的配置命令实现
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143240638/01_2a77c2ff07df4e6d828bd0b11d3b3d1f.png)
+
+若切换为 Balance Mode,则 BMC 配 置 PCIe
+
+Switch1的 FW 或发送 PCIeSwitch1 的配置命
+
+令,将 PCIeSwitch1下对应的 GPU4~GPU7分
+
+配到 PCIeSwitch1的 Port0;若切换为 Cascade
+
+P M C o I d e e S , w 则 it B ch M 1 C 的 配 配 置 置 PC 命 Ie 令 S , w 将 itc P h CI 1 e 的 Sw F itc W h 或 1 发 下 送 对
+
+应的GPU4~GPU7分配到PCIeSwitch1的Port1。
+
+(2)基于 PCIe4.0MUX 的 GPU 拓扑远程一
+
+键切换。
+
+如图12所示,PCIeSwitch0的Port0始终为
+
+上行端口,Port1始终为下行端口;PCIeSwitch1
+
+的Port0始终为上行端口。拓扑的切换通过BMC
+
+控制 PCIeMUX实现。
+
+若切 换 为 Balance Mode,则 BMC 通 过 配 置
+
+PCIe4.0 MUX,使 PCIeSwitch0 Port1 切 到
+
+NIC0,CPU1切到PCIeSwitch1的Port0;若切换
+
+为 Cascade Mode,则 BMC 通 过 配 置 PCIe4.0
+
+MUX,使 PCIe Switch 0 的 Port1 切 到 PCIe
+
+Switch1的 Port0。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143240638/02_c8089fc5187840b28393de6fb6d03317.png)
+
+\==============PCIe4.0X16转接卡=================
+
+\* 高性能 16GT/s SerDeS , 可补偿高达 28dB 的信道损耗  
+\*消除确定性抖动与随机抖动  
+\*Tx/Rx 按通道性能可调  
+\* 支持通道极性翻转  
+\*支持热插拔  
+\* 低功耗，低延时  
+\*符合PCIe4.0基本规范，兼容PCIe3.0及以下规范
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143240638/03_f36ce8015253406683eaab0525df1a89.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143240638/04_f0d336308c364782814eb68600410323.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143240638/05_92dd5a1a11494b37a41a2cfc46a4e066.png)
+
+功能特性
+
+* * *
+
+· 高性能 16GT/s SerDeS , 可补偿高达 28dB 的信道损耗;
+
+·消除确定性抖动与随机抖动;
+
+· Tx/Rx 按通道性能可调;
+
+· 支持通道极性翻转;
+
+·支持热插拔;
+
+·低功耗，低延时;
+
+·符合PCIe4.0基本规范，兼容PCIe3.0及以下规范;

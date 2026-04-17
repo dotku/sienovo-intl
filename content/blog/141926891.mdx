@@ -1,0 +1,99 @@
+---
+title: "AI服务器PCIE SWITCH接口互联芯片技术，国产替代博通方案"
+date: "2024-09-05"
+slug: "141926891"
+tags: ["#人工智能", "#服务器", "#运维"]
+source: "https://blog.csdn.net/szxinmai/article/details/141926891"
+---
+
+ 
+
+## AI服务器：详解接口互联芯片技术
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141926891/01_1ca6bb1a792146bca349b399af39ae82.png)
+
+深圳信迈提供众星微PCIE SWITCH AI服务器接口互联芯片板卡定制服务。
+
+据 TrendForce 数据，AI 服务器出货约13万台，占全球服务器出货约1%，展望2023年，Microsoft、 Meta 、Baidu 与 ByteDance 相继推出基于生成式 AI 衍生的产品服务而积极加单，预估 23 年 AI 服务器出货量年增率可望达 15.4%，且随着未来 ChatGPT 对 AI 服务器需求用量，预计 2023-2027 年 AI 服务器将以 12.2%年复合增速成长。
+
+DGX H100 于 2022 年推出，是 NVIDIA 的 DGX 系统的最新迭代产品，也是 NVIDIA DGX SuperPOD 的基础。DXG 服务器配备 8 块 H100 GPU，6400亿个晶体管，在全新的 FP8 精度下 AI 性能比上一代高 6 倍，可提供 900GB/s 的带宽。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141926891/02_c532decbba951326f18903de8399c87b.webp)
+
+在 DGX H100 服务器内部，蓝色方块为 IP 网卡，既可充当网卡又可发挥PCIe Switch 扩展功能，成为 CPU 与 GPU（H100）之间互联的桥梁。其内部采用 PCle 5.0 标准。此外，CX7 以[网卡芯片](https://zhida.zhihu.com/search?q=%E7%BD%91%E5%8D%A1%E8%8A%AF%E7%89%87&zhida_source=entity&is_preview=1 "网卡芯片")的形式做成 2 块板卡来插入服务器，每 4 个 CX7 芯片组成一块板卡并且对外输出 2 个 800G OSFP [光模块](https://zhida.zhihu.com/search?q=%E5%85%89%E6%A8%A1%E5%9D%97&zhida_source=entity&is_preview=1 "光模块")口。
+
+而 GPU（H100）之间互联主要通过 NV Switch 芯片来实现。每个 DGXH100 内的一个 GPU 向外伸出 18 个 NVLink ，单链双向带宽为 50 GB/s，共计18\*50GB/s=900GB/s 双向带宽，拆分到 4 个板载的 NV Switch 上去，因而每个NV Switch 对应 4-5 个 OSFP 光 模块（共计 18 个）。每个 OSFP 光模块采用 8 个光通道，每个通道的传输速率为 100Gbps，因此总速率高达 800Gbps，能够实现高速的数据传输。
+
+**1、CPU、GPU等组件互联：PCIE Switch、Retimer芯片**
+
+PCIe Switch 即 PCIe 开关或 PCIe 交换机，主要作用是实现 PCIe 设备互联，PCIe Switch 芯片与其设备的通信协议都是 PCIe。由于 PCIe 的链路通信是一种端对端的 数据传输 ，因此需要 Switch 提供扩展或聚合能力，从而允许更多的设备连接到一个 PCle 端口，以解决 PCIe 通道数量不够的问题。目前 PCIe Switch 不仅已经被广泛应用在了传统存储系统中，而且在部分服务器平台也逐渐普及，用于提高数据传输的速度。
+
+**PCIe 总线技术升级，PCIe Switch 每代速率提升。**PCIe 总线是 PCI 总线的高速串行替代品。2001 年，Intel 公布取代 PCI 总线的第三代 I/O 技术——“3GIO”，2002 年该项技术经过 PCI 特殊兴趣组织（PCI-SIG）审核后正式改名为“PCI Express ”，标志着 PCIe 的诞生。2003 年，PCIe 1.0 正式发布，可支持每通道传输速率为 250MB/s，总传输速率为 2.5 GT/s。2007 年 PCI-SIG 宣布推出 PCI Express Base 2.0 规范。在 PCIe 1.0 的基础上将总传输速率提高了一倍，达到 5 GT/s，每通道传输速率从 250 MB/s 上升至 500 MB/s。2022 年 PCI-SIG正式发布 PCIe 6.0 规范，将总带宽提高至 64 GT/s。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141926891/03_c520af9e4a917e35c315d1c73ce5e05d.webp)
+
+随着PCIe 在服务器中越来越广泛地被应用，PCIe Switch 的市场需求也被带动起来。根据 QYResearch（恒州博智）的统计及预测，2021 年全球 PCIe 芯片市场销售额达到了 7.9 亿美元，预计 2028 年将达到 18 亿美元，年复合增长率（CAGR）为 11.9%。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141926891/04_5d851ca39a4059af5fbafca73309bda1.webp)
+
+**中国是 PCIe Switch 最大市场。**随着服务器对海量数据存储与传输的要求日益提高，PCIe Switch 市场发展成为一片蓝海。中国是全球最大的电子产品生产和消费国家之一，在大数据、云计算、人工智能等领域，需要大量高速互联解决方案来实现海量数据传输。而 PCIe Switch 作为高速互联解决方案，在中国市场具有极大的需求。
+
+在 AI 服务器中，GPU 与 CPU 连接时至少需要一颗 Retimer 芯片来保证信号质量。具体而言，很多 AI 服务器都会配置多颗 Retimer 芯片，例如 Astera Labs在 AI 加速器中配置了 4 颗 Retimer 芯片。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141926891/05_5ffa756889c8e6f5fe44bd9a0a8be43e.webp)
+
+**PCIe Retimer [蓝海市场](https://zhida.zhihu.com/search?q=%E8%93%9D%E6%B5%B7%E5%B8%82%E5%9C%BA&zhida_source=entity&is_preview=1 "蓝海市场")三足鼎立，潜在竞争者跃跃欲试。**目前谱瑞-KY、Astera labs、澜起科技是 PCIe Retimer 蓝海市场中的三家主要厂商，占据领先地位。其中澜起科技布局 PCIe 较早，是全球可量产 PCIe 4.0 Retimer 的唯一中国大陆供应商，且目前 PCIe 5.0 Retimer 研发顺利。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141926891/06_8685bc2574424e75580003393306d049.webp)
+
+此外，包括瑞萨，TI，微芯科技等在内的芯片厂商也在积极投入 PCIe Retimer 的产品研发中。根据官网信息，瑞萨可提供包括 89HT0816AP 和 89HT0832P 在内的两款 PCIe 3.0 Retimer产品；TI 可提供一款 16Gbps 8 通道 PCIe 4.0 Retimer——DS160PT801；同样地，微芯科技于 2020 年 11 月发布 XpressConnect 系列 Retimer 芯片，可支持PCIe 5.0 的 32GT/s 速率。
+
+**2、GPU与 GPU连接：NVLink、NVSwitch**
+
+全球各大芯片厂商均在关注高速接口的相关技术，除了 NVDIA 的 NVLink 之外，AMD 的 Infinity Fabric 和 Intel 的 CXL（Compute Express Link）等也为服务器内部的高速串联提供了解决方案。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141926891/07_dbab56d49cb134b31e07bd8e2cadadf1.webp)
+
+**不断迭代更新的 NVlink 掀起高速互联技术革命。**NVLink 是一种由 NVIDIA开发的高速互连技术，旨在加快 CPU 与 GPU、GPU 与 GPU 之间的数据传输速度，提高系统性能。从 2016 年到 2022 年，NVLink 已经迭代至第四代。
+
+2016 年，NVDIA 发布了 Pascal GP100 GPU 所搭载的新的高速接口芯片—— NVLink ， 这 是 第 一 代 NVLink 。NVLink 采 用 High-Speed Signalinginterconnect（NVHS）技术，主要用于 GPU 与 GPU 之间、GPU 与 CPU 之间的信号传输。GPU 之间传输 NRZ（Non-Return-to-Zero）编码形式的差分阻抗电信号。第一代NVLink单链可实现40 GB/s的双向带宽，单芯片可支持4链路，即 160 GB/s 的总双向带宽。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141926891/08_673361566e1cabd23a33cb6fbb2d9594.webp)
+
+此后，NVLink 历经多次迭代更新，掀起了高速互联技术革新浪潮。2017 年，基于 Volta 架构的第二代 NVLink 发布，单链可实现 50 GB/s 的双向带宽，单芯片可支持 6 链路，即 300 GB/s 的总双向带宽。2020 年，基于 Ampere 架构的第三代 NVLink 发布，单链可实现 50 GB/s 的双向带宽，单芯片可支持 12 链路，即 600 GB/s 的总双向带宽。2022 年，基于 Hopper 架构的第四代 NVLink 发布，传输信号变为 PAM4 调制电信号，单链可实现 50 GB/s 的双向带宽，单芯片可支持 18 链路，即 900 GB/s 的总双向带宽。
+
+2018 年 NVDIA 发布了第一代 NVSwitch，为提高服务器内部带宽、降低延迟、实现多 GPU 间通信提供了解决方案。第一代 NVSwitch 采用台积电 12nmFinFET 工艺制造，共有 18 个 NVLink 2.0 接口。一台服务器内部可以通过 12 个NVSwitch 支持 16 个 V100 GPU，实现以 NVLink 最高速率互联。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141926891/09_26e14b78d384cab21e371321fdb4be6b.webp)
+
+目前 NVSwitch 已经迭代至第三代。第三代 NVSwitch 采用 TSMC 4N 工艺构建，每个 NVSwitch 芯片上拥有 64 个 NVLink 4.0 端口，GPU 间通信速率可达 900GB/s，这些通过 NVLink Switch 互联的 GPU 可用作单个高性能加速器，拥有深度学习的功能。
+
+**3、CPU 与 DRAM高速互联，拉动内存接口芯片**
+
+**服务器内存模组主要类型为 RDIMM、LRDIMM**，相较于其他类型内存模组，服务器内存模组对稳定性、纠错能力以及低功耗均有较高要求。**内存接口芯片是服务器内存模组的核心逻辑器件**，是服务器 CPU 存取内存数据的必由通路。其主要作用是提升内存数据访问的速度及稳定性，满足服务器 CPU 对内存模组日益增长的高性能及大容量需求。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141926891/10_7760273ff25714c89ead4d3a678991bf.webp)
+
+**从 DDR4 至 DDR5，内存接口芯片速率持续升级**。2016 年开始，DDR4 成为内存市场的主流技术，为了实现更高的传输速率和支持更大的内存容量，JEDEC 组织进一步更新和完善了 DDR4 内存接口芯片的技术规格。在 DDR4 世代，从 Gen1.0、Gen1.5、Gen2.0 到 Gen2plus，每一子代内存接口芯片所支持的最高传输速率在持续上升，DDR4 最后一个子代产品 Gen2plus 支持的最高传输已达 3200MT/s。随着 JEDEC 组织不断完善对 DDR5 内存接口产品的规格定义，DDR5 内存技术正在逐步实现对 DDR4 内存技术的更新和替代。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141926891/11_c77ffeb9d54aa22c773b204b80321c11.webp)
+
+目前 DDR5 内存接口芯片已经规划了三个子代，支持速率分别是 4800MT/s、5600MT/s、6400MT/s，行业内预计后续可能还会有 1~2 个子代。
+
+**内存接口芯片按功能分为两类，分别为是寄存缓冲器（RCD）以及数据缓冲器（DB）。**RCD 用来缓冲来自内存控制器的地址、命令、控制信号，DB 用来缓冲来自内存控制器或[内存颗粒](https://zhida.zhihu.com/search?q=%E5%86%85%E5%AD%98%E9%A2%97%E7%B2%92&zhida_source=entity&is_preview=1 "内存颗粒")的数据信号。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141926891/12_3ae1caa6c27ffaeaf8f1a7ad48976404.webp)
+
+**DDR5 内存模组升级带来内存接口芯片及模组配套芯片新机遇。**2016 年全球内存接口芯片市场规模约 2.8 亿美元，2018 年达到约为 5.7 亿美元，三年年化增长率为 40%。DDR5 升级，将带来内存接口芯片市场规模攀升。相较于 DDR4，由于 DDR5 支持速率更高、设计更为复杂，**DDR5 第一子代内存接口芯片的起始单价比 DDR4 内存接口芯片更高。**同时，随着 DDR5 内存在服务器、PC 端的渗透率逐步提升，DDR5 相关内存接口芯片市场规模有望实现高速增长。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141926891/13_eb88e7d5c432a8971b66c5e0bf4ab2f4.webp)
+
+**内存接口芯片行业壁垒高，三足鼎立格局已经形成。**内存接口芯片是[技术密集型](https://zhida.zhihu.com/search?q=%E6%8A%80%E6%9C%AF%E5%AF%86%E9%9B%86%E5%9E%8B&zhida_source=entity&is_preview=1 "技术密集型")行业，需要通过 CPU、内存和 OEM 厂商的全方位严格验证后，方可进行大规模使用，新的玩家很难介入。随着技术难度不断升级，内存接口芯片玩家从DDR2 世代的 10 多家到 DDR4 世代只剩 3 家，行业基本出清，三足鼎立格局已经形成。在 DDR5 世代，全球只有三家供应商可提供 DDR5 第一子代的量产产品，分别是澜起科技、[瑞萨电子](https://zhida.zhihu.com/search?q=%E7%91%9E%E8%90%A8%E7%94%B5%E5%AD%90&zhida_source=entity&is_preview=1 "瑞萨电子")（IDT）和 Rambus。
+
+以上内容来自智能计算芯世界
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141926891/14_c989ce5421a31a439a3f4d809f11fe3d.webp)
+
+**[2023第一性原理科研服务器、量化计算平台推荐 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/663668910 "2023第一性原理科研服务器、量化计算平台推荐 - 知乎 (zhihu.com)")**
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141926891/15_b68bb8cdb77219f5f81cee3b6f579c3d.webp)

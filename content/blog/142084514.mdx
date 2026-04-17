@@ -1,0 +1,117 @@
+---
+title: "什么是PCIe Switch？国产PCIE switch众星微方案"
+date: "2024-09-10"
+slug: "142084514"
+tags: ["#服务器", "#网络", "#linux"]
+source: "https://blog.csdn.net/szxinmai/article/details/142084514"
+---
+
+ 
+
+### 什么是PCIe Switch
+
+PCIe Switch是一种硬件设备，提供扩展或聚合能力，并允许更多的设备连接到一个PCIe端口。
+
+它具有以下功能：
+
+1\. 连接多个设备：PCIE SWITCH允许多个设备通过单个PCIe总线连接到主机系统，从而扩展系统的连接性。
+
+2\. 数据交换：PCIe switch可以在多个设备之间传输数据，允许设备之间直接通信而无需通过主机处理器。
+
+3\. 动态分配：支持动态分配带宽和资源，根据需要调整设备之间的通信速率和优先级。
+
+4\. NTB（Non-Transparent Bridge）：支持NTB技术，允许两个或多个系统之间直接通信，提高数据传输效率。
+
+5\. Peer to Peer：支持点对点通信，设备之间可以直接进行数据交换而无需通过主机。
+
+6\. MRIOV（Multi-Root I/O Virtualization）：支持多根IO虚拟化，允许多个根端系统共享单个PCIe设备。
+
+7\. SRIOV（Single Root I/O Virtualization）：支持单根IO虚拟化，允许单个PCIe设备被划分为多个虚拟功能。
+
+**国产PCIE switch有哪些？**
+
+国产高端PCIE switch有众星微，低端有电科星拓，网迅。深圳信迈提供PCIE SWITCH全套解决方案，**支持国产AI服务器背板、扩展板定制**。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142084514/01_c4c3958e48067eae486e27517413713e.webp)
+
+### Virtual Switch/Switch Partitioning
+
+将一个物理PCIe Switch分成多个Virtual Switch，实现多个Host共用一个Switch，Virtual Switch之间互不干扰。
+
+**Multi-root**
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142084514/02_971bff2c83825b1b133fc894fcd1063b.webp)
+
+**Single-Root**
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142084514/03_775c3d6dc811dca437291b11eb092d83.webp)
+
+### Dynamic Allocation
+
+Virtual Switch是静态配置，BIOS枚举前需要完成初始化，修改不同配置需要烧录不同firmware实现。
+
+Dynamic Allocation可以实现动态分配，需要确保EP上的IO停下来，系统Host#1的网卡断掉，重新分配到Host#2，如下图所示：
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142084514/04_65fb9842da8e3d9ad69bc7455bbb71f3.webp)
+
+### 什么是Peer to Peer
+
+P2P是实现Switch内部之间的ep传输数据，卸载 CPU 和RAM之间的压力
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142084514/05_9449cf1c7903d440ad773466630b9cbb.webp)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142084514/06_a7cd3a7955067c0ba73ac66818279ee9.webp)
+
+### 什么是PCIe Bridge
+
+PCIe桥接器（PCIe Bridge）是一种用于连接和转发PCI Express（PCIe）总线的设备，通常用于扩展系统的PCIe连接性能和灵活性。PCIe桥接器可以连接不同的pcie总线，充当数据传输的中继站，使得不同设备之间可以进行通信和数据交换。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142084514/07_83e49a4677e042f79690726074e18c47.webp)
+
+### 什么是NTB (Non-Transparent Bridge)
+
+PCIe非透明桥接器（NTB）允许两个主机系统通过将每个主机呈现为对另一个主机的设备来进行通信。NTB通常支持在远程机器上生成中断、将内存范围公开为基址寄存器（BAR）以及执行（DMA）等功能。它们还支持临时 存储 区（scratchpads），这是NTB内存中可从两台机器访问的区域。
+
+PCI NTB功能允许两个不同系统（或主机）通过配置端点实例，使得从一个系统到另一个系统的事务被路由。在下面的图表中，PCI NTB功能配置了具有多个PCI端点（EP）实例的SoC，以便将一个EP控制器的事务路由到另一个EP控制器。一旦PCI NTB功能配置了具有多个EP实例的SoC，HOST1和HOST2可以使用SoC作为桥梁相互通信。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142084514/08_43f6909340d8628042545c72671a0094.webp)
+
+> What is NTB • PCIe “Non-Transparent” Bridge  
+> Forwards PCIe traffic between busses like a bridge  
+> CPU sees the bridge as an end-point device  
+> CPU does not see devices on the other side  
+> Other side is typically attached to another CPU
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142084514/09_d65d8e55dce17d73f04dfef2718c1dc9.webp)
+
+**例子1：**
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142084514/10_25cb4115e506dc1353ba1457b52408d7.webp)
+
+**例子2：**
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142084514/11_4db7dc78b4257fdfb129f05cb121cc92.webp)
+
+### 什么是SR-IOV
+
+SR-IOV（Single Root I/O Virtualization）是一种PCI Express（PCIe）技术，用于在虚拟化环境中提高网络和存储设备的性能和效率。SR-IOV允许单个物理设备（如网卡）在多个虚拟机之间共享，同时保持高性能和低延迟。
+
+具体来说，SR-IOV技术通过在物理设备上创建多个虚拟功能（Virtual Functions，VFs），每个VF都可以被分配给一个虚拟机，使得虚拟机可以直接访问物理设备，绕过Hypervisor），从而提高数据传输的效率和降低CPU开销。
+
+SR-IOV的主要优势包括：
+
+1\. 更低的延迟：由于虚拟机可以直接访问物理设备，避免了额外的虚拟化层，因此可以实现更低的数据传输延迟。
+
+2\. 更高的吞吐量：通过将物理设备的资源划分为多个虚拟功能，可以实现更高的网络和存储吞吐量，提升系统性能。
+
+3\. 更好的性能隔离：每个虚拟机都有自己的虚拟功能，彼此之间相互隔离，避免了资源竞争和性能干扰。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142084514/12_948bf950683ae6340a891ec58393bc11.webp)
+
+### 什么是MR-IOV
+
+MRIOV（Multi-Root I/O Virtualization）是一种PCI Express（PCIe）技术，用于在Multi-Root系统之间共享单个PCIe设备的虚拟化功能。通常情况下，PCIe设备只能由Single-Root端系统独占使用，而MRIOV技术允许Multi-Root系统同时访问和共享同一个PCIe设备。
+
+通过MRIOV，每个根端系统可以看到PCIe设备的多个虚拟功能，并将其分配给不同的虚拟机或容器使用，从而实现多个系统之间的共享和协作。这种共享方式可以提高系统资源的利用率，降低成本，并简化数据中心和云环境中的设备管理。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142084514/13_a5e9d47182aa05aca043d1ada4c090c8.webp)

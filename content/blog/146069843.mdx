@@ -1,0 +1,117 @@
+---
+title: "NVIDIA Jetson Nano的国产替代，基于算能BM1684X+FPGA+AI算力盒子，支持deepseek边缘部署"
+date: "2025-03-06"
+slug: "146069843"
+tags: ["#人工智能", "#边缘计算", "#大数据", "#嵌入式硬件"]
+source: "https://blog.csdn.net/szxinmai/article/details/146069843"
+---
+
+ 
+
+NVIDIA Jetson Nano的国产替代，基于算能BM1684X的AI算力盒子，支持deepseek边缘部署
+
+另外，还提供BM1684X+FPGA+AI的解决方案。
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/146069843/01_286cfceeb4a17028a1f77bc1fcdac300.png)
+
+核心板基于**Sophon SG2300X** SoC（也叫BM1684X）打造
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/146069843/02_287d5103ae1a96bbb0b6781f1b07c9f7.png)
+
+带有**8核ARM Cortex-A53 @2.3GHz**，频率很高。
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/146069843/03_b50375a552daa8dde65d042d69ae0fde.jpeg)
+
+带有TPU（张量处理器）
+
+算力可达**32TOPS@int8** ，**16TFLOPS（FP16/BF16）**
+
+和2TFLOPS（FP32）
+
+支持TensorFlow、 Caffe 、PyTorch、Paddle、ONNX、MXNet、Tengine、DarkNet等深度学习框架。
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/146069843/04_a58526e936c5eba623f6740952ccf5ea.png)
+
+视频处理单元（VPU）支持**32路H.265/H.264 1080P@25fps解码**和**12路编码**。
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/146069843/05_3201aef1c8c0f35dbef2f2a626a911d6.png)
+
+JPEG编解码支持1080P@600fps，最大分辨率32768×32768，后处理功能涵盖图像缩放、裁剪、色彩空间转换等。
+
+搭配**16GB LPDDR4X**内存，看芯片框图，似乎是四个4GB内存芯片，**可能是四通道**，这样的话，速度应该还可以。
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/146069843/06_69dc2950039d04e5471c959c38011184.jpeg)
+
+**64GB eMMC 5.1**，16MB SPI Flash
+
+核心板通过**144P的板对板连接器**安装到扩展板上，引出了不少接口。  
+扩展板带有**M.2 E Key**（用于安装Wi-Fi/BT）、**M.2 2230** NVMe SSD  
+外面有**两个USB3.0** HOST接口，**两个千兆网口**。
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/146069843/07_451621a8b1e7f37ef224e247cf37c20b.jpeg)
+
+一个USB Type-C电源接口支持**PD供电**，电压支持20V输入，支持20V3.25A或者更高，也就是支持**65W**以上的电源。
+
+一个USB Type-C Debug UART接口，MicroSD卡槽。
+
+工作温度0~40℃。
+
+尺寸**104×84×52mm**
+
+系统上，官方提供了两个镜像，一个是基础镜像，基于**Ubuntu Server 20.04**，仅包含 Sophon 基础 SDK 和后台，只有1.2GB。
+
+还有一个基于Ubuntu Server 20.04，包含Sophon SDK和后台，预装瑞莎LLM前端，预装**CasaOS**，常见LLM的Demo的完整版镜像，大小来到了9.5GB。
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/146069843/08_13c9e49dcabd94b65ddbc0c56572595a.png)
+
+而这个AirBox的亮点也就在于预装了**CasaOS**，极大的的简化了部署大模型的门槛，**部署各类大模型都相当轻松**。
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/146069843/09_319ffce2a6efbb32bfd541f7970eda2a.jpeg)
+
+官方完整版镜像默认**预装了Stable Diffusion**。
+
+部署whisper,chatglm2 chatdoc chatbot
+
+imagesearch,llama3也非常轻松，只需要简单几步就部署完成了，搞这些在Linux下变得轻松愉快。
+
+你也可以自己打包Docker镜像，官方也有教程可以参考，这样之后部署这些都会变得相当简单。
+
+而重头戏其实是本地部署LLM大语言 模型 ，可以部署
+
+**chatglm2 chatdoc chatbot**
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/146069843/10_90c90e21d3fbd97b143c6d9a422bf28f.jpeg)
+
+**Llama3，Qwen2，DeepSeek R1**  
+官方介绍了deepseek-r1-distill-qwen-1.5b和deepseek-r1-distill-qwen-7b两个Qwen2.5蒸馏模型的部署。
+
+都采用的INT4量化方式，目前**1.5B**的模型，在AirBox上，推理速度可达**30.448tokens/s**，**7B**的模型，推理速度可达**11.008tokens/s**。
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/146069843/11_b6f7f9dc06fcf814a27ab016d5e5e662.png)
+
+**Llama3 8B**模型推理速度可达**9.566token/s**
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/146069843/12_a81c5dd58871217a359810057dd6fa78.png)
+
+文生图大模型支持**Stable Diffusion1.5**，**Real ESRGAN，Stable Diffusion 3 Medium，FLUX.1**这些模型的部署，且都能正常运行。  
+在Stable Diffusion1.5下生成一个512x512的图片，在7秒左右。
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/146069843/13_ea1656d8c95deaebb946289a6e73f3b1.png)
+
+除此之外还支持**Image Search文本搜索图片**和**Video Search文本搜索视频**，向量搜索模型应用。
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/146069843/14_9b9e9c7bcfd81bd4e9ad99ce50466129.jpeg)
+
+支持**Emoti Voice**和**Whisper**这些TTS/STT模型的部署。还有**MiniCPM-V2.6**这个视觉多模态模型。
+
+想要更多模型，Radxa也准备了**Model-Zoo**，可以部署目标检测，语义分割，人脸检测各种算法应用。
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/146069843/15_4a4787940fe8c041acf3a03eddd4f218.png)
+
+Radxa还提供了**TPU-MLIR**编译器工具链，用于将各种不同框架下预训练的神经网络模型转化为可以在算能TPU上运行的bmodel格式模型。
+
+可以**直接支持PyTorch, ONNX, Caffe 和 TFLite**。其他框架的模型需要转换为ONNX模型。
+
+转换完之后，Radxa还提供了**TPU-PERF**用于TPU加载/推理经过TPU-MLIR转换好的**bmodel模型**。
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/146069843/16_7d3c1fd42e577a35b3ca59ab8468f037.png)

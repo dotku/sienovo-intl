@@ -1,0 +1,338 @@
+---
+title: "基于BM1684的AI边缘服务器-模型转换，大模型一体机"
+date: "2024-12-02"
+slug: "144193493"
+tags: ["#人工智能", "#服务器", "#运维"]
+source: "https://blog.csdn.net/szxinmai/article/details/144193493"
+---
+
+ 
+
+#### 介绍
+
+我们属于[SoC](https://so.csdn.net/so/search?q=SoC&spm=1001.2101.3001.7020 "SoC")模式，即我们在x86主机上基于tpu\-nntc和libsophon完成模型的编译量化与程序的交叉编译，部署时将编译好的程序拷贝至 SoC 平台（1684开发板/SE[微服务](https://edu.csdn.net/cloud/sd_summit?utm_source=glcblog&spm=1001.2101.3001.7020 "微服务")器/SM模组）中执行。
+
+注：以下都是在Ubuntu20.04系统上操作的，当然Ubuntu18和22也是可以的，因为我们主要是用的官方 docker 环境进行配置。
+
+#### 准备工作
+
+##### 安装docker
+
+首先安装docker
+
+```hljs
+# 更新一下库 sudo apt-get updatesudo apt-gefat upgrade# 安装 docker sudo apt-get install docker.io# docker命令免root权限执行 # 创建docker用户组，若已有docker组会报错，没关系可忽略sudo groupadd docker  # 将当前用户加入docker组sudo gpasswd -a ${USER} docker # 重启docker服务 sudo service docker restart  # 切换当前会话到新group或重新登录重启X会话 newgrp docker  
+```
+
+我已经装docker了，这一步没有测试，若有问题请问百度。
+
+##### 下载SDK
+
+在算能官网上，资料下载里下载相关sdk：[技术资料](https://developer.sophgo.com/site/index/material/all/all.html "技术资料")
+
+基础工具包包括：
+
+*   tpu-nntc 负责对第三方深度学习框架下训练得到的神经网络模型进行离线编译和优化，生成最终运行时需要的BModel。目前支持Caffe、Darknet、MXNet、ONNX、PyTorch、PaddlePaddle、TensorFlow等。
+*   libsophon 提供BMCV、BMRuntime、BMLib等库，用来驱动VPP、TPU等硬件，完成图像处理、张量运算、模型推理等操作，供用户进行深度学习应用开发。
+*   sophon-mw 封装了BM-OpenCV、BM-FFmpeg等库，用来驱动VPU、JPU等硬件，支持RTSP流、GB28181流的解析，视频图像编解码加速等，供用户进行深度学习应用开发。
+*   sophon-sail 提供了支持Python/C++的高级接口，是对BMRuntime、BMCV、BMDecoder、BMLib等底层库接口的封装，供用户进行深度学习应用开发。
+
+可以下载这个SDK
+
+![image-20230419114430498](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144193493/01_8ffe752b0e21216d32a072fe6414b39e.png)
+
+这里面包含了 models 里的所有代码，当然里面很多包是用不到的。
+
+![image-20230419114506989](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144193493/02_ac24c13ed2a43f3163198e3d52ec90d4.png)
+
+也可以只下载我们需要的sdk
+
+主要是这几个：
+
+[tpu-nntc](https://sophon-file.sophon.cn/sophon-prod-s3/drive/22/11/28/12/tpu-nntc_20221028_200521.zip "tpu-nntc")
+
+[libsophon](https://sophon-file.sophon.cn/sophon-prod-s3/drive/22/11/28/10/libsophon_20221027_214818.zip "libsophon")
+
+[sophon-mw](https://sophon-file.sophon.cn/sophon-prod-s3/drive/22/11/28/11/sophon-mw_20221027_183429.zip "sophon-mw")
+
+[sophon-demo](https://sophon-file.sophon.cn/sophon-prod-s3/drive/22/11/28/15/sophon-demo_20221027_181652.zip "sophon-demo")
+
+[sophon-img](https://sophon-file.sophon.cn/sophon-prod-s3/drive/22/11/28/15/sophon-img_20221027_215835.zip "sophon-img")
+
+[sophon-sail](https://sophon-file.sophon.cn/sophon-prod-s3/drive/22/11/28/15/sophon-sail_20221026_200216.zip "sophon-sail")
+
+[sophon-demo](https://sophon-file.sophon.cn/sophon-prod-s3/drive/22/11/28/15/sophon-demo_20221027_181652.zip "sophon-demo")
+
+分别wget 到本地就行，
+
+```hljs
+# 先建个存放的路径mkdir fugui# 分别wget 到本地就行wget https://sophon-file.sophon.cn/sophon-prod-s3/drive/22/11/28/10/libsophon_20221027_214818.zip   https://sophon-file.sophon.cn/sophon-prod-s3/drive/22/11/28/11/sophon-mw_20221027_183429.zip https://sophon-file.sophon.cn/sophon-prod-s3/drive/22/11/28/15/sophon-demo_20221027_181652.zip https://sophon-file.sophon.cn/sophon-prod-s3/drive/22/11/28/15/sophon-img_20221027_215835.zip https://sophon-file.sophon.cn/sophon-prod-s3/drive/22/11/28/15/sophon-sail_20221026_200216.zip https://sophon-file.sophon.cn/sophon-prod-s3/drive/22/11/28/15/sophon-demo_20221027_181652.zip
+```
+
+##### 配置环境
+
+装上解压缩工具
+
+```hljs
+sudo apt-get install unzip
+
+```
+
+先把这几个压缩文件解压了
+
+```hljs
+unzip \*.zip
+
+```
+
+创建docker容器：
+
+```hljs
+#如果当前系统没有对应的镜像，会自动从docker hub上下载；此处将tpu-nntc的上一级目录映射到docker内的/workspace目录；这里用了8001到8001端口的映射（使用ufw可视化工具会用到端口号）。如果端口已被占用，请根据实际情况更换为其他未占用的端口。:~/fugui# docker run -v $PWD/:/workspace  -it sophgo/tpuc_dev:latest
+```
+
+进入 tpu-nntc，解压缩包
+
+```hljs
+root@39d67fa4c7bb:/workspace/fugui/tpu-nntc_20221028_200521# tar -zxvf  tpu-nntc_v3.1.3-242ef2f9-221028.tar.gz
+
+```
+
+进入tpu-nntc\_v3.1.3-242ef2f9-221028 运行一下命令初始化[软件](https://marketing.csdn.net/p/3127db09a98e0723b83b2914d9256174?pId=2782&utm_source=glcblog&spm=1001.2101.3001.7020 "软件")环境
+
+```hljs
+source scripts/envsetup.sh
+
+```
+
+![image-20230419153738140](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144193493/03_a3b940c84335b55e04e026371b6b16ec.png)
+
+在下载tensorflow时比较慢，我们都是用pytorch，直接ctrl c跳过，不装他了。
+
+#### yolov5
+
+这里就不演示官方模型了，直接用我们自己训练的模型进行量化推理。
+
+注意：这里必须用[yolov5 v6.1](https://github.com/ultralytics/yolov5/tree/v6.1 "yolov5 v6.1")版本
+
+如何训练就不说了，参考：[这篇文章](https://blog.csdn.net/weixin_45755332/article/details/127688464?ops_request_misc=%257B%2522request%255Fid%2522%253A%2522168189085816800184123906%2522%252C%2522scm%2522%253A%252220140713.130102334.pc%255Fall.%2522%257D&request_id=168189085816800184123906&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~all~first_rank_ecpm_v1~rank_v31_ecpm-1-127688464-null-null.142%5Ev84%5Epc_search_v2,239%5Ev2%5Einsert_chatgpt&utm_term=yolov5%20%E7%8C%9B%E7%94%B7%E6%8A%80%E6%9C%AF%E6%8E%A7&spm=1018.2226.3001.4187 "这篇文章")
+
+最好使用yolov5s训练，然后对训练后的模型进行转换。比如我训练的是安全帽检测，现在生成了best.pt这个权重文件，为了好区分我改名为`anquanmao.pt`
+
+将他放在了yolov5的根目录下，然后修改了models文件下的yolo.py中的forward函数。将`return x if self.training else (torch.cat(z, 1), x)` 修改为：
+
+```hljs
+return x if self.training else x
+
+```
+
+![image-20230419155833459](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144193493/04_1d7e9ee699496e72e174966b7a8de7af.png)
+
+然后运行
+
+```hljs
+ python export.py --weight anquanmao.pt --include torchscript
+
+```
+
+这样生成了 `anquanmao.torchscript` 文件
+
+![image-20230419160201616](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144193493/05_f0478d5d892f576a53dc879f0740f726.png)
+
+![image-20230419160211412](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144193493/06_17d70d6206da5819d0faf96a1b566b68.png)
+
+打开这个权重文件看看是不是和我的一样，只要是yolov5 6.1就肯定一样。
+
+修改 `anquanmao.torchscript` 为 `anquanmao.torchscript.pt` （就是在最后加个.pt）
+
+然后将这个文件拷贝到你的x86服务器里，路径为：
+
+`/root/fugui/sophon-demo_20221027_181652/sophon-demo_v0.1.0_b909566_20221027/sample/YOLOv5/data`
+
+然后找些你训练的图片，也就是安全帽，200张左右就行
+
+同样上传到那个文件夹里
+
+![image-20230419161259835](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144193493/07_f6b3fb22547dfe4511f69f242a5c616c.png)
+
+然后就可以进行模型转换了
+
+```hljs
+# 先备份一下root@39d67fa4c7bb:/workspace/fugui/sophon-demo_20221027_181652/sophon-demo_v0.1.0_b909566_20221027/sample/YOLOv5/scripts# cp 2_2_gen_int8bmodel.sh 3_2_gen_int8bmodel.sh vi cp 2_2_gen_int8bmodel.sh
+```
+
+然后修改里面内容，200太多了，转换起来太慢了，50就够了
+
+![image-20230419161524150](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144193493/08_00f30dce957a8b9bfa774ec35e98ade2.png)
+
+修改model\_info.sh
+
+```hljs
+root@39d67fa4c7bb:/workspace/fugui/sophon-demo_20221027_181652/sophon-demo_v0.1.0_b909566_20221027/sample/YOLOv5/scripts# vi model_info.sh 
+
+```
+```hljs
+echo "start fp32bmodel transform, platform: ${platform} ......" root_dir=$(cd `dirname $BASH_SOURCE[0]`/../ && pwd)build_dir=$root_dir/build# 将这里修改为我们刚才存放的.torchscript.pt文件地址src_model_file=${root_dir}/data/anquanmao.1_3output.torchscript.ptsrc_model_name=`basename ${src_model_file}`# 这里也修改下吧 yolov5s ——> anquanmaodst_model_prefix="anquanmao"dst_model_postfix="coco_v6.1_3output"fp32model_dir="${root_dir}/data/models/${platform}/fp32model"int8model_dir="${root_dir}/data/models/${platform}/int8model"lmdb_src_dir="${root_dir}/data/images"# 这里修改为我们上传的图片地址image_src_dir="${root_dir}/data/anquanmao"# lmdb_src_dir="${build_dir}/coco2017val/coco/images/"#lmdb_dst_dir="${build_dir}/lmdb/"img_size=${2:-640}batch_size=${3:-1}iteration=${4:-2}img_width=640img_height=640
+```
+
+运行转换命令前需要加上权限，否则不能执行
+
+```hljs
+root@39d67fa4c7bb:/workspace/fugui/sophon-demo_20221027_181652/sophon-demo_v0.1.0_b909566_20221027/sample/YOLOv5/scripts# sudo chmod 777 *
+
+```
+
+然后执行转int8bmodel模型，转FP32也一样
+
+```hljs
+root@39d67fa4c7bb:/workspace/fugui/sophon-demo_20221027_181652/sophon-demo_v0.1.0_b909566_20221027/sample/YOLOv5/scripts# ./ 2_2_gen_int8bmodel.sh
+
+```
+
+[性能](https://marketing.csdn.net/p/3127db09a98e0723b83b2914d9256174?pId=2782&utm_source=glcblog&spm=1001.2101.3001.7020 "性能")不好的机器会非常慢，等待完成即可
+
+编译yolov5 c++程序
+
+```hljs
+/workspace/sophon-demo/sample/YOLOv5/cpp/yolov5_bmcv/build# cd cpp/deepsort_bmcv mkdir build && cd build	# 请根据实际情况修改-DSDK的路径，需使用绝对路径 cmake -DTARGET_ARCH=soc -DSDK=/workspace/soc-sdk .. make
+```
+
+复制到[开发板](https://so.csdn.net/so/search?q=%E5%BC%80%E5%8F%91%E6%9D%BF&spm=1001.2101.3001.7020 "开发板")
+
+```hljs
+scp ../yolov5_bmcv.soc linaro@192.168.17.153:/data/sophon-demo/sample/YOLOv5/cpp/yolov5_bmcv
+
+```
+
+开发板运行
+
+```hljs
+linaro@bm1684:/data/sophon-demo/sample/YOLOv5/cpp/yolov5_bmcv$ ./yolov5_bmcv_drawr.soc --input=rtsp://admin:sangfor@123@192.168.17.253 --bmodel=BM1684/yolov5s_v6.1_3output_int8_1b.bmodel
+
+```
+
+* * *
+
+#### 目标追踪
+
+注：所有模型转换都是在docker环境中的
+
+先进入docker
+
+这里我们是要在docker环境里编译的，所以先进入docker
+
+```hljs
+:~/tpu-nntc# docker run -v $PWD/:/workspace  -it sophgo/tpuc_dev:latest
+
+```
+
+初始化环境
+
+```hljs
+root@2bb02a2e27d5:/workspace/tpu-nntc# source ./scripts/envsetup.sh
+
+```
+
+docker里安装编译器
+
+```hljs
+root@2bb02a2e27d5:/workspace/sophon-demo/sample/YOLOv5/cpp/yolov5_bmcv/build# sudo apt-get install  gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libeigen3-dev
+
+```
+
+本C++例程依赖Eigen，您需要在编译c++程序的机器上运行如下命令安装：
+
+```hljs
+sudo apt install libeigen3-dev
+
+```
+
+先下载相关文件，主要是追踪的测试视频，测试图片，目标追踪的权重，目标检测的权重
+
+```hljs
+# 安装unzip，若已安装请跳过sudo apt install unzipchmod -R +x scripts/./scripts/download.sh
+```
+
+然后编译c++代码
+
+```hljs
+/workspace/sophon-demo/sample/DeepSORT/cpp/deepsort_bmcv/build# cd cpp/deepsort_bmcvmkdir build && cd build# 请根据实际情况修改-DSDK的路径，需使用绝对路径。cmake -DTARGET_ARCH=soc -DSDK=/workspace/soc-sdk ..  make
+```
+
+这时会生成deepsort\_bmcv.soc文件，复制到盒子里
+
+```hljs
+:/workspace/sophon-demo/sample/DeepSORT/cpp/deepsort_bmcv# scp -r  deepsort_bmcv.soc linaro@192.168.17.125:/data/yolo/sophon-demo/sample/DeepSORT/cpp
+
+```
+
+测试视频
+
+```hljs
+./deepsort_bmcv.soc --input=rtsp://admin:sangfor@123@192.168.17.253 --bmodel_detector=../../BM1684/yolov5s_v6.1_3output_int8_1b.bmodel --bmodel_extractor=../../BM1684/extractor_fp32_1b.bmodel --dev_id=0
+
+```
+
+运行相关代码，这个是检测图片的
+
+```hljs
+cd pythonpython3 deepsort_opencv.py --input ../datasets/mot15_trainset/ADL-Rundle-6/img1 --bmodel_detector ../models/BM1684/yolov5s_v6.1_3output_int8_1b.bmodel --bmodel_extractor ../models/BM1684/extractor_fp32_1b.bmodel --dev_id=0
+```
+
+对视频追踪
+
+```hljs
+python3 deepsort_opencv.py --input ../datasets/test_car_person_1080P.mp4 --bmodel_detector ../models/BM1684/yolov5s_v6.1_3output_int8_1b.bmodel --bmodel_extractor ../models/BM1684/extractor_fp32_1b.bmodel --dev_id=0
+
+```
+
+对本地摄像头视频追踪
+
+```hljs
+python3 deepsort_opencv.py --input rtsp://admin:sangfor@123@192.168.17.253 --bmodel_detector ../models/BM1684/yolov5s_v6.1_3output_int8_1b.bmodel --bmodel_extractor ../models/BM1684/extractor_fp32_1b.bmodel --dev_id=0
+
+```
+
+#### 人体姿态估计
+
+```hljs
+python3 python/openpose_opencv.py --input rtsp://admin:sangfor@123@192.168.17.253 --bmodel models/BM1684/pose_coco_fp32_1b.bmodel --dev_id 0
+
+```
+
+* * *
+
+生成的文件会放在`sample/YOLOv5/data/models/BM1684/int8model/anquanmao_batch1`里
+
+```hljs
+:~/fugui/sophon-demo_20221027_181652/sophon-demo_v0.1.0_b909566_20221027/sample/YOLOv5/data/models/BM1684/int8model/anquanmao_batch1# lscompilation.bmodel  input_ref_data.dat  io_info.dat  output_ref_data.dat
+```
+
+然后将转换好的模型推送到开发板
+
+```hljs
+scp compilation.bmodel linaro@{开发板ip地址}:/data/{你的yolov5存放路径}
+
+```
+
+#### 开发板环境配置
+
+搭建 libsophon 环境
+
+```hljs
+cd libsophon_<date>_<hash># 安装依赖库，只需要执行一次sudo apt install dkms libncurses5sudo dpkg -i sophon-*.deb# 在终端执行如下命令，或者log out再log in当前用户后即可使用bm-smi等命令source /etc/profile
+```
+
+python3 yolov5\_new\_1.py --input rtsp://admin:1111111a@192.168.16.223 --bmodel yolov5s\_v6.1\_3output\_fp32\_1b.bmodel
+
+\===========**板卡介绍**\========================
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144193493/09_23012b9d3f51481394f50ea0847f5297.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144193493/10_82d6f827e758452b9e4790cfcba3a2bb.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144193493/11_1b3c62220c4c4df7897f7d641f0d5ae1.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144193493/12_7a2c2a01ff6a4252b4d4c6a38cf18244.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144193493/13_49791d6f5103463d8f6784b530eea9dc.png)

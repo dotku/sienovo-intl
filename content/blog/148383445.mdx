@@ -1,0 +1,68 @@
+---
+title: "RK3568+LINUX + CODESYS带授权+实时系统,同时开自己的视觉应用"
+date: "2025-06-02"
+slug: "148383445"
+tags: ["#linux", "#运维", "#服务器"]
+source: "https://blog.csdn.net/szxinmai/article/details/148383445"
+---
+
+ 
+
+RK3568+LINUX + CODESYS带 授权 +实时系统,同时开自己的视觉应用，让你即可以选择几个核心跑codesys，又可以选几个核心跑自定义的应用。
+
+基于RK3568处理器构建的 工业控制 与视觉融合解决方案，可通过以下技术架构实现：
+
+一、硬件平台核心配置
+
+1.  RK3568处理器：四核Cortex-A55架构，主频2.0GHz，集成Mali-G52 GPU和1TOPS NPU，支持多路视频编解码67
+2.  实时系统扩展：
+    *   方案A：Xenomai3实时补丁（Linux-RT内核）实现<100μs的实时性38
+    *   方案B：AMP架构非对称多处理，部分核心运行RT-Thread实时系统5
+3.  视觉处理加速：通过NPU运行TensorFlow/PyTorch模型，支持16路1080P视频结构化分析68
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/148383445/01_9c3aec98ffdb4ec3a53e37cd30d7bb28.jpeg)
+
+二、软件栈关键组件
+
+1.  CODESYS授权方案：
+    *   采用CODESYS Control Linux ARM SL运行时，支持IEC 61131-3标准编程9
+    *   集成SoftMotion模块实现多轴运动控制（CNC/机器人）3
+    *   授权方式：购买官方加密狗或云授权许可证13
+2.  视觉应用开发：
+    *   OpenCV+Python/Qt开发框架
+    *   NPU加速方案：RKNN-Toolkit2模型转换工具链6
+3.  系统资源分配：
+    
+    textCopy Code
+    
+    `CPU0-1: CODESYS实时任务(优先级99) CPU2: 视觉预处理(优先级50) CPU3: 业务逻辑处理(优先级30) NPU: 视觉模型推理`
+    
+
+三、典型实施案例
+
+1.  智能分拣系统：
+    *   CODESYS控制6轴机械臂3
+    *   视觉实现物品识别定位（精度±0.1mm）6
+    *   双千兆网口分别用于PLC通信和视觉数据传输6![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/148383445/02_1d7c1d59291e4e809edc64a7ab9b9aff.jpeg)
+2.  半导体检测设备：
+    *   Xenomai3保证运动控制周期≤500μs8
+    *   NPU加速缺陷检测算法（FPS≥30）7
+    *   通过FMC接口连接高精度工业相机7
+
+四、性能优化建议
+
+1.  内核调优：
+    *   禁用CPU频率调节（performance模式）10
+    *   内存频率降频至1560MHz降低延迟10
+2.  实时性保障：
+    *   设置CPU亲和性隔离实时核5
+    *   采用PREEMPT\_RT补丁+优先级继承11
+3.  视觉处理优化：
+    *   使用零拷贝DMA传输图像数据7
+    *   NPU量化模型至INT8精度6
+
+该方案已在 数控机床 3和智能安防NVR6等领域验证，实际测试显示：
+
+*   CODESYS任务周期抖动<20μs
+*   视觉处理延迟控制在33ms内
+*   系统整体功耗<15W

@@ -1,0 +1,61 @@
+---
+title: "基于FPGA FPD-Link（LVDS7:1）与FPD-Link II&III实现与定制"
+date: "2024-11-11"
+slug: "143677783"
+tags: ["#fpga开发"]
+source: "https://blog.csdn.net/szxinmai/article/details/143677783"
+---
+
+ 
+
+本文主要介绍FPD-Link的发展简史，并重点介绍第一代FPD-Link中应用的LVDS7:1 技术 ，简要介绍第二代和第三代的FPD-Link的相关内容。
+
+FPD-Link（即Flat Panel Display Link）是National Semiconductor（后来被TI收购）在1996年提出的一种 免费 的、无需授权的、高速数字视频接口标准。其主要被应用于笔记本电脑、平板电脑、早期的智能手机和液晶电视中。设计之初，是为了解决传统显示器使用的TTL/CMOS并行接口的带宽无法满足高分辨率的LCD/LED液晶显示所带来的的日益增长的带宽需求。
+
+**1、FPD-Link与LVDS**
+
+FPD-Link是NS提出的LVDS技术的第一次大规模应用，并被业界所认可和接受。由于FPD-Link是一种免费，并且开放的标准，因此其有很多的别名（或者相互兼容的变种标准），比如TI早年提出的FlatLink。在20世纪末成立的SPWG（Standard Panels Working Group）曾将FPD-Link/FlatLink确定为图像和视频接口的标准，并在业界大力推广，也取得了部分厂商的认可，和一定规模的商用。不幸的是，第一代FPD-Link所使用的LVDS技术获得了巨大的成功，但是FPD-Link本身却只能算是小规模的成功。由于在与DVI、HDMI、DisplayPort以及后来的MIPI等视频接口标准的竞争中落败，SPWG也随之解散。然而，这并非意味着FPD-Link彻底失败了，由于FPD-Link接口实现简单，成本低廉，使得其在电路板之间的短距离连接、显示模组或摄像头模组与电路板的短距离连接等方面拥有绝对的优势，并获得了较大规模的商用。
+
+![blob.png](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143677783/01_2eaba13b4c6280e07b4220667ac2a057.png)
+
+图1. LVDS收发器基本结构图
+
+FPD-Link主要应用在RGB形式的视频接口上，以RGB666为例，采用并行接口往往需要22根线，而采用FPD-Link却只需要四对差分线（一对时钟，三对数据）。此外，LVDS的应用对于电路板的EMC性能有了很大的提升，使得其能够支持更高的带宽和更高的分辨率。
+
+![blob.png](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143677783/02_4764f5f10d7c85e66a01884681cc3ed4.png)
+
+图2. 传输RGB666视频数据的FPD-Link接口示意图（3D+C）
+
+![blob.png](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143677783/03_33787d98ed727074455d2ad72e536839.png)
+
+图3. RGB666像素排列示意图
+
+RCLK即为像素时钟，每个周期共可发送3\*7=21bits的数据，除了RGB666所需的18bits外，另外的3bits刚好用于传输DE、Vsync和HSync。由于RCLK和各个数据Lane的特殊的相位关系，使得其并不需要去传输同步字，用于数据的Word Align。假设RCLK为50MHz，则该接口可实现7\*2\*50=1050Mbps的速率。
+
+除了RGB666之外，常见的还有RGB888，RGB101010等形式，分别可采用4D+C和5D+C的形式实现。
+
+FPD-Link的另一个版本叫做OpenLDI（有的时候OpenLDI和FPD-Link指的是同一个东西），相对于基本的FPD-Link，OpenLDI增加了用于直流均衡（DC Balance）的编码功能，以获得更远的传输距离。实际上，增加编码功能的OpenLDI在物理接口是与FPD-Link仍然是相同的，只是要额外的增加编解码的功能。
+
+需要注意的是，像素映射的标准有两种，一种是VESA标准，一种是日本的JEIDA标准，分别如图4和图5所示。由于FPD-Link是一种开发的标准，所以偶尔也能看到除了VESA和JEIDA之外的自定义标准。
+
+![blob.png](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143677783/04_00d61af707286a73bcef3305a2383a52.png)
+
+图4. VESA标准
+
+![blob.png](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143677783/05_c2b8ccc3731d37b4b31b92478d84f193.png)
+
+图5. JEIDA标准
+
+**2、FPD-Link II**
+
+第二代FPD-Link被称为FPD-Link II。为了获得更高的速率和更少的接口，FPD-Link II使用了SerDes的接口，取代了第一代使用的LVDS7:1接口。比如，使用第一代FPD-Link传输RGB888视频数据，需要5个LVDS差分对；而使用FPD-Link II只需要一个基于SerDes的LVDS/CML差分对。
+
+此外，FPD-Link II中还加入了OpenLDI中采用的直流均衡编码，并在链路上采用了交流耦合的方式。这些改进使得，FPD-Link II可以最高达到3Gbps左右的带宽。后来，为了使FPD-Link II获得更远的传输距离，并能够在汽车和自动化系统中以高于1.8Gbps的速率运行，NS将FPD-Link II的SerDes-LVDS接口换为了SerDes-CML接口，采用CML（Current Mode Logic）的接口的系统，最高可获得10m左右的传输距离。
+
+![blob.png](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143677783/06_3a9bd5f8759a6accde191e7c95bb3a2a.png)
+
+图6. 一种典型的CML收发器接口结构
+
+**3、FPD-Link III**
+
+第三代FPD-Link叫FPD-Link III，于2010年被提出。相对于FPD-Link II，第三代FPD-Link增加的双向通信的功能，并支持在链路上传输I2C和CAN等低速信号（主要是针对汽车应用需求的改进）。FPD-Link III彻底放弃了早起FPD-Link II所采用的的SerDes-LVDS，而是只支持SerDes-CML的接口。这使得其能够在3Gbps的速率下，实现10m的通信距离。此外，FPD-Link III还支持了HDCP 加密 的功能，并获得了Digital Content Protection LLC的认证。

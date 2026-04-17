@@ -1,0 +1,157 @@
+---
+title: "【国产AI服务器】全国产PCIe 4.0/5.0 Switch GPU扩展解决方案，支持海光/飞腾/龙芯等平台"
+date: "2024-11-07"
+slug: "143593552"
+tags: ["#网络", "#linux", "#运维"]
+source: "https://blog.csdn.net/ARM_FPGA_AI/article/details/143593552"
+---
+
+ 
+
+**前言：**
+
+PCIE 协议中有很大篇幅在讲PCIE SWITCH。在实际电路应用中，我们也会遇到PCIE 端口数量不够，需要通过switch来扩展端口的案例。
+
+目前市面上能支持PCIe Gen5的switch只有Broadcom和Microchip两家，其中Broadcom的PEX8900系列较早面市，支持PCIe Gen5的速率，支持base switch mode（fanout扩展模式）以及synthetic swith mode 。笔者用过broadcom家的PEX89144，PEX89104，在下文的实际应用章节，将重点介绍PEX89144的注意事项；对于Diodes的PI7C9X2G1616PR，和microchip的PM8536也会作简要分析。
+
+作为硬件开发，在学习switch之前，需要通过PCIE协议来了解一些概念，举例一款博通的PEX8724，DMA，PCIE LANE / PORT ，传输的延迟Latency，NT功能等这些参数要了解后，才能对switch ic做出正确的选型和设计。
+
+**国产PCIe 4.0/5.0 Switch GPU扩展解决方案，支持海光/飞腾/龙芯等平台。深圳信迈提供全国产背板定制服务。**
+
+### 一，PCIE协议-switch相关知识点
+
+在如何选型PCIe switch之前，需要先熟悉以下PCIe Base协议中关于switch的知识点讲解：
+
+#### 1，什么是switch：
+
+协议定义 Switch: A defined System Element that connects two or more Ports to allow Packets to be routed from one Port to another. To configuration software, a Switch appears as a collection of virtual PCI-to-PCI Bridges.
+
+**Switch的概念：**switch为一组虚拟PCI-to-PCI Bridges的集合，连接两个或多个Ports且允许数据包在不同Ports之间被路由转发。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143593552/01_c069aeb344baa66f67bad7094b064cc9.jpeg)
+
+图1
+
+#### 2，switch的应用模式：
+
+*   Fanout扩展模式
+*   Partition分区模式
+*   NTB非透明桥
+
+a, **Fanout扩展模式**最为简单，Fanout形式遵循树形结构，因为树形结构最简单，没有环路，不需要考虑复杂路由。图2即是fanout模式。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143593552/02_e01255d7fa31bf42f74470e1742a0189.jpeg)
+
+图2
+
+b, **Partition分区模式**，分区功能相当于以太网Switch里的Vlan，相当于SAS Switch/Expander里的Zone**。**两台或者多台机器，可以连接到同一片PCI-E Switch，在Switch做分区配置，将某些EP设备分配给某个服务器。这样可以做到统一管理，灵活分配。每台服务器的BIOS或者OS在枚举PCI-E总线时只会发现分配给它的虚拟桥、虚拟BUS、和EP。多个分区之间互不干扰。多台独立服务器连接到同一片Switch上，如果不做Partition，是会出现问题的，因为两个OS会分别枚举同一堆PCI-E总线内的角色，并为其分配访问地址，此时会出现冲突。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143593552/03_90b6ad5e5bb438dc368f07fc0799e179.jpeg)
+
+图3
+
+c, **NTB非透明桥，**在有些特殊场景下，比如传统存储系统中的多个控制器，它们之间需要同步很多数据和控制信息，希望使用PCI-E链路直接通信。问题是，图中的两台服务器并不可以直接通信，因为必须身处两个不同的分区中。为了满足这个需求，出现了NTB技术。其基本原理是地址翻译，因为两个不同的系统（术语System Image，SI）各有各的地址空间，是重叠的。那么只要在PCI-E Switch内部将对应的数据包进行地址映射翻译，便可以实现双方通信。这种带有地址翻译的桥接技术叫做None Transparent Bridge，非透明桥。
+
+下图4 两个分区中的上行端口配置为NTB，这样两个HOST就互相访问对方分区下的device。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143593552/04_39e60f3f5b67a83833697ba96c82d7ec.jpeg)
+
+图4
+
+下图5解释了NTB下TLP的传播路径：
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143593552/05_c39f8d668b6c8361f1fe0d5a33f0bf4c.jpeg)
+
+图5
+
+#### 3，PCIE link，PCIE port 和 PCIE lane三者的区别？
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143593552/06_c35c3bea87cf60027cbae7a76cf8504c.jpeg)
+
+图6
+
+*   **Link的概念：两个Ports和他们之间所连接Lanes的集合。一个Link是在两个部件之间的一个双工通信通道。**（协议定义：A Link represents a dual-simplex communications channel between two components. The fundamental PCI Express Link consists of two, low-voltage, differentially driven signal pairs: a Transmit pair and a Receive pair。）
+*   **Lanes是指PCIe总线中的物理通道，每个Lane由一对TX和RX的差分信号对组成。(协议定义：each Lane represents a set of differential signal pairs (one pair for transmission, one pair for reception )**PCIe总线中的每个Lane都是一个单独的、全双工的通道，可以支持一定的数据传输速率。PCIe总线的版本号以及每个版本所支持的速率和Lane数目都是由Lane来定义的。例如，PCIe 3.0 x16就表示有16个Lanes，而每个Lane的数据传输速率则为8 GT/s。
+*   **Port：逻辑上看是位于部件和一个PCIE链路之间的接口; 物理上看，是同一个芯片上用来定义一个链路的一组发射器和接收器**。**（协议定义：logically，an interface between a component and a PCIE link; Physically，a group of Transmitters and Receivers located on the same chip that define a link。）**
+
+总的来说：每个Port都包含多个Lanes，不同的PCIe总线传输速率和Lane数目决定了每个端口的总带宽。
+
+#### 4，Store-and-Forward Switching vs Cut-Through Switching
+
+*   Store and Forward很好理解，即Switch接收整个报文，然后再处理，没有错误，再继续向目标端口发送。有错误，则按照ACK/NAK协议要求发送端重新发送。这种方式的优点是确保正确的报文才向egress port端口发送，保证了egress port的带宽不浪费。缺点显而易见，增加了报文在Switch中的延时。
+*   为了降低延时，Spec定义了另一种传输方式，称之为Cut-Through。跟以太网中的Cut-Through模式类似，Switch在收到报文头后，并不需要等完整的报文接收完成，就开始向目标端口转发报文。这种模式明显减低了报文在Switch中的延时，不过报文有错的话，会浪费egress port的带宽。总的来说，链路报文错误是少数情况，整体上看这种模式更加优越。
+
+下图7，是博通PEX8733中关于cut through模式的解释：
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143593552/07_87387b3b751d40897ff004ae8180e090.jpeg)
+
+图7
+
+博通的PEX8733的cut through latency最大132ns.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143593552/08_182207caff32d9180f33eac0754e9c49.jpeg)
+
+图8
+
+博通的PEX89144的cut through latency约115ns.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143593552/09_003d020adf395160aa5864d6447e790d.png)
+
+#### **5，DMA (Direct Memory Access)**
+
+DMA指的是Direct Memory Access，即直接内存访问。在PCIe交换机中，DMA通常用于提高数据传输的效率，避免CPU参与每个数据传输操作。通过DMA，PCIe设备可以直接访问系统内存，从而实现高效的数据传输。具体实现方法：CPU设置DMA Descriptions来搬运数据，打开DMA引擎，然后在DMA engine搬运数据时可以自由地执行其他进程。DMA引擎还可以在可编程的间隔内中断CPU并提供进度状态。
+
+microchip最新 GEN5 PCIe switch 最多能支持64 DMA channels：
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143593552/10_2c979d7407b1768f56da6490bebbeac1.png)
+
+下面以PEX8733来讲解DMA：
+
+如下图9，说明了DMA操作序列为一个单一通道。在这个例子中，DMA engine搬运数据从主RAM到一个终端。CPU只在步骤1、2和6中使用；其余步骤由DMA引擎执行。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143593552/11_21ae15c9bce6f90e50c3efc51c0f7506.jpeg)
+
+图9
+
+#### 6，Transparent and Non-Transparent Modes
+
+在PCIe交换机中，NT Ports指的是Non-Transparent Ports（非透明端口）。这是一种PCIe交换机端口类型，与Transparent Ports（透明端口）相对应。
+
+透明端口（Transparent Port）是一种将PCIe TLP（Transaction Layer Packets，事务层数据包）透明地传输到目标端口的端口类型。透明端口将TLP中的信息直接转发到目标设备，目标设备无需知道中间存在的透明端口。
+
+相比之下，非透明端口则会拦截TLP并在本地进行处理。这些端口通常被用于实现一些高级功能，例如PCIe交换机之间的互联，以及错误管理和诊断。在处理TLP时，非透明端口会检查TLP的头部，并根据需要进行修改或分析。
+
+NT Ports通常与SR-IOV（Single Root I/O Virtualization，单根I/O虚拟化）和MR-IOV（Multi Root I/O Virtualization，多根I/O虚拟化）相关。这些技术允许将物理设备虚拟化为多个虚拟设备，并将其分配给不同的虚拟机。非透明端口可以提供对SR-IOV和MR-IOV所需的硬件功能的支持。
+
+#### 7，AER (Advanced Error Reporting)
+
+AER ：高级错误报告，是PCIE异常信息处理机制，用于报告PCIe 错误信息。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143593552/12_b86e89c53bb56e4d6a21b70d9b7a7af9.jpeg)
+
+图10
+
+#### 8，PCIE lane reversal and polarity inversion。
+
+PCIE lane翻转，以及PCIe差分信号正负极性反转。下图是broacom PEX89144的PCIe特性支持：
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143593552/13_7130157aecf973a327845a044715c1fb.jpeg)
+
+#### 9，PCI power management spec
+
+PCIe总线的电源管理包括两方面的内容：
+
+*   一是基于软件控制的**PCI-PM**电源管理机制，这部分与PCI总线兼容；
+*   二是基于硬件控制的**ASPM**电源管理机制, 不需要Host端软件口控制，PCIe链路自主管理。
+
+注: ASPM= Active State Power Management
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143593552/14_6dcf40e3029cce37621de7626c722684.jpeg)
+
+#### 10，cut through latency
+
+11，base mode：PEX 8733 acts as a standard PCI Express switch, supporting one Host hierarchy (equivalent to Conventional PCI mode).
+
+#### 11, 什么是P2P？
+
+P2P：peer to peer communication；P2P是PCIe设备之间直接传输数据，而不需要使用HOST RAM作为临时存储。

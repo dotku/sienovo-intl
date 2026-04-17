@@ -1,0 +1,114 @@
+---
+title: "IPU概述"
+date: "2018-12-16"
+slug: "85038763"
+tags: []
+source: "https://blog.csdn.net/szxinmai/article/details/85038763"
+---
+
+ 
+
+1\. IPU概述  
+  
+（一）框架  
+首先来看看imx6q整体系统框架图，看看IPU位于整个SOC系统中的位置：  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/85038763/01_85626bf59613fee93a2ca105328e072b.png)  
+可以看出来，整个IPU挂接在 AXI 与AHB总线上面，通过总线，它可以与ARM，VPU，GPU和RAM等模块通信。
+
+另外，每个IPU有两个camera接口，如下所示：
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/85038763/02_3c3aafbf0cf60478e56091f6213ecfef.png)
+
+通过LDB控制到LVDS屏，直接控制LCD屏，并且可以通过HDMI或者MIPI来显示。  
+ 
+
+对于IPU的作用，在下面的图表中解释了：
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/85038763/03_40742905f89bcb41e5d606283ae52d15.png)
+
+或者用下图来表示更清楚：  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/85038763/04_032573930bd2eeeb7e007fb8fb5561c3.png)  
+以上是IPU的整体框架部分，对于BSP来说，我们比较关心它的驱动层次框架，如下所示：
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/85038763/05_ee6671100d7e9d93e3908476f2691bec.png)
+
+从这个框架中可以看出来，对于一般的 V4L2 子系统，会通过IPU来与硬件通信。
+
+图中各个模块的作用：
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/85038763/06_59f48845eb7bb440258ae9f6d6c68c44.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/85038763/07_6fa5ea9d91cff4995302ee2d27683a73.png)
+
+  
+  
+（二）代码框架文件  
+内核版本：3.14.52  
+文件主要集中在：  
+.../drivers/mxc/ipu3/                          描述  
+    ipu\_device.c                         IPU tasks的操作等（IPU core driver）  
+    ipu\_common.c                         底层的核心函数  
+    ipu\_capture.c                        为ipu\_common.c提供函数操作  
+    ipu\_disp.c                           IPU显示  
+    ipu\_ic.c                             IC的操作函数  
+    ipu\_param\_mem.h                      CPMEM设置的 头文件 ，操作函数  
+.../drivers/mxc/mipi/  
+    mxc\_mipi\_csi2.c                      mipi摄像头的操作函数  
+.../drivers/media/platform/mxc/  
+    capture/mxc\_v4l2\_capture.c           为应用程序提供open，ioctl等操作函数  
+    capture/v4l2-int-device.c            子系统模块注册等操作函数  
+    capture/ipu\_prp\_enc.c                Pre-processing encoder驱动函数  
+    capture/ipu\_csi\_enc.c                CSI设备驱动操作函数  
+    capture/ipu\_still.c                  静态图片捕获函数  
+    capture/ipu\_prp\_vf\_adc.c             Pre-processing view finder                                         (asynchronous)driver  
+    capture/ipu\_prp\_vf\_sdc.c             Pre-processing view finder                                        (synchronous foreground) driver  
+    capture/ipu\_fg\_overlay\_adc.c         前背景overlay异步驱动  
+    capture/ipu\_bg\_overlay\_sdb.c         后背景overlay同步驱动  
+    capture/ov5640.c ov5640\_mipi.c       ov5640.c子系统驱动  
+  
+（三） 分析步骤  
+从以下几点分析这个驱动：  
+1\. 概述  
+2\. master和slave的匹配过程  
+3\. mxc\_v4l2\_capture.c分析  
+    3.1 probe函数分析  
+    3.2 vidioc\_int\_\* 类函数的调用过程  
+    3.3 应用程序中函数调用的底层执行流程  
+    3.4 mxc\_v4l\_open函数分析  
+    3.5 cam\_data 结构体 详解  
+    3.6 mxc\_v4l\_ioctl函数分析  
+    3.7 ioctl函数中case的详细分析  
+    3.8 poll函数的详细分析  
+4\. ipu\_common.c的分析  
+    4.0 ipu\_soc,ipu\_channel\_t ,ipu\_channel\_params\_t结构体详解  
+    4.1 ipu\_common.c分析---入口函数及probe函数分析  
+    4.2 ipu\_common.c分析---ipu\_init\_channel函数的详细分析  
+    4.3 ipu\_common.c分析---ipu\_init\_channel\_buffer函数的详细分析  
+    4.4 ipu\_param\_mem.h头文件分析  
+    4.5 ipu\_request\_irq函数详细分析  
+    4.6 ipu\_enable\_channel函数详细分析  
+    4.7 ipu\_capture.c分析  
+5\. 举例说明，通过mxc\_v4l2\_capture.c应用程序中的调用过程来一步一步分析  
+    5.1 mxc\_v4l2\_capture.c应用程序追踪分析  
+    5.2 应用程序和驱动程序中buffer的传输流程  
+6\. 子系统的分析  
+    6.1 ipu\_prp\_enc.c详细分析  
+    6.2 ipu\_csi\_enc.c详细分析  
+    6.3 ipu\_still.c详细分析  
+    6.4 ipu\_ic.c详细分析  
+7\. ipu\_device.c的分析  
+    7.1 ipu\_device.c分析（一）---流程分析  
+    7.2 ipu\_device.c分析（二）---具体函数分析  
+8\. 各个模块的分析  
+    8.1 子模块分析之IDMAC  
+    8.2 子模块分析之CSI  
+    8.3 子模块分析之SMFC  
+    8.4 子模块分析之IC
+
+    8.5 子模块分析之VDIC
+
+    8.6 子模块分析之CM
+
+9\. dts文件分析---以ov5640为例，修改dts文件使ov5640使用第二个IPU  
+10\. 对ipu\_init\_channel的理解，为以后添加channel做准备  
+11\. ov5640\_mipi.c分析
