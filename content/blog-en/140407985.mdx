@@ -1,0 +1,62 @@
+---
+title: "6U VPX Bus Real-time Signal Processing Platform Based on XC7VX690T FPGA + ZU15EG SOC (Supports 4 Optical Fiber Channels)"
+date: "2024-07-13"
+slug: "140407985"
+tags: ["#fpga开发", "#信号处理"]
+source: "https://blog.csdn.net/yeyuangen/article/details/140407985"
+originalTitle: "基于XC7VX690T FPGA+ZU15EG SOC的6U VPX总线实时信号处理平台（支持4路光纤）"
+---
+
+*   6U VPX architecture, compliant with VITA 46 specification
+*   Onboard high-performance FPGA processor: XC7VX690T-2FFG1927I
+*   Onboard 1 high-performance MPSoC: XCZU15EG-2FFVB1156I
+*   Onboard 1 MCU for health management, clock configuration, etc.
+*   V7 FPGA connected to 2 FMC+ interfaces
+*   Interconnection between the two FPGAs via high-speed GTH transceivers
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/140407985/01_496d5d33bc6e4b07b880c84129abfb6e.png)
+
+A general-purpose real-time signal processing platform based on the 6U VPX bus architecture. This platform utilizes a high-performance Xilinx Virtex series FPGA (XC7VX690T-2FFG1927I) as a pre-processing unit, with 2 external FMC+ expansion interfaces for data acquisition, data playback, and real-time signal processing algorithms. A high-performance embedded processor, the ZYNQ UltraScale series ZU15EG, with an ARM core, is used as the main processor to implement communication, management, and other functions. The platform's pre-processor, XC7VX690T, is equipped with two banks of 64-bit DDR3 SDRAM for ultra-large capacity data caching, with a data cache bandwidth of up to 1600MHz. The PL (Programmable Logic) side of the platform's main processor, ZU15EG, supports two banks of 32-bit DDR4 SDRAM. The PS (Processing System) side is a powerful ARM processor, featuring one 64-bit quad-core ARM Cortex-A53 processor, one dual-core ARM Cortex-R5 real-time processor, and one ARM Mali™-400MP graphics processor. The PS side is equipped with 72-bit DDR4 SDRAM, supporting ECC. The two processors are interconnected via 16 GTH transceivers. The platform provides multiple SRIO high-speed serial interfaces, LVDS parallel interfaces, and multiple GPIO signals via the VPX connector for convenient data interaction with other boards within the system and control of external peripherals. This board features excellent anti-vibration design, thermal dissipation performance, and unique environmental protection design, making it suitable for aerospace, aviation, marine, and other application scenarios.
+
+#### Functional Block Diagram
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/140407985/02_80f51d2f139db62ebc0a129dd1a115d5.png)
+
+#### Technical Specifications
+
+*   Standard 6U VPX form factor, compliant with VITA 46 specification;
+*   Onboard high-performance FPGA processor: XC7VX690T-2FFG1927I;
+*   Processing Performance:
+    1.  Two banks of 64-bit DDR3 SDRAM, 4GByte capacity each;
+    2.  One BPI Flash, 128MByte capacity, for FPGA loading;
+*   Onboard 1 high-performance MPSoC: XCZU15EG-2FFVB1156I:
+    1.  PL side equipped with two banks of 32-bit DDR4 SDRAM;
+    2.  PS side equipped with one bank of 72-bit DDR4 SDRAM;
+    3.  PS side extends 1-channel 1000BASE-T Gigabit Ethernet port to VPX P4;
+    4.  PS side extends 1-channel 1000BASE-T Gigabit Ethernet port to front panel J30J;
+*   Interconnection Performance:
+    1.  VPX P1 supports 3 SRIO x4 lanes, connected to V7 690T;
+    2.  VPX P2 supports 32 LVDS pairs, connected to ZU15EG SOC;
+    3.  VPX P3 supports 1 8-port RF blind-mate connector;
+    4.  VPX P4 supports 1 Gigabit Ethernet interface;
+*   Physical and Electrical Characteristics
+    1.  Board dimensions: 100 x 233mm
+    2.  Board power supply: 5A max@+12V (±5%)
+    3.  Cooling method: Conduction cooling (via metal)
+*   Environmental Characteristics
+    1.  Operating temperature: -40°~﹢85°C, Storage temperature: -55°~﹢125°C;
+    2.  Operating humidity: 5%~95%, non-condensing
+
+#### Software Support
+
+*   Optional integrated Board Support Package (BSP);
+    1.  V7 FPGA low-level interface drivers;
+    2.  ZU FPGA low-level interface drivers;
+    3.  Board-level interconnection interface drivers;
+    4.  AD/DA interface program porting;
+*   Customizable algorithms and system integration can be provided based on customer requirements:
+
+#### Application Areas
+
+*   Software-defined radio (SDR);
+*   Radar and baseband signal processing;
