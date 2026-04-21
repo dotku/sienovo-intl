@@ -1,0 +1,46 @@
+---
+title: "DSP FPGA Real-time Image Processing Technology Survey"
+date: "2019-02-28"
+slug: "88043679"
+tags: ["#DSP+FPGA", "#图像"]
+source: "https://blog.csdn.net/yeyuangen/article/details/88043679"
+originalTitle: "DSP FPGA实时图像处理技术调研"
+---
+
+#### 1. Requirements Analysis
+
+*   **Real-time image processing technology**, especially real-time image processing technology based on multi-core DSP + FPGA architecture, has become a highly focused area in current new image processing technology research due to the inherent advantages of this solution.
+*   Infrared images
+*   Cell images
+*   Image stitching
+
+#### 2. Overall Design Scheme:
+
+The FPGA is responsible for the logical control of video image acquisition and display; the DSP is responsible for implementing the image stitching algorithm; and data exchange between the FPGA and DSP is achieved by directly communicating between the FPGA's internal FIFO and the DSP's EMIFA interface.
+
+**2.1 DSP and FPGA Communication Interface Design**
+
+*   This framework performs inter-core data interaction within the processor based on a data stream mode, using the high-speed transmission interface **SRIO** for communication with the FPGA.
+*   Between multi-core DSPs and FPGAs, either the **uPP** transmission mode or the **RapidIO** high-speed data channel can be selected for full-duplex data communication.
+*   PCIe
+
+**2.2 Image Acquisition Interface**
+
+*   The standard interface Camera Link protocol module required by the FPGA for reading acquired images.
+*   The digital image input front-end of this system consists of an SDI digital input, a USB3.0 transmission module, and a PAL video image acquisition module.
+
+**2.3 FPGA as the System's Main Control Unit** (In addition to acting as a high-speed image acquisition co-processor, does it also function similarly to an ARM?)
+
+*   The standard HDMI module for FPGA image display.
+*   The FPGA implements PAL or DVI video image acquisition, transmits the acquired image data to the DSP, receives the results returned by the DSP, and displays them.
+
+#### 3. Application Examples
+
+*   A real-time image processing system based on XILINX V6 series FPGAs and TI **TMS320C6657** dual-core DSPs. The system selects TI multi-core DSPs as the main processor for image data computation to implement core algorithms for real-time digital image processing. The system selects **XILINX Virtex series** high-end FPGAs as co-processors and the system's main control unit, used to coordinate various peripheral functional modules in the system and complete image acquisition and display control functions.
+*   To achieve image target point detection and confirmation, and simultaneously enable high-speed communication data transmission between the FPGA and DSP, this paper proposes a digital image processing system design scheme based on the high-speed DSP chip **TMS320C6455**.
+*   A hardware system platform based on image processing was designed, with the TMS320C6657 DSP and XC6VLX240T FPGA as core chips.
+*   TI TMS320C6657 Dual-core DSP + Artix-7 FPGA
+*   Design and Development of a Video-based Vehicle Abnormal Behavior Detection System: It uses two ADI TigerSHARC series ADSP TS201 chips as core processors; and two Xilinx Spartan-6 series FPGA chips, XC6SLX100-3CSG484I, as core processors for communication transmission and interface control.
+*   TI's TMS320C6000 series DSPs and Altera's Cyclone II series FPGAs are selected as core devices.
+
+Keywords: Multi-core DSP; TMS320C6657; Inter-core communication; Hardware system platform; Image matching;

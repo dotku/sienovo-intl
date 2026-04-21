@@ -1,0 +1,59 @@
+---
+title: "RK3588 + MIPI + 8-Channel AHD + AI Analysis Camera Application in Sanitation and Construction Vehicles"
+date: "2024-07-30"
+slug: "140694293"
+tags: ["#人工智能", "#RK3588", "#AHD"]
+source: "https://blog.csdn.net/yeyuangen/article/details/140694293"
+originalTitle: "RK3588 +MIPI+8路AHD+AI分析摄像头在环卫车辆、工程车辆的应用"
+---
+
+Common camera interfaces typically include MIPI, USB, DVP, etc. However, MIPI cameras are limited by the transmission distance of high-speed signals, which means traces cannot be too long. This severely restricts their use in security monitoring, automotive, and other fields. Therefore, technologies are introduced to extend the camera's data transmission distance, such as the serdes mentioned in previous articles. This article primarily focuses on debugging AHD cameras with the RK3588.
+
+(1) AHD Camera
+There are many introductions to AHD cameras online, so I won't elaborate here. It's worth noting that AHD cameras are somewhat similar to the serdes I introduced previously, with one goal being to increase transmission distance. They are commonly used in automotive, security, and other fields.
+
+AHD is an analog camera, so an AD conversion chip is required to convert the signal and output a digital signal for the main controller to receive.
+
+(2) Conversion Chip
+The aforementioned AHD cameras require a conversion chip to output digital signals, typically converting AHD to MIPI or AHD to BT656/BT1120 parallel output. Some manufacturers' front-end cameras may also be compatible with TVI, CVBS, and other signals.
+
+For CVBS, please refer to the introduction in the previous article.
+
+This article mainly shares the debugging process for AHD camera to MIPI or BT1120 conversion chips.
+
+Common conversion chips include: NVP series NVP6188/NVP6324/NVP6158C
+
+TP series: TP2815/TP9950/TP9930/TP2825, etc.
+
+RN series: RN6854/RN6752, etc.
+
+Here, we will use debugging N6 as an example.
+
+(3) AHD to MIPI Debugging
+Similarly, the drivers for these conversion chips are based on the V4l2 framework, so we will primarily introduce the configuration of relevant interfaces.
+
+The AHD camera solution not only ensures high-definition image quality but also breaks through the transmission distance limitations of traditional equipment, offering advantages such as low cost, long distance, strong anti-interference, and no latency.
+
+AHD utilizes Y/C signal separation and analog filtering technology, which effectively reduces color noise in high-frequency areas, resulting in better image reproduction. After installation, relevant parameters can be set locally, and it can be used without network connection.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/140694293/01_99ba5bc49c46f0ffc8bdef8882d5f47b.jpeg)
+
+Similar to traditional analog equipment, transmission can be achieved using ordinary SYV-75-3 or 75-5 coaxial video cables. This reduces the complexity of construction and deployment, lowers the cost of auxiliary materials, and is also very user-friendly in terms of maintenance complexity and technical requirements.
+
+However, compared to traditional analog HD products, AHD offers a significant improvement in image quality, reaching megapixel resolution at its highest clarity.
+
+The RK3588 on-board 8-channel AHD camera implementation solution can simultaneously aggregate video feeds from 8 AHD cameras onto a single display, enabling multi-angle capture and reducing blind spots.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/140694293/02_30cae9c3d6e40e016bee6af5dc28ee80.jpeg)
+
+We connected a total of 8 AHD cameras via two AHD camera MIPI adapter boards, and then connected them to the RK3588 mainboard via the MIPI-CSI interface. Ultimately, the footage captured by the 8 AHD cameras was displayed on the same screen.
+
+For output display devices, HDMI, eDP, or LVDS interfaces are supported. Regarding AHD camera resolution, we support 720p@25FPS or 1080p@25FPS.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/140694293/03_62b2d1252c61c6ad069e75ae4b58b2b0.png)
+
+The numerous advantages of AHD cameras enable them to perform excellently in smart driving and security monitoring fields, including real-time display of multiple cameras, functions for driving recorders or surround-view systems, and video surveillance hosts for various security scenarios.
+
+Finally, coupled with the powerful RK3588 mainboard, users' solutions can operate stably.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/140694293/04_c0295613b784bdb14ecade5e616a3383.png)
