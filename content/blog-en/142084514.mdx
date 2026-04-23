@@ -1,0 +1,108 @@
+---
+title: "What is a PCIe Switch? Domestic PCIe Switch Solutions: Zhongxingwei"
+date: "2024-09-10"
+slug: "142084514"
+tags: ["#服务器", "#网络", "#linux"]
+source: "https://blog.csdn.net/szxinmai/article/details/142084514"
+originalTitle: "什么是PCIe Switch？国产PCIE switch众星微方案"
+---
+
+### What is a PCIe Switch
+
+A PCIe Switch is a hardware device that provides expansion or aggregation capabilities, allowing more devices to connect to a single PCIe port.
+
+It offers the following functionalities:
+
+1.  **Connecting Multiple Devices**: A PCIe switch allows multiple devices to connect to a host system via a single PCIe bus, thereby expanding the system's connectivity.
+2.  **Data Exchange**: A PCIe switch can transfer data between multiple devices, allowing direct communication between devices without involving the host processor.
+3.  **Dynamic Allocation**: It supports dynamic allocation of bandwidth and resources, adjusting communication rates and priorities between devices as needed.
+4.  **NTB (Non-Transparent Bridge)**: It supports NTB technology, allowing direct communication between two or more systems, thereby improving data transfer efficiency.
+5.  **Peer-to-Peer**: It supports peer-to-peer communication, allowing devices to exchange data directly without involving the host.
+6.  **MRIOV (Multi-Root I/O Virtualization)**: It supports Multi-Root I/O Virtualization, allowing multiple root complex systems to share a single PCIe device.
+7.  **SRIOV (Single Root I/O Virtualization)**: It supports Single Root I/O Virtualization, allowing a single PCIe device to be partitioned into multiple virtual functions.
+
+**What are the Domestic PCIe Switches?**
+
+For domestic high-end PCIe switches, there's Zhongxingwei; for low-end, there are CETC Xingtuo and Wangxun. Shenzhen Xinmai provides complete PCIe switch solutions, **supporting customization for domestic AI server backplanes and expansion boards**.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142084514/01_c4c3958e48067eae486e27517413713e.webp)
+
+### Virtual Switch/Switch Partitioning
+
+Dividing a physical PCIe Switch into multiple Virtual Switches allows multiple Hosts to share one Switch, with each Virtual Switch operating independently without interference.
+
+**Multi-root**
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142084514/02_971bff2c83825b1b133fc894fcd1063b.webp)
+
+**Single-Root**
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142084514/03_775c3d6dc811dca437291b11eb092d83.webp)
+
+### Dynamic Allocation
+
+Virtual Switch is statically configured, requiring initialization before BIOS enumeration. Different configurations necessitate flashing different firmware.
+
+Dynamic Allocation enables dynamic assignment, which requires ensuring that I/O on the End-Point (EP) is halted, the network card on Host #1 is disconnected, and then reallocated to Host #2, as shown in the figure below:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142084514/04_65fb9842da8e3d9ad69bc7455bbb71f3.webp)
+
+### What is Peer-to-Peer
+
+P2P enables data transfer between End-Points (EPs) within the switch, offloading pressure from the CPU and RAM.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142084514/05_9449cf1c7903d440ad773466630b9cbb.webp)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142084514/06_a7cd3a7955067c0ba73ac66818279ee9.webp)
+
+### What is a PCIe Bridge
+
+A PCIe Bridge is a device used to connect and forward PCI Express (PCIe) buses, typically employed to extend a system's PCIe connectivity performance and flexibility. PCIe bridges can connect different PCIe buses, acting as relay stations for data transfer, enabling communication and data exchange between various devices.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142084514/07_83e49a4677e042f79690726074e18c47.webp)
+
+### What is NTB (Non-Transparent Bridge)
+
+A PCIe Non-Transparent Bridge (NTB) allows two host systems to communicate by presenting each host as a device to the other. NTBs typically support functions such as generating interrupts on a remote machine, exposing memory ranges as Base Address Registers (BARs), and performing Direct Memory Access (DMA). They also support scratchpads, which are areas in NTB memory accessible from both machines.
+
+PCI NTB functionality allows two different systems (or hosts) to route transactions from one system to another by configuring endpoint instances. In the diagram below, the PCI NTB function configures a System-on-Chip (SoC) with multiple PCI End-Point (EP) instances to route transactions from one EP controller to another. Once the PCI NTB function configures the SoC with multiple EP instances, HOST1 and HOST2 can communicate with each other using the SoC as a bridge.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142084514/08_43f6909340d8628042545c72671a0094.webp)
+
+> What is NTB • PCIe “Non-Transparent” Bridge
+> Forwards PCIe traffic between busses like a bridge
+> CPU sees the bridge as an end-point device
+> CPU does not see devices on the other side
+> Other side is typically attached to another CPU
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142084514/09_d65d8e55dce17d73f04dfef2718c1dc9.webp)
+
+**Example 1:**
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142084514/10_25cb4115e506dc1353ba1457b52408d7.webp)
+
+**Example 2:**
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142084514/11_4db7dc78b4257fdfb129f05cb121cc92.webp)
+
+### What is SR-IOV
+
+SR-IOV (Single Root I/O Virtualization) is a PCI Express (PCIe) technology used to enhance the performance and efficiency of network and storage devices in virtualized environments. SR-IOV allows a single physical device (such as a network card) to be shared among multiple virtual machines while maintaining high performance and low latency.
+
+Specifically, SR-IOV technology creates multiple Virtual Functions (VFs) on a physical device. Each VF can be assigned to a virtual machine, allowing the VM to directly access the physical device, bypassing the Hypervisor, thereby improving data transfer efficiency and reducing CPU overhead.
+
+The main advantages of SR-IOV include:
+
+1.  **Lower Latency**: Because virtual machines can directly access physical devices, bypassing additional virtualization layers, lower data transfer latency can be achieved.
+2.  **Higher Throughput**: By partitioning the physical device's resources into multiple virtual functions, higher network and storage throughput can be achieved, improving system performance.
+3.  **Better Performance Isolation**: Each virtual machine has its own virtual function, isolated from others, preventing resource contention and performance interference.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142084514/12_948bf950683ae6340a891ec58393bc11.webp)
+
+### What is MR-IOV
+
+MRIOV (Multi-Root I/O Virtualization) is a PCI Express (PCIe) technology used to share the virtualization capabilities of a single PCIe device among Multi-Root systems. Typically, a PCIe device can only be exclusively used by a Single-Root complex system, whereas MRIOV technology allows Multi-Root systems to simultaneously access and share the same PCIe device.
+
+With MRIOV, each root complex system can see multiple virtual functions of the PCIe device and assign them to different virtual machines or containers, enabling sharing and collaboration among multiple systems. This sharing method can improve system resource utilization, reduce costs, and simplify device management in data centers and cloud environments.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142084514/13_a5e9d47182aa05aca043d1ada4c090c8.webp)
