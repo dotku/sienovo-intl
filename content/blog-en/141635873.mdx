@@ -1,0 +1,69 @@
+---
+title: "FPGA+DSP Architecture-Based IF Signal Acquisition, Processing, and Remote Fiber Optic Transmission System"
+date: "2024-08-28"
+slug: "141635873"
+tags: ["#fpga开发", "#网络"]
+source: "https://blog.csdn.net/yeyuangen/article/details/141635873"
+originalTitle: "基于FPGA+DSP架构的中频信号采集处理、远程光纤传输系统"
+---
+
+*   Supports 8-channel, 250 MSPS sampling rate, 16-bit analog signal input
+*   Supports 4 SFP+ fiber optic channels, up to 10 Gbps/lane
+*   Onboard 1 XC7K325T FPGA processor
+*   Onboard 1 TMS320C6678 multi-core processor
+*   Supports 2 Gigabit Ethernet ports
+*   Supports multi-system cascading and synchronous acquisition
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141635873/01_5ea7e16ae68141218d27213050d4c798.png)
+
+#### Functional Block Diagram
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141635873/02_fededadf6f4660e753bcc90c4da9d2df.png)
+
+This high-performance radar signal real-time acquisition and processing platform, based on fiber optic transmission, integrates an I/O unit, a signal processing unit, and a remote transmission unit. It enables real-time acquisition, real-time processing, high-speed transmission, and high-speed storage of radar signals. The system platform consists of one signal processing platform card and one 4-channel fiber optic acquisition card, as shown in Figure 1. The signal processing platform is equipped with an 8-channel, 250 MSPS sampling rate, 16-bit AD acquisition FMC daughter card. The system's working principle is as follows: 8 channels of analog AD signals (from the antenna array) enter four high-speed ADCs via SSMC interfaces. The FPGA drives these four high-speed ADCs and completes real-time synchronous data acquisition of analog intermediate frequency (IF) signals. The FPGA features a large-capacity onboard buffer and performs complex algorithm processing, achieving precise phase measurement for multiple antenna arrays entirely from a time domain perspective. The signal processing board also includes one TI multi-core DSP processor C6678, which enables fast spectral analysis. Real-time data sharing between the FPGA and DSP is achieved through a high-speed interface, enabling powerful signal processing capabilities from both time and frequency domains. The platform uses single-mode or multi-mode fiber for remote transmission, and high-speed serial communication ensures that acquired data is updated in real-time on the server. This system realizes real-time acquisition, real-time processing, remote transmission, and high-speed storage of radar signals. It widely uses high-speed serial buses such as SRIO, PCIe, and Ethernet for data transmission, offering advantages such as high performance, high availability, and high reliability.
+
+#### Technical Specifications
+
+*   System Composition:
+    1.  1x 8-channel, 250 MSPS sampling rate, 16-bit resolution AD acquisition FMC daughter card (Model: FMC128);
+    2.  1x FPGA + DSP signal processing board (Model: TES600);
+    3.  1x 4-channel fiber optic acquisition card (Model: PCIE730);
+*   System Interconnection:
+    1.  AD daughter card and signal processing board: FMC high-speed connector LVDS interconnection;
+    2.  Signal processing board and fiber optic acquisition card: Interconnected via single-mode or multi-mode fiber;
+    3.  Fiber optic acquisition card and server: Interconnected via PCIe bus;
+*   Acquisition Performance:
+    1.  Maximum support for 8-channel, 250 MSPS sampling rate, 16-bit resolution real-time acquisition;
+    2.  Input voltage range: 1Vpp (4dBm) ~ 2Vpp (10dBm), programmable input voltage range;
+    3.  Analog input bandwidth: 500MHz (typical);
+    4.  SFDR@170MHz: 87dBc;
+    5.  SNR@170MHz: 73.2dBFS;
+    6.  ENOB@170MHz: 11.85bits;
+    7.  8-channel AD synchronous acquisition;
+*   Processing Performance (Signal Processing Board):
+    1.  DSP fixed-point operations: 40 GMAC/Core * 8 = 320 GMAC;
+    2.  DSP floating-point operations: 20 GFLOPs/Core * 8 = 160 GFLOPs;
+*   Transmission Performance:
+    1.  Supports Serial RapidIO, Aurora, and other transmission protocols;
+    2.  Serial RapidIO supports 6.25 Gbps line rate, Aurora supports 10 Gbps line rate;
+    3.  Supports single-mode or multi-mode fiber, maximum transmission distance 80KM;
+*   Storage Performance:
+    1.  Storage bandwidth: 64-bit, DDR3 SDRAM, 500MHz operating clock;
+    2.  Storage capacity: Maximum support for 4GByte DDR3 SDRAM;
+*   Other Interface Performance:
+    1.  1 high-precision clock unit, supports 1 external clock input, 2 synchronous clock outputs;
+    2.  2 RS485 interfaces, 4 LVTTL inputs, 4 LVTTL outputs;
+    3.  Onboard 1 FRAM memory, 1 BPI Flash;
+*   Physical and Electrical Characteristics
+    1.  Board dimensions: 100 x 160mm
+    2.  Board power supply: 1.5A max@+12V (±5%)
+    3.  Cooling method: Metal conduction cooling
+*   Environmental Characteristics
+    1.  Operating temperature: -40°~﹢85°C;
+    2.  Storage temperature: -55°~﹢125°C;
+    3.  Operating humidity: 5%~95%, non-condensing
+
+#### Application Areas
+
+*   Software Defined Radio (SDR);
+*   Radar and Baseband Signal Processing;

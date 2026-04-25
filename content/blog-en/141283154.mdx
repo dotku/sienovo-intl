@@ -1,0 +1,52 @@
+---
+title: "[ARM+Codesys Customer Case Study] Application Cases of RK3568/A40i/STM32+CODESYS in Smart Production Lines: A Brief Discussion on the Packaging Industry — Adaptive Smart Equipment"
+date: "2024-08-17"
+slug: "141283154"
+tags: ["#中间件", "#网络", "#stm32", "#自动化", "#codesys", "#arm开发"]
+source: "https://blog.csdn.net/yeyuangen/article/details/141283154"
+originalTitle: "【ARM+Codesys 客户案例 】 基于RK3568/A40i/STM32+CODESYS在智能生产线中的应用案例：浅谈包装行业———自适应式智能设备"
+---
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141283154/01_efbb3e8112dec3452895606ee83f4e2a.jpeg)
+
+Consumer goods manufacturers prefer packaging equipment that combines productivity and cost-effectiveness. The characteristic of future high-end smart equipment is high "usability." What exactly is "usability"? Firstly, it requires minimal operators and energy consumption, and secondly, high material utilization. A modern factory must possess sufficient adaptability to meet any demands of the production process. For equipment manufacturers, this means they must always be ready to provide customers with required modular functional extensions and integrate them into existing manufacturing equipment. PC-based soft control technology and decentralized drive technology help meet these machine equipment requirements, as the software already includes expandable functions and can be connected via simple, standardized interfaces. To enable the system to adapt to new product types later and operate at high speed even with low output, the system must be capable of automatically adjusting production modes. Only then can the machine achieve one-button production, eliminating the need for manual setup of new products or modes. To implement automatic adjustment modes, challenges at both hardware and software levels need to be addressed. Firstly, cost-effective drive technology is required in the control section; in addition to electric drive technology, pneumatic technology is also frequently used. Secondly, at the software level, the software must have an open architecture, provide open interfaces for convenient modular design at the control level, possess strong communication capabilities, and be able to support third-party smart sensors and applications.
+
+**The CODESYS software is structured in a three-layer architecture, as shown in the figure below:**
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141283154/02_aa10996627fa4ff2fc6f4d18c4dacf1b.jpeg)
+
+**1. Development Layer**
+
+The CODESYS Development System (with comprehensive online and offline programming capabilities), compiler and its accessory components, visualization interface programming components, etc., along with optional motion control modules, make its functionality more complete and powerful.
+
+IEC 61131-3 Editor. CODESYS provides all five programming languages defined by IEC 61131-3: Structured Text (ST), Sequential Function Chart (SFC), Function Block Diagram (FBD), Ladder Diagram (LD), and Instruction List (IL). Additionally, it supports Continuous Function Chart (CFC) as a programming language.
+
+Compiler: Responsible for converting applications in CODESYS into machine code and optimizing the performance of programmable controllers. When a user inputs incorrect application code, they immediately receive syntax error warnings and error messages from the compiler, allowing programmers to quickly make corrections. Users can develop projects using different CODESYS-based hardware devices (systems) without changing their programming method.
+
+Hardware/Fieldbus Configurator: For hardware devices from different manufacturers and various fieldbus protocols, this component is responsible for setting corresponding parameters within CODESYS.
+
+Visualization Interface Programming: Visualization programming (Human-Machine Interface HMI) can be achieved directly within CODESYS, as the system has integrated a visualization editor.
+
+Motion Control Module: Motion control functions are integrated into CODESYS, forming the SoftMotion (CNC) package. The PLCopen-based toolkit enables single-axis and multi-axis motion; electronic camming; electronic gearing; complex multi-axis CNC control, and more.
+
+**2. Communication Layer**
+
+Communication between the application development layer and the hardware device layer is realized by the Gateway Server in CODESYS, which has an OPC server installed.
+
+CODESYS Gateway Server. Operating between the application development layer and the hardware device layer, it enables remote access using TCP/IP protocol or via buses like CAN, and is an integral part of the CODESYS Development Toolkit.
+
+CODESYS OPC Server. For controllers programmed with CODESYS, regardless of the hardware CPU used, it has integrated and implemented multi-client functionality conforming to OPC V2.0 specifications, and can access multiple controllers simultaneously.
+
+**3. Device Layer**
+
+Before operating a hardware device using CODESYS, a programming and development tool based on the IEC 61131-3 standard, the hardware vendor must pre-install the CODESYS Runtime kernel in the device layer. Additionally, functional extensions can be achieved by using optional CODESYS components, such as the CODESYS Target Visualization module or the Web Visualization module.
+
+**4. Relationships Between Layers in CODESYS Software Architecture**
+
+The CODESYS code execution mechanism is compiled execution. IEC programs written by the user in the development layer are compiled into binary code by the integrated compiler, then downloaded to the device layer via Ethernet or serial port. Finally, the application files, now in binary code, are stored in the target device and executed cyclically according to the user-defined execution method.
+
+Below is the architecture diagram of the CODESYS product series. Clicking on different parts of the image will link to product introductions.
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141283154/03_5d86c6bbbbe0a69a9958606ee83f4e2a.jpeg)
+
+Xinmai provides localized customization for ARM+Codesys.
