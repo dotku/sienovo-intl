@@ -1,0 +1,131 @@
+---
+title: "[Domestic AI Servers] Domestic Alternative to Broadcom PCIe 5.0 Switch Application Examples, Supporting ZS Micro Customization"
+date: "2024-09-05"
+slug: "141926697"
+tags: ["#服务器", "#运维"]
+source: "https://blog.csdn.net/szxinmai/article/details/141926697"
+originalTitle: "【国产AI服务器】国产替代博通PCIe 5.0 Switch应用实例，支持众星微定制"
+---
+
+Domestic Alternative to Broadcom PCIe 5.0 Switch Application Examples
+
+**一，FANOUT switch**
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141926697/01_453fd44a902cea2d9653c9f08eb3aee0.webp)
+
+Fanout switch
+
+**二，Graphics Processing Unit**
+
+Graphics applications typically use x16-width links. Peer-to-peer communication is supported in switch hardware, allowing the shortest possible path between the peers. As with the fanout switch, the links can be at any supported PCle speed, for any supported width.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141926697/02_52bcbbcf3e39cddac1229356693ed096.webp)
+
+As shown in the figure above:
+
+GPU1 can communicate with GPU2 using switch Switch1.
+
+GPU1 can communicate with GPU3 using switch1 through a fabric link to switch2.
+
+Note: P2P Requires software support.
+
+**三，NvMe Hot Add and Hot Remove**
+
+This switch supports a system that can add a PCle device to an empty slot either in a server or in the host without disrupting the rest of the PCle tree.
+
+**In base switch mode (BSw), system software must preallocate resources for empty slots at host boot time.** See the figure below:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141926697/03_322515c90945db0b07701aeb0ff2f4cf.webp)
+
+**The challenge is to reserve PCle resources at configuration so that you can add devices later**. Functionally, synthetic switch (sSw) mode uses management software to create a placeholder endpoint to reserve PCle resources. As shown in the figure below:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141926697/04_c89053887cba349377cded60e9b8f6f3.webp)
+
+See Operation Modes for mode information. You can remove devices from either the server or the host at any time without disrupting other ports. Use DPC to keep endpoint errors from spreading to the rest of the tree. Enable read tracking to prevent completion timeouts.
+
+**四：High Availability Storage Use Case**
+
+The switch works with dual-ported NVMe drives to provide high availability storage, that is, no single point of failure. The topology that follows achieves high availability storage through redundancy-two paths to each NvMe device. Each of the two hosts has its own independent switch hierarchy.
+
+**If the switches are in isSw mode, the link between switches connects two synthetic switch ports.**
+
+**If the switches are in BSw mode, the link between switches connects a downstream port to an upstream port.**
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141926697/05_c87a73988765e25a4cafb7465635d218.webp)
+
+In the preceding figure, the possible failures that follow are addressed:
+
+If one host fails, the other host can still get to every NVMe drive.
+
+If a switch fails, an alternate path exists to access the data on the endpoint.
+
+If any link fails, the upstream side considers the downstream side to have failed.
+
+*   If the link to an upstream port of a switch fails, the switch appears as failed to the host.
+*   If the link to an NvMe drive fails, the endpoint appears as failed to the host that uses that path.
+
+If an endpoint (an NvMe drive in the preceding figure) fails, the data on that drive is no longer accessible.
+
+In this example, the upstream switches (both left and right sides) should be synthetic switches to support the most robust NvMe surprise device add or remove.
+
+**五，Redundant Storage**
+
+Previous generation mirrored systems might have identical boards connected with back-to-back non-transparent (NT) bridges connected through a crosslink. The PEX89104 switch model replaces the NT-NT link with a fabric link. In all such mirrored systems, each host finds a single NT endpoint through which it communicates to the other host.
+
+The fabric link provides a (hidden-to-host) data path between the two host systems. When one host fails, the other host can take over the endpoints of the first switch.
+
+**In this use case, the switch must be in synthetic mode to enable the NT endpoint. A fabric link connects the two switches. Each switch should configure a synthetic switch port to connect to the fabric link.**
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141926697/06_051758f7af00f155fd7d4c7e71c88612.webp)
+
+**六：Multidomain General-Purpose GPU**
+
+The switch supports **general-purpose GPU (GPGPU)** peer-to-peer transactions within a domain and between domains. In the example that follows, **the switches are in iSSw mode**, connected by a **fabric link.**
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141926697/07_5a16478cf76dfc9b1dfef2a5671bdbec.webp)
+
+* * *
+
+Notes on PCIe switch Fabric topology:
+
+The standard PCIe tree topology has some limitations. In SSw mode, the switch supports alternate topologies to address those limitations. The link between two PCIe switches in SSw mode can connect two fabric ports, upon which all TLPs are routed with a destination ID. **This approach allows for any one source to get to any one destination using a programmable fabric path**.
+
+A global ID (GID) routes a TLP across a fabric. If there is more than one path available, the destination GID indexes a destination lookup table (D-LUT) to get a choice vector. From the choice vector, a particular fabric port choice is made.
+
+Global ID composition: **The GID is composed of {domain[7:0],ID[15:0]}, where the ID value is a PCIe standard ID composed of {bus[7:0], device[5:0], and function[2:0]}.**
+
+Management software sets up address traps, ID traps, or both in the hardware to take a normal PCIe TLP and create a destination GID. Management software also programs the route table in the D-LUT and the choice mapping registers.
+
+Contact your Broadcom field applications engineer for more details.
+
+NOTE Fabric topologies require firmware support.
+
+This section discusses how to implement different topologies using switches in iSSw mode. It explains how to use GIDs to route TLPs and emphasizes the importance of firmware support.
+
+Examples of fabric port applications:
+
+**Simple Tree Topology**
+
+In the PCIe tree topology example that follows, the root complex connects on the upstream side to a host port on the A0 PCIe switch. The A0 PCIe switch connects through fabric (f) ports to B0, B1, and B2. Downstream (d) ports connect to standard PCIe devices (not shown in the figure). A standard PCIe device could be an endpoint or another set of switches that lead to a set of endpoints.
+
+**One benefit of using fabric ports to connect switches in a standard tree is scalability.** The buses consumed by the switches can be hidden from the host allowing **more downstream endpoints**.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141926697/08_e5812ebf5ecf272129ab16023b47c32.webp)
+
+**Dual Tree Topology**
+
+A common topology for redundancy is to connect two identical systems with a fabric link. In this topology, if one host goes down, the other host can take over the failed host's endpoints. The figure that follows shows two fabric links between the switches to add another point of redundancy.
+
+Additionally, the fabric link could provide a higher performing path (more throughput and less latency) between peer endpoints, one on A0 and one on A1, instead of using a connection (the dashed line in the figure) between the two root complexes.
+
+Dual Tree Example as shown in the figure below:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141926697/09_f1a19759344f5539366d24a556705e84.webp)
+
+**Mesh Topology**
+
+A mesh topology connects every node to every other node. The dual switch topology shown in Dual Tree Topology is a 2-node mesh. The PCIe switch supports up to a 13-node mesh. The figure that follows shows a 4-node mesh topology.
+
+Domestic Alternative to Broadcom PCIe 5.0 Switch Application Examples, Shenzhen Xinmai supports ZS Micro PCIe Switch board customization
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141926697/10_ee415d3174f755ee5ecf138dba88b9e4.webp)
