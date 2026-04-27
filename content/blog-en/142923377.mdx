@@ -1,0 +1,46 @@
+---
+title: "Verifying Ethernet Driver Hooks on an NXP LS1043 + FPGA ARM64-bit Platform"
+date: "2024-10-14"
+slug: "142923377"
+tags: ["#arm开发", "#fpga开发"]
+source: "https://blog.csdn.net/szxinmai/article/details/142923377"
+originalTitle: "基于NXP LS1043 +FPGA ARM64位平台验证网口驱动钩子"
+---
+
+I previously validated Ethernet driver transmit/receive hooks on an X86 platform. Today, I specifically deployed the code to an LS1043 board to verify its feasibility.
+Board Environment: LINUX 4.19.68
+Cross-compiler: [GCC](https://so.csdn.net/so/search?q=GCC&spm=1001.2101.3001.7020 "GCC") 7.5.0
+[CPU](https://so.csdn.net/so/search?q=CPU&spm=1001.2101.3001.7020 "CPU"): NXP LS1043 ARMV8 A53
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142923377/01_5082ee083fbc455d8654a10f754c09ad.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142923377/02_2d95f3d1f73d41bba4b4846edb793a01.png)
+
+The test code is as follows:
+
+```hljs
+#include   <linux/module.h>#include   <linux/init.h>#include   <linux/kernel.h>#include   <linux/netfilter.h>#include   <linux/netfilter_ipv4.h>#include   <linux/ip.h>#include   <net/ip.h>#include   <linux/udp.h>#include   <linux/in.h>#include   <linux/skbuff.h>#include   <linux/netdevice.h>#include   <linux/if_ether.h>#include   <linux/if.h>  unsigned int lan_tx_hook_fn(void *priv, struct sk_buff *skb, const struct nf_hook_state *state){    const struct ethhdr *ethheader = eth_hdr(skb);    const struct iphdr *iph = ip_hdr(skb);    char *tail;     if (strcmp("eth0", state->out->name))    {	//printk(KERN_INFO "state->out->name = %s, len=%d", state->out->name, strlen(state->out->name));        return NF_ACCEPT;    }         printk(KERN_INFO "skb->head = 0x%08lx, data = 0x%08lx, tail = 0x%08lx,  end = 0x%08lx", 	skb->head, skb->data, skb->tail, skb->end);     tail = __skb_put(skb, 4);    memset(tail, 0xaa, 4);     //filter ip        if (iph->protocol == 0)    {        printk(KERN_INFO "send (%s) pkt protocol:%u, Src: %08x, Dst: %08x, len: %d \n",            state->out->name, iph->protocol, ntohl(iph->saddr), ntohl(iph->daddr));        return NF_ACCEPT;    }     return NF_ACCEPT;} unsigned int lan_rx_hook_fn(void *priv, struct sk_buff *skb, const struct nf_hook_state *state){    const struct iphdr *iph = ip_hdr(skb);     if (strcmp("eth0", state->in->name))    {        return NF_ACCEPT;    }     printk(KERN_INFO "skb->len = %d, %d", skb->len, skb->data_len);         //filter ip        if (iph->protocol == 0)    {        printk(KERN_INFO "recv (%s) pkt protocol:%u, Src: %08x, Dst: %08x, len: %d \n",            state->in->name, iph->protocol, ntohl(iph->saddr), ntohl(iph->daddr), iph->tot_len);        return NF_ACCEPT;    }     return NF_ACCEPT;} // Mount hooks at the egress processing pointstatic struct nf_hook_ops nf_lan_hook[] = {    {        .hook = (nf_hookfn *)lan_tx_hook_fn,        .pf = PF_INET,        .hooknum = NF_INET_LOCAL_OUT,// Mounted at the TX packet processing node        .priority = NF_IP_PRI_FIRST, // Highest priority    },     {        .hook = (nf_hookfn *)lan_rx_hook_fn,        .pf = PF_INET,        .hooknum = NF_INET_FORWARD,      // Mounted at the RX packet processing node        .priority = NF_IP_PRI_FIRST + 1, // Priority slightly lower than the first one    }}; static int lan_hook_init(void){    printk(KERN_INFO "lan_hook_init \n");        /* Register hooks */    nf_register_net_hooks(&init_net, nf_lan_hook, ARRAY_SIZE(nf_lan_hook));     return 0;} static void lan_hook_exit(void){    printk(KERN_INFO "lan_hook_exit \n");        /* Unregister hooks */    nf_unregister_net_hooks(&init_net, nf_lan_hook, ARRAY_SIZE(nf_lan_hook));} module_init(lan_hook_init);module_exit(lan_hook_exit); MODULE_LICENSE("GPL");MODULE_AUTHOR("bull-man"); MODULE_DESCRIPTION("lan rx/tx filter");
+```
+
+Write the Makefile, as follows:
+
+```hljs
+// KDIR is the path to the kernel build outputKDIR:= /home/xxxx/flexbuild_lsdk1909/build/linux/linux/arm64/LS/output obj-m :=lan_tx_hook.o all:	make -C $(KDIR) M=$(PWD) modules clean:	rm -f *.ko *.o *.mod.o *.mod.c *.symvers *.order
+```
+
+Compile command:
+make -f Makefile ARCH=arm64
+
+If there are no errors, the `lan_tx_hook.ko` kernel module will be generated.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142923377/03_981452b57b4542eaa5c75c8f19f336d2.png)
+
+Load the kernel module onto the board via TFTP and insert it into the kernel. The execution results are as follows:
+
+```hljs
+[root@LSDK tmp]# tftp -r lan_tx_hook.ko -g 10.8.8.114[root@LSDK tmp]# lsdbus            lan_tx_hook.ko[root@LSDK tmp]# chmod 777 lan_tx_hook.ko [root@LSDK tmp]# insmod lan_tx_hook.ko [  118.406138] lan_tx_hook: loading out-of-tree module taints kernel.[  118.412586] lan_hook_init [root@LSDK tmp]# [root@LSDK tmp]# [root@LSDK tmp]# [root@LSDK tmp]# ping 10.8.8.114PING 10.8.8.114 (10.8.8.114): 56 data bytes64 bytes from 10.8.8.114: seq=0 ttl=128 time=0.563 ms[  133.893739] skb->head = 0xffff80003ccc3400, data = 0xffff80003ccc3450, tail = 0x000000a4,  end = 0x000000c064 bytes from 10.8.8.114: seq=1 ttl=128 time=10.098 ms[  134.893815] skb->head = 0xffff80003ccc3200, data = 0xffff80003ccc3250, tail = 0x000000a4,  end = 0x000000c064 bytes from 10.8.8.114: seq=2 ttl=128 time=10.020 ms^C--- 10.8.8.114 ping statistics ---
+```
+
+In summary, there are two key points:
+1. The kernel source path required for compiling the kernel module must be set correctly;
+2. When running `make`, the `ARCH` parameter needs to be added; otherwise, compilation will fail.

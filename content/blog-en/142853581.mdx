@@ -1,0 +1,92 @@
+---
+title: "Deep Learning-Enabled PLC Design Based on RK3588 + AI, Supporting Codesys"
+date: "2024-10-11"
+slug: "142853581"
+tags: ["#人工智能", "#深度学习", "#arm开发"]
+source: "https://blog.csdn.net/szxinmai/article/details/142853581"
+originalTitle: "基于RK3588+AI的深度学习功能PLC设计，支持Codesys"
+---
+
+A PLC design with AI deep learning capabilities
+
+Introduction
+
+As the major trend of Artificial Intelligence (AI) continues to advance, more and more fields are leveraging AI to drive industrial upgrading and improve product or project efficiency. In industrial control applications, the demand for automation is also increasing, and in many scenarios, there is an urgent desire for the introduction of AI technology to enhance product performance. Particularly in areas such as factory manufacturing lines and industrial robots, AI technology is often needed to improve the efficiency of image recognition and fault analysis [1~3]. On the other hand, industrial control emphasizes product stability and the convenience of product programming applications. How to simultaneously meet both application requirements is a direction the industry is currently striving for.
+
+Currently, there are two main common modes:
+
+(1) Directly developing AI algorithms, performing AI computations, and programming industrial control logic on an AI computer.
+
+This mode primarily presents three problems:
+
+1) The entire system is relatively bulky and costly.
+
+2) After all, an AI computer is not like an embedded system; its system stability cannot be guaranteed, which is fatal for industrial reliability requirements.
+
+3) A problem that cannot be ignored is that programming industrial control on a computer has a high development threshold, and functional adjustments and changes are very troublesome, failing to meet the needs of field application engineers.
+
+(2) Using an embedded system with AI computing power in conjunction with a PLC for functional development [4]. This approach can solve stability issues, but the overall cost is relatively high. Moreover, the combination of two systems requires data communication and instruction interaction, which entails a higher development and adaptation threshold and significant investment.
+
+To address the above problems, this paper proposes a new type of PLC controller that supports AI functions while also lowering the technical barrier for AI technology application and satisfying the configuration programming development method that electrical engineers are proficient in.
+
+1 PLC Functional Overall Architecture
+
+The PLC controller proposed in this paper adopts an integrated design approach for AI computing core and PLC control. Its programming method is fully consistent with general PLCs, providing a configuration programming environment that supports the five programming languages of the IEC 61131-3 standard, including ST, LD, IL, FBD, and SFC. It supports common digital and analog input/output, and its built-in Modbus RTU/TCP and CANopen protocols are also suitable for most industrial control scenarios. For AI functions, this PLC provides multiple camera input interfaces, enabling AI image processing through function block configuration. The overall system functional block diagram is shown in Figure 1.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142853581/01_536b85316cb84be9b286f1a8593e034b.png)
+
+In Figure 1, the AI PLC (i.e., the AI-enabled PLC proposed in this solution), unlike general PLCs, can directly access multiple camera video signals and process them based on its built-in deep learning framework. It can be applied to smart devices that require industrial cameras for product defect detection or template matching and positioning, such as smart cutting machines, and assembly line item grasping and recognition [5~6]. Additionally, it can be used for personnel safety detection in industrial sites, such as helmet wearing detection and visual fence recognition and detection in hazardous areas.
+
+In addition to video signal input, this PLC also supports uploading detection data [7] and PLC status data to an industrial cloud platform via 4G or 5G, enabling remote monitoring and management.
+
+Furthermore, this PLC solution also supports digital and analog input/output, allowing external connection of accessories such as limit switches, indicator lights, intermediate relays, and sensors, meeting the requirements of general control scenarios.
+
+External touchscreens can access internal PLC data via Modbus TCP/RTU bus for localized human-machine interaction. PLC configuration program writing, downloading, and debugging can be achieved by connecting to a PC via an Ethernet port or serial port. In addition to communication debugging for configuration programs, when the built-in AI model cannot meet on-site application requirements, the AI framework and parameters can also be adjusted via a PC to suit different scenarios.
+
+This PLC solution also supports motion control functions. Relying on the powerful performance of the CMC chip, it can achieve 4-axis 3-linkage motion control, directly controlling servo or stepper drives for independent multi-axis control, and can also be used to control various types of industrial robotic arms, such as SCARA robots and gantry robots.
+
+Overall, it has broad application scenarios in terms of both AI performance and industrial application portability and stability. The hardware and software solutions for this PLC will be described in detail below.
+
+2 Hardware Solution Design
+
+This PLC solution adopts an overall dual-core collaborative design. The AI part uses Rockchip's RK3588 as the core, while the industrial control part is implemented with Zhongkong Microelectronics' CMC chip as the core. The two then achieve data interaction and instruction coordination through SPI communication. Its specific hardware framework is shown in Figure 2.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142853581/02_dd634667339548ca8f50189c49e80161.png)
+
+Among them, RK3588 is an 8-core 64-bit high-performance processor with independent GPU and NPU modules, possessing 6 TOPS of computing power and strong image processing capabilities, capable of connecting to more than 6 camera signals. It also features rich communication interfaces, such as high-speed interfaces like PCIe3.0, SATA3.0, RGMII, USB3.1, and low-speed communication interfaces like SPI, I2C, and UART.
+
+RK3588 can connect to external memory devices of different capacities via the DDR interface. Generally, 8GB of memory can handle most scenarios, and different storage devices can also be connected externally via eMMC or SATA interfaces to form a minimal system.
+
+The RK3588's Gigabit Ethernet interface can be used for wired network transmission on one hand, and for connecting industrial cameras on the other. Its rich USB and PCIe interfaces can connect multiple video signals and external 4G/5G modules. Unlike extending network modules with ordinary serial ports, 4G/5G modules directly extended via PCIe interfaces offer high wireless transmission rates, capable of directly transmitting video stream signals, ensuring smooth video access for the industrial internet. This solution uses the Quectel RM500U module for wireless data transmission.
+
+The CMC chip is an industrial control chip with built-in logic control and motion control kernels. This chip can be configured to design PLCs with various functions. Through device import in configuration software, configuration programming can be quickly achieved. The CMC chip is designed for industrial control, offering stable performance. Through collaborative processing with RK3588, each can leverage its performance advantages.
+
+The main data transferred between RK3588 and CMC are parameter configuration data, AI mode selection data, and AI computation result data, without large data communication. Therefore, SPI communication is sufficient, using a 1MHz baud rate. The CMC chip acts as the master, and RK3588 as the slave, with its execution controlled by CMC's instructions.
+
+Common point control in industrial applications is routed from the CMC chip, with isolation design using relays and optocouplers to ensure stable internal system power. At the same time, the CMC comes with rich interface resources, including an Ethernet port for downloading and debugging configuration programs, and an RS485 interface for external communication via Modbus RTU protocol, enabling communication with HMIs or other sensors.
+
+The CMC's built-in motion control kernel outputs pulse+direction, CW/CCW, and AB phase signals, which can be used to control multi-axis servo motors, achieving various trapezoidal/S-curve acceleration and deceleration movements. Additionally, it supports 3-axis linear interpolation and 2-axis circular interpolation, used for various robotic arm controls.
+
+3 Software Solution Design
+
+The software solution design for this PLC primarily includes two aspects: one is the AI model import and interface definition for key parameters on RK3588; the other is the configuration function development on CMC. Among these, data communication between the two is the most critical, directly impacting the convenience of on-site application development.
+
+Point control and external communication functions on the CMC are relatively simple to use, achievable by direct calls in the configuration software. For motion control functions, this solution's configuration software provides function blocks compliant with the PLCopen standard, enabling convenient implementation of both single-axis and axis group functions, which will not be elaborated on further in this paper.
+
+RK3588 supports various AI frameworks, such as TensorFlow, Caffe, pyTorch, and a series of others. At the same time, various deep learning models for object detection, such as YOLO, RetinaNet, and Mask R-CNN, have been imported into RK3588. Each has different training parameters, and basic parameters have been matched for the respective applicable scenarios of these models, with some interfaces reserved for the CMC master control to set and read. In object detection applications, by calling different models, the most suitable model can be selected for application in the actual environment, and optimal results can be achieved by configuring parameters such as recognition interval time via function blocks.
+
+The following focuses on the design description of communication between RK3588 and CMC. Both use SPI for communication, with all SPI communication initiated by the CMC master, operating in a request-response manner. SPI communication timeouts can be set in the configuration software. This solution provides four read/write methods, as shown in Table 1.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142853581/03_e8c844d9f69448288ff7e5cf453a9383.png)
+
+For AI applications, combining the designed SPI communication interface and protocol, this solution encapsulates various default function blocks, enabling conventional AI usage configuration and significantly reducing development difficulty. Furthermore, the configuration software also supports user-defined function blocks. If the current default function blocks cannot meet requirements, new function blocks can be written via the provided SPI interface. Some existing function blocks are shown in Table 2. The effect of the function blocks is shown in Figure 3.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142853581/04_25b9d5a647944947aec13dfecba83de2.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142853581/05_aac3604ecc874cd0a74da819f94e82ba.png)
+
+In this way, AI functions are integrated into industrial PLCs, allowing each core to perform tasks it excels at. For example, AI recognition generates motion trajectory information, and the CMC's motion control executes motor control.
+
+Furthermore, for other functions on RK3588, such as cloud connectivity and video stream transmission, after completing basic driver development, key modifiable parameters and functions can also be organized according to the aforementioned protocol and created as function blocks for on-site logic programming.
+
+Of course, this solution still retains the development interfaces of RK3588. When new AI networks need to be added, training parameters redefined, or new functions introduced, its kernel and applications can be modified via USB.
