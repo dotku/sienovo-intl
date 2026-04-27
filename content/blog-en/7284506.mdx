@@ -1,0 +1,58 @@
+---
+title: "Reflections on Use Case Granularity and Function Granularity"
+date: "2012-02-22"
+slug: "7284506"
+tags: ["#actor", "#财务系统", "#include", "#测试", "#工作", "#电话"]
+source: "https://blog.csdn.net/yeyuangen/article/details/7284506"
+originalTitle: "用例粒度与函数粒度的思考"
+---
+
+The issue of use case granularity has always been a common problem for requirements analysts. For this problem, I apologize, there is no silver bullet. I can only offer some basic principles to address it:
+
+Webmaster's Note: In my practical experience, I'm not pessimistic about this issue, because the definition of "one actor" and "one value" in a use case essentially determines its granularity. In this regard, I largely agree with Mr. Pan Jiayu of UMLchina's view that "use cases have no granularity."
+
+1. **Control the total number of use cases**: Generally, the number of use cases for a fairly complex system might be between 30-50. If the number of use cases for a system significantly exceeds this range, it's worth checking if you've fallen into the trap of functional decomposition.
+
+         Webmaster's Note: To say that the number of use cases for a system is constant is certainly a misunderstanding! If one were to say that "the number of modules for a fairly complex system might be between 30-50," I don't think anyone would believe it. The number of use cases should have little to do with whether or not there's functional decomposition. Functional decomposition is a vertical perspective, while a use case is a horizontal business perspective; in other words, it's a white-box perspective. The result of functional decomposition doesn't necessarily mean more than use cases!
+
+2. **High cohesion, low coupling**: Use cases are a technique for structured requirements writing, abstracted from real-world scenarios. If these scenarios are tightly related (high cohesion), then organizing them with use case techniques can allow for the reuse of step descriptions within these scenarios, achieving greater efficiency with less effort.
+
+         Webmaster's Note: This is indeed an ironclad principle! However, the easiest way to judge business value is the "Boss Test." For example, is "Calculate Discount" an appropriate use case? You just need to consider if an operational-level employee could tell their manager, "I completed 30 discount calculations today." Clearly not, so its business value is insufficient! In fact, for information system requirements personnel, reading more job descriptions can also help establish a better use case perspective! Every "business activity" representing a "responsibility" is a good use case.
+
+3. **Try writing it out**: Often, in the initial use case modeling phase, it can be difficult to judge if a use case's granularity is appropriate. Don't obsess over achieving a perfect use case model and granularity on the first try. It's better to start with a draft, then write out the use cases to see if they adhere to the principles of high cohesion and low coupling. In practice, the use case model often needs continuous adjustment during the writing process.
+
+         Webmaster's Note: Good suggestion, but filling in details and defining use cases should be in different requirements phases, so there are some practical difficulties.
+
+4. **Avoid functional decomposition**: Functional decomposition is the biggest enemy of correctly using use case techniques; many discussions about use case granularity are actually influenced by the idea of functional decomposition.
+
+         Webmaster's Note: Here's an idea to solve this problem. For example, "Add Customer" is functional decomposition. The pattern of functional decomposition is "What can I (the system) do?" whereas a use case is "What does he (the user) want to do?" Therefore, to shift to a use case mindset, simply ask "When would a user add a customer?" The answer might be "Process Customer Account Opening," which then becomes a good use case!
+
+There's much more to say about use cases, but let's conclude this short article here! Feel free to post any questions for discussion.
+
+=================================================================================================================
+
+Granularity is confusing. For example, in an ATM withdrawal scenario, "Withdraw Money," "Read Card," "Verify Account," "Print Receipt" are all possible use cases. Clearly, "Withdraw Money" encompasses the subsequent use cases, making its granularity larger, while the others have smaller granularity. Is a large use case appropriate, or is it better to decompose it into multiple smaller ones? There's no standard rule for this question. My experience to share is to use different granularities depending on the phase. In the business modeling phase, the granularity of use cases should be such that each use case describes a complete matter. That is, a use case can describe a complete business process. This helps clarify the scope of requirements. For example, use cases like "Withdraw Money," "Apply for Phone Installation," "Borrow Book" express complete business operations, rather than being as detailed as "Verify Password," "Fill out Application Form," or "Search Catalog," which are mere steps within a business process. In the use case analysis phase, the granularity of use cases should be such that each use case describes a complete event flow. This can be understood as a use case describing a step within a complete business operation. It's important to note that this phase requires using an OO method to generalize and abstract conceptual models from business use cases. For example, in broadband service requirements, there are use cases like "Apply for Installation" and "Apply for Address Transfer." During use case analysis, these can be generalized and decomposed into conceptual use cases used across multiple business processes, such as "Provide Application Materials," "Process Service Request," and "On-site Installation." In the system modeling phase, the use case perspective is computer-oriented, so the granularity of a use case should be such that it describes a complete interaction between the operator and the computer. For example, "Fill out Application Form," "Review Application Form," "Dispatch Task Order." This can be understood as an operational interface or a page flow. In RUP, project plans are written based on the system model, so another reference for granularity is that the development effort for a use case should ideally be around one week.
+
+The granularity division methods mentioned above were explained using relatively concrete criteria. In reality, the most standard criterion for use case granularity (especially for business use cases) is whether the use case achieves a specific goal for the actor. This statement is rather general and difficult to grasp. For example, someone goes to the library, searches the catalog, presents their library card, the librarian checks their past borrowing history to ensure no unreturned books, and finally borrows a book. How many use cases can be derived from this passage? Please remember one point: use case analysis is actor-centric, so use case granularity is based on achieving the actor's goal. Thus, the appropriate use case is "Borrow Book." There is only one; the others are merely steps in achieving this goal—the use cases discussed here refer to business use cases. This example clearly distinguishes the actor's complete goal, but in many cases, it may not be so obvious, and there might even be conflicts. Readers can find such examples from their own practical situations. I will discuss this further in future articles.
+
+However, the above granularity choices are not a standard; they are merely appropriate in most cases. My intention is not to tell readers which of the above is best, but rather to present some common comparisons and division methods, hoping to help readers develop their own suitable methods in their work practice. In reality, there will be significant differences in use case granularity choices between a large system and a very small system. This difference is to adapt to different scope of requirements. For example, for a large project of 50 person-years, a larger granularity should be chosen. If the use case granularity is too small, there might be hundreds or even thousands of business use cases, leading to requirements becoming too fragmented and numerous to control. Fewer use cases help grasp the scope of requirements and reduce omissions. For a small project of 10 person-months, a smaller granularity should be chosen. If the use case granularity is too large, there might only be a few business use cases, leading to requirements being too vague and details easily overlooked. Generally, the business use cases for a system should be defined between more than 10 and less than 50; otherwise, the suitability of the granularity choice should be reconsidered.
+
+Regardless of how granularity is chosen, the principle that must be grasped is that within the same requirements phase, all use cases should have the same order of magnitude in granularity. This should be easy to understand. When describing a building, we always introduce its height, number of floors, and number of units together, and similarly, we introduce the location of the sewers and the number of sockets together. If you were to describe a building like this: "This building has 10 floors, the sewer is in the southeast corner of the kitchen, 15 sockets are reserved, and there are 5 units," the audience would surely feel confused and find it difficult to form a clear image in their minds.
+
+If readers still have doubts about the above two issues, don't worry; understanding should gradually deepen in future articles.
+
+Preview: The next article will illustrate general methods for acquiring use cases and how to judge whether use case granularity is appropriate, using an example.
+
+Q&A
+--------------------------------------------------------------------------
+Q: Posted by pushboy
+
+"In the business modeling phase, the granularity of use cases should be such that each use case describes a complete matter. That is, a use case can describe a complete business process."
+
+"In the system modeling phase, the use case perspective is computer-oriented, so the granularity of a use case should be such that it describes a complete interaction between the operator and the computer."
+
+So, in a scenario like "User Management," which involves Create, Read, Update, Delete (CRUD) operations...
+
+Here, should "User Management" be treated as one use case, or should Create, Read, Update, Delete each be separate use cases?
+
+Each of them is a complete business process and a complete interaction, and each is an
