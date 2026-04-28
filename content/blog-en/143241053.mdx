@@ -1,0 +1,83 @@
+---
+title: "[AI Server] All-Domestic PCIe 5.0 Switch SerDes Testing and Analysis, Taking an 11-slot PCIe GPU Backplane (PCIe 4.0/5.0) as an Example (Part 1)"
+date: "2024-10-25"
+slug: "143241053"
+tags: ["#网络"]
+source: "https://blog.csdn.net/szxinmai/article/details/143241053"
+originalTitle: "【AI服务器】全国产PCIe 5.0 Switch SerDes 测试和分析，以11槽PCIe GPU底板（PCIe 4.0/5.0）为例（一）"
+---
+
+1 PCIe Gen 5 Introduction
+
+Peripheral Component Interconnect Express (commonly known as PCI Express and abbreviated as "PCIe") is an advanced interconnect I/O technology used for hard disk drives, solid-state drives (SSDs), graphics cards, Wi-Fi, and internal Ethernet connections, comprising a set of fast, scalable, and reliable input/output standards for serial data transfer buses. The physical layer of PCIe also supports Serial Advanced Technology Attachment Express (SATAe) and Non-Volatile Memory Express (NVMe).
+
+Table 1 shows the evolution of PCIe data rates. From this, it can be seen that the 5th generation PCIe 5.0 doubles the throughput of its predecessor, PCIe 4.0.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143241053/01_2034cbb956ec45e5b10df2c2b6c8c311.png)
+
+Note: The 8B/10B encoding scheme of PCIe 2 evolved into the 128B/130B encoding scheme of PCIe 3, with the corresponding overhead decreasing from 20% to less than 2%, the raw transfer rate increasing from 5 GT/s to 8 GT/s, and the link data rate increasing from 4 GB/s to 8 GB/s.
+
+This article will introduce important PCIe 5.0 SerDes tests. Key test equipment includes a Bit Error Rate Tester (BERT) and an oscilloscope. Specifically, PCIe 5.0 testing requires an instrument-grade Pulse Pattern Generator (PPG) capable of precisely injecting specific signal impairments, and an Error Detector (ED) capable of analyzing the Bit Error Rate (BER) of the SerDes (Serializer/Deserializer) output to determine compliance with PCIe specifications.
+
+For the most complex SerDes tests, such as link equalization training, the BERT must be able to emulate the corresponding SerDes; the PPG and ED must interact with the Device Under Test (DUT) at the physical logic sub-block of the PCIe 5.0 protocol stack (see Figure 1). In other words, the BERT must have some protocol-aware capabilities. Whether we are performing transmitter testing or receiver testing, both roles of the SerDes are involved; for clear distinction, we will refer to the DUT-SerDes as the DUT-Transmitter or DUT-Receiver, respectively.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143241053/02_9ee62aae1118456788c18116441dcb3e.png)
+
+2 Challenges of 32 GT/s NRZ
+
+The biggest challenge in upgrading from 16 GT/s PCIe 4.0 to 32 GT/s PCIe 5.0 is operating reliably at losses up to 36 dB while maintaining a specified BER < 10^-12.
+
+To mitigate issues caused by loss, most standards operating at speeds exceeding 30 GT/s have adopted PAM4 (4-level Pulse Amplitude Modulation), which halves the operating bandwidth but comes at the cost of a signal-to-noise ratio reduction of more than 9.5 dB. In contrast, PCIe 5.0 continues to operate using a Non-Return-to-Zero (NRZ) modulation scheme with logic signaling, where logic 1 is a high level and logic 0 is a low level.
+
+Under such significant loss, the equalized eye opening of PCIe 5.0 can be as low as 10mV; such a small voltage swing requires extremely sensitive amplitude discriminators. To accommodate long board traces, re-timers are required when loss exceeds 36dB or when signals are transmitted through two or more connectors.
+
+========================11-Slot PCIe GPU Backplane (PCIe 4.0/5.0)================
+
+* 10 dual-width slots and 1 single-width slot;
+* 11-slot PCIe 5.0 GPU backplane;
+* Each slot uses MCIOx8*2 or SFF8654x8*2
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143241053/03_039adfb502e5459ab83bce3d0ae66f7f.png)
+
+Features
+---
+Product Specifications
+
+11-Slot GPU Backplane (PCIe 5.0)
+
+11-Slot GPU Backplane (PCIe 4.0)
+
+Model
+
+MG-DC6-P5F216_V10
+
+MG-DC6-P4F216_V10
+
+Input Interface
+
+22*MCIOx8 PCIe5.0
+
+22*SFF8654 PCIe4.0
+
+PCIe Slots
+
+11* PCIe5.0 x16
+
+Power Interface
+
+2* GPU 8PIN
+
+IPMB Interface
+
+4Pin BMC I2C
+
+Dimensions
+
+426 (L) x 145 (W) x 2.5 (H) (mm)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143241053/04_f4c796594713aa204d7cc50680c28946.jpg)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143241053/05_c517b874e68a96853320ee6a610bdd82.jpg)
+
+---
+☑ Supports OEM/ODM customization services

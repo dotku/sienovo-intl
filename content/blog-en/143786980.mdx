@@ -1,0 +1,68 @@
+---
+title: "RK3568J-based Multi-port Power Trusted IoT Gateway Solution"
+date: "2024-11-15"
+slug: "143786980"
+tags: ["#物联网", "#人工智能"]
+source: "https://blog.csdn.net/szxinmai/article/details/143786980"
+originalTitle: "基于RK3568J多网口电力可信物联网关解决方案"
+---
+
+## Foreword
+
+With the popularization and increasing power of the Industrial Internet of Things (IIoT), edge computing gateways have emerged. Edge computing effectively reduces the load on cloud servers, significantly lowers bandwidth usage, and provides convenient conditions for localized regional autonomy.
+
+Edge computing gateways perfectly combine the advantages of "edge" and "endpoint," integrating AI, Industrial IoT, and edge computing through 4G/5G communication and the Internet. They achieve features such as cloud-edge collaboration, edge-endpoint linkage, compute offloading, and regional autonomy, making them widely applicable in fields like Industrial IoT, smart transportation, power IoT, environmental protection and fire safety, and smart agriculture.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143786980/01_8179f84c970f319014b90c50692a63cb.png)
+
+##
+
+A Design for a Power Trusted IoT Gateway
+
+0. Introduction
+
+In the current construction of the power IoT, intelligent devices equipped with edge computing capabilities play a crucial role. They interact with the master station upstream, connect to sensing devices downstream, dynamically perceive on-site data acquisition tasks, and implement protocol forwarding, data analysis, intelligent detection, and operation and maintenance [1-2]. Although the application prospects for data acquisition gateway devices are promising, current pilot projects mainly face issues such as single business interfaces, scarce system computing resources, and high production costs. Furthermore, for power distribution and consumption, environmental monitoring, and video surveillance power business scenarios, there are risks of illegal intrusion and tampering. The wide variety of IoT gateways used is not conducive to the unified planning of the power IoT system [3-5].
+
+To address the aforementioned problems, this paper proposes a trusted IoT gateway design solution. This device uses Rockchip RK3568J as the core main controller. Its rich interface resources support wireless 4G/5G, multiple serial ports, telemetry, telecontrol, and telesignalization (three remotes), Ethernet, and HDMI. Its powerful multi-core processor supports edge computing requirements, and its built-in NPU and GPU enable lightweight AI scenario expansion, effectively carrying dynamic business demands across different specialties [6-7]. Concurrently, the introduction of trusted boot provides reliable and secure protection for unified asset management and access authentication, avoiding resource waste.
+
+1. Trusted IoT Gateway Solution Design
+
+The trusted IoT gateway adopts a "CPU + Standard Interface + Expansion Interface" modular hardware design approach. Based on industry-standard business interfaces, it supports applications such as Ethernet, USB, serial ports, HDMI, and Beidou/GPS. Communication bus expansion interfaces are achieved through standard connectors, while a security chip is integrated to implement trusted boot and data encryption applications.
+
+1.1 Hardware Architecture
+
+Based on the power IoT application framework, the converged IoT gateway is deployed in the perception layer. Upstream, it connects to the IoT management platform via standard Ethernet and wireless methods. Downstream, it features isolated serial ports, Ethernet, wireless interfaces, USB, etc. It also supports telemetry, telecontrol, and telesignalization, HPL C, and low-power wireless service interfaces, carrying various edge computing functions such as multi-protocol analysis and data forwarding. The gateway designed in this paper uses Rockchip RK3568J as the main controller, which integrates AI computing and fully meets the requirements for lightweight AI business applications in power scenarios. The hardware architecture is shown in Figure 1.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143786980/02_7ffbe3c149b59b695171c32a0215.png)
+
+1.2 Software Architecture
+
+Based on the Rockchip RK3568J platform, the trusted IoT gateway is equipped with the RuiShield Level 4 Secure Operating System. The software architecture is shown in Figure 2. This software service is a microservices-based edge computing framework. Upstream, it connects to the IoT management platform via MQTT and HTTP protocols. Internally, it integrates modular APP containers, security protection functions, intelligent analysis, and other microservices. Downstream, it obtains sensing data via RS485, Ethernet, and wireless communication methods. This edge computing framework is deployed as containers on various operating systems (i.e., platform-agnostic), supports dynamic optimization, has strong compatibility, and supports one-time development, porting, and refactoring of IoT APPs.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143786980/03_5cc6c663744c4e20a45af865759bec0b.png)
+
+● Industrial-grade design, metal casing, fanless controller
+● Rockchip RK3568, ARM-based quad-core Cortex-A55 processor, clock speed up to 2.0GHz
+● 4GB DDR4, expandable up to 8GB
+● 4 x GbE LAN
+● 8 x RS485 (2KV isolation)
+● 5 x DI dry contacts, NPN/PNP selectable, 2KV opto-isolation
+● 5 x DI wet contacts, NPN/PNP selectable, 2KV opto-isolation
+● 4 x DO, relay application, normally open/normally closed selectable, 2KV opto-isolation
+● 1 x M.2 B-Key, 1 x M.2 E-key, 1 x M.2 M-Key
+● Operating System: Debian 11 Server
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143786980/04_ca2a9555767845bb8fd4deffc9a0ca46.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143786980/05_c72dc014a5394ace95afd331e37b9ea5.png)
+
+**Hardware Platform**
+
+| Processor | Rockchip RK3568 quad-core ARM Cortex-A55 processor, clock speed up to 2.0GHz |
+| :-------- | :--------------------------------------------------------------------------- |
+| Memory    | 4GB DDR4 (expandable to 8GB)                                                 |
+| Storage   | 32GB eMMC 5.1 (expandable to 64GB)                                           |
+
+**Interface Type**
+
+| USB       | 2 x USB2.0 host, Type-A

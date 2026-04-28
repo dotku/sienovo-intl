@@ -1,0 +1,68 @@
+---
+title: "【AI Servers】Domestic PCIe 5.0 Switch SerDes Testing and Analysis, Taking an 11-slot PCIe GPU Backplane (PCIe 4.0/5.0) as an Example (Part 2)"
+date: "2024-10-29"
+slug: "143241117"
+tags: ["#人工智能", "#服务器", "#运维", "#网络"]
+source: "https://blog.csdn.net/szxinmai/article/details/143241117"
+originalTitle: "【AI服务器】全国产PCIe 5.0 Switch SerDes 测试和分析，以11槽PCIe GPU底板（PCIe 4.0/5.0）为例（二）"
+---
+
+3 Comparison of PCIe 4.0 SerDes and 5.0 SerDes Requirements
+
+Table 2 summarizes the differences between PCIe 4.0 and 5.0 SerDes requirements. The PCIe standard comprises three interdependent specifications designed to ensure interoperability of SerDes and channels from different vendors:
+
+● The PCIe BASE specification defines the chip-level performance for the entire protocol stack, a comprehensive document exceeding one thousand pages.
+
+● The PCIe CEM (Card Electromechanical) specification defines the minimum performance of devices at the add-in card connector.
+
+● The Test specification defines the rules for compliance testing.![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143241117/01_4d058b6b6ea34389ab78d7d5509c50f4.png)
+
+As seen from Table 2, PCIe 4.0 and 5.0 share many commonalities. Both use NRZ modulation, 128B/130B encoding, the same 10^-12 bit error rate target, and have identical connector pinouts. The transmitter uses the same Feed-Forward Equalizer (FFE) scheme and has 11 sets of tap presets, P0-P10. Key features:
+
+First, PCIe 5.0's reference receiver equalization scheme is more complex; unlike the 2-pole 1-zero Continuous Time Linear Equalizer (CTLE) response used in PCIe 4.0, PCIe 5.0 uses a 4-pole 2-zero CTLE filter response (see Figure 2).
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143241117/02_e3743e6765c04a70943da5ba9d82c08.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143241117/03_3631035f90c447f59c17d18a8268f932.png)
+
+Second, the new CTLE is more flexible and offers greater gain, ranging from -5 to -15 dB. PCIe 5.0 also adds a third tap to the reference receiver Decision Feedback Equalizer (DFE).
+
+Third, transmitter swing requirements remain unchanged. In PCIe 4.0 and 5.0, jitter requirements are the same in UI units but proportionally narrower in ps units. A Distributed Reference Clock or Common Clock (CC) architecture was optional in PCIe 4.0 but is now mandatory in PCIe 5.0.
+
+Fourth, since the biggest challenge in increasing from 16 GT/s to 32 GT/s is the increase in maximum allowed loss from -28 dB to -36 dB, it is not surprising that channel requirements have been redefined. Add-in cards in the CEM specification are now only permitted to use surface-mount connectors, meaning through-hole connectors are no longer allowed.
+
+Fifth, the increased loss has led PCIe 5.0 to introduce new compliance test boards. Acceptable PCIe test fixtures for compliance testing can only be obtained from the PCI-SIG organization. Test fixtures include a Compliance Base Board (CBB) that emulates the motherboard and a Compliance Load Board (CLB) that emulates add-in cards and channels; both can be externally controlled via reset and transmitter preset switching.
+
+\============10-slot PCIe Switch GPU Backplane (PCIe 4.0 / PCIe 5.0)==========
+
+• 1 direct-connected single-width slot;
+• 14\* SFF-8654x4 PCIe4.0/5.0 host interfaces;
+• 11\* PCIe4.0 x16 slots;
+• 4\*CPU 8Pin power interfaces;
+• 11\* 4-pin fan interfaces;
+• 1\*IPMB interface;
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143241117/04_ac8a721ef87a48f79b2a399af9f14af0.png)
+
+Functional Features
+* * *
+Product Specifications
+10-slot switch backplane (PCIe 4.0)
+Model
+MG-SW10-P4F216-V11
+Host Interface
+14\* SFF-8654x8 PCIe4.0
+Number of PCIe Slots
+11\* PCIe4.0 x16
+Power Interface
+4\* CPU 8PIN
+IPMB Interface
+1\*4Pin BMC I2C
+Dimensions
+420(L) x 225(W) x 2.5(H) (mm)
+* * *
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143241117/05_754610a169b7ca555295db02401f9ba5.jpg)
+
+* * *
+☑Supports OEM/ODM customization services
