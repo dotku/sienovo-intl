@@ -1,0 +1,23 @@
+---
+title: "BM1684-based AI Edge Server - Model Conversion, Large Model Integrated Machine"
+date: "2024-12-02"
+slug: "144193493"
+tags: ["#人工智能", "#服务器", "#运维"]
+source: "https://blog.csdn.net/szxinmai/article/details/144193493"
+originalTitle: "基于BM1684的AI边缘服务器-模型转换，大模型一体机"
+---
+
+#### Introduction
+
+We operate in an [SoC](https://so.csdn.net/so/search?q=SoC&spm=1001.2101.3001.7020 "SoC") mode, meaning we perform model compilation, quantization, and program cross-compilation on an x86 host using tpu-nntc and libsophon. For deployment, the compiled programs are copied to the SoC platform (1684 development board / SE [microserver](https://edu.csdn.net/cloud/sd_summit?utm_source=glcblog&spm=1001.2101.3001.7020 "microserver") / SM module) for execution.
+
+Note: All the following operations are performed on an Ubuntu 20.04 system. Of course, Ubuntu 18 and 22 are also acceptable, as we primarily use the official Docker environment for configuration.
+
+#### Preparation
+
+##### Install Docker
+
+First, install Docker.
+
+```hljs
+# Update libraries sudo apt-get updatesudo apt-gefat upgrade# Install Docker sudo apt-get install docker.io# Execute docker commands without root privileges # Create docker user group; if it already exists, an error will be reported, which can be ignored.sudo groupadd docker  # Add current user to the docker groupsudo gpasswd -

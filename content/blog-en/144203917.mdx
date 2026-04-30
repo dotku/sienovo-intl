@@ -1,0 +1,69 @@
+---
+title: "FPGA-based Design for a Low-Latency 4K 60Hz Video Splicer"
+date: "2024-12-03"
+slug: "144203917"
+tags: ["#fpga开发"]
+source: "https://blog.csdn.net/szxinmai/article/details/144203917"
+originalTitle: "基于FPGA实现4K 60HZ视频拼接器设计方案，低延时"
+---
+
+Video wall applications are becoming increasingly widespread, found in security monitoring, home theaters, store displays, conference training, and even promotional displays at restaurant entrances, among other venues. The increasingly common application of large video walls brings broad market prospects.
+
+[LCD displays](https://so.csdn.net/so/search?q=%E6%B6%B2%E6%99%B6%E6%98%BE%E7%A4%BA%E5%B1%8F&spm=1001.2101.3001.7020 "LCD displays") are characterized by clear and delicate image quality, but the size of individual LCD displays is limited. Currently, mainstream single-screen LCD TVs are only around 100 inches. If you want to form a larger display using LCD panels, you need to employ screen splicing technology. One drawback of large video walls is that the gaps between screen bezels cannot be completely eliminated. However, current excellent LCD screens can achieve ultra-narrow bezels down to 0.8mm, providing a very good visual effect. With the maturity of technology and the reduction of costs, more and more people are choosing the product form of large displays assembled from LCD panels.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144203917/01_ac12ffff6d6541d48875adcc8e237bed.jpeg)
+
+Four LCD TVs form a larger spliced screen.
+
+1.  Supports HD or DP input.
+2.  Supports button, remote control, and RS232 control.
+3.  Supports 2 channels of up to 4K 60Hz ultra-high-definition input (HD or DP).
+4.  Supports 4 channels of up to 1080P 60Hz high-definition output. The total display can be up to 4K 60Hz ultra-high-definition.
+5.  Supports switching between 1920*1080@60Hz and 1920*1200@60Hz at the output.
+6.  Compatible with various computer/game console/player devices.
+7.  Supports all display devices with HD interfaces.
+8.  Professional lossless image quality, high color reproduction.
+9.  Supports edge blending.
+10. Supports 180-degree mirror flip.
+11. Supports arbitrary swapping of output ports.
+12. Audio and video synchronization, audio separation.
+13. Supports custom development for other features.
+14. Supports the following display modes and resolutions:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144203917/02_b520c7b01aa3477595fcee02cf0dbb42.png)
+
+The splicer can achieve the following common display modes:
+
+Four-screen mosaic display:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144203917/03_dc373d03393540a6bbed1def0844c783.png)
+
+Left-right splicing mode (vertically symmetrical)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144203917/04_fe2d3ff307394f768b9ea106eacb783f.jpeg)
+
+Up-down splicing mode (horizontally symmetrical)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144203917/05_19b3bfb55baf4e8486eda331d8209c55.jpeg)
+
+Four-screen vertical display mode (1920x4320 or 1920x4800 resolution)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144203917/06_fd18cb04a8a64328bcdeab2f690743de.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144203917/07_692f0a6939834a06941643cbaa410ad4.png)
+
+Platform: LATTICE ECP3-70.
+
+       [Hardware](https://marketing.csdn.net/p/3127db09a98e0723b83b2914d9256174?pId=2782&utm_source=glcblog&spm=1001.2101.3001.7020 "Hardware") Architecture:
+
+     ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144203917/08_2f59af52bb289188fd5de0c5661da904.png)
+
+       This project primarily aims to synthesize a 4K (3840 x 2160 resolution) video from four 1080P videos.
+
+    Project Summary: 
+
+     For cross-clock domain paths, MultiCycle constraints must be added.
+
+     For timing paths that fail, you can wait until the basic functionality is complete, then review the timing report and gradually modify the code to achieve the desired frequency.
+
+                     ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144203917/09_b24bfae465eb5c5fa666a9df059cef5f.jpeg)

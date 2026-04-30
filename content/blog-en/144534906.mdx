@@ -1,0 +1,110 @@
+---
+title: "Industrial Robot Solution Based on RK3588 and 3D Vision Perception"
+date: "2024-12-17"
+slug: "144534906"
+tags: ["#机器人"]
+source: "https://blog.csdn.net/ARM_FPGA_AI/article/details/144534906"
+originalTitle: "基于RK3588+3D视觉感知工业机器人解决方案"
+---
+
+## RK3588-Based Industrial Robot Solution
+
+For industrial robot applications, leveraging 3D vision perception technology, dToF LiDAR is used to acquire and output depth information of targets and environments. This assists industrial robots in achieving functions such as motion obstacle avoidance, grasping planning, and robot collaboration. It can be applied in industrial and logistics scenarios such as material handling, pick-and-place, assembly, gluing, and inspection. Currently, it serves several leading industrial robot manufacturers, including Standard Robots, Mech-Mind, and Siasun.![](https://pub-048dcb96257f4476697b113fcb5939cb9.r2.dev/blog/144534906/01_52a8e758094644b6a162e025d7c4518b.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144534906/02_d35994f10e444d5f8f422c942faf5891.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144534906/03_2724cb424f58713f7a1b0465af4aeee0.png)
+
+**What features are required for industrial robot control boards?**
+
+As the core brain of a robot, an intelligent robot control board needs to possess a series of key features to support its efficient and intelligent operation. The main features required for an intelligent robot control board are as follows:
+
+**NPU Acceleration**
+
+*   Supports Offline Large Models: Capable of handling complex AI tasks and running large neural network models even in unstable network or offline conditions.
+    
+*   Object Recognition and Other Algorithms: Built-in or loadable algorithms for object recognition, facial recognition, scene understanding, and more, enhancing the robot's perception capabilities.
+    
+*   Monocular Ranging Algorithm: Supports distance measurement using a monocular camera, improving the robot's spatial awareness.
+    
+*   Flexible Computing Power Stacking: Offers flexible computing power expansion capabilities, allowing NPU computing resources to be adjusted according to task requirements.
+    
+
+**Operating System Support**
+
+*   Supports Linux and Android Systems: Provides extensive support for Linux and Android operating systems, making it easy for developers to choose the appropriate OS for development.
+    
+*   Android-Friendly UI Design: Offers user-friendly interface design tools and frameworks for robots using the Android system.
+    
+*   Standard Linux Adaptation for ROS/ROS2: Perfectly compatible with ROS (Robot Operating System) and ROS2, providing strong ecosystem support for robot application development.
+    
+
+**Intelligent Voice Interaction**
+
+*   Multi-Microphone Array: Equipped with multiple microphone arrays to enhance voice capture clarity and directionality.
+    
+*   Offline Voice Wake-up Word: Supports offline voice wake-up functionality, allowing the robot to be activated by a specific wake-up word even without network connectivity.
+    
+
+**AMP Architecture Support**
+
+*   Strong Real-time Performance: Ensures the robot control board has extremely high response speed and real-time performance when handling critical tasks.
+    
+*   High Stability: Utilizes stable hardware and software architecture design to reduce system failure rates and improve robot operational reliability.
+    
+*   Lower Hardware Cost: Achieves a balance between performance and cost by optimizing the AMP (Asymmetric Multiprocessing) architecture.
+    
+
+**ROS Compatibility**
+
+*   Compatible with Standard ROS/ROS2: Seamlessly integrates with ROS and ROS2, allowing robots to easily access various libraries, tools, and applications within the robot ecosystem.
+    
+*   Compatible with Various Radars: Supports various radar sensors (e.g., LiDAR, millimeter-wave radar), enhancing the robot's perception capabilities in complex environments.
+    
+*   Compatible with RK Structured Light: Highly compatible with Rockchip's self-developed structured light module, enabling more precise 3D perception and measurement.
+    
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144534906/04_17e35d6723b84a64430a359929954e85.jpeg)
+
+**Advantages of RK3588 on Robot Control Boards**
+
+*   High CPU Computing Power: Up to 93KDMIPS of CPU computing power provides robust data processing capabilities for the robot control board, ensuring rapid response to various commands and tasks.
+    
+*   High GPU Computing Power: Up to 512GFLOPs of GPU computing power supports complex graphics rendering and multimedia processing, enhancing the robot's visual perception and interactive experience.
+    
+*   High NPU Computing Power: Triple-core NPU with up to 6TOPs (INT8) computing power, supporting deep learning frameworks and providing efficient and precise computing power for AI applications on the robot control board. For example, with the YOLO-v8n model, a single core can achieve an inference speed of 59.6fps, meeting the requirements of real-time applications.
+    
+*   Rockchip Self-Developed Modules: Rockchip's self-developed structured light module and RK1808 compute stick, among other modules, provide more specialized hardware support for the robot control board, enhancing the robot's overall performance and functionality.
+    
+*   Industrial-Grade Chip Standard: Supports a wide operating temperature range from -40°C to 85°C, ensuring stable operation of robots in various harsh environments.
+    
+
+**RK3588-Based Robot Control Board Design Block Diagram**
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144534906/05_9acde471bb926c32c47b1dabbb803f86.png)
+
+*   RK3588 serves as the central processor of the control board, handling various computing tasks through its internal multi-core CPU, GPU, and NPU.
+    
+*   LP4/LP4X/LP5 DDR CTL provides high-speed Dynamic Random Access Memory (DRAM) to support RK3588's data processing requirements.
+    
+*   eMMC 5.1 Flash is used for storing the operating system, applications, and user data, providing persistent storage capabilities.
+    
+*   HDMI/eDP interfaces connect to high-definition displays, enabling human-machine interaction and a visual interface for command control.
+    
+*   MIPI CSI supports up to 8 camera inputs for functions such as environmental perception and object recognition.
+    
+*   RGMII 0/RGMII 1 enables Ethernet port connectivity or connection to sensors like LiDAR, supporting SLAM (Simultaneous Localization and Mapping) and obstacle avoidance functions.
+    
+*   PMU IO connects to Power Management Integrated Circuits (PMIC), DC-DC converters, Low-Dropout (LDO) linear regulators, etc., to provide stable power supply to the system. Additionally, it supports Audio Codec connectivity for microphones (MIC) or speakers (SPK).
+    
+*   SDMMC provides SD/MMC card slots for expanding storage space or data backup.
+    
+*   SDIO/UART/PCIe 3.0 supports the development or connection of WiFi modules, Bluetooth modules, 5G modules, etc., through these interfaces to enable wireless communication functions. It also supports the development of CAN interfaces for motor control and other applications.
+    
+*   USB ports are used to connect depth cameras (e.g., structured light cameras, ToF cameras, stereo cameras), radar, and other peripherals, as well as USB hubs to expand more USB devices.
+    
+*   I2C/SMBus is used to connect temperature sensors, Battery Management Units (BMU), etc., for functions such as battery health monitoring and temperature control.
+    
+*   CAN ports connect directly or via a CAN controller to achieve precise control over robot chassis motors, joint control, speed control, and more.
+    
+*   Infrared/Ultrasonic Sensor Interface: Connects infrared or ultrasonic sensors via GPIO or other dedicated interfaces for close-range detection or obstacle avoidance.

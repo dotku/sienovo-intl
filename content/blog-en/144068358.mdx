@@ -1,0 +1,89 @@
+---
+title: "Design of an NXP LS1043 OpenWRT-based Intelligent Transportation Edge Gateway"
+date: "2024-11-26"
+slug: "144068358"
+tags: ["#智能路由器"]
+source: "https://blog.csdn.net/szxinmai/article/details/144068358"
+originalTitle: "基于NXP LS1043 OpenWRT智能交通边缘网关设计"
+---
+
+0 Introduction
+
+Urban public transportation is a vital infrastructure closely related to people's daily lives and production, and a public welfare undertaking concerning national economy and people's livelihood. The "13th Five-Year Plan for the Development of Urban Public Transportation" explicitly states: to build intelligent public transportation systems deeply integrated with the mobile internet; to promote the development of "Internet+ Urban Public Transportation"; and to advance the construction of diversified public transportation service networks.
+
+Intelligent public transportation systems are incorporating an increasing number of in-vehicle systems, such as active safety early warning systems, video surveillance systems, 360-degree surround view systems, safety monitoring systems, intelligent dispatching systems, intelligent terminals, passenger information systems, passenger payment systems, and intelligent safety alarm systems. Some in-vehicle systems lack wireless communication capabilities and cannot connect to cloud platforms, posing difficulties for bus companies' remote operation and maintenance. The videos, images, and data from some in-vehicle systems need to be uploaded to the cloud platform, which places increasingly high demands on the cloud platform's computing power and network bandwidth. How to operate and maintain these in-vehicle systems and reduce the upload of irrelevant information has become a key requirement for bus companies to lower operational costs.
+
+Fifth-generation mobile communication technology (5G) features high data transmission rates, up to 10 Gb/s, capable of meeting the demands of large data volume transmission \[1-2\]. Edge computing integrates core capabilities of networking, computing, storage, and applications at the network edge, close to the source of objects or data, to provide localized edge intelligence services \[3-5\]. A 5G edge computing gateway leverages 5G's high data transmission rate to meet the simultaneous networking needs of numerous in-vehicle systems; and utilizes edge computing capabilities to integrate videos, images, and data from various in-vehicle systems, extracting valuable information for upload to the cloud platform.
+
+1 Hardware Design of the 5G Edge Computing Gateway
+
+The 5G edge computing gateway hardware consists of a power module, CPU module, 5G module, WiFi module, Ethernet module, MCU, CAN module, and serial port module, among others. The block diagram is shown in Figure 1.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144068358/01_8661051059f5469dbb05a0083b1f4e08.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144068358/02_fe7697c104674cb0b573a19ee61ca014.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144068358/03_6d84082e453641b8bf03ecbbeda4d991.png)![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144068358/04_468e698a4df34be79a5d4cf768fcdef2.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144068358/05_bfd055da36b24c78afc2317b1957198c.png)
+
+3 Application of 5G Edge Computing Gateway in In-Vehicle IoT
+
+The public bus vehicle-to-everything (V2X) solution based on the 5G edge computing gateway is shown in Figure 6. All in-vehicle systems connect to the Bus Online Cloud Platform via the 5G edge computing gateway, primarily offering functionalities such as networking, multi-dimensional data fusion, and device operation and maintenance.
+
+3.1 Networking Functionality
+
+The 5G edge computing gateway features 8 Ethernet ports, 3 RS485 interfaces, 3 RS232 interfaces, and 2 CAN interfaces, providing network connectivity for all in-vehicle systems. The 5G edge computing gateway connects to active safety early warning systems, in-vehicle video surveillance systems, 360-degree surround view systems, and safety monitoring systems via Ethernet ports, providing them with high-speed internet access. It connects to intelligent terminals, passenger information systems, passenger payment systems, in-vehicle intelligent safety alarm systems, etc., via RS485 or RS232, providing them with low-speed internet access.
+
+3.2 Multi-Dimensional Data Fusion Functionality
+
+The 5G edge computing gateway uses a protocol adaptive parsing program to collect vehicle operational information, location information, forward road information, and more. Since this information comes from different systems, it can easily lead to information silos. The 5G edge computing gateway, with its powerful processing capabilities, can perform fusion analysis on this data. For example, by fusing and analyzing vehicle status data from CAN collectors, combined positioning data from intelligent dispatching terminals, and alarm data from safety early warning terminals, it can improve the accuracy of alarms for lane departure, driver behavior analysis, and other events.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144068358/06_55ae6b7d2eea4b6e83967cd21af83952.png)
+
+3.3 Device Operation and Maintenance Functionality
+
+The 5G edge computing gateway collects information such as hardware and software versions, network status, temperature, operating voltage, and faults from in-vehicle devices, and uploads this device information in real-time to the Bus Online Cloud Platform. The Bus Online Cloud Platform classifies, statistically analyzes, and displays the received information, and performs remote diagnosis and real-time monitoring of all vehicle equipment. The Bus Online Cloud Platform uses the 5G edge computing gateway's network to configure parameters and upgrade in-vehicle devices, facilitating remote and batch operations and enhancing the convenience of device operation and maintenance.
+
+\====================
+
+##### Target Applications
+
+*   Industrial Applications: Cold Storage Monitoring / Large-Area Surveillance Systems
+*   Network Applications: Small Business Routers
+
+##### LS1043ARGW Interface View
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144068358/07_72cc901e73663faf70287defa8509a75.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144068358/08_7ef51c834e71742f282862f5356bb6fe.png)
+
+##### LS1043ARGW View
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144068358/09_63fbacc0229304a5bd91401c79ce0259.png)
+
+##### DIP Switch Configuration
+
+DIP switch SW6 is used to select booting from an SD card or Nand Flash.
+
+Note: When the DIP switch is ON, the value is 0; when the DIP switch is OFF, the value is 1.
+
+SW6[1:8]
+
+Description
+
+00100000
+
+Boot from SD card
+
+Note: (For booting from SD card, J36 needs to be connected at positions 1-2)
+
+10000010
+
+Boot from NandFlash (Default)
+
+##### Jumper Configuration
+
+Some functions require selection via jumpers. The default jumper configurations are listed in the table below.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144068358/10_70350fc4177b58b513f6f08f78b8f31a.png)

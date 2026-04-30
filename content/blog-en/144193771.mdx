@@ -1,0 +1,131 @@
+---
+title: "AI Edge Server based on BM1684 - Model Conversion, Large Model All-in-One Machine (Part 2)"
+date: "2024-12-02"
+slug: "144193771"
+tags: ["#人工智能", "#服务器", "#运维"]
+source: "https://blog.csdn.net/szxinmai/article/details/144193771"
+originalTitle: "基于BM1684的AI边缘服务器-模型转换，大模型一体机（二）"
+---
+
+#### 
+
+#### Object Tracking
+
+Note: All model conversions are performed within the Docker environment.
+
+First, enter Docker.
+
+We will be compiling in the Docker environment, so first, enter Docker.
+
+```hljs
+:~/tpu-nntc# docker run -v $PWD/:/workspace  -it sophgo/tpuc_dev:latest
+
+```
+
+Initialize Environment
+
+```hljs
+root@2bb02a2e27d5:/workspace/tpu-nntc# source ./scripts/envsetup.sh
+
+```
+
+Install Compiler in Docker
+
+```hljs
+root@2bb02a2e27d5:/workspace/sophon-demo/sample/YOLOv5/cpp/yolov5_bmcv/build# sudo apt-get install  gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libeigen3-dev
+
+```
+
+This C++ example depends on Eigen. You need to run the following command to install it on the machine where you compile the C++ program:
+
+```hljs
+sudo apt install libeigen3-dev
+
+```
+
+First, download the relevant files, mainly the test video for tracking, test images, object tracking weights, and object detection weights.
+
+```hljs
+# Install unzip, skip if already installedsudo apt install unzipchmod -R +x scripts/./scripts/download.sh
+```
+
+Then compile the C++ code.
+
+```hljs
+/workspace/sophon-demo/sample/DeepSORT/cpp/deepsort_bmcv/build# cd cpp/deepsort_bmcvmkdir build && cd build# Please modify the -DSDK path according to your actual situation; an absolute path is required.cmake -DTARGET_ARCH=soc -DSDK=/workspace/soc-sdk ..  make
+```
+
+This will generate the `deepsort_bmcv.soc` file. Copy it to the device.
+
+```hljs
+:/workspace/sophon-demo/sample/DeepSORT/cpp/deepsort_bmcv# scp -r  deepsort_bmcv.soc linaro@192.168.17.125:/data/yolo/sophon-demo/sample/DeepSORT/cpp
+
+```
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144193771/01_d656dc1b1da64d318e9282968ebe7998.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144193771/02_0520325474354147a5a2f750e2e95d50.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144193771/03_c63c52e5457249d3a5da6b13bcbdf588.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144193771/04_cfc010a201fa4620a7b888e2b60cf0df.png)
+
+Test Video
+
+```hljs
+./deepsort_bmcv.soc --input=rtsp://admin:sangfor@123@192.168.17.253 --bmodel_detector=../../BM1684/yolov5s_v6.1_3output_int8_1b.bmodel --bmodel_extractor=../../BM1684/extractor_fp32_1b.bmodel --dev_id=0
+
+```
+
+Run the relevant code; this is for image detection.
+
+```hljs
+cd pythonpython3 deepsort_opencv.py --input ../datasets/mot15_trainset/ADL-Rundle-6/img1 --bmodel_detector ../models/BM1684/yolov5s_v6.1_3output_int8_1b.bmodel --bmodel_extractor ../models/BM1684/extractor_fp32_1b.bmodel --dev_id=0
+```
+
+Video Tracking
+
+```hljs
+python3 deepsort_opencv.py --input ../datasets/test_car_person_1080P.mp4 --bmodel_detector ../models/BM1684/yolov5s_v6.1_3output_int8_1b.bmodel --bmodel_extractor ../models/BM1684/extractor_fp32_1b.bmodel --dev_id=0
+
+```
+
+IP Camera Video Tracking
+
+```hljs
+python3 deepsort_opencv.py --input rtsp://admin:sangfor@123@192.168.17.253 --bmodel_detector ../models/BM1684/yolov5s_v6.1_3output_int8_1b.bmodel --bmodel_extractor ../models/BM1684/extractor_fp32_1b.bmodel --dev_id=0
+
+```
+
+#### Human Pose Estimation
+
+```hljs
+python3 python/openpose_opencv.py --input rtsp://admin:sangfor@123@192.168.17.253 --bmodel models/BM1684/pose_coco_fp32_1b.bmodel --dev_id 0
+
+```
+
+* * *
+
+The generated files will be placed in `sample/YOLOv5/data/models/BM1684/int8model/anquanmao_batch1`.
+
+```hljs
+:~/fugui/sophon-demo_20221027_181652/sophon-demo_v0.1.0_b909566_20221027/sample/YOLOv5/data/models/BM1684/int8model/anquanmao_batch1# lscompilation.bmodel  input_ref_data.dat  io_info.dat  output_ref_data.dat
+```
+
+Then push the converted model to the development board.
+
+```hljs
+scp compilation.bmodel linaro@{development_board_ip_address}:/data/{your_yolov5_path}
+
+```
+
+#### Development Board Environment Configuration
+
+Set up the libsophon environment.
+
+```hljs
+cd libsophon_<date>_<hash># Install dependencies, only needs to be executed once.sudo apt install dkms libncurses5sudo dpkg -i sophon-*.deb# Execute the following command in the terminal, or log out and log in as the current user to use commands like bm-smi.source /etc/profile
+```
+
+```hljs
+python3 yolov5_new_1.py --input rtsp://admin:1111111a@192.168.16.223
