@@ -1,0 +1,96 @@
+---
+title: "Power Applications Based on TI AM62X/AM64X + FPGA + AD7606/ADS8568 Multi-channel ADC Acquisition"
+date: "2025-01-03"
+slug: "144913194"
+tags: ["#fpga开发"]
+source: "https://blog.csdn.net/ARM_FPGA_AI/article/details/144913194"
+originalTitle: "基于TI AM62X/AM64X+FPGA+AD7606/ADS8568多通道AD采集的电力应用"
+---
+
+Power Applications Based on TI AM62X/AM64X + FPGA + AD7606/ADS8568 Multi-channel ADC Acquisition
+
+● Similar to asynchronous SRAM memory and dedicated ASIC devices.
+
+● Asynchronous, synchronous, and page mode (only for non-multiplexed mode) burst NOR flash devices.
+
+● NAND flash.
+
+● ADC devices.
+
+![bafd1d16-1952-11ed-ba43-dac502259ad0.png](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144913194/01_83872ef1c89526ec871acea37c84a0cc.png)
+
+Figure 1 GPMC Overview
+
+**2 GPMC Parallel Interface Features**
+
+Why do industrial applications prefer using the GPMC interface when communicating with FPGAs/ADCs? This article provides 3 reasons: **high bandwidth, rich connection modes, and flexible configuration**. Specifically, they are as follows:
+
+PS: The following will introduce an ARM + FPGA communication case based on AM570x GPMC, and a comprehensive multi-channel AD (AD7606/ADS8568) acquisition case.
+
+**(1) High Bandwidth, Speeds Exceeding 100MB/s**
+
+Taking AM57x as an example, when connecting to an FPGA via the GPMC interface and reading data from the FPGA side using DMA, speeds can reach 69MB/s. In fact, by configuring the GPMC interface's timing and different operating modes, speeds can exceed 100MB/s.
+
+**(2) Rich Connection Modes, Flexible 8-bit and 16-bit Asynchronous Memory Interfaces**
+
+Because the 16 gpmc\_ad[15:0] pins support both address/data multiplexed and non-multiplexed modes, this makes the GPMC's connection modes with peripherals very rich, allowing communication with a wide range of external devices, such as:
+
+● External asynchronous or synchronous 8-bit wide memory or devices (non-burst devices)
+
+● External asynchronous or synchronous 16-bit wide memory or devices
+
+● External 16-bit non-multiplexed NOR Flash devices
+
+● External 16-bit address and data multiplexed NOR Flash devices
+
+● External 8-bit and 16-bit NAND Flash devices
+
+● External 16-bit pseudo-SRAM (pSRAM) devices
+
+Several connection modes are introduced below.
+
+1) 16-bit Address /Data Multiplexed (Address and Data Line Multiplexed Mode)
+
+![bb18e9f6-1952-11ed-ba43-dac502259ad0.png](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144913194/02_08c16dfb97267b1634917c2460f5ee5e.png)
+
+Figure 2
+
+2) 16-bit Nonmultiplexed (Address and Data Line Non-multiplexed Mode)
+
+![bb4e605e-1952-11ed-ba43-dac502259ad0.png](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144913194/03_0b0ec3a34b654cce7da2ec9f3d39faf6.png)
+
+Figure 3
+
+3) 8-bit Nonmultiplexed (Address and Data Line Non-multiplexed Mode)
+
+![bb65d040-1952-11ed-ba43-dac502259ad0.png](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144913194/04_57f4cd913371cb1c8a97c7df7ce400ae.png)
+
+Figure 4
+
+4) 8-bit NAND (Data Line Only Mode)
+
+This mode is suitable for scenarios where address lines are not required, such as GPMC connecting to NAND FLASH. NAND FLASH does not require address lines; read/write commands are sent via data lines D[x:0] for data reading/writing.
+
+![bb83643e-1952-11ed-ba43-dac502259ad0.png](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144913194/05_33d9da0efe4a1a975cdb44c9dc987b7f.png)
+
+Figure 5
+
+**(3) Flexible Configuration, with up to 8 Chip Selects**
+
+The GPMC basic programming model provides maximum flexibility to support eight configurable chip selects with different timing parameters and bit width configurations. Optimal chip select settings can be used based on the characteristics of external devices.
+
+● Different protocols can be selected to support general-purpose asynchronous or synchronous random access devices (NOR flash, SRAM) or specific NAND devices.
+
+● Address and data buses can be multiplexed on the same external bus.
+
+● Read and write accesses can be independently defined as asynchronous or synchronous.
+
+● System requests (byte, 16-bit word, burst) are performed via single or multiple accesses. External device access profiles (single or multiple optimized burst lengths, native or emulated packets) are based on external device characteristics (supported protocol, bus width, data buffer size, native packet support).
+
+● System burst read or write requests are synchronous bursts (multiple reads, or multiple writes). When burst or page mode is not supported by the external memory or ASIC device, system burst read or write requests are converted into continuous single synchronous or asynchronous accesses (single read, or single write). Only 8-bit wide devices are supported in single synchronous or single asynchronous read or write modes.
+
+To emulate a programmable internal wait state, an external wait pin can be monitored to dynamically control external accesses during initiation (initial access time) and burst accesses.
+
+![bb9901c2-1952-11ed-ba43-dac502259ad0.png](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144913194/06_eaa7f5fe5822148eb89a4797b74691ae.png)
+
+Figure 6 GPMC Block Diagram
