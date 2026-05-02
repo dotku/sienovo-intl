@@ -35,9 +35,22 @@ const RECIPIENT = process.env.REPORT_RECIPIENT || "sienovojay@gmail.com";
 // ---------- main ----------
 
 const config = configFor(args.period);
-const metrics = gatherMetrics(config);
+const metrics = gatherMetrics(config, { sinceISO: config.sinceISO });
 if (config.dbEnabled) {
-  metrics.db = await gatherDbMetrics(config);
+  metrics.db = await gatherDbMetrics({ sinceISO: config.sinceISO });
+}
+if (config.previousSinceISO) {
+  // Compute the prior window so the report can show period-over-period deltas.
+  metrics.previous = gatherMetrics(config, {
+    sinceISO: config.previousSinceISO,
+    untilISO: config.sinceISO,
+  });
+  if (config.dbEnabled) {
+    metrics.previous.db = await gatherDbMetrics({
+      sinceISO: config.previousSinceISO,
+      untilISO: config.sinceISO,
+    });
+  }
 }
 const summary = await generateNarrative(metrics, config);
 const subject = `[sienovo-intl] ${config.subjectLabel} ${metrics.dateLabel}`;
@@ -99,7 +112,19 @@ function configFor(period) {
         dbEnabled: true,
       };
     case "monthly":
-      throw new Error(`period=${period} not implemented yet (Phase 3)`);
+      return {
+        period: "monthly",
+        sinceISO: days(30),
+        previousSinceISO: days(60),
+        windowLabel: "本月",
+        previousLabel: "上月",
+        rangeLabel: `${days(30).slice(0, 10)} ~ ${new Date().toISOString().slice(0, 10)}`,
+        subjectLabel: "月报",
+        h1: "sienovo-intl 月报",
+        summaryHeading: "月度复盘与下阶段战略建议",
+        maxOutputTokens: 2400,
+        dbEnabled: true,
+      };
     default:
       throw new Error(`unknown period: ${period}`);
   }
@@ -107,22 +132,24 @@ function configFor(period) {
 
 // ---------- metric gathering ----------
 
-function gatherMetrics(config) {
-  const sinceISO = config.sinceISO;
-  const sinceGit = sinceISO; // git understands ISO-8601 directly
+function gatherMetrics(config, { sinceISO, untilISO }) {
+  const sinceArg = `--since="${sinceISO}"`;
+  const untilArg = untilISO ? ` --until="${untilISO}"` : "";
 
-  const synced = countCommitTotal(`git log --since="${sinceGit}" --pretty=%s -- content/blog/`, /^sync: fetch (\d+)/);
-  const translated = countCommitTotal(`git log --since="${sinceGit}" --pretty=%s -- content/blog-en/`, /^translate: add (\d+)/);
+  const synced = countCommitTotal(`git log ${sinceArg}${untilArg} --pretty=%s -- content/blog/`, /^sync: fetch (\d+)/);
+  const translated = countCommitTotal(`git log ${sinceArg}${untilArg} --pretty=%s -- content/blog-en/`, /^translate: add (\d+)/);
 
-  const blog = countMdx("content/blog");
-  const blogEn = countMdx("content/blog-en");
-  const remaining = Math.max(0, blog - blogEn);
+  // For point-in-time totals we always reflect "now" — they only matter for the current window.
+  const isPrevious = !!untilISO;
+  const blog = isPrevious ? null : countMdx("content/blog");
+  const blogEn = isPrevious ? null : countMdx("content/blog-en");
+  const remaining = isPrevious ? null : Math.max(0, blog - blogEn);
 
-  const syncRun = latestRun("sync-blog.yml");
-  const translateRun = latestRun("translate-blog.yml");
+  const syncRun = isPrevious ? {} : latestRun("sync-blog.yml");
+  const translateRun = isPrevious ? {} : latestRun("translate-blog.yml");
 
   // Feature commits (non-bot) in the window
-  const subjects = sh(`git log --since="${sinceGit}" --pretty=format:%s --no-merges`).split("\n")
+  const subjects = sh(`git log ${sinceArg}${untilArg} --pretty=format:%s --no-merges`).split("\n")
     .map(l => l.trim())
     .filter(l => l && !/^(translate:|sync:) /.test(l));
   const breakdown = bucketByConventionalType(subjects);
@@ -130,7 +157,7 @@ function gatherMetrics(config) {
   // Same window, with body — used to feed the LLM
   const detail = subjects.length === 0
     ? ""
-    : sh(`git log --since="${sinceGit}" --pretty=format:'- %s%n%b' --no-merges`)
+    : sh(`git log ${sinceArg}${untilArg} --pretty=format:'- %s%n%b' --no-merges`)
         .split(/\n(?=- )/)
         .map(b => b.trim())
         .filter(b => b && !/^- (translate:|sync:) /.test(b))
@@ -276,9 +303,69 @@ function truncate(s, max) {
   return s.length <= max ? s : s.slice(0, max) + "\n…(以下省略)";
 }
 
+function buildMonthlyPrompt(metrics, config) {
+  const cur = metrics.db?.summary || {};
+  const prv = metrics.previous?.db?.summary || {};
+
+  const fmtDelta = (curVal, prvVal) => {
+    const c = curVal ?? 0, p = prvVal ?? 0;
+    const diff = c - p;
+    const pct = p === 0 ? (c > 0 ? "n/a (上月为 0)" : "0%") : `${diff >= 0 ? "+" : ""}${Math.round((diff / p) * 100)}%`;
+    return `${c}（上月 ${p}，环比 ${diff >= 0 ? "+" : ""}${diff}, ${pct}）`;
+  };
+
+  const apiCurrent = (metrics.db?.apiUsage || [])
+    .map(r => `  - ${r.service}: ${r.total} 次（失败 ${r.failures}, ${r.total ? Math.round(r.failures / r.total * 100) : 0}%）`)
+    .join("\n") || "  - (无)";
+
+  return [
+    "你是 sienovo-intl 项目（Sienovo 是边缘 AI 视觉计算公司，主营工业视频分析；本平台覆盖产品页、CRM、客户支持、Outreach 销售自动化、内容翻译流水线、Marine 船只追踪等业务）的运营月报顾问。",
+    "请阅读以下本月（30 天）数据 + 上月对比，用中文产出四段（共 350-500 字，纯文本，不要 Markdown、不要标题、不要分点编号）：",
+    "1. 月度复盘：客户 / 内容 / 系统 / 销售 四条线本月的关键产出与亮点；如有同比增长或下滑要点出。",
+    "2. 漏斗分析：从新增 Company → Contact → Conversation → Order 这条转化链中识别瓶颈；如果 Outreach 或 Marine 数据异常也单独点出。",
+    "3. 风险与异常：从 ApiUsage 失败率、Ticket 积压、对话量趋势等识别需要立即处理的问题。",
+    "4. 下阶段战略建议：基于本月数据 + 环比变化给 3-4 条具体可执行的运营 / 产品 / 销售 / 工程方向的建议；建议要落地，标明优先级（高/中），避免「拓展国际市场」「优化用户体验」这类空话。",
+    "段与段之间用空行分隔。",
+    "",
+    `=== 本月时间窗：${config.rangeLabel} (UTC) ===`,
+    "",
+    "[ 内容生产 ]",
+    `  本月新抓取 CSDN 文章: ${fmtDelta(metrics.synced, metrics.previous?.synced)}`,
+    `  本月新增英文翻译: ${fmtDelta(metrics.translated, metrics.previous?.translated)}`,
+    `  当前总数: 中 ${metrics.blog} / 英 ${metrics.blogEn}（剩余 ${metrics.remaining} 篇待翻译）`,
+    "",
+    "[ 业务增长（本月 vs 上月） ]",
+    `  新增客户公司 (Company): ${fmtDelta(cur.new_companies, prv.new_companies)}`,
+    `  新增联系人 (Contact): ${fmtDelta(cur.new_contacts, prv.new_contacts)}`,
+    `  新建对话 (Conversation): ${fmtDelta(cur.new_conversations, prv.new_conversations)}`,
+    `  对话消息总数 (ChatMessage): ${fmtDelta(cur.new_chat_messages, prv.new_chat_messages)}`,
+    `  新增 Ticket: ${fmtDelta(cur.new_tickets, prv.new_tickets)}（当前未关闭 ${cur.open_tickets ?? "?"} 张）`,
+    `  新增订单 (Order): ${fmtDelta(cur.new_orders, prv.new_orders)}`,
+    `  新发 Outreach 邮件: ${fmtDelta(cur.new_outreach, prv.new_outreach)}`,
+    `  Marine 新会话: ${fmtDelta(cur.new_vessel_sessions, prv.new_vessel_sessions)}（新增 Vessel: ${fmtDelta(cur.new_vessels, prv.new_vessels)})`,
+    `  新增知识文章: ${fmtDelta(cur.new_articles, prv.new_articles)}`,
+    `  产品新增/更新: ${fmtDelta(cur.product_changes, prv.product_changes)}`,
+    "",
+    "[ Outreach 邮件状态分布 (本月) ]",
+    (metrics.db?.outreachByStatus || []).map(r => `  - ${r.status}: ${r.total}`).join("\n") || "  - (无)",
+    "",
+    "[ 订单状态分布 (本月) ]",
+    (metrics.db?.ordersByStatus || []).map(r => `  - ${r.status}: ${r.total}`).join("\n") || "  - (无)",
+    "",
+    "[ API 调用 (本月 Top 8) ]",
+    apiCurrent,
+    "",
+    "[ 工程提交 (本月) ]",
+    `  本月: ${metrics.commitsTotal} 条 (${metrics.commitsBreakdown || "无分类"})`,
+    `  上月: ${metrics.previous?.commitsTotal ?? 0} 条 (${metrics.previous?.commitsBreakdown || "无分类"})`,
+    "  代表性 commit (本月):",
+    truncate(metrics.commitsDetail, 1200) || "  (无非机器人提交)",
+  ].join("\n");
+}
+
 // ---------- Postgres metrics (weekly / monthly) ----------
 
-async function gatherDbMetrics(config) {
+async function gatherDbMetrics({ sinceISO, untilISO }) {
   if (!process.env.DATABASE_URL) {
     console.error("::warning::DATABASE_URL not set; skipping DB metrics");
     return null;
@@ -287,24 +374,27 @@ async function gatherDbMetrics(config) {
   const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
   await client.connect();
   try {
-    const since = config.sinceISO;
+    // Time-window predicate, parameterized: $1 = since, $2 = until or NULL for now.
+    const win = (col) => `"${col}" >= $1 AND ($2::timestamptz IS NULL OR "${col}" < $2)`;
+    const isPrev = !!untilISO;
+    const params = [sinceISO, untilISO || null];
 
     const summaryRow = await client.query(
       `SELECT
-         (SELECT COUNT(*)::int FROM "Company" WHERE "createdAt" >= $1)            AS new_companies,
-         (SELECT COUNT(*)::int FROM "Contact" WHERE "createdAt" >= $1)            AS new_contacts,
-         (SELECT COUNT(*)::int FROM "Conversation" WHERE "createdAt" >= $1)       AS new_conversations,
-         (SELECT COUNT(*)::int FROM "ChatMessage" WHERE "createdAt" >= $1)        AS new_chat_messages,
-         (SELECT COUNT(*)::int FROM "Ticket" WHERE "createdAt" >= $1)             AS new_tickets,
-         (SELECT COUNT(*)::int FROM "Ticket" WHERE status <> 'closed')            AS open_tickets,
-         (SELECT COUNT(*)::int FROM "Order" WHERE "createdAt" >= $1)              AS new_orders,
-         (SELECT COUNT(*)::int FROM "OutreachEmail" WHERE "createdAt" >= $1)      AS new_outreach,
-         (SELECT COUNT(*)::int FROM "Vessel" WHERE "createdAt" >= $1)             AS new_vessels,
-         (SELECT COUNT(*)::int FROM "VesselSession" WHERE "startedAt" >= $1)      AS new_vessel_sessions,
-         (SELECT COUNT(*)::int FROM "KnowledgeArticle" WHERE "createdAt" >= $1)   AS new_articles,
+         (SELECT COUNT(*)::int FROM "Company" WHERE ${win("createdAt")})                AS new_companies,
+         (SELECT COUNT(*)::int FROM "Contact" WHERE ${win("createdAt")})                AS new_contacts,
+         (SELECT COUNT(*)::int FROM "Conversation" WHERE ${win("createdAt")})           AS new_conversations,
+         (SELECT COUNT(*)::int FROM "ChatMessage" WHERE ${win("createdAt")})            AS new_chat_messages,
+         (SELECT COUNT(*)::int FROM "Ticket" WHERE ${win("createdAt")})                 AS new_tickets,
+         ${isPrev ? "0::int" : `(SELECT COUNT(*)::int FROM "Ticket" WHERE status <> 'closed')`} AS open_tickets,
+         (SELECT COUNT(*)::int FROM "Order" WHERE ${win("createdAt")})                  AS new_orders,
+         (SELECT COUNT(*)::int FROM "OutreachEmail" WHERE ${win("createdAt")})          AS new_outreach,
+         (SELECT COUNT(*)::int FROM "Vessel" WHERE ${win("createdAt")})                 AS new_vessels,
+         (SELECT COUNT(*)::int FROM "VesselSession" WHERE ${win("startedAt")})          AS new_vessel_sessions,
+         (SELECT COUNT(*)::int FROM "KnowledgeArticle" WHERE ${win("createdAt")})       AS new_articles,
          (SELECT COUNT(*)::int FROM "Product"
-           WHERE "createdAt" >= $1 OR "updatedAt" >= $1)                          AS product_changes`,
-      [since]
+           WHERE ((${win("createdAt")}) OR (${win("updatedAt")})))                       AS product_changes`,
+      params
     );
     const summary = summaryRow.rows[0];
 
@@ -313,29 +403,29 @@ async function gatherDbMetrics(config) {
               COUNT(*)::int AS total,
               SUM(CASE WHEN success THEN 0 ELSE 1 END)::int AS failures
          FROM "ApiUsage"
-        WHERE "createdAt" >= $1
+        WHERE ${win("createdAt")}
         GROUP BY service
         ORDER BY total DESC
         LIMIT 8`,
-      [since]
+      params
     )).rows;
 
     const outreachByStatus = (await client.query(
       `SELECT status, COUNT(*)::int AS total
          FROM "OutreachEmail"
-        WHERE "createdAt" >= $1
+        WHERE ${win("createdAt")}
         GROUP BY status
         ORDER BY total DESC`,
-      [since]
+      params
     )).rows;
 
     const ordersByStatus = (await client.query(
       `SELECT status, COUNT(*)::int AS total
          FROM "Order"
-        WHERE "createdAt" >= $1
+        WHERE ${win("createdAt")}
         GROUP BY status
         ORDER BY total DESC`,
-      [since]
+      params
     )).rows;
 
     return { summary, apiUsage, outreachByStatus, ordersByStatus };
@@ -350,8 +440,9 @@ async function generateNarrative(metrics, config) {
   if (config.period === "daily" && metrics.commitsTotal === 0) return "";
   if (!process.env.GEMINI_API_KEY) return "";
 
-  const prompt = config.period === "daily"
-    ? buildDailyPrompt(metrics, config)
+  const prompt =
+    config.period === "daily" ? buildDailyPrompt(metrics, config)
+    : config.period === "monthly" ? buildMonthlyPrompt(metrics, config)
     : buildWeeklyPrompt(metrics, config);
 
   try {
@@ -397,12 +488,27 @@ function statusLabel(s) {
   }
 }
 
-function renderDbSection(db) {
+function deltaSpan(curr, prev) {
+  if (prev == null) return "";
+  const diff = curr - prev;
+  if (diff === 0) return ' <span style="color:#999;font-size:11px">(持平)</span>';
+  const pct = prev === 0 ? "" : `, ${diff >= 0 ? "+" : ""}${Math.round((diff / prev) * 100)}%`;
+  const sign = diff > 0 ? "+" : "";
+  const color = diff > 0 ? "#0a7a0a" : "#a04040";
+  return ` <span style="color:${color};font-size:11px">(${sign}${diff}${pct})</span>`;
+}
+
+function renderDbSection(db, prevDb) {
   if (!db || !db.summary) return "";
   const s = db.summary;
+  const p = prevDb?.summary;
   const cellBorder = "border-bottom:1px solid #eee";
-  const row = (label, val) =>
-    `<tr><td style="${cellBorder}">${label}</td><td style="${cellBorder};text-align:right"><b>${val}</b></td></tr>`;
+  const row = (label, val, prev) =>
+    `<tr><td style="${cellBorder}">${label}</td><td style="${cellBorder};text-align:right"><b>${val}</b>${deltaSpan(val, prev)}</td></tr>`;
+  const dualRow = (label, val1, val2, prev1, prev2) => {
+    const inner = `<b>${val1}</b> / <b>${val2}</b>${prev1 != null && prev2 != null ? deltaSpan(val1 + val2, prev1 + prev2) : ""}`;
+    return `<tr><td style="${cellBorder}">${label}</td><td style="${cellBorder};text-align:right">${inner}</td></tr>`;
+  };
 
   const apiRows = (db.apiUsage || []).map(r => {
     const failPct = r.total ? Math.round((r.failures / r.total) * 100) : 0;
@@ -416,18 +522,18 @@ function renderDbSection(db) {
   };
 
   return `
-            <h3 style="margin:24px 0 8px;font-size:15px">业务增长</h3>
+            <h3 style="margin:24px 0 8px;font-size:15px">业务增长${p ? "（环比上月）" : ""}</h3>
             <table cellpadding="8" style="border-collapse:collapse;width:100%;font-size:14px">
-              ${row("新增客户公司", s.new_companies)}
-              ${row("新增联系人", s.new_contacts)}
-              ${row("新建对话", s.new_conversations)}
-              ${row("对话消息总数", s.new_chat_messages)}
-              ${row("新增 Ticket / 未关闭", `${s.new_tickets} / ${s.open_tickets}`)}
-              ${row("新增订单", s.new_orders)}
-              ${row("新发 Outreach 邮件", s.new_outreach)}
-              ${row("Marine 新会话 / 新船只", `${s.new_vessel_sessions} / ${s.new_vessels}`)}
-              ${row("新增知识文章", s.new_articles)}
-              <tr><td>产品新增/更新</td><td style="text-align:right"><b>${s.product_changes}</b></td></tr>
+              ${row("新增客户公司", s.new_companies, p?.new_companies)}
+              ${row("新增联系人", s.new_contacts, p?.new_contacts)}
+              ${row("新建对话", s.new_conversations, p?.new_conversations)}
+              ${row("对话消息总数", s.new_chat_messages, p?.new_chat_messages)}
+              <tr><td style="${cellBorder}">新增 Ticket / 未关闭</td><td style="${cellBorder};text-align:right"><b>${s.new_tickets}</b>${deltaSpan(s.new_tickets, p?.new_tickets)} / <b>${s.open_tickets}</b></td></tr>
+              ${row("新增订单", s.new_orders, p?.new_orders)}
+              ${row("新发 Outreach 邮件", s.new_outreach, p?.new_outreach)}
+              ${dualRow("Marine 新会话 / 新船只", s.new_vessel_sessions, s.new_vessels, p?.new_vessel_sessions, p?.new_vessels)}
+              ${row("新增知识文章", s.new_articles, p?.new_articles)}
+              <tr><td>产品新增/更新</td><td style="text-align:right"><b>${s.product_changes}</b>${deltaSpan(s.product_changes, p?.product_changes)}</td></tr>
             </table>
 
             <h3 style="margin:24px 0 8px;font-size:15px">Outreach / 订单状态</h3>
@@ -449,7 +555,8 @@ function renderHtml({ metrics, summary, config }) {
       ? `<b>${metrics.commitsTotal}</b> 条 <span style="color:#666;font-size:12px">(${htmlEscape(metrics.commitsBreakdown)})</span>`
       : `<b>${metrics.commitsTotal}</b> 条`;
 
-  const dbSection = config.dbEnabled ? renderDbSection(metrics.db) : "";
+  const dbSection = config.dbEnabled ? renderDbSection(metrics.db, metrics.previous?.db) : "";
+  const prev = metrics.previous;
 
   let summaryBlock = "";
   let aiDisclaimer = "";
@@ -473,13 +580,13 @@ function renderHtml({ metrics, summary, config }) {
             <h2 style="margin:0 0 4px">${config.h1}</h2>
             <p style="color:#666;margin:0 0 16px">${metrics.dateLabel}（UTC）</p>
             <table cellpadding="8" style="border-collapse:collapse;width:100%;font-size:14px">
-              <tr><td style="${cellBorder}">${metrics.windowLabel} 新抓取</td><td style="${cellBorder};text-align:right"><b>${metrics.synced}</b> 篇</td></tr>
-              <tr><td style="${cellBorder}">${metrics.windowLabel} 翻译完成</td><td style="${cellBorder};text-align:right"><b>${metrics.translated}</b> 篇</td></tr>
+              <tr><td style="${cellBorder}">${metrics.windowLabel} 新抓取</td><td style="${cellBorder};text-align:right"><b>${metrics.synced}</b> 篇${deltaSpan(metrics.synced, prev?.synced)}</td></tr>
+              <tr><td style="${cellBorder}">${metrics.windowLabel} 翻译完成</td><td style="${cellBorder};text-align:right"><b>${metrics.translated}</b> 篇${deltaSpan(metrics.translated, prev?.translated)}</td></tr>
               <tr><td style="${cellBorder}">总数（中 / 英）</td><td style="${cellBorder};text-align:right">${metrics.blog} / ${metrics.blogEn}</td></tr>
               <tr><td style="${cellBorder}">剩余待翻译</td><td style="${cellBorder};text-align:right"><b>${metrics.remaining}</b> 篇</td></tr>
               <tr><td style="${cellBorder}">最新同步任务</td><td style="${cellBorder};text-align:right"><a href="${metrics.syncUrl}">${statusLabel(metrics.syncStatus)}</a></td></tr>
               <tr><td style="${cellBorder}">最新翻译任务</td><td style="${cellBorder};text-align:right"><a href="${metrics.translateUrl}">${statusLabel(metrics.translateStatus)}</a></td></tr>
-              <tr><td>${metrics.windowLabel} 功能提交</td><td style="text-align:right">${commitsCell}</td></tr>
+              <tr><td>${metrics.windowLabel} 功能提交</td><td style="text-align:right">${commitsCell}${deltaSpan(metrics.commitsTotal, prev?.commitsTotal)}</td></tr>
             </table>${dbSection}${summaryBlock}${aiDisclaimer}${confidentialNotice}
             <p style="color:#999;font-size:12px;margin-top:16px">来自 <a href="https://github.com/${REPO}">${REPO}</a></p>
           </div>`;
