@@ -1,0 +1,60 @@
+name: Publish to Dev.to
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Max articles to publish in this run"
+        required: false
+        default: "3"
+      draft:
+        description: "Publish as draft (true/false)"
+        required: false
+        default: "false"
+  # Daily cron — disabled by default. Enable after verifying first manual batches.
+  # schedule:
+  #   - cron: "0 6 * * *"  # 06:00 UTC daily
+
+permissions:
+  contents: write          # so we can commit data/devto-published.jsonl after each run
+  actions: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile --prod --ignore-scripts
+
+      - name: Publish next batch
+        env:
+          DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
+          DEVTO_ORG_ID: ${{ secrets.DEVTO_ORG_ID }}
+          NEXT_PUBLIC_SITE_URL: https://sienovo.jytech.us
+        run: |
+          DRAFT_FLAG=""
+          if [ "${{ github.event.inputs.draft }}" = "true" ]; then DRAFT_FLAG="--draft"; fi
+          node scripts/publish-devto.mjs --limit "${{ github.event.inputs.limit || '3' }}" $DRAFT_FLAG
+
+      - name: Commit published-state log
+        run: |
+          if [ -n "$(git status --porcelain data/devto-published.jsonl)" ]; then
+            git config user.name "sienovo-bot"
+            git config user.email "bot@sienovo.jytech.us"
+            git add data/devto-published.jsonl
+            git commit -m "chore(devto): record published articles"
+            git push
+          else
+            echo "Nothing new to record."
+          fi
