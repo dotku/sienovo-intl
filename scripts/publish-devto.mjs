@@ -226,10 +226,13 @@ function brandIntro() {
   // Single-line intro injected at the top of every Dev.to post so the
   // brand association is unambiguous even when the translated body
   // (mostly a stripped technical article from CSDN) contains no
-  // mention of Sienovo on its own.
+  // mention of Sienovo on its own. The 深圳信迈 attribution lets
+  // Chinese-speaking readers who know the parent company bridge to
+  // the new English brand.
   return [
-    `*Originally published on the [Sienovo Engineering Blog](${SITE_URL}/en/blog) — ` +
-    `Sienovo builds edge AI computing solutions for industrial video analytics.*`,
+    `*Originally published on the [Sienovo Engineering Blog](${SITE_URL}/en/blog). ` +
+    `Sienovo is the overseas brand of 深圳信迈 (Shenzhen Xinmai), ` +
+    `building edge AI computing solutions for industrial video analytics.*`,
     "",
     "---",
     "",
