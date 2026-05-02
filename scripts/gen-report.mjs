@@ -257,11 +257,16 @@ function renderHtml({ metrics, summary, config }) {
       : `<b>${metrics.commitsTotal}</b> 条`;
 
   let summaryBlock = "";
+  let aiDisclaimer = "";
   if (summary) {
     const escaped = htmlEscape(summary).replace(/\n/g, "<br>");
     summaryBlock = `
             <h3 style="margin:24px 0 8px;font-size:15px">今日工作总结</h3>
             <p style="font-size:14px;line-height:1.6;color:#333;margin:0 0 8px">${escaped}</p>`;
+    aiDisclaimer = `
+            <p style="color:#999;font-size:11px;font-style:italic;line-height:1.5;border-top:1px solid #eee;padding-top:12px;margin:24px 0 4px">
+              注：AI 生成的总结与建议仅供参考，可能存在信息遗漏、偏差或误导；执行人员应自行评估判断后再作最终决策。
+            </p>`;
   }
 
   return `<div style="font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;max-width:600px;margin:0 auto;color:#0a0a0a">
@@ -275,8 +280,8 @@ function renderHtml({ metrics, summary, config }) {
               <tr><td style="${cellBorder}">最新同步任务</td><td style="${cellBorder};text-align:right"><a href="${metrics.syncUrl}">${statusLabel(metrics.syncStatus)}</a></td></tr>
               <tr><td style="${cellBorder}">最新翻译任务</td><td style="${cellBorder};text-align:right"><a href="${metrics.translateUrl}">${statusLabel(metrics.translateStatus)}</a></td></tr>
               <tr><td>${metrics.windowLabel}功能提交</td><td style="text-align:right">${commitsCell}</td></tr>
-            </table>${summaryBlock}
-            <p style="color:#999;font-size:12px;margin-top:24px">来自 <a href="https://github.com/${REPO}">${REPO}</a></p>
+            </table>${summaryBlock}${aiDisclaimer}
+            <p style="color:#999;font-size:12px;margin-top:16px">来自 <a href="https://github.com/${REPO}">${REPO}</a></p>
           </div>`;
 }
 
