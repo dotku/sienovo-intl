@@ -3,101 +3,53 @@ import { getAllPosts } from "@/lib/blog";
 import { prisma } from "@/lib/prisma";
 import { SITE_URL } from "@/lib/site";
 
-export const revalidate = 3600; // regenerate sitemap every 1 hour
-const POSTS_PER_SITEMAP = 500;
+// Run at request time — keeps the filesystem reads + Prisma query out of the
+// build step, so missing env vars during build can't bake an empty sitemap.
+export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
-/**
- * Sitemap index — Next.js calls this to discover all sitemap IDs,
- * then calls sitemap({ id }) for each one.
- *
- * Layout:
- *   id 0  → static pages + product pages
- *   id 1… → Chinese blog posts  (batches of 500)
- *   id N… → English blog posts  (batches of 500)
- */
-export async function generateSitemaps() {
-  const zhCount = getAllPosts("zh").length;
-  const enCount = getAllPosts("en").length;
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const now = new Date();
 
-  const zhChunks = Math.max(1, Math.ceil(zhCount / POSTS_PER_SITEMAP));
-  const enChunks = Math.max(1, Math.ceil(enCount / POSTS_PER_SITEMAP));
+  // Static landing pages
+  const staticEntries: MetadataRoute.Sitemap = [
+    { url: SITE_URL, lastModified: now, changeFrequency: "weekly", priority: 1.0 },
+    { url: `${SITE_URL}/blog`, lastModified: now, changeFrequency: "daily", priority: 0.8 },
+    { url: `${SITE_URL}/en/blog`, lastModified: now, changeFrequency: "daily", priority: 0.7 },
+  ];
 
-  // id 0 = static + products, 1..zhChunks = zh blog, zhChunks+1.. = en blog
-  const total = 1 + zhChunks + enChunks;
-  return Array.from({ length: total }, (_, i) => ({ id: i }));
-}
-
-export default async function sitemap({
-  id,
-}: {
-  id: number;
-}): Promise<MetadataRoute.Sitemap> {
-  // ── id 0: static pages + products ──
-  if (id === 0) {
+  // Products — non-fatal on DB error so a Prisma outage can't 500 the sitemap.
+  let productEntries: MetadataRoute.Sitemap = [];
+  try {
     const products = await prisma.product.findMany({
       where: { active: true },
       select: { slug: true, updatedAt: true },
       orderBy: { createdAt: "asc" },
     });
-
-    return [
-      {
-        url: SITE_URL,
-        lastModified: new Date(),
-        changeFrequency: "weekly",
-        priority: 1.0,
-      },
-      {
-        url: `${SITE_URL}/blog`,
-        lastModified: new Date(),
-        changeFrequency: "daily",
-        priority: 0.8,
-      },
-      {
-        url: `${SITE_URL}/en/blog`,
-        lastModified: new Date(),
-        changeFrequency: "daily",
-        priority: 0.7,
-      },
-      ...products.map((p) => ({
-        url: `${SITE_URL}/products/${p.slug}`,
-        lastModified: p.updatedAt,
-        changeFrequency: "monthly" as const,
-        priority: 0.7,
-      })),
-    ];
-  }
-
-  // ── Determine which blog chunk this id represents ──
-  const zhPosts = getAllPosts("zh");
-  const zhChunks = Math.max(1, Math.ceil(zhPosts.length / POSTS_PER_SITEMAP));
-
-  if (id <= zhChunks) {
-    // Chinese blog chunk (1-indexed: id 1 = first chunk)
-    const chunkIndex = id - 1;
-    const slice = zhPosts.slice(
-      chunkIndex * POSTS_PER_SITEMAP,
-      (chunkIndex + 1) * POSTS_PER_SITEMAP,
-    );
-    return slice.map((post) => ({
-      url: `${SITE_URL}/blog/${post.slug}`,
-      lastModified: new Date(post.date),
+    productEntries = products.map((p) => ({
+      url: `${SITE_URL}/products/${p.slug}`,
+      lastModified: p.updatedAt,
       changeFrequency: "monthly" as const,
-      priority: 0.6,
+      priority: 0.7,
     }));
+  } catch (err) {
+    console.error("[sitemap] prisma.product.findMany failed", err);
   }
 
-  // English blog chunk
-  const enPosts = getAllPosts("en");
-  const enChunkIndex = id - 1 - zhChunks;
-  const slice = enPosts.slice(
-    enChunkIndex * POSTS_PER_SITEMAP,
-    (enChunkIndex + 1) * POSTS_PER_SITEMAP,
-  );
-  return slice.map((post) => ({
+  // Blog posts (Chinese + English) — read straight from the MDX files.
+  const zhPosts = getAllPosts("zh").map((post) => ({
+    url: `${SITE_URL}/blog/${post.slug}`,
+    lastModified: post.date ? new Date(post.date) : now,
+    changeFrequency: "monthly" as const,
+    priority: 0.6,
+  }));
+
+  const enPosts = getAllPosts("en").map((post) => ({
     url: `${SITE_URL}/en/blog/${post.slug}`,
-    lastModified: new Date(post.date),
+    lastModified: post.date ? new Date(post.date) : now,
     changeFrequency: "monthly" as const,
     priority: 0.5,
   }));
+
+  return [...staticEntries, ...productEntries, ...zhPosts, ...enPosts];
 }
