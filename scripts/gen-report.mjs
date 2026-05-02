@@ -32,6 +32,15 @@ if (!args.period) {
 const REPO = process.env.GITHUB_REPOSITORY || "dotku/sienovo-intl";
 const RECIPIENT = process.env.REPORT_RECIPIENT || "sienovojay@gmail.com";
 
+// Repo paths for cross-project tracking. marine lives under a different org
+// (jytech2023), so the workflow needs a PAT with access to both orgs in
+// $GH_TOKEN — the default ${{ github.token }} from CI is repo-scoped and
+// will return 404 for jytech2023/*. The script handles 404 gracefully.
+const OTHER_PROJECTS = [
+  { repo: "dotku/sienovo-cn", label: "sienovo-cn", note: "中文站点 (Vite + React)" },
+  { repo: "jytech2023/sienovo-marine", label: "sienovo-marine", note: "Marine 业务 (Next.js + Neon)" },
+];
+
 // ---------- main ----------
 
 const config = configFor(args.period);
@@ -51,6 +60,9 @@ if (config.previousSinceISO) {
       untilISO: config.sinceISO,
     });
   }
+}
+if (config.includeOtherProjects) {
+  metrics.otherProjects = await gatherOtherProjectsActivity(config);
 }
 const summary = await generateNarrative(metrics, config);
 const subject = `[sienovo-intl] ${config.subjectLabel} ${metrics.dateLabel}`;
@@ -110,6 +122,7 @@ function configFor(period) {
         summaryHeading: "本周工作总结与下周建议",
         maxOutputTokens: 1500,
         dbEnabled: true,
+        includeOtherProjects: true,
       };
     case "monthly":
       return {
@@ -124,6 +137,7 @@ function configFor(period) {
         summaryHeading: "月度复盘与下阶段战略建议",
         maxOutputTokens: 2400,
         dbEnabled: true,
+        includeOtherProjects: true,
       };
     default:
       throw new Error(`unknown period: ${period}`);
@@ -255,10 +269,10 @@ function buildWeeklyPrompt(metrics, config) {
     .join("\n") || "  - (无 ApiUsage 记录)";
 
   return [
-    "你是 sienovo-intl 项目（Sienovo 是边缘 AI 视觉计算公司，主营工业视频分析；本平台覆盖产品页、CRM、客户支持、Outreach 销售自动化、内容翻译流水线、Marine 船只追踪等业务）的运营周报顾问。",
-    "请阅读以下本周数据，用中文产出三段叙述（共约 200-280 字，纯文本，不要 Markdown、不要标题前缀、不要分点编号）：",
-    "1. 本周成果：业务、内容、系统三方面的关键产出与亮点。",
-    "2. 阻塞与风险：从指标里能看出的瓶颈或异常（如外联回复率低、API 失败率上升、Ticket 积压等）。",
+    "你是 Sienovo（边缘 AI 视觉计算公司）整体运营的周报顾问。Sienovo 旗下有三个项目：sienovo-intl（英文站 + 业务平台，主数据源）、sienovo-cn（中文站点）、sienovo-marine（Marine 业务）。本周报以 intl 为核心，但需把另外两个项目的工程活动一并纳入观察。",
+    "请阅读以下本周数据，用中文产出三段叙述（共约 200-300 字，纯文本，不要 Markdown、不要标题前缀、不要分点编号）：",
+    "1. 本周成果：业务、内容、系统三方面的关键产出与亮点；如关联项目（cn / marine）有显著活动也提一下。",
+    "2. 阻塞与风险：从指标里能看出的瓶颈或异常（如外联回复率低、API 失败率上升、Ticket 积压、cn 长期无更新等）。",
     '3. 下周建议：基于本周数据给 2-3 条具体可执行的运营 / 产品 / 工程建议。建议要落地，避免「提升用户体验」这类空话。',
     "段与段之间用空行分隔。",
     "",
@@ -291,11 +305,24 @@ function buildWeeklyPrompt(metrics, config) {
     "[ API 调用 (Top 8 by service) ]",
     apiUsageLines,
     "",
-    "[ 工程提交 ]",
+    "[ 工程提交 (sienovo-intl) ]",
     `  本周提交: ${metrics.commitsTotal} 条 (${metrics.commitsBreakdown || "无分类"})`,
     "  代表性 commit:",
     truncate(metrics.commitsDetail, 1500) || "  (无非机器人提交)",
+    "",
+    "[ 关联项目工程活动 ]",
+    formatOtherProjectsForPrompt(metrics.otherProjects),
   ].join("\n");
+}
+
+function formatOtherProjectsForPrompt(others) {
+  if (!others || !others.length) return "  (未拉取)";
+  return others.map((p) => {
+    if (p.error) return `  - ${p.label} (${p.note}): 拉取失败 ${p.error}`;
+    if (p.total === 0) return `  - ${p.label} (${p.note}): 无新提交`;
+    const recent = p.recent?.length ? `；最近: ${p.recent.slice(0, 3).join(" | ")}` : "";
+    return `  - ${p.label} (${p.note}): ${p.total} 条 (${p.breakdown})${recent}`;
+  }).join("\n");
 }
 
 function truncate(s, max) {
@@ -319,12 +346,12 @@ function buildMonthlyPrompt(metrics, config) {
     .join("\n") || "  - (无)";
 
   return [
-    "你是 sienovo-intl 项目（Sienovo 是边缘 AI 视觉计算公司，主营工业视频分析；本平台覆盖产品页、CRM、客户支持、Outreach 销售自动化、内容翻译流水线、Marine 船只追踪等业务）的运营月报顾问。",
-    "请阅读以下本月（30 天）数据 + 上月对比，用中文产出四段（共 350-500 字，纯文本，不要 Markdown、不要标题、不要分点编号）：",
-    "1. 月度复盘：客户 / 内容 / 系统 / 销售 四条线本月的关键产出与亮点；如有同比增长或下滑要点出。",
+    "你是 Sienovo（边缘 AI 视觉计算公司）整体运营的月报顾问。Sienovo 旗下有三个项目：sienovo-intl（英文站 + 业务平台，主数据源）、sienovo-cn（中文站点）、sienovo-marine（Marine 业务）。本月报以 intl 数据为核心，但需要把另外两个项目的工程活跃度一并纳入观察。",
+    "请阅读以下本月（30 天）数据 + 上月对比，用中文产出四段（共 380-550 字，纯文本，不要 Markdown、不要标题、不要分点编号）：",
+    "1. 月度复盘：客户 / 内容 / 系统 / 销售 四条线本月的关键产出与亮点；如有同比增长或下滑要点出；提一下 cn / marine 的开发活动状态。",
     "2. 漏斗分析：从新增 Company → Contact → Conversation → Order 这条转化链中识别瓶颈；如果 Outreach 或 Marine 数据异常也单独点出。",
-    "3. 风险与异常：从 ApiUsage 失败率、Ticket 积压、对话量趋势等识别需要立即处理的问题。",
-    "4. 下阶段战略建议：基于本月数据 + 环比变化给 3-4 条具体可执行的运营 / 产品 / 销售 / 工程方向的建议；建议要落地，标明优先级（高/中），避免「拓展国际市场」「优化用户体验」这类空话。",
+    "3. 风险与异常：从 ApiUsage 失败率、Ticket 积压、对话量趋势、cn 长期无更新等识别需要立即处理的问题。",
+    "4. 下阶段战略建议：基于本月数据 + 环比变化给 3-4 条具体可执行的运营 / 产品 / 销售 / 工程方向的建议；如果某个关联项目（cn / marine）需要重点投入或暂时降级也明确说出来；建议要落地，标明优先级（高/中），避免「拓展国际市场」「优化用户体验」这类空话。",
     "段与段之间用空行分隔。",
     "",
     `=== 本月时间窗：${config.rangeLabel} (UTC) ===`,
@@ -355,12 +382,60 @@ function buildMonthlyPrompt(metrics, config) {
     "[ API 调用 (本月 Top 8) ]",
     apiCurrent,
     "",
-    "[ 工程提交 (本月) ]",
+    "[ 工程提交 (sienovo-intl 本月) ]",
     `  本月: ${metrics.commitsTotal} 条 (${metrics.commitsBreakdown || "无分类"})`,
     `  上月: ${metrics.previous?.commitsTotal ?? 0} 条 (${metrics.previous?.commitsBreakdown || "无分类"})`,
     "  代表性 commit (本月):",
     truncate(metrics.commitsDetail, 1200) || "  (无非机器人提交)",
+    "",
+    "[ 关联项目工程活动 (本月) ]",
+    formatOtherProjectsForPrompt(metrics.otherProjects),
   ].join("\n");
+}
+
+// ---------- Cross-project commit activity ----------
+
+async function gatherOtherProjectsActivity(config) {
+  if (!process.env.GH_TOKEN) {
+    console.error("::warning::GH_TOKEN not set; skipping cross-project activity");
+    return [];
+  }
+  const since = config.sinceISO;
+  const out = [];
+  for (const p of OTHER_PROJECTS) {
+    try {
+      const params = new URLSearchParams({ since, per_page: "100" });
+      const resp = await fetch(`https://api.github.com/repos/${p.repo}/commits?${params}`, {
+        headers: {
+          Authorization: `Bearer ${process.env.GH_TOKEN}`,
+          Accept: "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+        },
+      });
+      if (!resp.ok) {
+        const txt = await resp.text();
+        console.error(`::warning::GitHub API ${resp.status} for ${p.repo}: ${txt.slice(0, 200)}`);
+        out.push({ ...p, error: `HTTP ${resp.status}`, total: 0 });
+        continue;
+      }
+      const commits = await resp.json();
+      // Filter out bot/infrastructure commits to match intl's filtering style.
+      const subjects = commits
+        .map((c) => (c.commit?.message || "").split("\n")[0].trim())
+        .filter((s) => s && !/^(translate:|sync:) /.test(s));
+      const breakdown = bucketByConventionalType(subjects);
+      out.push({
+        ...p,
+        total: subjects.length,
+        breakdown,
+        recent: subjects.slice(0, 5),
+      });
+    } catch (err) {
+      console.error(`::warning::Failed to fetch ${p.repo}: ${err.message}`);
+      out.push({ ...p, error: err.message, total: 0 });
+    }
+  }
+  return out;
 }
 
 // ---------- Postgres metrics (weekly / monthly) ----------
@@ -498,6 +573,27 @@ function deltaSpan(curr, prev) {
   return ` <span style="color:${color};font-size:11px">(${sign}${diff}${pct})</span>`;
 }
 
+function renderOtherProjectsSection(others) {
+  if (!others || !others.length) return "";
+  const cellBorder = "border-bottom:1px solid #eee";
+  const rows = others.map((p) => {
+    const totalCell = p.error
+      ? `<span style="color:#a04040;font-size:12px">拉取失败: ${htmlEscape(p.error)}</span>`
+      : p.total === 0
+        ? '<span style="color:#999">无</span>'
+        : p.breakdown
+          ? `<b>${p.total}</b> 条 <span style="color:#666;font-size:12px">(${htmlEscape(p.breakdown)})</span>`
+          : `<b>${p.total}</b> 条`;
+    return `<tr><td style="${cellBorder}"><b>${htmlEscape(p.label)}</b><br><span style="color:#888;font-size:11px">${htmlEscape(p.note)}</span></td><td style="${cellBorder};text-align:right;vertical-align:top">${totalCell}</td></tr>`;
+  }).join("");
+
+  return `
+            <h3 style="margin:24px 0 8px;font-size:15px">关联项目工程活动</h3>
+            <table cellpadding="8" style="border-collapse:collapse;width:100%;font-size:14px">
+              ${rows}
+            </table>`;
+}
+
 function renderDbSection(db, prevDb) {
   if (!db || !db.summary) return "";
   const s = db.summary;
@@ -556,6 +652,7 @@ function renderHtml({ metrics, summary, config }) {
       : `<b>${metrics.commitsTotal}</b> 条`;
 
   const dbSection = config.dbEnabled ? renderDbSection(metrics.db, metrics.previous?.db) : "";
+  const otherProjectsSection = renderOtherProjectsSection(metrics.otherProjects);
   const prev = metrics.previous;
 
   let summaryBlock = "";
@@ -587,7 +684,7 @@ function renderHtml({ metrics, summary, config }) {
               <tr><td style="${cellBorder}">最新同步任务</td><td style="${cellBorder};text-align:right"><a href="${metrics.syncUrl}">${statusLabel(metrics.syncStatus)}</a></td></tr>
               <tr><td style="${cellBorder}">最新翻译任务</td><td style="${cellBorder};text-align:right"><a href="${metrics.translateUrl}">${statusLabel(metrics.translateStatus)}</a></td></tr>
               <tr><td>${metrics.windowLabel} 功能提交</td><td style="text-align:right">${commitsCell}${deltaSpan(metrics.commitsTotal, prev?.commitsTotal)}</td></tr>
-            </table>${dbSection}${summaryBlock}${aiDisclaimer}${confidentialNotice}
+            </table>${dbSection}${otherProjectsSection}${summaryBlock}${aiDisclaimer}${confidentialNotice}
             <p style="color:#999;font-size:12px;margin-top:16px">来自 <a href="https://github.com/${REPO}">${REPO}</a></p>
           </div>`;
 }

@@ -34,7 +34,10 @@ jobs:
 
       - name: Generate and send weekly report
         env:
-          GH_TOKEN: ${{ github.token }}
+          # Falls back to github.token if no PAT is set. Without CROSS_REPO_TOKEN,
+          # the cross-project tracking can't reach jytech2023/sienovo-marine
+          # and that row will show "拉取失败 HTTP 404". cn (dotku) still works.
+          GH_TOKEN: ${{ secrets.CROSS_REPO_TOKEN || github.token }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
