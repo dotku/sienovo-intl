@@ -73,10 +73,10 @@ jobs:
 
           icon() {
             case "$1" in
-              success) echo "success" ;;
-              failure) echo "FAILURE" ;;
-              cancelled) echo "cancelled" ;;
-              no-run) echo "no run" ;;
+              success) echo "成功" ;;
+              failure) echo "失败" ;;
+              cancelled) echo "已取消" ;;
+              no-run) echo "未运行" ;;
               *) echo "$1" ;;
             esac
           }
@@ -85,18 +85,18 @@ jobs:
           TRANSLATE_LABEL=$(icon "$TRANSLATE_STATUS")
 
           HTML=$(cat <<EOF
-          <div style="font-family:-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;max-width:600px;margin:0 auto;color:#0a0a0a">
-            <h2 style="margin:0 0 4px">sienovo-intl daily report</h2>
-            <p style="color:#666;margin:0 0 16px">${TODAY} (UTC)</p>
+          <div style="font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;max-width:600px;margin:0 auto;color:#0a0a0a">
+            <h2 style="margin:0 0 4px">sienovo-intl 每日报告</h2>
+            <p style="color:#666;margin:0 0 16px">${TODAY}（UTC）</p>
             <table cellpadding="8" style="border-collapse:collapse;width:100%;font-size:14px">
-              <tr><td style="border-bottom:1px solid #eee">Synced (24h)</td><td style="border-bottom:1px solid #eee;text-align:right"><b>${SYNCED}</b> new articles</td></tr>
-              <tr><td style="border-bottom:1px solid #eee">Translated (24h)</td><td style="border-bottom:1px solid #eee;text-align:right"><b>${TRANSLATED}</b> articles</td></tr>
-              <tr><td style="border-bottom:1px solid #eee">Total (zh / en)</td><td style="border-bottom:1px solid #eee;text-align:right">${BLOG} / ${BLOG_EN}</td></tr>
-              <tr><td style="border-bottom:1px solid #eee">Remaining to translate</td><td style="border-bottom:1px solid #eee;text-align:right"><b>${REMAINING}</b> articles</td></tr>
-              <tr><td style="border-bottom:1px solid #eee">Latest sync run</td><td style="border-bottom:1px solid #eee;text-align:right"><a href="${SYNC_URL}">${SYNC_LABEL}</a></td></tr>
-              <tr><td>Latest translate run</td><td style="text-align:right"><a href="${TRANSLATE_URL}">${TRANSLATE_LABEL}</a></td></tr>
+              <tr><td style="border-bottom:1px solid #eee">近 24 小时新抓取</td><td style="border-bottom:1px solid #eee;text-align:right"><b>${SYNCED}</b> 篇</td></tr>
+              <tr><td style="border-bottom:1px solid #eee">近 24 小时翻译完成</td><td style="border-bottom:1px solid #eee;text-align:right"><b>${TRANSLATED}</b> 篇</td></tr>
+              <tr><td style="border-bottom:1px solid #eee">总数（中 / 英）</td><td style="border-bottom:1px solid #eee;text-align:right">${BLOG} / ${BLOG_EN}</td></tr>
+              <tr><td style="border-bottom:1px solid #eee">剩余待翻译</td><td style="border-bottom:1px solid #eee;text-align:right"><b>${REMAINING}</b> 篇</td></tr>
+              <tr><td style="border-bottom:1px solid #eee">最新同步任务</td><td style="border-bottom:1px solid #eee;text-align:right"><a href="${SYNC_URL}">${SYNC_LABEL}</a></td></tr>
+              <tr><td>最新翻译任务</td><td style="text-align:right"><a href="${TRANSLATE_URL}">${TRANSLATE_LABEL}</a></td></tr>
             </table>
-            <p style="color:#999;font-size:12px;margin-top:24px">Sent from <a href="https://github.com/${REPO}">${REPO}</a></p>
+            <p style="color:#999;font-size:12px;margin-top:24px">来自 <a href="https://github.com/${REPO}">${REPO}</a></p>
           </div>
           EOF
           )
@@ -104,7 +104,7 @@ jobs:
           jq -n \
             --arg from "sienovo-intl <onboarding@resend.dev>" \
             --arg to "sienovojay@gmail.com" \
-            --arg subject "[sienovo-intl] Daily report ${TODAY}" \
+            --arg subject "[sienovo-intl] 每日报告 ${TODAY}" \
             --arg html "$HTML" \
             '{from: $from, to: [$to], subject: $subject, html: $html}' > /tmp/payload.json
 
