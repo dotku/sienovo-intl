@@ -368,6 +368,19 @@ async function refreshArticle(slug) {
       return { ok: false };
     }
     const data = JSON.parse(text);
+    // Append a fresh state record so the admin portal sees the latest
+    // draft/published state. The reader dedupes by slug (last wins), so
+    // this overrides the original entry without rewriting the file.
+    appendPublished({
+      slug: post.slug,
+      title: post.title,
+      dev_to_id: entry.dev_to_id,
+      dev_to_url: data.url || data.canonical_url || entry.dev_to_url,
+      canonical_url: payload.article.canonical_url,
+      published_at: new Date().toISOString(),
+      draft: !payload.article.published,
+      refreshed: true,
+    });
     console.log(`✓ refreshed → ${data.url || data.canonical_url}`);
     return { ok: true };
   } catch (err) {

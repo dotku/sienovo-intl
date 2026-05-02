@@ -11,9 +11,9 @@ on:
         description: "Publish as draft (true/false)"
         required: false
         default: "false"
-  # Daily cron — disabled by default. Enable after verifying first manual batches.
-  # schedule:
-  #   - cron: "0 6 * * *"  # 06:00 UTC daily
+  schedule:
+    # 06:00 UTC daily (14:00 Beijing) — publishes 3 articles per day, longest first
+    - cron: "0 6 * * *"
 
 permissions:
   contents: write          # so we can commit data/devto-published.jsonl after each run
@@ -43,9 +43,13 @@ jobs:
           DEVTO_ORG_ID: ${{ secrets.DEVTO_ORG_ID }}
           NEXT_PUBLIC_SITE_URL: https://sienovo.jytech.us
         run: |
+          # workflow_dispatch supplies inputs.* explicitly; cron-fired runs leave
+          # them empty, so default to limit=3 / published.
+          LIMIT="${{ github.event.inputs.limit }}"
+          DRAFT="${{ github.event.inputs.draft }}"
           DRAFT_FLAG=""
-          if [ "${{ github.event.inputs.draft }}" = "true" ]; then DRAFT_FLAG="--draft"; fi
-          node scripts/publish-devto.mjs --limit "${{ github.event.inputs.limit || '3' }}" $DRAFT_FLAG
+          if [ "$DRAFT" = "true" ]; then DRAFT_FLAG="--draft"; fi
+          node scripts/publish-devto.mjs --limit "${LIMIT:-3}" $DRAFT_FLAG
 
       - name: Commit published-state log
         run: |
