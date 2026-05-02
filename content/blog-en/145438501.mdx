@@ -1,0 +1,39 @@
+---
+title: "System Design of a Six-Degree-of-Freedom Robotic Arm for Inspection Robots Based on RK3588/RK3576+FPGA"
+date: "2025-02-04"
+slug: "145438501"
+tags: ["#机器人"]
+source: "https://blog.csdn.net/szxinmai/article/details/145438501"
+originalTitle: "基于RK3588/RK3576+FPGA的巡检机器人六自由度机械臂的系统设计"
+---
+
+Nowadays, robotic arms of inspection robots operating in complex environments such as utility tunnels often face problems of narrow spaces and dense obstacles. This requires the robotic arm to possess the ability to perform obstacle avoidance path planning in confined spaces. Furthermore, uncertain factors, such as difficulty in perceiving the global state information of the robotic arm under sudden or abnormal environmental conditions, can introduce new challenges to obstacle avoidance. In response to these issues, this paper primarily focuses on the following research points:
+
+(1) Addressing the problem of obstacle avoidance for robotic arms in narrow spaces, this paper proposes an improved RRT\* algorithm. This algorithm primarily introduces a greedy strategy into the node expansion guidance mechanism of the original algorithm, performing goal-oriented node expansion with a certain probability. Compared to the original algorithm, the improved algorithm significantly reduces time spent on invalid expansions, accelerates the expansion of the random tree, and greatly shortens the algorithm's convergence time. Additionally, an adaptive strategy for random tree search is incorporated during the optimization process, which can prevent the random tree from getting stuck in local minima during search.
+
+(2) To address the problem of the robotic arm's inability to perceive complete environmental information due to uncertainties during path planning, this paper proposes treating the robotic arm's path planning problem under perceptual uncertainty as a Partially Observable Markov Decision Process (POMDP). Within the POMDP framework, this paper uses Gaussian distributions to represent beliefs, quadratic functions to represent value functions, Kalman filtering to describe the dynamic update of belief dynamics, and a Linear Quadratic Gaussian (LQG) method for value iteration to solve for belief space variables, obtaining the optimal value function. This then yields a linear control policy for the optimal trajectory, ultimately leading to a locally optimal path. Furthermore, robotic arm motion simulations were conducted on the MoveIt! platform within Matlab and the ROS robot operating system.
+
+(3) Addressing the problem of robotic arm recognition and localization of detection targets, this paper investigates improvements to the YOLOv4 algorithm. This algorithm achieves network lightweighting of the YOLO algorithm, significantly reducing the computation time of the improved algorithm, which helps to improve the real-time performance of tasks.
+
+(4) This paper built a 6-DOF robotic arm system based on hardware and software design. The robotic arm model was configured using MoveIt! in the ROS robot operating system, enabling visual control and path planning simulation of the robotic arm. Furthermore, this paper further developed non-destructive testing applications for pipelines in utility tunnels based on this robotic arm system, to detect harmful gas leaks and liquid leaks in pipelines.
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/145438501/01_6041f02de51c44a680b067f01fe41677.png)![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/145438501/02_79809b238b844106bb304c94458f5e5c.png)
+
+This chapter will complete the design of the inspection robot's robotic arm system. As the core platform for this research, the robotic arm system will undertake various tasks such as autonomous obstacle avoidance, non-destructive testing, and human-robot interaction, making it a crucial part of this research. This chapter will research and develop the robotic arm system from both hardware and software perspectives.
+5.1 Control System Design for Inspection Robot and Robotic Arm
+5.1.1 System Architecture Design
+The control system for the inspection robot's robotic arm consists of an upper-level (host) control system and a lower-level (embedded) control system. The upper-level control system includes the robot system's main control module and a remote host monitoring module, capable of achieving remote control of the robotic arm. The lower-level control system includes motion control modules for the robot chassis and robotic arm, and an environmental data acquisition and processing module. A power module supplies power to each respective module. The overall system structure is shown in Figure 5.1.
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/145438501/03_bec2a88e75fc48149edc353aedda92e5.png)
+
+5.1.2 Hardware Composition of the Control System
+(1) Upper-level Main Control Module
+The inspection robot is a distributed platform centered around a microcontroller and a high-performance processor. The architecture design is primarily for two reasons: First, as an independent entity, the robot's upper-level system needs to process a large number of commands and real-time data during human interaction, and also perform image processing functions, thus requiring a powerful processor as the core of the upper-level system. Second, considering the different resources required for motor control of the robot and robotic arm, as well as image and algorithm processing, and the robot's diverse functions, if all task processing is placed on the upper-level processor, it often encounters insufficient computing power and phenomena like stuttering. If these tasks can be decomposed and distributed to multiple cores, it can effectively alleviate the operational pressure. By combining a microcontroller and a powerful processor, the core control system for both the robot's upper-level and lower-level systems is formed, achieving a more reasonable allocation of power and processing resources.
+In the lower-level module designed for this research, an STM32 microcontroller is used to implement functions such as sensor driving and motor control. However, processing image information read from a depth camera is not suitable for the STM32. Therefore, after comprehensive consideration, this paper selected Rockchip's RK3588 processor as the main controller for the robot's upper-level platform. The RK3588 features a quad-core A76 + quad-core A55 CPU, Mali-G610 GPU, and rich functional interfaces, capable of meeting experimental requirements.
+
+(2) Lower-level Main Control Module
+The lower-level main control module acts as a bridge between the actuators and sensor modules and the upper-level system, responsible for collecting sensor data and parsing commands from the upper-level system. The lower-level control uses the STM32F103ZET6 microcontroller. This controller is widely used in industrial control, featuring rich resources, including 64KB of SRAM, 512KB of FLASH, multiple timers, DMA controllers, and communication interface modules.
+
+Figure 5.3 STM32 Microcontroller
+(3) Battery Module
+The battery module supplies power to all modules of both the upper-level and lower-level systems. This paper selected a ternary lithium battery pack with a nominal voltage and operating current of 24V/20A and a nominal capacity of 40AH. Communication is via RS485 protocol, outputting information such as battery voltage, current, and remaining charge.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/145438501/04_095abbfdc1094ee6a6917e16229fa319.png)5.1.4 Actuator Control Implementation

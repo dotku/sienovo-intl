@@ -1,0 +1,123 @@
+---
+title: "Application of ZYNQ MPSoC + QNX Real-time System + CPCI Board in Rail Transit Modular Systems"
+date: "2025-03-07"
+slug: "146087485"
+tags: ["#fpga开发"]
+source: "https://blog.csdn.net/szxinmai/article/details/146087485"
+originalTitle: "ZYNQ MPSOC+QNX实时系统+CPCI 板卡在轨道交通模块化系统的应用"
+---
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/146087485/01_c9501a1608a2400fb709658f75dcc856.png)
+
+### Application of ZYNQ MPSoC + QNX Real-time System + CPCI Board in Rail Transit Modular Systems
+
+### **Block Diagram**
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/146087485/02_f6920f1a079644d4b0469cd845718e35.png)
+ 
+
+### **Technical Specifications**
+
+— Dual Main Control Chips: XC7Z020-CLG484 and XC7VX690T-2FFG1761I;
+
+— Memory:
+
+\-XC7VX690T with 8x 16-bit 1600 DDR3 SDRAM (up to 4GB supported), maximum bandwidth up to 25.6GB/s;
+
+\-XC7Z020 with 2x 16-bit 1600 DDR3 SDRAM (up to 4GB supported), maximum bandwidth up to 6.4GB/s;
+
+\-Supports SPI Flash for program loading;
+
+\-Features eMMC interface (can also be used as I/O expansion for XC7Z020); Features SD card interface;
+
+— Communication and Networking
+
+\-Supports UART communication;
+
+\-Supports Ethernet communication;
+
+\-Supports USB2.0 OTG slave mode;
+
+— Configuration: JTAG program download via Micro USB interface
+
+— Expansion Connectors: 2x FMC-HPC interfaces
+
+— 160 single-ended or 80 differential (34 pairs LA, 24 pairs HA, and 22 pairs HB) user-defined pins;
+
+— High-speed pins: Supports 8 lanes;
+
+— VADJ supports 1.2~3.3V adjustable;
+
+— Supports IIC;
+
+— Supports JTAG;
+
+— Optical Fiber Interface - SFP+
+
+— Control & I/O
+
+— Multiple switches and buttons;
+
+— Multiple LED indicators;
+
+— Cooling:
+
+— Supports 12V fan cooling;
+
+— Supports air cooling (using a cold plate heat sink);
+
+— Backplane Power Supply;
+
+— Supports 12V and 5V external power supply;
+
+— Operating Temperature Range: Commercial grade 0~70℃; Industrial grade -40℃~70℃.
+
+— Physical Dimensions: 233.35mm x 160.00mm x 25.40mm
+
+#### I. Hardware Architecture Design Highlights
+
+1.  ‌**ZYNQ MPSoC Heterogeneous Computing Advantages**‌
+    
+    *   Leverages its quad-core Cortex-A53 processor to run the QNX real-time system, handling complex tasks such as train control and communication protocol stacks; the dual-core Cortex-R5 processor achieves hard real-time responses, such as emergency braking signal processing.
+    *   The FPGA logic units (PL side) can be customized to implement rail transit-specific interfaces (e.g., MVB, CAN bus) or accelerate sensor data pre-processing.
+2.  ‌**CPCI Board Modular Features**‌
+    
+    *   Supports hot-swappable design, facilitating on-board equipment maintenance and functional expansion, for example, rapidly deploying redundant control modules via the CPCI backplane.
+    *   Integrates high-speed PCIe interfaces (Gen2/3) to achieve low-latency data transfer (≤1μs) between the ZYNQ MPSoC and the CPCI board, meeting train network communication requirements.
+3.  ‌**Storage and Boot Redundancy Design**‌
+    
+    *   Utilizes a QSPI + eMMC dual-storage media configuration, where QSPI stores the bootloader for millisecond-level cold boot, and eMMC stores operation logs and configuration files, supporting rapid fault recovery.
+    *   Through a separated design of PS-side DDR4 memory (5GB) + PL-side DDR4 memory (4GB), bandwidth requirements for system operation and hardware acceleration are ensured respectively.
+
+* * *
+
+#### II. Software System Implementation Plan
+
+1.  ‌**QNX Real-time System Optimization**‌
+    
+    *   Leverages QNX microkernel architecture (memory footprint <2MB) to achieve deterministic task scheduling, ensuring critical task response times ≤10ms for signal light control, door status monitoring, and other functions.
+    *   Supports IPC message passing mechanism to achieve data synchronization and abnormal status monitoring between PS-side A53/R5 cores.
+2.  ‌**Driver and Middleware Development**‌
+    
+    *   Develops CPCI board drivers based on the V4L2 framework, supporting multi-channel video acquisition (e.g., carriage surveillance) and hardware video encoding/decoding (H.265 compression ratio ≥50:1).
+    *   Integrates SDF cryptographic interface library, utilizing PL-side national cryptographic algorithm acceleration chips to achieve on-board communication data encryption (SM4 throughput ≥1Gbps).
+
+* * *
+
+#### III. Typical Application Scenarios
+
+1.  ‌**On-board Control System**‌
+    
+    *   Runs Automatic Train Protection (ATP) algorithms, acquiring track circuit signals via CPCI expansion I/O modules, with FPGA implementing 32-channel ADC data parallel processing.
+    *   The QNX system manages dual redundant networks (Ethernet + MVB), achieving fault-over time <500ms.
+2.  ‌**Trackside Monitoring Equipment**‌
+    
+    *   Builds distributed acquisition nodes based on CPCI chassis, with ZYNQ MPSoC processing LiDAR point clouds (1 million points/second) to detect track geometric deformation with an accuracy of ±0.1mm.
+
+* * *
+
+#### IV. Reliability Assurance Measures
+
+1.  Operating temperature range of -40℃~85℃, compliant with EN50155 standard for railway electronic equipment.
+2.  Supports ECC memory error correction and watchdog circuitry, achieving 72 hours of fault-free operation.
+3.  Boot process configured with a three-level rollback mechanism, enabling system recovery within 15 seconds in case of anomalies.

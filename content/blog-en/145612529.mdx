@@ -1,0 +1,81 @@
+---
+title: "[PHM] Smart Maintenance Technology based on TI AM62X+FPGA+PHM for Wind Turbine Monitoring Applications"
+date: "2025-02-13"
+slug: "145612529"
+tags: ["#网络"]
+source: "https://blog.csdn.net/ARM_FPGA_AI/article/details/145612529"
+originalTitle: "[PHM]基于TI AM62X+FPGA+PHM智能维护技术在风机监测的应用"
+---
+
+### I. Introduction to Smart Maintenance Technology
+#### 1. Development and Challenges of Smart Maintenance Technology (Background of PHM Technology)
+The goal of smart maintenance is to solve problems encountered in manufacturing, including equipment downtime, component damage, poor quality, and low energy utilization. To solve these problems, we cannot start from their superficial manifestations, but rather focus on their underlying causes, which we generally refer to as "invisible problems." Invisible problems include component wear, corrosion, leakage, human error, and even environmental factors. These factors can manifest in various ways, often coupling, interacting, and jointly contributing to failures. In such situations, we must address these problems at their source. To avoid these issues, it is necessary to utilize monitoring, analysis, and even decision support tools. So, how can we prevent invisible problems from occurring? A crucial aspect is prediction.![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/145612529/01_7997368174454797aaa943786c376b9b.jpeg)![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/145612529/02_3e0af84f686242439347a555195712d4.jpeg)![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/145612529/03_5f47c163a09840d4b1dc37b8a3c9591d.jpeg)
+
+The evolution of maintenance strategies proceeds through the following steps:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/145612529/04_a5b317ca6d5e4a7c949ad4467ad48c5a.png)
+
+Traditional Reactive Maintenance (RM): Waiting for equipment to fail before performing repairs.
+Preventive Maintenance (PM) for High-Reliability Equipment: Traditional reactive maintenance is insufficient for high-reliability equipment. Thus, preventive maintenance is employed. This approach is purely time-based, involving frequent replacement of parts that are not yet damaged (and could still be used for some time), making this maintenance method very costly.
+Condition-Based Maintenance (CBM): This type of maintenance no longer relies solely on time. Instead, it uses physical quantities measured from the equipment to detect early signs of impending failure, thereby preventing severe breakdowns.
+Prognostics and Health Management (PHM): Predicting equipment lifespan based on condition monitoring.
+
+As maintenance technology evolves, the maintenance cost over the equipment's lifecycle gradually decreases, while the complexity of models increases, meaning the system's intelligence level continuously rises.
+
+#### 2. PHM Concepts and Methodology
+##### 2.1 PHM Concept
+PHM is a systems engineering discipline focused on the detection, prediction, and management of the health status of complex engineering systems. The problems addressed by PHM can be summarized as follows:
+
+Cost reduction: For example, by predicting and preventing unexpected downtime events;
+Reducing over-maintenance and maximizing component lifespan;
+Reducing defective products in manufacturing;
+Improving equipment reliability.
+##### 2.2 MTBD (Mean-Time-Before-Degradation)
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/145612529/05_a05a90b774e345c68acecea41d6c3783.png)
+
+Mean Time Between Failures (MTBF) is an important concept in reliability. This concept applies to mass-produced equipment with high repeatability, where reliability metrics (MTBF) can be statistically derived purely based on time. In PHM, we are not concerned with the mean time between failures, but rather the Mean Time Before Degradation (MTBD), which is the time until degradation occurs before failure.
+1
+##### 2.3 Analysis of Common Concepts
+Prognostics: In industry, this is often referred to as fault diagnosis; in a narrower sense, it refers to the prediction of equipment lifespan.
+Health prediction: Refers to predicting the trend of equipment health values over a short-term period, serving as trend forecasting, but not yet reaching the level of Remaining Useful Life (RUL) prediction.
+Failure: Divided into hard failures and soft failures. Hard failures: e.g., component damage, equipment downtime, defective products. Soft failures: e.g., reduced equipment reliability, meaning the equipment is still operational but has degraded.
+Run-to-failure data: Full lifecycle data.
+Measurements: Data from condition monitoring. System output: behavioral data; System input: operational condition data.
+Features: Information extracted from raw data.
+Health index: Health index.
+##### 2.4 Main Methods for Fault Prediction
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/145612529/06_3c0f8724abc74e4c87945e7d8b39d156.png)
+
+Physics-based modeling, with fault detection and classification derived from control theory.
+Hybrid methods.
+Fault prediction based on reliability statistical analysis.
+Data-driven approaches.
+
+From the feature space, we can observe that if equipment is in a healthy state, it will reside within a specific distribution range. If the equipment fails, it will drift in the feature space. By continuously monitoring the equipment's state, we can predict when it will cross the failure boundary, thereby forecasting its Remaining Useful Life (RUL).
+
+So, can all systems undergo Remaining Useful Life (RUL) prediction? RUL prediction requires full lifecycle data.![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/145612529/07_eed17d82537541c8aeb39b9275006036.png)
+
+The figure above illustrates the functionalities of different levels of PHM systems:
+
+Health Assessment: Based on health status data.
+Fault Diagnosis: Based on fault data.
+Fault Prognosis: Based on full lifecycle data.
+##### 2.5 Methodology for PHM Modeling
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/145612529/08_30038b4521dd4e779cfd2759fda265c2.png)
+Data acquisition.
+Signal processing, noise reduction, cleaning.
+Feature extraction and feature selection.
+Establishing health assessment and fault diagnosis models to describe the current object's health status.
+Predicting health status.
+Visualizing assessment results for the user.
+#### 3. PHM System Design
+The development process is as follows:
+
+Requirements Definition: Is the object suitable for PHM? If so, what types of failure modes and specific problems should be focused on?
+Monitoring Level Definition: Should it be component-level, equipment-level, production line-level, or factory-level?
+Analytical Model Selection: Is the analysis data-rich and physics-poor, data-poor and physics-rich, or even data-rich and physics-rich? This depends on the model used.
+Key Parameter Selection: Corresponding to the first and second steps, business objectives are linked to key parameters.
+Deployment Strategy and Experimental Design: Collect data suitable for feasibility analysis, aiming for complete operating conditions and covering various failure modes. Full lifecycle data is ideal if available.
+Technical and Economic Feasibility Study.
+Technology Development and Online Application.
