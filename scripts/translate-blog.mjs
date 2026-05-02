@@ -23,11 +23,11 @@ config({ path: join(PROJECT_ROOT, ".env.local") });
 // ── Config ──────────────────────────────────────────────────────────────────
 const SOURCE_DIR = join(PROJECT_ROOT, "content/blog");
 const TARGET_DIR = join(PROJECT_ROOT, "content/blog-en");
-const DELAY_MS = parseInt(process.env.TRANSLATE_DELAY_MS || "500", 10); // Default 500ms, increase for bulk runs
+const DELAY_MS = parseInt(process.env.TRANSLATE_DELAY_MS || "6500", 10); // Pace at ~9 RPM to stay under Gemini free-tier 10 RPM limit
 
 // ── Provider definitions ────────────────────────────────────────────────────
 const PROVIDERS = {
-  // Daily sync: Gemini free tier (1,500 req/day) is more than enough
+  // Daily sync: Gemini 2.5 Flash free tier — 10 RPM, 250 RPD (as of 2025)
   gemini: {
     name: "Gemini Direct",
     url: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
@@ -87,6 +87,7 @@ async function translateOpenAI(provider, prompt) {
       messages: [{ role: "user", content: prompt }],
       temperature: 0.3,
       max_tokens: 8192,
+      ...(provider.extraBody || {}),
     }),
   });
 
