@@ -63,6 +63,14 @@ if (!DRY_RUN && !API_KEY) {
   fail("DEVTO_API_KEY is required (use --dry-run to preview without posting)");
 }
 
+// --refresh <slug>: update an already-posted article in place (PUT) so brand
+// intro / footer / tags can be re-rendered without creating a new entry.
+// --draft is honored to control published state.
+if (args.refresh) {
+  const refreshResult = await refreshArticle(args.refresh);
+  process.exit(refreshResult.ok ? 0 : 1);
+}
+
 const published = loadPublishedSlugs();
 const candidates = readCandidates().filter((p) => !published.has(p.slug));
 
@@ -291,6 +299,80 @@ async function postArticle(payload) {
     return { ok: true, id: data.id, url: data.url || data.canonical_url };
   } catch (err) {
     return { ok: false, error: err.message };
+  }
+}
+
+async function refreshArticle(slug) {
+  // Look up the dev_to_id from our state log.
+  if (!existsSync(STATE_FILE)) {
+    console.error(`error: ${STATE_FILE} not found — nothing to refresh.`);
+    return { ok: false };
+  }
+  const lines = readFileSync(STATE_FILE, "utf8").split("\n").filter(Boolean);
+  let entry = null;
+  for (const line of lines) {
+    try {
+      const r = JSON.parse(line);
+      if (r.slug === slug) entry = r;
+    } catch {}
+  }
+  if (!entry) {
+    console.error(`error: slug "${slug}" not found in state log.`);
+    return { ok: false };
+  }
+
+  // Re-read the local mdx and rebuild the payload with current intro/footer/normalize.
+  const path = join(BLOG_EN_DIR, `${slug}.mdx`);
+  if (!existsSync(path)) {
+    console.error(`error: ${path} missing.`);
+    return { ok: false };
+  }
+  const raw = readFileSync(path, "utf8");
+  const { data, content } = matter(raw);
+  const post = {
+    slug: data.slug || slug,
+    title: data.title || "",
+    date: data.date || "",
+    tags: data.tags || [],
+    source: data.source || "",
+    content,
+  };
+  const payload = buildArticlePayload(post);
+
+  console.log(
+    `Refreshing dev.to article ${entry.dev_to_id} (slug=${slug}, ` +
+    `published=${payload.article.published})`
+  );
+
+  if (DRY_RUN) {
+    console.log(`would PUT https://dev.to/api/articles/${entry.dev_to_id}`);
+    console.log(`title: ${payload.article.title}`);
+    console.log(`tags: ${payload.article.tags.join(", ")}`);
+    console.log(`body length: ${payload.article.body_markdown.length}`);
+    return { ok: true };
+  }
+
+  try {
+    const resp = await fetch(`https://dev.to/api/articles/${entry.dev_to_id}`, {
+      method: "PUT",
+      headers: {
+        "api-key": API_KEY,
+        "Content-Type": "application/json",
+        Accept: "application/vnd.forem.api-v1+json",
+      },
+      body: JSON.stringify(payload),
+    });
+    const text = await resp.text();
+    if (!resp.ok) {
+      console.error(`refresh failed: HTTP ${resp.status} ${text.slice(0, 300)}`);
+      return { ok: false };
+    }
+    const data = JSON.parse(text);
+    console.log(`✓ refreshed → ${data.url || data.canonical_url}`);
+    return { ok: true };
+  } catch (err) {
+    console.error(`refresh failed: ${err.message}`);
+    return { ok: false };
   }
 }
 
