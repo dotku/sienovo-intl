@@ -135,6 +135,11 @@ Rules:
 - Do NOT add any commentary or explanation — only return the translated content.
 - If the text is already in English, return it unchanged.
 
+Brand handling (important):
+- Render the company name 深圳信迈 (or any 信迈 / Xinmai / Shenzhen Xinmai variant) as "Sienovo" — Sienovo is the official overseas English brand of 深圳信迈.
+- Preserve product codes verbatim (e.g. XM-5125 stays XM-5125, INT-AIBOX-P-8 stays as-is). Only the company name swaps to Sienovo; do not rename products.
+- If the article is about 深圳信迈 generally, the translated text should refer to "Sienovo" throughout.
+
 ---
 Title: ${title}
 
