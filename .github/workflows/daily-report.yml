@@ -22,6 +22,7 @@ jobs:
         id: m
         env:
           GH_TOKEN: ${{ github.token }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           set -euo pipefail
 
@@ -41,20 +42,52 @@ jobs:
           SYNC_RUN=$(gh run list --workflow=sync-blog.yml --limit 1 --json conclusion,url --jq '.[0]')
           TRANSLATE_RUN=$(gh run list --workflow=translate-blog.yml --limit 1 --json conclusion,url --jq '.[0]')
 
-          # Feature commits in last 24h (anything that's not a translate:/sync: bot commit)
-          COMMITS_TSV=$(git log --since="$SINCE" --pretty=format:'%h|%s|%an' --no-merges \
-            | { grep -vE '^[a-f0-9]+\|(translate:|sync:) ' || true; })
+          # Feature commits in last 24h, grouped by Conventional Commit type.
+          # Skips translate:/sync: bot commits.
+          COMMITS_SUBJECTS=$(git log --since="$SINCE" --pretty=format:'%s' --no-merges \
+            | { grep -vE '^(translate:|sync:) ' || true; })
 
-          COMMITS_HTML=""
-          if [ -n "$COMMITS_TSV" ]; then
-            while IFS='|' read -r SHA SUBJECT AUTHOR; do
-              [ -z "$SHA" ] && continue
-              SUB_ESC=$(printf '%s' "$SUBJECT" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g')
-              AUTH_ESC=$(printf '%s' "$AUTHOR" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g')
-              COMMITS_HTML="${COMMITS_HTML}<tr><td style=\"border-bottom:1px solid #eee;font-family:monospace;font-size:12px;width:80px\"><a href=\"https://github.com/${GITHUB_REPOSITORY}/commit/${SHA}\" style=\"color:#0969da;text-decoration:none\">${SHA}</a></td><td style=\"border-bottom:1px solid #eee\">${SUB_ESC}</td><td style=\"border-bottom:1px solid #eee;color:#999;font-size:12px;text-align:right\">${AUTH_ESC}</td></tr>"
-            done <<< "$COMMITS_TSV"
-          else
-            COMMITS_HTML='<tr><td colspan="3" style="color:#999;font-style:italic;text-align:center;padding:12px">今日无功能更新</td></tr>'
+          COMMITS_TOTAL=0
+          COMMITS_BREAKDOWN=""
+          COMMITS_SUMMARY=""
+          if [ -n "$COMMITS_SUBJECTS" ]; then
+            COMMITS_TOTAL=$(printf '%s\n' "$COMMITS_SUBJECTS" | grep -c .)
+            # Bucket each commit by Conventional Commit type; non-matching => 'other'.
+            COMMITS_BREAKDOWN=$(printf '%s\n' "$COMMITS_SUBJECTS" \
+              | awk '{
+                  if (match($0, /^[a-z][a-z0-9]*(\([^)]*\))?!?:/)) {
+                    t = substr($0, 1, RLENGTH - 1)
+                    sub(/[(!].*$/, "", t)
+                    print t
+                  } else { print "other" }
+                }' \
+              | sort | uniq -c | sort -rn \
+              | awk '{ printf "%s%s %d", (NR>1 ? " · " : ""), $2, $1 }')
+
+            # Narrative work summary via Gemini. Falls back silently if the call fails.
+            if [ -n "${GEMINI_API_KEY:-}" ]; then
+              COMMIT_DETAIL=$(git log --since="$SINCE" --pretty=format:'- %s%n%b' --no-merges \
+                | { grep -vE '^- (translate:|sync:) ' || true; })
+
+              PROMPT_TEXT=$(printf '你是 sienovo-intl 项目（CSDN 中文博客自动同步与英文翻译流水线）的工程日报助手。请阅读以下今日 git commit 列表，用中文写一段 2-3 句的工作内容总结：\n- 描述工作主题与达成的成果，而不是逐条罗列 commit\n- 输出纯文本，不要使用 Markdown、不要分段编号、不要前缀\n- 控制在 80 字以内\n\n今日 commits：\n%s' "$COMMIT_DETAIL")
+
+              # thinkingBudget:0 disables Gemini 2.5 Flash's default chain-of-thought,
+              # which would otherwise consume maxOutputTokens before the visible reply.
+              REQ_BODY=$(jq -n --arg text "$PROMPT_TEXT" \
+                '{contents:[{parts:[{text:$text}]}],generationConfig:{temperature:0.2,maxOutputTokens:600,thinkingConfig:{thinkingBudget:0}}}')
+
+              GEMINI_RESP=$(curl -sS --max-time 30 -X POST \
+                "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}" \
+                -H 'Content-Type: application/json' \
+                -d "$REQ_BODY" 2>/dev/null || echo "")
+
+              COMMITS_SUMMARY=$(echo "$GEMINI_RESP" | jq -r '.candidates[0].content.parts[0].text // empty' \
+                | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+
+              if [ -z "$COMMITS_SUMMARY" ]; then
+                echo "::warning::Gemini summary call returned empty; falling back to breakdown only"
+              fi
+            fi
           fi
 
           {
@@ -68,12 +101,14 @@ jobs:
             echo "sync_url=$(echo "$SYNC_RUN" | jq -r '.url // ""')"
             echo "translate_status=$(echo "$TRANSLATE_RUN" | jq -r '.conclusion // "no-run"')"
             echo "translate_url=$(echo "$TRANSLATE_RUN" | jq -r '.url // ""')"
+            echo "commits_total=$COMMITS_TOTAL"
+            echo "commits_breakdown=$COMMITS_BREAKDOWN"
           } >> "$GITHUB_OUTPUT"
 
           {
-            echo "commits_html<<COMMITS_EOF"
-            echo "$COMMITS_HTML"
-            echo "COMMITS_EOF"
+            echo "commits_summary<<SUMMARY_EOF"
+            echo "$COMMITS_SUMMARY"
+            echo "SUMMARY_EOF"
           } >> "$GITHUB_OUTPUT"
 
       - name: Send report via Resend
@@ -89,7 +124,9 @@ jobs:
           SYNC_URL: ${{ steps.m.outputs.sync_url }}
           TRANSLATE_STATUS: ${{ steps.m.outputs.translate_status }}
           TRANSLATE_URL: ${{ steps.m.outputs.translate_url }}
-          COMMITS_HTML: ${{ steps.m.outputs.commits_html }}
+          COMMITS_TOTAL: ${{ steps.m.outputs.commits_total }}
+          COMMITS_BREAKDOWN: ${{ steps.m.outputs.commits_breakdown }}
+          COMMITS_SUMMARY: ${{ steps.m.outputs.commits_summary }}
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
@@ -107,6 +144,23 @@ jobs:
           SYNC_LABEL=$(icon "$SYNC_STATUS")
           TRANSLATE_LABEL=$(icon "$TRANSLATE_STATUS")
 
+          if [ "${COMMITS_TOTAL:-0}" = "0" ]; then
+            COMMITS_CELL='<span style="color:#999">无</span>'
+          elif [ -n "$COMMITS_BREAKDOWN" ]; then
+            COMMITS_CELL="<b>${COMMITS_TOTAL}</b> 条 <span style=\"color:#666;font-size:12px\">(${COMMITS_BREAKDOWN})</span>"
+          else
+            COMMITS_CELL="<b>${COMMITS_TOTAL}</b> 条"
+          fi
+
+          # Build the narrative summary block (only when LLM produced text)
+          SUMMARY_BLOCK=""
+          if [ -n "${COMMITS_SUMMARY:-}" ]; then
+            SUMMARY_ESC=$(printf '%s' "$COMMITS_SUMMARY" \
+              | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' \
+              | awk 'BEGIN{ORS=""} {print (NR==1?"":"<br>") $0}')
+            SUMMARY_BLOCK="<h3 style=\"margin:24px 0 8px;font-size:15px\">今日工作总结</h3><p style=\"font-size:14px;line-height:1.6;color:#333;margin:0 0 8px\">${SUMMARY_ESC}</p>"
+          fi
+
           HTML=$(cat <<EOF
           <div style="font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;max-width:600px;margin:0 auto;color:#0a0a0a">
             <h2 style="margin:0 0 4px">sienovo-intl 每日报告</h2>
@@ -117,12 +171,10 @@ jobs:
               <tr><td style="border-bottom:1px solid #eee">总数（中 / 英）</td><td style="border-bottom:1px solid #eee;text-align:right">${BLOG} / ${BLOG_EN}</td></tr>
               <tr><td style="border-bottom:1px solid #eee">剩余待翻译</td><td style="border-bottom:1px solid #eee;text-align:right"><b>${REMAINING}</b> 篇</td></tr>
               <tr><td style="border-bottom:1px solid #eee">最新同步任务</td><td style="border-bottom:1px solid #eee;text-align:right"><a href="${SYNC_URL}">${SYNC_LABEL}</a></td></tr>
-              <tr><td>最新翻译任务</td><td style="text-align:right"><a href="${TRANSLATE_URL}">${TRANSLATE_LABEL}</a></td></tr>
+              <tr><td style="border-bottom:1px solid #eee">最新翻译任务</td><td style="border-bottom:1px solid #eee;text-align:right"><a href="${TRANSLATE_URL}">${TRANSLATE_LABEL}</a></td></tr>
+              <tr><td>近 24 小时功能提交</td><td style="text-align:right">${COMMITS_CELL}</td></tr>
             </table>
-            <h3 style="margin:24px 0 8px;font-size:15px">近 24 小时功能更新</h3>
-            <table cellpadding="6" style="border-collapse:collapse;width:100%;font-size:13px">
-              ${COMMITS_HTML}
-            </table>
+            ${SUMMARY_BLOCK}
             <p style="color:#999;font-size:12px;margin-top:24px">来自 <a href="https://github.com/${REPO}">${REPO}</a></p>
           </div>
           EOF
