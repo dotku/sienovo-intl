@@ -41,6 +41,22 @@ jobs:
           SYNC_RUN=$(gh run list --workflow=sync-blog.yml --limit 1 --json conclusion,url --jq '.[0]')
           TRANSLATE_RUN=$(gh run list --workflow=translate-blog.yml --limit 1 --json conclusion,url --jq '.[0]')
 
+          # Feature commits in last 24h (anything that's not a translate:/sync: bot commit)
+          COMMITS_TSV=$(git log --since="$SINCE" --pretty=format:'%h|%s|%an' --no-merges \
+            | { grep -vE '^[a-f0-9]+\|(translate:|sync:) ' || true; })
+
+          COMMITS_HTML=""
+          if [ -n "$COMMITS_TSV" ]; then
+            while IFS='|' read -r SHA SUBJECT AUTHOR; do
+              [ -z "$SHA" ] && continue
+              SUB_ESC=$(printf '%s' "$SUBJECT" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g')
+              AUTH_ESC=$(printf '%s' "$AUTHOR" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g')
+              COMMITS_HTML="${COMMITS_HTML}<tr><td style=\"border-bottom:1px solid #eee;font-family:monospace;font-size:12px;width:80px\"><a href=\"https://github.com/${GITHUB_REPOSITORY}/commit/${SHA}\" style=\"color:#0969da;text-decoration:none\">${SHA}</a></td><td style=\"border-bottom:1px solid #eee\">${SUB_ESC}</td><td style=\"border-bottom:1px solid #eee;color:#999;font-size:12px;text-align:right\">${AUTH_ESC}</td></tr>"
+            done <<< "$COMMITS_TSV"
+          else
+            COMMITS_HTML='<tr><td colspan="3" style="color:#999;font-style:italic;text-align:center;padding:12px">今日无功能更新</td></tr>'
+          fi
+
           {
             echo "today=$TODAY"
             echo "synced=$SYNCED"
@@ -52,6 +68,12 @@ jobs:
             echo "sync_url=$(echo "$SYNC_RUN" | jq -r '.url // ""')"
             echo "translate_status=$(echo "$TRANSLATE_RUN" | jq -r '.conclusion // "no-run"')"
             echo "translate_url=$(echo "$TRANSLATE_RUN" | jq -r '.url // ""')"
+          } >> "$GITHUB_OUTPUT"
+
+          {
+            echo "commits_html<<COMMITS_EOF"
+            echo "$COMMITS_HTML"
+            echo "COMMITS_EOF"
           } >> "$GITHUB_OUTPUT"
 
       - name: Send report via Resend
@@ -67,6 +89,7 @@ jobs:
           SYNC_URL: ${{ steps.m.outputs.sync_url }}
           TRANSLATE_STATUS: ${{ steps.m.outputs.translate_status }}
           TRANSLATE_URL: ${{ steps.m.outputs.translate_url }}
+          COMMITS_HTML: ${{ steps.m.outputs.commits_html }}
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
@@ -95,6 +118,10 @@ jobs:
               <tr><td style="border-bottom:1px solid #eee">剩余待翻译</td><td style="border-bottom:1px solid #eee;text-align:right"><b>${REMAINING}</b> 篇</td></tr>
               <tr><td style="border-bottom:1px solid #eee">最新同步任务</td><td style="border-bottom:1px solid #eee;text-align:right"><a href="${SYNC_URL}">${SYNC_LABEL}</a></td></tr>
               <tr><td>最新翻译任务</td><td style="text-align:right"><a href="${TRANSLATE_URL}">${TRANSLATE_LABEL}</a></td></tr>
+            </table>
+            <h3 style="margin:24px 0 8px;font-size:15px">近 24 小时功能更新</h3>
+            <table cellpadding="6" style="border-collapse:collapse;width:100%;font-size:13px">
+              ${COMMITS_HTML}
             </table>
             <p style="color:#999;font-size:12px;margin-top:24px">来自 <a href="https://github.com/${REPO}">${REPO}</a></p>
           </div>
