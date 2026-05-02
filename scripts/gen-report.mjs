@@ -36,6 +36,9 @@ const RECIPIENT = process.env.REPORT_RECIPIENT || "sienovojay@gmail.com";
 
 const config = configFor(args.period);
 const metrics = gatherMetrics(config);
+if (config.dbEnabled) {
+  metrics.db = await gatherDbMetrics(config);
+}
 const summary = await generateNarrative(metrics, config);
 const subject = `[sienovo-intl] ${config.subjectLabel} ${metrics.dateLabel}`;
 const html = renderHtml({ metrics, summary, config });
@@ -69,18 +72,34 @@ function parseArgs(argv) {
 
 function configFor(period) {
   const now = new Date();
+  const days = (n) => new Date(now.getTime() - n * 24 * 3600 * 1000).toISOString();
   switch (period) {
     case "daily":
       return {
         period: "daily",
-        sinceISO: new Date(now.getTime() - 24 * 3600 * 1000).toISOString(),
+        sinceISO: days(1),
         windowLabel: "近 24 小时",
+        rangeLabel: new Date().toISOString().slice(0, 10),
         subjectLabel: "每日报告",
         h1: "sienovo-intl 每日报告",
+        summaryHeading: "今日工作总结",
+        maxOutputTokens: 600,
+        dbEnabled: false,
       };
     case "weekly":
+      return {
+        period: "weekly",
+        sinceISO: days(7),
+        windowLabel: "本周",
+        rangeLabel: `${days(7).slice(0, 10)} ~ ${new Date().toISOString().slice(0, 10)}`,
+        subjectLabel: "周报",
+        h1: "sienovo-intl 周报",
+        summaryHeading: "本周工作总结与下周建议",
+        maxOutputTokens: 1500,
+        dbEnabled: true,
+      };
     case "monthly":
-      throw new Error(`period=${period} not implemented yet (Phase 2/3)`);
+      throw new Error(`period=${period} not implemented yet (Phase 3)`);
     default:
       throw new Error(`unknown period: ${period}`);
   }
@@ -187,13 +206,10 @@ function bucketByConventionalType(subjects) {
     .join(" · ");
 }
 
-// ---------- LLM narrative ----------
+// ---------- Prompt builders ----------
 
-async function generateNarrative(metrics, config) {
-  if (metrics.commitsTotal === 0) return "";
-  if (!process.env.GEMINI_API_KEY) return "";
-
-  const prompt = [
+function buildDailyPrompt(metrics, config) {
+  return [
     "你是 sienovo-intl 项目（Sienovo 边缘 AI 视觉计算公司的官网与业务平台）的工程日报助手。",
     "请阅读以下 git commits，用中文写一段 2-3 句的工作内容总结：",
     "- 描述工作主题与达成的成果，而不是逐条罗列 commit",
@@ -203,6 +219,140 @@ async function generateNarrative(metrics, config) {
     `${config.windowLabel} commits：`,
     metrics.commitsDetail || "(无)",
   ].join("\n");
+}
+
+function buildWeeklyPrompt(metrics, config) {
+  const db = metrics.db?.summary || {};
+  const apiUsageLines = (metrics.db?.apiUsage || [])
+    .map(r => `  - ${r.service}: ${r.total} 次（失败 ${r.failures}）`)
+    .join("\n") || "  - (无 ApiUsage 记录)";
+
+  return [
+    "你是 sienovo-intl 项目（Sienovo 是边缘 AI 视觉计算公司，主营工业视频分析；本平台覆盖产品页、CRM、客户支持、Outreach 销售自动化、内容翻译流水线、Marine 船只追踪等业务）的运营周报顾问。",
+    "请阅读以下本周数据，用中文产出三段叙述（共约 200-280 字，纯文本，不要 Markdown、不要标题前缀、不要分点编号）：",
+    "1. 本周成果：业务、内容、系统三方面的关键产出与亮点。",
+    "2. 阻塞与风险：从指标里能看出的瓶颈或异常（如外联回复率低、API 失败率上升、Ticket 积压等）。",
+    '3. 下周建议：基于本周数据给 2-3 条具体可执行的运营 / 产品 / 工程建议。建议要落地，避免「提升用户体验」这类空话。',
+    "段与段之间用空行分隔。",
+    "",
+    `=== 本周时间窗：${config.rangeLabel} (UTC) ===`,
+    "",
+    "[ 内容生产 ]",
+    `  新抓取 CSDN 文章: ${metrics.synced} 篇`,
+    `  新增英文翻译: ${metrics.translated} 篇`,
+    `  当前总数: 中 ${metrics.blog} / 英 ${metrics.blogEn}`,
+    `  剩余待翻译: ${metrics.remaining} 篇`,
+    "",
+    "[ 业务增长 (Postgres) ]",
+    `  新增客户公司 (Company): ${db.new_companies ?? "?"}`,
+    `  新增联系人 (Contact): ${db.new_contacts ?? "?"}`,
+    `  新建对话 (Conversation): ${db.new_conversations ?? "?"}`,
+    `  对话消息 (ChatMessage): ${db.new_chat_messages ?? "?"}`,
+    `  新增 Ticket: ${db.new_tickets ?? "?"} ｜ 当前未关闭: ${db.open_tickets ?? "?"}`,
+    `  新增订单 (Order): ${db.new_orders ?? "?"}`,
+    `  新发 Outreach 邮件: ${db.new_outreach ?? "?"}`,
+    `  Marine 新会话: ${db.new_vessel_sessions ?? "?"} (新增 Vessel: ${db.new_vessels ?? "?"})`,
+    `  新增知识文章: ${db.new_articles ?? "?"}`,
+    `  产品新增/更新: ${db.product_changes ?? "?"}`,
+    "",
+    "[ Outreach 邮件状态分布 ]",
+    (metrics.db?.outreachByStatus || []).map(r => `  - ${r.status}: ${r.total}`).join("\n") || "  - (无)",
+    "",
+    "[ 订单状态分布 ]",
+    (metrics.db?.ordersByStatus || []).map(r => `  - ${r.status}: ${r.total}`).join("\n") || "  - (无)",
+    "",
+    "[ API 调用 (Top 8 by service) ]",
+    apiUsageLines,
+    "",
+    "[ 工程提交 ]",
+    `  本周提交: ${metrics.commitsTotal} 条 (${metrics.commitsBreakdown || "无分类"})`,
+    "  代表性 commit:",
+    truncate(metrics.commitsDetail, 1500) || "  (无非机器人提交)",
+  ].join("\n");
+}
+
+function truncate(s, max) {
+  if (!s) return "";
+  return s.length <= max ? s : s.slice(0, max) + "\n…(以下省略)";
+}
+
+// ---------- Postgres metrics (weekly / monthly) ----------
+
+async function gatherDbMetrics(config) {
+  if (!process.env.DATABASE_URL) {
+    console.error("::warning::DATABASE_URL not set; skipping DB metrics");
+    return null;
+  }
+  const { default: pg } = await import("pg");
+  const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
+  await client.connect();
+  try {
+    const since = config.sinceISO;
+
+    const summaryRow = await client.query(
+      `SELECT
+         (SELECT COUNT(*)::int FROM "Company" WHERE "createdAt" >= $1)            AS new_companies,
+         (SELECT COUNT(*)::int FROM "Contact" WHERE "createdAt" >= $1)            AS new_contacts,
+         (SELECT COUNT(*)::int FROM "Conversation" WHERE "createdAt" >= $1)       AS new_conversations,
+         (SELECT COUNT(*)::int FROM "ChatMessage" WHERE "createdAt" >= $1)        AS new_chat_messages,
+         (SELECT COUNT(*)::int FROM "Ticket" WHERE "createdAt" >= $1)             AS new_tickets,
+         (SELECT COUNT(*)::int FROM "Ticket" WHERE status <> 'closed')            AS open_tickets,
+         (SELECT COUNT(*)::int FROM "Order" WHERE "createdAt" >= $1)              AS new_orders,
+         (SELECT COUNT(*)::int FROM "OutreachEmail" WHERE "createdAt" >= $1)      AS new_outreach,
+         (SELECT COUNT(*)::int FROM "Vessel" WHERE "createdAt" >= $1)             AS new_vessels,
+         (SELECT COUNT(*)::int FROM "VesselSession" WHERE "startedAt" >= $1)      AS new_vessel_sessions,
+         (SELECT COUNT(*)::int FROM "KnowledgeArticle" WHERE "createdAt" >= $1)   AS new_articles,
+         (SELECT COUNT(*)::int FROM "Product"
+           WHERE "createdAt" >= $1 OR "updatedAt" >= $1)                          AS product_changes`,
+      [since]
+    );
+    const summary = summaryRow.rows[0];
+
+    const apiUsage = (await client.query(
+      `SELECT service,
+              COUNT(*)::int AS total,
+              SUM(CASE WHEN success THEN 0 ELSE 1 END)::int AS failures
+         FROM "ApiUsage"
+        WHERE "createdAt" >= $1
+        GROUP BY service
+        ORDER BY total DESC
+        LIMIT 8`,
+      [since]
+    )).rows;
+
+    const outreachByStatus = (await client.query(
+      `SELECT status, COUNT(*)::int AS total
+         FROM "OutreachEmail"
+        WHERE "createdAt" >= $1
+        GROUP BY status
+        ORDER BY total DESC`,
+      [since]
+    )).rows;
+
+    const ordersByStatus = (await client.query(
+      `SELECT status, COUNT(*)::int AS total
+         FROM "Order"
+        WHERE "createdAt" >= $1
+        GROUP BY status
+        ORDER BY total DESC`,
+      [since]
+    )).rows;
+
+    return { summary, apiUsage, outreachByStatus, ordersByStatus };
+  } finally {
+    await client.end();
+  }
+}
+
+// ---------- LLM narrative ----------
+
+async function generateNarrative(metrics, config) {
+  if (config.period === "daily" && metrics.commitsTotal === 0) return "";
+  if (!process.env.GEMINI_API_KEY) return "";
+
+  const prompt = config.period === "daily"
+    ? buildDailyPrompt(metrics, config)
+    : buildWeeklyPrompt(metrics, config);
 
   try {
     const resp = await fetch(
@@ -214,7 +364,7 @@ async function generateNarrative(metrics, config) {
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
             temperature: 0.2,
-            maxOutputTokens: 600,
+            maxOutputTokens: config.maxOutputTokens || 600,
             // Disable Gemini 2.5 Flash's default thinking; otherwise it eats
             // maxOutputTokens before producing the visible reply.
             thinkingConfig: { thinkingBudget: 0 },
@@ -247,6 +397,49 @@ function statusLabel(s) {
   }
 }
 
+function renderDbSection(db) {
+  if (!db || !db.summary) return "";
+  const s = db.summary;
+  const cellBorder = "border-bottom:1px solid #eee";
+  const row = (label, val) =>
+    `<tr><td style="${cellBorder}">${label}</td><td style="${cellBorder};text-align:right"><b>${val}</b></td></tr>`;
+
+  const apiRows = (db.apiUsage || []).map(r => {
+    const failPct = r.total ? Math.round((r.failures / r.total) * 100) : 0;
+    const fail = r.failures > 0 ? ` <span style="color:#a04040">(失败 ${r.failures}, ${failPct}%)</span>` : "";
+    return `<tr><td style="${cellBorder};font-family:monospace;font-size:12px">${htmlEscape(r.service)}</td><td style="${cellBorder};text-align:right">${r.total}${fail}</td></tr>`;
+  }).join("") || `<tr><td colspan="2" style="${cellBorder};color:#999;font-style:italic;text-align:center">无 API 调用记录</td></tr>`;
+
+  const pillRow = (rows, emptyMsg) => {
+    if (!rows || !rows.length) return `<span style="color:#999;font-size:12px;font-style:italic">${emptyMsg}</span>`;
+    return rows.map(r => `<span style="display:inline-block;background:#f4f4f4;border-radius:10px;padding:2px 10px;margin:0 4px 4px 0;font-size:12px">${htmlEscape(r.status)}: <b>${r.total}</b></span>`).join("");
+  };
+
+  return `
+            <h3 style="margin:24px 0 8px;font-size:15px">业务增长</h3>
+            <table cellpadding="8" style="border-collapse:collapse;width:100%;font-size:14px">
+              ${row("新增客户公司", s.new_companies)}
+              ${row("新增联系人", s.new_contacts)}
+              ${row("新建对话", s.new_conversations)}
+              ${row("对话消息总数", s.new_chat_messages)}
+              ${row("新增 Ticket / 未关闭", `${s.new_tickets} / ${s.open_tickets}`)}
+              ${row("新增订单", s.new_orders)}
+              ${row("新发 Outreach 邮件", s.new_outreach)}
+              ${row("Marine 新会话 / 新船只", `${s.new_vessel_sessions} / ${s.new_vessels}`)}
+              ${row("新增知识文章", s.new_articles)}
+              <tr><td>产品新增/更新</td><td style="text-align:right"><b>${s.product_changes}</b></td></tr>
+            </table>
+
+            <h3 style="margin:24px 0 8px;font-size:15px">Outreach / 订单状态</h3>
+            <p style="margin:0 0 6px;font-size:13px"><b style="color:#666">Outreach: </b>${pillRow(db.outreachByStatus, "无")}</p>
+            <p style="margin:0 0 6px;font-size:13px"><b style="color:#666">Order: </b>${pillRow(db.ordersByStatus, "无")}</p>
+
+            <h3 style="margin:24px 0 8px;font-size:15px">API 调用 (Top 8)</h3>
+            <table cellpadding="6" style="border-collapse:collapse;width:100%;font-size:13px">
+              ${apiRows}
+            </table>`;
+}
+
 function renderHtml({ metrics, summary, config }) {
   const cellBorder = "border-bottom:1px solid #eee";
 
@@ -256,31 +449,38 @@ function renderHtml({ metrics, summary, config }) {
       ? `<b>${metrics.commitsTotal}</b> 条 <span style="color:#666;font-size:12px">(${htmlEscape(metrics.commitsBreakdown)})</span>`
       : `<b>${metrics.commitsTotal}</b> 条`;
 
+  const dbSection = config.dbEnabled ? renderDbSection(metrics.db) : "";
+
   let summaryBlock = "";
   let aiDisclaimer = "";
   if (summary) {
     const escaped = htmlEscape(summary).replace(/\n/g, "<br>");
     summaryBlock = `
-            <h3 style="margin:24px 0 8px;font-size:15px">今日工作总结</h3>
-            <p style="font-size:14px;line-height:1.6;color:#333;margin:0 0 8px">${escaped}</p>`;
+            <h3 style="margin:24px 0 8px;font-size:15px">${config.summaryHeading}</h3>
+            <p style="font-size:14px;line-height:1.6;color:#333;margin:0 0 8px;white-space:pre-line">${escaped}</p>`;
     aiDisclaimer = `
             <p style="color:#999;font-size:11px;font-style:italic;line-height:1.5;border-top:1px solid #eee;padding-top:12px;margin:24px 0 4px">
               注：AI 生成的总结与建议仅供参考，可能存在信息遗漏、偏差或误导；执行人员应自行评估判断后再作最终决策。
             </p>`;
   }
 
+  const confidentialNotice = `
+            <p style="color:#666;font-size:11px;line-height:1.5;${aiDisclaimer ? "" : "border-top:1px solid #eee;padding-top:12px;"}margin:8px 0 4px">
+              <b style="color:#a04040">CONFIDENTIAL ·  机密信息</b>　本邮件含 sienovo-intl 项目内部数据，仅供指定收件人使用。未经书面许可不得对外分享、转发或转载；违者将依法追究相应法律责任。
+            </p>`;
+
   return `<div style="font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;max-width:600px;margin:0 auto;color:#0a0a0a">
             <h2 style="margin:0 0 4px">${config.h1}</h2>
             <p style="color:#666;margin:0 0 16px">${metrics.dateLabel}（UTC）</p>
             <table cellpadding="8" style="border-collapse:collapse;width:100%;font-size:14px">
-              <tr><td style="${cellBorder}">${metrics.windowLabel}新抓取</td><td style="${cellBorder};text-align:right"><b>${metrics.synced}</b> 篇</td></tr>
-              <tr><td style="${cellBorder}">${metrics.windowLabel}翻译完成</td><td style="${cellBorder};text-align:right"><b>${metrics.translated}</b> 篇</td></tr>
+              <tr><td style="${cellBorder}">${metrics.windowLabel} 新抓取</td><td style="${cellBorder};text-align:right"><b>${metrics.synced}</b> 篇</td></tr>
+              <tr><td style="${cellBorder}">${metrics.windowLabel} 翻译完成</td><td style="${cellBorder};text-align:right"><b>${metrics.translated}</b> 篇</td></tr>
               <tr><td style="${cellBorder}">总数（中 / 英）</td><td style="${cellBorder};text-align:right">${metrics.blog} / ${metrics.blogEn}</td></tr>
               <tr><td style="${cellBorder}">剩余待翻译</td><td style="${cellBorder};text-align:right"><b>${metrics.remaining}</b> 篇</td></tr>
               <tr><td style="${cellBorder}">最新同步任务</td><td style="${cellBorder};text-align:right"><a href="${metrics.syncUrl}">${statusLabel(metrics.syncStatus)}</a></td></tr>
               <tr><td style="${cellBorder}">最新翻译任务</td><td style="${cellBorder};text-align:right"><a href="${metrics.translateUrl}">${statusLabel(metrics.translateStatus)}</a></td></tr>
-              <tr><td>${metrics.windowLabel}功能提交</td><td style="text-align:right">${commitsCell}</td></tr>
-            </table>${summaryBlock}${aiDisclaimer}
+              <tr><td>${metrics.windowLabel} 功能提交</td><td style="text-align:right">${commitsCell}</td></tr>
+            </table>${dbSection}${summaryBlock}${aiDisclaimer}${confidentialNotice}
             <p style="color:#999;font-size:12px;margin-top:16px">来自 <a href="https://github.com/${REPO}">${REPO}</a></p>
           </div>`;
 }

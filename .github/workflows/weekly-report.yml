@@ -1,0 +1,41 @@
+name: Weekly Report
+
+on:
+  schedule:
+    # 05:00 UTC every Monday (13:00 Beijing) — covers the prior 7 days
+    - cron: "0 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install deps
+        # --ignore-scripts skips prisma's postinstall (we use raw pg, not Prisma).
+        # --prod skips Playwright and other dev deps so the cold cache is leaner.
+        run: pnpm install --frozen-lockfile --prod --ignore-scripts
+
+      - name: Generate and send weekly report
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: node scripts/gen-report.mjs --period weekly --send
