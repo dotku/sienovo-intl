@@ -207,6 +207,21 @@ function normalizeTags(rawTags) {
   return out;
 }
 
+// Replace every variant of the parent company's Chinese name / its
+// pinyin transliteration with the overseas brand "Sienovo". The AI
+// translation pipeline that produced these EN articles inconsistently
+// rendered 深圳信迈 / 信迈 as "Xinmai" / "Shenzhen Xinmai" / left CJK
+// in place; mixing those with our brand intro reads as confused
+// branding to a Dev.to reader.
+function normalizeBrand(text) {
+  if (!text) return text;
+  return text
+    .replace(/深圳信迈/g, "Sienovo")
+    .replace(/信迈/g, "Sienovo")
+    .replace(/Shenzhen Xinmai/g, "Sienovo")
+    .replace(/\bXinmai\b/g, "Sienovo");
+}
+
 function brandIntro() {
   // Single-line intro injected at the top of every Dev.to post so the
   // brand association is unambiguous even when the translated body
@@ -239,10 +254,11 @@ function aiDisclosureFooter(post) {
 function buildArticlePayload(post) {
   const canonicalUrl = `${SITE_URL}/en/blog/${post.slug}`;
   const tags = normalizeTags(post.tags);
-  const body = brandIntro() + post.content.trim() + aiDisclosureFooter(post);
+  const title = normalizeBrand(post.title);
+  const body = brandIntro() + normalizeBrand(post.content.trim()) + aiDisclosureFooter(post);
 
   const article = {
-    title: post.title,
+    title,
     body_markdown: body,
     published: !DRAFT,
     canonical_url: canonicalUrl,
