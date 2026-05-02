@@ -1,10 +1,9 @@
 import { MetadataRoute } from "next";
 import { getAllPosts } from "@/lib/blog";
 import { prisma } from "@/lib/prisma";
+import { SITE_URL } from "@/lib/site";
 
 export const revalidate = 3600; // regenerate sitemap every 1 hour
-
-const SITE_URL = "https://sienovo-intl.jytech.us";
 const POSTS_PER_SITEMAP = 500;
 
 /**

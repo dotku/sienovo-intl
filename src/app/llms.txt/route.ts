@@ -1,7 +1,8 @@
 import { getAllPosts } from "@/lib/blog";
+import { SITE_URL } from "@/lib/site";
 
 export async function GET() {
-  const siteUrl = "https://sienovo-intl.vercel.app";
+  const siteUrl = SITE_URL;
   const posts = getAllPosts();
 
   const postList = posts

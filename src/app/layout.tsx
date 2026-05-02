@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import Script from "next/script";
 import { I18nProvider } from "@/lib/i18n/context";
+import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -15,7 +16,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const siteUrl = "https://sienovo-intl.vercel.app";
+const siteUrl = SITE_URL;
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -90,6 +91,9 @@ export const metadata: Metadata = {
       "max-image-preview": "large",
       "max-snippet": -1,
     },
+  },
+  verification: {
+    google: "dCOzcJuYEo7p2D0DMwvs9sqE4w5rosYDwLziJNaT9oI",
   },
 };
 
