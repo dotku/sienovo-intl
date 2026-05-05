@@ -1,0 +1,131 @@
+---
+title: "Fully Localized Real-time Processing System Solution Based on RK3588+FPGA, and Its Case Studies"
+date: "2025-04-24"
+slug: "147482285"
+tags: ["#fpga开发", "#机器人", "#人工智能", "#大数据", "#网络"]
+source: "https://blog.csdn.net/szxinmai/article/details/147482285"
+originalTitle: "基于RK3588+FPGA的全国产化实时处理系统方案，及其案例演示"
+---
+
+The fully localized real-time processing system solution based on RK3588+FPGA demonstrates significant technical advantages in fields such as industrial automation, smart terminals, and multi-screen control. Its core architecture and key technical features are as follows:
+
+* * *
+
+#### I. Hardware Architecture Design
+
+1.  ‌**Main Control Chip Combination**‌
+    
+    *   Utilizes Rockchip RK3588J domestic processor (8nm process, 4_A76+4_A55 heterogeneous architecture, 6TOPS NPU computing power)16, paired with domestic FPGA chips such as Unigroup Guoxin Titan-2 PG2T390H, Anlogic, or Gowin37, to achieve collaborative optimization of computing power and real-time performance.
+    *   The FPGA is high-speed interconnected with the RK3588 via PCIe 3.0 or RJ45 Ethernet interface, supporting real-time transmission of multiple 1080P video streams and industrial sensor data25.
+2.  ‌**Interface Expansion Capability**‌
+    
+    *   Integrates standard industrial interfaces such as USB3.0, RS485/232, and GPIO, supporting rapid connection to PLCs, cameras, and field sensors15.
+    *   The FPGA provides flexible I/O expansion capabilities, meeting demands such as multi-screen splicing control (12-screen heterogeneous/homogeneous display) and multi-channel signal synchronous acquisition34.
+
+* * *
+
+#### II. Real-time Optimization Technology
+
+1.  ‌**Heterogeneous Computing Architecture**‌
+    
+    *   Based on the AMP (Asymmetric Multi-Processing) architecture, the master core runs a Linux system responsible for global scheduling, while the slave core runs an RTOS or bare-metal program to handle high real-time tasks (e.g., EtherCAT communication)56.
+    *   The FPGA implements hardware-level signal pre-processing (e.g., ISP image enhancement, DMA acceleration)48, reducing the load on the RK3588 main controller.
+2.  ‌**Low-latency Communication Mechanism**‌
+    
+    *   Utilizes GPIO interrupt and DMA technology to achieve ultra-low-latency inter-core communication at the 4us level, suitable for emergency response of industrial control signals5.
+    *   The PCIe interface, combined with intelligent traffic allocation algorithms, ensures data transmission stability in complex electromagnetic environments15.![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/147482285/01_9f5c55e7f4bc4ec5a573fbf65190dc9b.jpeg)
+
+* * *
+
+#### III. Domestic Technology Ecosystem
+
+1.  ‌**Operating System Adaptation**‌
+    
+    *   Supports domestic operating systems such as Kylin OS and UOS, with deep optimization of kernel real-time patches (e.g., Xenomai)46.
+    *   Provides a complete domestic development toolchain, supporting rapid deployment of AI models like YOLOv5 on the NPU8.
+2.  ‌**Industrial-grade Reliability**‌
+    
+    *   The device has passed -40℃~70℃ wide-temperature operation certification and salt spray tests, with built-in overvoltage/reverse connection protection circuits, adapting to harsh environments such as metallurgy and electric power14.
+    *   Fully enclosed thermal design effectively copes with dust and vibration interference, with an MTBF exceeding 50,000 hours17.
+
+* * *
+
+#### IV. Typical Application Scenarios
+
+‌**Field**‌
+
+‌**Application Case**‌
+
+‌**Industrial Vision**‌
+
+Multi-camera image acquisition + NPU real-time defect detection (YOLOv5 model, 49fps@640x640)48
+
+‌**Intelligent Transportation**‌
+
+LED display multi-screen heterogeneous display control (12-screen matrix splicing, 8K@60fps H.265 decoding)3
+
+‌**Unmanned Systems**‌
+
+Unmanned vessel target detection (FPGA+NPU collaborative processing, 1080P video stream real-time analysis)2
+
+‌**Power Monitoring**‌
+
+Equipment status monitoring + process parameter optimization (EtherCAT real-time communication, μs-level response)46
+
+* * *
+
+This solution, through a combination of domestic chips, real-time communication optimization, and an open technology ecosystem, achieves 100% localization from underlying hardware to upper-layer applications, meeting the dual demands for independent control and high reliability in critical fields.![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/147482285/02_284057124f69425d92c92ed89231969a.jpeg)
+
+The following are typical application case demonstrations based on the RK3588+FPGA fully localized solution:
+
+* * *
+
+#### I. Industrial Control and Real-time Communication
+
+1.  ‌**4us-level Real-time Industrial Control**‌
+    
+    *   On the RK3568J+FPGA platform, multi-core collaborative control is achieved through an AMP architecture (master core running Linux, slave core running RTOS), combined with GPIO interrupt and DMA technology, to realize 4us-level ultra-low-latency signal response, suitable for servo motor synchronous control and emergency stop trigger scenarios25.
+    *   Case demonstration: By connecting an industrial PLC via a CAN interface, real-time acquisition of 16-channel sensor data (sampling rate 1MSPS) is performed, and waveforms are synchronously displayed on an HDMI screen, with response latency <10us5.
+2.  ‌**High-speed Data Acquisition**‌
+    
+    *   The RK3588F+FPGA combination achieves 200MSPS high-speed AD sampling, transmitting data via a PCIe 3.0 interface to the NPU for real-time spectrum analysis, supporting FFT operations and abnormal frequency alarms37.
+    *   Field test: Vibration signal acquisition from power equipment achieves 1.5GB/s data throughput at 16-bit precision, with a fault detection accuracy >98%5.
+
+* * *
+
+#### II. Intelligent Transportation and In-vehicle Systems
+
+1.  ‌**Multi-screen Smart Cockpit**‌
+    
+    *   Dual RK3588M chips drive 9 displays (including 3D instrument cluster, headrest screens, AR-HUD), supporting 8-megapixel camera input and HDR noise reduction algorithms, with game screen mirroring latency as low as 50ms1.
+    *   Dynamic demonstration: While the passenger screen plays 4K video, the driver screen simultaneously runs the navigation system, with independent audio zone control and CPU load <60%17.
+2.  ‌**Parking Vision Fusion**‌
+    
+    *   The RK3588M-based cabin-parking integrated solution achieves 4V12U panoramic parking via the NPU, with edge-side large models integrating voice/touch commands, and obstacle recognition response time <200ms16.
+    *   Measured data: In complex parking lot scenarios, the system can identify low obstacles as small as 30cm, and parking path planning takes <1 second1.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/147482285/03_57003fbe8b594b8f96a337e273ab79a9.jpeg)
+
+* * *
+
+#### III. Unmanned Systems and Intelligent Detection
+
+1.  ‌**Unmanned Vessel Target Detection**‌
+    
+    *   Adopting an RK3588+Logos-2 FPGA architecture, receiving 1080P video streams via PCIe 3.0, the YOLOv8s model, after INT8 quantization, achieves a frame rate of 110FPS, with a mAP50 accuracy of 92.3% for surface floating object detection48.
+    *   Lake trial case: Under level 6 wind and waves, the system operated stably for 4 hours, successfully identifying a 0.5m diameter buoy 200 meters away8.
+2.  ‌**Industrial Defect Detection**‌
+    
+    *   The RK3588J, equipped with an optimized YOLOv5s model, achieves 49fps real-time detection at 640x640 resolution, and reduces the false negative rate by 40% through FPGA pre-processing (denoising + distortion correction)67.
+    *   Production line application: In lithium battery appearance inspection scenarios, processes 200,000 products per day, with a defect classification accuracy >99.5%6.
+
+* * *
+
+#### IV. Multi-modal Interaction Systems
+
+1.  ‌**Smart Retail Terminals**‌
+    
+    *   Integrates QR code payment, electronic price tag screens, and advertising screens; the NPU performs pedestrian flow statistics and product recognition, with transaction response latency <300ms, supporting 100,000-level SKU management in offline mode16.
+2.  ‌**Medical Image Processing**‌
+    
+    *   FPGA accelerates DICOM image reconstruction; the RK3588's NPU runs 3D segmentation models, increasing CT image processing speed by 3 times

@@ -1,0 +1,67 @@
+---
+title: "RK3568 + LINUX + CODESYS with License + Real-time System, Simultaneously Running Your Own Vision Applications"
+date: "2025-06-02"
+slug: "148383445"
+tags: ["#linux", "#运维", "#服务器"]
+source: "https://blog.csdn.net/szxinmai/article/details/148383445"
+originalTitle: "RK3568+LINUX + CODESYS带授权+实时系统,同时开自己的视觉应用"
+---
+
+RK3568 + LINUX + CODESYS with License + Real-time System, Simultaneously Running Your Own Vision Applications, allowing you to dedicate some cores to CODESYS and others to custom applications.
+
+An industrial control and vision integration solution built upon the RK3568 processor can be realized through the following technical architecture:
+
+I. Hardware Platform Core Configuration
+
+1.  RK3568 Processor: Quad-core Cortex-A55 architecture, main frequency 2.0GHz, integrated Mali-G52 GPU and 1TOPS NPU, supports multi-channel video encoding and decoding 67
+2.  Real-time System Extension:
+    *   Solution A: Xenomai3 real-time patch (Linux-RT kernel) achieves real-time performance of <100μs 38
+    *   Solution B: AMP architecture asymmetric multiprocessing, with some cores running the RT-Thread real-time system 5
+3.  Vision Processing Acceleration: Running TensorFlow/PyTorch models via NPU, supports 16-channel 1080P video structured analysis 68
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/148383445/01_9c3aec98ffdb4ec3a53e37cd30d7bb28.jpeg)
+
+II. Software Stack Key Components
+
+1.  CODESYS Licensing Scheme:
+    *   Utilizes CODESYS Control Linux ARM SL runtime, supports IEC 61131-3 standard programming 9
+    *   Integrates SoftMotion module for multi-axis motion control (CNC/robot) 3
+    *   Licensing method: Purchase official dongle or cloud license 13
+2.  Vision Application Development:
+    *   OpenCV+Python/Qt development framework
+    *   NPU acceleration solution: RKNN-Toolkit2 model conversion toolchain 6
+3.  System Resource Allocation:
+    
+    textCopy Code
+    
+    `CPU0-1: CODESYS real-time tasks (priority 99) CPU2: Vision pre-processing (priority 50) CPU3: Business logic processing (priority 30) NPU: Vision model inference`
+    
+
+III. Typical Implementation Cases
+
+1.  Intelligent Sorting System:
+    *   CODESYS controls 6-axis robotic arm 3
+    *   Vision achieves item recognition and positioning (accuracy ±0.1mm) 6
+    *   Dual Gigabit Ethernet ports for PLC communication and vision data transmission, respectively 6![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/148383445/02_1d7c1d59291e4e809edc64a7ab9b9aff.jpeg)
+2.  Semiconductor Inspection Equipment:
+    *   Xenomai3 ensures motion control cycle ≤500μs 8
+    *   NPU accelerates defect detection algorithm (FPS≥30) 7
+    *   Connects high-precision industrial camera via FMC interface 7
+
+IV. Performance Optimization Suggestions
+
+1.  Kernel Tuning:
+    *   Disable CPU frequency scaling (performance mode) 10
+    *   Downclock memory frequency to 1560MHz to reduce latency 10
+2.  Real-time Assurance:
+    *   Set CPU affinity to isolate real-time cores 5
+    *   Utilize PREEMPT\_RT patch + priority inheritance 11
+3.  Vision Processing Optimization:
+    *   Use zero-copy DMA for image data transfer 7
+    *   NPU quantizes models to INT8 precision 6
+
+This solution has been validated in fields such as CNC machine tools 3 and intelligent security NVRs 6, with actual tests showing:
+
+*   CODESYS task cycle jitter <20μs
+*   Vision processing latency controlled within 33ms
+*   Overall system power consumption <15W

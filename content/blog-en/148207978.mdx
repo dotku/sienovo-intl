@@ -1,0 +1,70 @@
+---
+title: "8-Channel CAN Bus PLC Solution Based on RK3568 Processor"
+date: "2025-05-25"
+slug: "148207978"
+tags: ["#fpga开发", "#arm开发", "#信号处理"]
+source: "https://blog.csdn.net/yeyuangen/article/details/148207978"
+originalTitle: "基于RK3568处理器实现8路CAN总线PLC解决方案"
+---
+
+Implementing an 8-channel CAN bus PLC solution based on the RK3568 processor requires an integrated design combining hardware expansion and software protocol stack. The key points of the technical solution are as follows:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/148207978/01_17e2cc901e9c40df906df4272f3143a4.png)
+
+* * *
+
+#### I. Hardware Architecture Design
+
+1.  ‌**Core Platform Selection**‌
+    *   Adopting the RK3568 quad-core Cortex-A55 processor (main frequency 2.0GHz), integrating Mali-G52 GPU and 1TOPS NPU, to meet multi-protocol parsing and edge computing requirements8.
+    *   Equipped with 4GB LPDDR4 memory + 32GB eMMC storage, supporting the execution of complex control programs and data caching.
+2.  ‌**CAN Bus Expansion Scheme**‌
+    *   ‌**Native Interfaces**‌: Utilizing the RK3568's built-in dual CAN FD controllers (supporting 1Mbps speed) to achieve 2 high-speed CAN channels8.
+    *   ‌**Expansion Interfaces**‌: Adding PCIe-to-CAN modules (e.g., PCAN-PCIe FD quad-channel card), or connecting multiple MCP2518FD controller chips via SPI bus to expand the remaining 6 CAN 2.0B interfaces38.
+    *   ‌**Isolation Protection**‌: Each CAN interface is configured with an ADM3053 isolated transceiver, supporting ±36V bus withstand voltage and 15kV ESD protection, adapting to industrial electromagnetic interference environments8.
+
+* * *
+
+#### II. Software Protocol Stack Implementation
+
+1.  ‌**Real-time Operating System**‌
+    *   Deploying Linux 5.10 kernel + Xenomai real-time patch, with task response latency <10μs, meeting the hard real-time requirements for servo control and PLC logic execution37.
+    *   Enabling the CAN subsystem (SocketCAN framework), configuring multi-channel virtual CAN network namespaces to achieve independent management of 8 CAN channels7.
+2.  ‌**PLC Runtime Environment**‌
+    *   Integrating CODESYS Control Runtime for Linux ARM, supporting IEC 61131-3 standard programming (Ladder Diagram/Structured Text)45.
+    *   Loading the CANopen Manager protocol stack, defining node PDO/SDO mapping via EDS files to enable interaction with 8-channel CAN bus devices5.
+3.  ‌**Communication Scheduling Optimization**‌
+    
+    ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/148207978/02_691c1e01826d49c0a67d68d0125b261f.png)
+    
+    cCopy Code
+    
+    `// CAN数据接收线程配置示例（Xenomai实时域） RT_TASK can_rx_task; void can_rx_handler(void *arg) { struct can_frame frame; while (1) { int nbytes = read(can_sock, &frame, sizeof(frame)); if (nbytes > 0) { // 实时处理CAN帧并触发PLC任务 codesys_trigger_plc_task(frame.can_id, frame.data); } } }`
+    
+    *   Assigning independent receive threads for each CAN channel, with higher priority than non-real-time tasks7.
+
+* * *
+
+#### III. Typical Application Scenarios
+
+1.  ‌**Multi-axis Motion Control**‌
+    *   Connecting 8 servo drives (e.g., Delta ASDA-B3 series) via CANopen to achieve electronic gear/cam synchronization control, with synchronization accuracy of ±0.01mm34.
+2.  ‌**Industrial Equipment Networking**‌
+    *   Acting as a PLC master station, managing 200+ IO nodes (e.g., DI/DO modules, temperature sensors) on 8 CAN buses, with a scan cycle ≤5ms8.
+3.  ‌**Edge Computing Integration**‌
+    *   Utilizing the NPU to run the YOLOv5-tiny model, sending visual inspection results to the robotic arm controller via the CAN bus, with end-to-end latency <50ms68.
+
+* * *
+
+#### IV. Performance Parameter Comparison
+
+| Metric             | Traditional PLC Solution | RK3568+8CAN Solution         |
+| :----------------- | :----------------------- | :--------------------------- |
+| Number of CAN Channels | Max 4 channels           | 8 channels (expandable to 16 channels) |
+| Real-time Response | 1ms level                | <100μs level37               |
+| Data Processing Capability | Fixed function modules   | Supports Python/C++ expansion5 |
+| Protocol Compatibility | Single protocol          | CANopen/EtherCAT multi-protocol45 |
+
+* * *
+
+This solution, through hardware expansion and software optimization, achieves high-density CAN bus access capability, while meeting the real-time and reliability requirements of industrial control scenarios35.

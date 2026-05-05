@@ -1,0 +1,40 @@
+---
+title: "Hardware-Software Co-design of an EtherCAT Master Based on the Zynq Platform"
+date: "2025-06-01"
+slug: "148368469"
+tags: ["#fpga开发", "#人工智能", "#arm开发", "#计算机视觉"]
+source: "https://blog.csdn.net/szxinmai/article/details/148368469"
+originalTitle: "基于 Zynq 平台的 EtherCAT 主站的软硬件协同设计"
+---
+
+Abstract: Addressing the demands for control capability and strong real-time performance in industrial automation, an improved EtherCAT hardware master solution based on FPGA is proposed. This solution utilizes the Zynq-7000 platform, implementing the FPGA protocol stack on the PL (Programmable Logic) side to ensure efficient execution of core functions. A data interaction mechanism between the PS (Processing System) and PL is designed based on the AXI4 bus, enhancing the master's flexibility and data transmission efficiency. Experimental results show that this design achieves a maximum communication jitter of 88 ns, maintaining the high real-time performance of a hardware master, while integrating the flexibility of ARM.
+
+0 Introduction
+
+In recent years, due to the excellent performance of EtherCAT real-time industrial Ethernet technology [1], it has attracted numerous scholars to conduct related research. Among these, building EtherCAT masters (i.e., software masters) on Windows and Linux operating systems has become a hot topic in industrial control [2]. However, both domestic and international research on the real-time performance of software masters has been limited to the microsecond level due to operating system performance [3-5]. To overcome this bottleneck, Sun Yuexiang et al. [6] partially hardware-accelerated the EtherCAT protocol stack by deploying the data link layer of the protocol stack on an FPGA (field-programmable gate array) to reduce some jitter. Jing Qi et al. [7] further deployed the entire EtherCAT master protocol stack on an FPGA to enhance master performance. This "hardware master" approach achieved significant results in improving hardware performance, with a maximum communication jitter of only 5 ns. However, due to the lack of a powerful main control unit, it has certain limitations in the industrial control field. Reference [8] proposed deploying the protocol stack on the Zynq's FPGA, with the master's real-time performance guaranteed by a real-time operating system. This resulted in a maximum communication cycle jitter of up to 15 μs, which did not demonstrate the powerful real-time performance of a hardware master.
+
+Addressing the above issues, this paper adopts the Zynq series chip. This chip integrates an ARM (Advanced RISC Machine) dual-core Cortex-A9 processor and an FPGA programmable logic array with a 28 nm process [9], enabling the construction of a more efficient EtherCAT hardware master design solution.
+
+This solution, through hardware-software co-design, fully combines the Zynq's ARM processor's ability to handle complex tasks with the FPGA's hardware real-time capabilities, not only compensating for the performance shortcomings of traditional software masters but also addressing the issue of poor flexibility in single-FPGA masters, thus meeting the dual demands for control and performance in industrial control.
+
+1 Overview of EtherCAT Industrial Ethernet
+
+An EtherCAT industrial Ethernet system consists of a core master device and multiple execution units—slave devices. As shown in Figure 1, the master acts as the system's central point, responsible for initiating data transmission and controlling the entire network by sending data frames. The various slave devices are distributed throughout the network, and their primary task is to respond to the master's commands and execute specific operational tasks.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/148368469/01_6728803bfe4d41e1991f6ee01c2b45b2.png)
+
+2 PL Design
+
+To facilitate the implementation of the EtherCAT protocol stack using Verilog HDL (Hardware Description Language), this paper layers the protocol stack according to the OSI seven-layer network model, specifically divided into the application layer, data link layer, and physical layer. The block diagram of the FPGA hardware master is shown in Figure 2.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/148368469/02_e6609d4eabc24617a59d65dbe5b4ac69.png)
+
+2.2 Application Layer EtherCAT State Machine
+
+The EtherCAT state machine is the foundation of the EtherCAT protocol stack. It ensures system reliability and stability by precisely managing communication processes. Although the state machine adds to system complexity, it is crucial for guaranteeing the reliability of the protocol stack. Its design allows slaves to reject state changes in case of configuration errors, effectively preventing potential operational failures. Figure 4 shows the approximate flowchart for the master enabling a slave to transition from the Initialization state to the Operational (OP) state.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/148368469/03_40fbb2f97944475ebea46b7c80f596eb.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/148368469/04_60eddecf578a46d491dd0b83f54a6420.png)
+
+Sienovo provides EtherCAT master customization.
