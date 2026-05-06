@@ -1,0 +1,48 @@
+---
+title: "【Precision Measurement】ARM+FPGA-based Multi-channel Grating Signal Acquisition Solution"
+date: "2025-07-06"
+slug: "149149244"
+tags: ["#fpga开发", "#arm开发", "#人工智能", "#嵌入式硬件", "#服务器"]
+source: "https://blog.csdn.net/szxinmai/article/details/149149244"
+originalTitle: "【精密测量】基于ARM+FPGA的多路光栅信号采集方案"
+---
+
+Grating sensors, as effective tools for precision mechanical measurement, are widely used in engineering measurements such as linear displacement, angular displacement, velocity, and acceleration. In length measurement, grating micro-displacement sensors can achieve μm-level measurement accuracy and dynamically acquire changes in length, thereby accurately calculating motion velocity and even acceleration. In surface measurement, compared to traditional coordinate measuring machines (CMMs) and profilometers, grating sensors also offer advantages such as dynamic detection of surface shape changes, high precision, and real-time output of surface shape data.
+
+Multiplexing technology is widely used in data acquisition. In some distributed systems, using multiplexing technology can reduce the number of I/O ports and improve system integration. Specifically, a multiplexer switch is used to gate multiple signals, connecting the output of the multiplexer switch to the I/O port of the acquisition chip, allowing the acquisition chip to sample each signal in turn. However, sequential sampling discretizes the acquisition of the original waveform, meaning that the acquired waveform needs to be processed before the chip processes the discrete signals.
+
+1 Overall System Solution
+
+The system uses 60 high-precision grating sensors (with an accuracy of 0.5 μm), arranged in a ring-belt shape, to measure circular dynamic surface shape changes.
+
+During actual measurement, 60 grating micro-displacement sensors are placed on the measurement platform. The surface to be measured contacts each sensor. When the surface to be measured changes, each grating sensor will generate a corresponding displacement. The data changes at each acquisition point of the surface shape are collected, and the dynamic changes of the surface shape are restored through a certain interpolation algorithm.
+
+Typically, the acquisition system uses an FPGA as the grating signal acquisition chip. Because the system involves a large number of signal channels, a single low-end FPGA can hardly meet the requirements for signal acquisition. Therefore, multiple FPGAs need to work in parallel, and finally, a DSP chip or a microcontroller is used to sequentially address and retrieve values from multiple FPGAs, and then transmit the data from each sensor to the host computer, as shown in Figure 1. The system structure design is relatively complex, and the cost is also high.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/149149244/01_7cee0b048df84e73b631907975334b44.png)
+
+This paper proposes a multi-channel signal acquisition scheme based on multiplexing technology. Addressing the problem that multiple signals cannot be acquired simultaneously by a single chip, it adopts a serial and parallel combined sampling method, which can achieve multi-channel signal acquisition on a single FPGA while meeting sampling accuracy requirements, as shown in Figure 2.
+
+In the output signal of each sensor, there are two signals (A, B) representing the sensor's displacement. 4 sensors are grouped together, totaling 8 signals (1A, ..., 4A, 1B, ..., 4B). Connect 1A~4A to 1Y0~1Y3 of a dual 4-bit multiplexer switch (e.g., 74HC4052), and 1B~4B to 2Y0~2Y3 of the multiplexer switch. The FPGA sends a 2-bit control signal to simultaneously control the multiplexer chip MUX1. That is, when the FPGA control signal is 00, MUX1's 1Z output is 1A, and 2Z output is 1B; at this time, the signal received by the FPGA is from sensor 1. When the FPGA control signal enters the next state 01, MUX1's 1Z output is 2A, and 2Z output is 2B; at this time, the signal from sensor 2 is acquired. And so on, after sensor 4's signal, it returns to sensor 1. This forms a cyclic sampling process.
+
+When the sampling frequency requirements are not high, multi-channel parallel sampling can save a lot of I/O resources, while also ensuring accuracy. A state machine inside the FPGA can complete the control of multiplexing, as shown in Figure 3.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/149149244/02_435c337074614b0e84ca49852b910516.png)
+
+2 Grating Signal Preprocessing
+
+Grating displacement sensors output two square wave signals with a 90° phase difference, as shown in Figure 4. Normally, the actual change in displacement can be measured by counting the rising and falling edges of the two waveforms, and the direction of displacement can be determined by the instantaneous phase change of the two signals. However, because this scheme uses a cyclic sampling method, only a portion of a certain grating signal is acquired, therefore, the original signal needs to be restored through relevant methods.
+
+Here, a method of introducing a temporary signal through filtering is adopted. By clock delaying the acquired signal to maintain the sampled waveform as the sampled value for four clock cycles, a temporary signal similar to the original signal is generated, as shown in Figure 5.
+
+The purpose of filtering is to eliminate the influence of noise such as glitches on the sampled signal. Conventional filtering methods are implemented by evaluating the signal over several clock cycles. When the signal value does not change within several clock cycles, it is considered the true signal value and can be used as a temporary signal for further processing, as shown in Figure 6. It can be seen that the temporary signal only lags the original waveform signal by a certain amount of time (the number of clock cycles corresponding to this lag time is less than the serial sampling count, which is 4 here). This allows for a basically accurate restoration of the original waveform. Fine resolution direction counting and other operations are based on this temporary signal. When the signal period is much larger than the clock period, i.e., when the grating signal changes slowly, it has virtually no impact on the sampling accuracy.
+
+3 Multi-channel Grating Signal Parallel Acquisition
+
+The 8 grating signals are processed according to the method described above, as shown in Figure 7. Within the range shown in the figure, sensors 1~4 generate the following signals: increase by 18, decrease by 11, decrease by 1 then increase by 14, decrease by 13.
+
+Observe the counts at points A and B in the figure, as shown in Figure 8. At point A, the initial values for sensors 1~4 are 64, 0, 8, 4. At point B, the count values for sensors 1~4 are 82, -11, 21, -9. This perfectly matches the generated pulse signals, indicating that correct data acquisition has been achieved.
+
+4 Conclusion
+
+This scheme is suitable for low-speed data acquisition devices with many inputs. For high-speed signals, when the ratio between the signal period and the clock period is small, this method will cause loss of effective signals and is not applicable. When the signal period is much larger than the clock period (Ts > 20Tclk), the introduced temporary signal only lags the original signal by a few clock cycles (this lag is less than the parallel sampling count multiplied by the clock period), and overall, it can restore the initial waveform quite well. At the same time, the temporary signal can also effectively eliminate some waveform jitter within one clock cycle, achieving accurate low-speed multi-input data acquisition.

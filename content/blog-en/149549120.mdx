@@ -1,0 +1,84 @@
+---
+title: "Hardware and Software Composition and Solutions for Energy Coordination Controllers"
+date: "2025-07-22"
+slug: "149549120"
+tags: ["#fpga开发", "#人工智能", "#arm开发", "#嵌入式硬件"]
+source: "https://blog.csdn.net/szxinmai/article/details/149549120"
+originalTitle: "能协调控制器的硬件与软件组成及解决方案"
+---
+
+The hardware and software composition of an energy storage coordination controller is as follows:
+
+* * *
+
+#### I. Hardware Composition
+
+1.  **Core Processor Unit**
+    
+    *   **Multi-core Heterogeneous Architecture**: Utilizes a combination of ARM (for strategic computation) + FPGA (for real-time signal processing) + DSP/ADC (for high-precision sampling), supporting millisecond-level response and parallel computing‌12.
+    *   **Domestic Solution**: Supports fully domestic chips (e.g., ARM Cortex-A55 multi-core processors) to ensure supply chain security‌12.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/149549120/01_e8ab0f5c1a4a4a1f83761cfb892d7ac9.jpeg)
+
+2.  **Data Acquisition Module**
+    
+    *   **High-Precision Sampling Circuit**: 16-bit AD acquisition chip (sampling rate ≥1MSPS), voltage/current measurement error <0.5%, supporting 24 AC channels and 16 DC channels‌12.
+    *   **Isolation and Protection Design**: Key signal channels use optocoupler isolation (interference immunity up to 4kV common mode / 2kV differential mode) to ensure reliability in strong electromagnetic environments‌12.
+3.  **Communication and Expansion Interfaces**
+    
+    *   **Redundant Communication Interfaces**: Dual Gigabit Ethernet ports, multiple RS485/CAN buses, supporting protocols such as Modbus, EtherCAT, and IEC 61850 (including GOOSE)‌12.
+    *   **Low-Latency Transmission**: Integrates TSN (Time-Sensitive Networking) technology, with end-to-end communication latency <10ms‌1.
+4.  **Protection and Power Supply Unit**
+    
+    *   **Power Adaptation**: Wide voltage input (43~160VDC), dual outputs (5V/24V), and overcurrent/overvoltage protection mechanisms‌24.
+    *   **Fault Recorder Module**: Built-in fault recording function, logging abnormal event data (≥256 entries)‌3.
+
+* * *
+
+#### II. Software Composition
+
+1.  **Layered Control Strategy**
+    
+    **Layer**
+    
+    **Function**
+    
+    **Technical Implementation**
+    
+    **Bottom Layer Execution**
+    
+    Basic operations such as charge/discharge control, inverter switching
+    
+    Real-time operating system (e.g., Linux/domestic Kylin OS) driving hardware operations‌23
+    
+    **Middle Layer Coordination**
+    
+    Multi-device power allocation, responding to grid dispatch commands
+    
+    Model Predictive Control (MPC) algorithm, minute-level strategy adjustment‌12
+    
+    **Top Layer Decision-Making**
+    
+    Generating long-term dispatch plans based on weather/load forecasts
+    
+    Deep learning optimization algorithms, supporting peak shaving, valley filling, frequency regulation, and voltage regulation‌15
+    
+2.  **Communication and Protocol Stack**
+    
+    *   **Multi-Protocol Conversion Engine**: Built-in protocol stack supports Modbus to MQTT, EtherCAT to OPC UA conversion, adapting traditional devices for cloud platform interconnection‌1.
+    *   **Security Verification Mechanism**: Dual redundant checksum (CRC + parity check), data error rate <10⁻⁹‌1.
+3.  **Intelligent Function Modules**
+    
+    *   **Graphical Configuration Tool**: Supports visual programming of interface signals, control logic, and alarm rules, enabling flexible function customization‌23.
+    *   **State of Health (SOH) Management**: Battery life degradation prediction and maintenance early warning‌26.
+    *   **Fault Recording Analysis**: Records grid abnormal events to assist in fault source localization‌3.![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/149549120/02_e83e1cf9c65e4c0c998456e97d0e8e69.jpeg)
+
+* * *
+
+#### III. Software and Hardware Collaborative Features
+
+*   **Real-time Performance Assurance**: FPGA processes high-frequency sampling signals (≤10ms cycle), while ARM performs strategic computations, meeting the fast response requirements for grid frequency/voltage regulation‌15.
+*   **Reliability Design**: Fanless wide-temperature structure (-40℃~+70℃), IP67 protection rating, adapting to harsh outdoor environments‌35.
+*   **Scalability**: Modular hardware interfaces support communication management for 128 PCS units, and the software supports 300+ concurrent TCP/IP connections‌3.
+
+> Note: Hardware configurations are adjusted according to application scenarios (e.g., microgrid controllers adopt a compact design), and software algorithms require continuous optimization of generalization capabilities to adapt to multi-energy coordination scenarios‌57.
