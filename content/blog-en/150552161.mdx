@@ -1,0 +1,59 @@
+---
+title: "Power Communication Gateway based on RK3568 and LikwiseOS"
+date: "2025-08-20"
+slug: "150552161"
+tags: ["#rk3568", "#codesys"]
+source: "https://blog.csdn.net/ARM_FPGA_AI/article/details/150552161"
+originalTitle: "基于RK3568+凝思系统的电力通讯网关机"
+---
+
+The power communication gateway solution built on the RK3568 processor and LikwiseOS needs to be designed by combining hardware capabilities and system characteristics. The following is a comprehensive feasible solution framework (‌**Note**‌: Search results do not explicitly mention official support for RK3568 by LikwiseOS. This solution is based on RK3568's compatibility with mainstream Linux systems, assuming LikwiseOS can be adapted):![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/150552161/01_0a5ceb4b45534e5888d41407ede8a2e9.jpeg)
+
+* * *
+
+#### ‌**I. Core Hardware Configuration**‌
+
+As the main control chip, RK3568 provides the following capabilities:
+
+*   ‌**Processor Performance**‌: Quad-core Cortex-A55 architecture, clock speed up to 2.0GHz, integrated Mali-G52 GPU and 0.8 TOPS NPU, supporting edge computing and lightweight AI inference58.
+*   ‌**Interface Expansion**‌:
+    *   ‌**Networking**‌: Dual Gigabit Ethernet ports + Dual Fast Ethernet ports, supporting 4G/5G module expansion (via MINI-PCIE/M.2)56.
+    *   ‌**Serial Communication**‌: 18 serial ports (12 isolated RS485 + 4 RS485/RS232 multiplexed), dual CAN FD interfaces5.
+    *   ‌**Control and Monitoring**‌: 20 optocoupler-isolated DI/DO channels, supporting digital input/output acquisition and control5.
+*   ‌**Industrial Design**‌: Wide temperature operation (-40℃~+85℃), dual redundant power supply solution (dual AC/DC inputs), metal casing/IP53 protection5.![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/150552161/02_e586676add3942f39780620a0beda51c.jpeg)
+
+* * *
+
+#### ‌**II. Software and System Functions**‌
+
+1.  ‌**LikwiseOS Adaptation**‌:
+    
+    *   As a domestic secure operating system, LikwiseOS requires customized kernel drivers to support RK3568's NPU, multiple network ports, and serial port controllers.
+    *   Provides secure boot, identity authentication, and data encryption mechanisms to meet the requirements for trusted IoT in power systems1.
+2.  ‌**Gateway Core Functions**‌:
+    
+    *   ‌**Real-time Data Transmission**‌ (Zone I): Transmits power grid operational status, remote control commands, supports DL/T 860 protocol, SOE resolution ≤1ms37.
+    *   ‌**Non-real-time Data Transmission**‌ (Zone II): Forwards alarm summaries and fault recording files to the master station system3.
+    *   ‌**Protocol Conversion**‌: Built-in ICS engine, supporting ModBUS RTU/TCP to MQTT/HTTP/IEC 104, etc.5
+    *   ‌**Time Synchronization**‌: Dedicated IRIG-B interface for millisecond-level time synchronization, ensuring event sequence integrity5.
+3.  ‌**Advanced Capability Expansion**‌:
+    
+    *   ‌**AI Empowerment**‌: NPU supports equipment anomaly detection (e.g., current waveform analysis) and fault prediction model deployment18.
+    *   ‌**Communication Redundancy**‌: Three-network 4G/5G automatic switching, dual-band WiFi + Bluetooth backup link5.
+
+* * *
+
+#### ‌**III. Reliability Design**‌
+
+*   ‌**Dual-Device Redundancy**‌: The gateway adopts a primary/standby mode, supporting automatic failover3.
+*   ‌**Security Protection**‌: Hardware-level isolation (serial port/CAN up to 3.0 KV rms), watchdog circuit, eSIM for physical tamper protection56.
+*   ‌**Remote O&M**‌: Supports status monitoring and OTA upgrades, reducing on-site maintenance costs3.
+
+* * *
+
+#### ‌**Key Assumptions and Limitations**‌
+
+*   LikwiseOS needs to verify compatibility with RK3568 NPU drivers, multi-port PHY chips, and IRIG-B time synchronization hardware. If not adapted, custom development will be required.
+*   Recommended configuration for industrial scenarios: 8GB LPDDR4X memory + 64GB eMMC storage, with optional 1TB SSD expansion5.
+
+> ‌**Note**‌: If LikwiseOS cannot directly support RK3568, a verified Ubuntu alternative (e.g., solution 5) can be prioritized, followed by deploying the LikwiseOS application layer.

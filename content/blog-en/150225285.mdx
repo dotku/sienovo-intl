@@ -1,0 +1,32 @@
+---
+title: "FPGA-based Thermocouple Temperature Measurement Data Acquisition System, a Replacement for NI Products (Part 3) Testing"
+date: "2025-08-11"
+slug: "150225285"
+tags: ["#fpga开发", "#arm开发", "#人工智能", "#嵌入式硬件"]
+source: "https://blog.csdn.net/szxinmai/article/details/150225285"
+originalTitle: "基于FPGA的热电偶测温数据采集系统，替代NI的产品（三）测试"
+---
+
+High-speed Modular Data Acquisition System Lower-level Machine Function Testing
+
+4.2.1 Experimental Platform Setup
+
+Since the system is designed with modularity, it is necessary to verify the functionality of each module before conducting the overall experiment.
+
+The feasibility of the lower-level machine software was tested in the previous section. As introduced in previous sections, the system is also equipped with a front-end signal processing module, which is divided into two parts: power supply and amplification-filtering. To verify correct functionality, the signal processing module needs to be tested. Testing the power supply module is to verify whether the power supply module generates voltage correctly; testing the amplification-filtering is to ensure that the designed functions can be correctly implemented. Finally, this part of the test is connected with the previous section and connected to the host PC for packet capture and overall testing, to verify the overall functionality of the lower-level machine.
+
+Corresponding experiments are designed based on the testing requirements. The experimental design for this section is shown in Figure 4.8:![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/150225285/01_d6ae8b05ec3e4e0895a0812274724369.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/150225285/02_2bda8eb58bdf42e590e9680cad3e8d18.png)
+
+After the power supply test passes, the amplification-filtering function is tested. The amplification-filtering test primarily checks the following functions: the stability of the amplification factor, which affects whether subsequent data can be processed correctly; the error of the amplified voltage, which affects the accuracy of the measurement data; and the spectrum of the waveform before and after amplification, used to observe whether the waveform is distorted and to verify the success of the filter. The test experiment is shown in Figure 4.12. The test results for the amplification factor and amplified voltage error are shown in Table 4.2 (input: triangular wave). The amplification factor is calculated based on peak-to-peak values. The spectrum test results are shown in Figure 4.13 (input: sine wave).
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/150225285/03_38cceb73ee944e4ba2f670be13ef3f69.png)
+
+4.3 Overall Testing of the Thin-Film Thermocouple Data Acquisition System
+
+The overall functionality of the lower-level machine has been verified in the previous section. Next is to test the overall functionality, where the main control chip and high-speed ADC use corresponding development boards. The overall functional test platform is shown in Figure 4.15.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/150225285/04_6946b4337f7c4f4bb5e61332a2a4b140.png)
+
+The experiment obtains the sensor's pulse response curve by applying pulse excitation to the thin-film thermocouple using a short-pulse laser. The host PC functionality is achieved by executing three separate codes. During the experiment, the PC performs real-time packet capture on the data, obtaining pcap files. These are then stored in a database via a corresponding program. The database can export corresponding CSV files, and the plotting program can then draw the corresponding curves based on the CSV files.

@@ -1,0 +1,38 @@
+---
+title: "FPGA-based Thermocouple Temperature Measurement Data Acquisition System, an Alternative to NI Products (Part 2) Overall Design Scheme"
+date: "2025-08-11"
+slug: "150225081"
+tags: ["#fpga开发", "#嵌入式硬件", "#arm开发", "#人工智能"]
+source: "https://blog.csdn.net/szxinmai/article/details/150225081"
+originalTitle: "基于FPGA的热电偶测温数据采集系统，替代NI的产品（二）总体设计方案"
+---
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/150225081/01_d6f6f8bb62984d5eaa4b422c8b04f7c0.png)![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/150225081/02_5dab1f24065848dbbdbbe51d4f0091d0.png)
+
+In 2024, Ren Yongfeng et al. from North University of China addressed the requirements for equipment temperature measurement in flight tests and designed a high-precision multi-channel temperature acquisition device suitable for flight tests. The system block diagram is shown in Figure 1.18 \[32\]. The system uses an FPGA to build the signal acquisition and processing system, employs AD8227 and AD590 for signal conditioning and cold junction compensation, and uses AD7667 to sample the thermocouple signals. The system transmits 16 channels of temperature signals via the standard RS422 protocol and applies nonlinear correction to the output through linear fitting, thereby improving the system's accuracy and stability. Test results indicate that the temperature measurement circuit has a relative error of less than ±0.083% F.S. within the 0℃～1200℃ range.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/150225081/03_f5291681d48d44d593f4e34eb44270d9.png)
+
+Research into the current domestic and international status reveals that current mainstream thermocouple electronic measurement devices (including those manufactured by NI and some individually self-developed equipment) all suffer from low sampling rates and low transmission rates. The primary reason for these issues is that these solutions predominantly use dedicated integrated signal amplification and analog-to-digital conversion devices, or external analog-to-digital conversion devices, and data transmission often relies on Zigbee, Bluetooth, serial ports, or low-speed WiFi modules. Evidently, current thermocouple electronic measurement devices cannot meet the demand for nanosecond-level transient temperature signal acquisition from thin-film thermocouples. To address data loss and processing latency, a high-speed acquisition and transmission system must be designed. FPGAs, with their high flexibility, high throughput, fast parallel processing, and suitability for modular design, can efficiently process large-scale data streams and achieve real-time processing, perfectly matching the high-speed requirements of thin-film thermocouples. They also have numerous application examples in temperature measurement. Therefore, developing an FPGA-based modular high-speed data acquisition system for thin-film thermocouples is a currently viable solution.
+
+2.1 Thin-Film Thermocouple Temperature Measurement Principle
+
+Thermocouples, as passive temperature sensing elements, are widely used in various fields due to their simple structure, low cost, and high accuracy. They can operate stably under extreme temperatures, suitable for a wide temperature range from -200°C to +1800°C. Furthermore, thermocouples possess good durability and anti-interference capabilities, making them suitable for industrial process control, laboratory measurements, food processing, and other applications. Thin-film thermocouples, while retaining their original advantages, add the characteristic of rapid response, making them even more advantageous sensors. The working principle of thermocouples primarily relies on three thermoelectric effects: the Seebeck effect, the Peltier effect, and the Thomson effect, all of which are closely related to voltage changes caused by temperature differences \[33\]. The working principle of thin-film thermocouples is shown in Figure 2.1.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/150225081/04_3160598a150a468cbaf01a1aea22a0a0.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/150225081/05_c8219d52670d4ec3b528331100ca021c.png)
+
+2.5 Lower-Level Machine Design Scheme
+
+As analyzed in the preceding text, the electrical signal from a thin-film thermocouple is an analog signal characterized by small amplitude and rapid changes. Therefore, the lower-level machine needs to be able to amplify weak signals and filter out noise, then pass them to a high-speed ADC for acquisition and processing by the main controller, and finally, the high-speed communication section sends the data to the upper-level machine. The lower-level machine comprises lower-level machine hardware and lower-level machine software. The hardware part consists of an amplification and filtering section, an ADC board, and a main control board. The software part consists of an ADC data processing module, an ADC data packaging module, a Gigabit Ethernet data transmission module, and a GMII to RGMII interface conversion module. The overall block diagram of the system's lower-level machine is shown in Figure 2.8.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/150225081/06_2864577276434fb1b53ad7a57f8fc54e.png)
+
+2.6 Upper-Level Machine Design Scheme
+
+Due to the large short-term data volume characteristic of the acquisition system, the upper-level machine software adopts a segmented design, primarily divided into data extraction, data export, and image plotting. The advantage of this design is that it makes each part more independent and allows for flexible debugging at each stage, facilitating future modifications if requirements change or if new features need to be added or secondary development is required. The specific process involves first extracting the data portion from the captured Ethernet packets, then individually segmenting each data point, converting it, and importing it into a database. When data analysis is required, the data is then exported in .CSV table format, and images are plotted. Data extraction and image plotting are implemented using Python code, while data export is achieved through database scripts.
+
+All Python code involved in this paper is implemented using the PyCharm platform. PyCharm is a professional-grade Python Integrated Development Environment (IDE) developed by JetBrains, widely used in various fields of Python programming. PyCharm offers powerful code editing features, including intelligent code completion, real-time error checking, and code refactoring tools, significantly improving development efficiency. It also supports rich integration of development tools, such as version control systems, debuggers, testing frameworks, and database management tools, enabling developers to perform comprehensive development, debugging, and testing within a single environment \[42\].
+
+The process of developing Python projects using PyCharm typically involves the following main steps. First, developers create or import a Python project. In PyCharm, a new project can be created through a simple project wizard, selecting the Python interpreter and configuring a virtual environment to ensure that project dependencies (libraries and packages) are managed in an isolated environment. Next, developers begin writing code, utilizing PyCharm's intelligent code completion, code navigation, and real-time error checking features to efficiently write and debug Python code. During code writing, PyCharm's built-in debugger allows developers to set breakpoints, step through code, and view variable states, thereby quickly identifying and fixing issues. Finally, developers can run unit tests or integration tests using PyCharm

@@ -1,0 +1,45 @@
+---
+title: "ZYNQ-Based Strain and Temperature Synchronous Acquisition System for Engine and Gas Turbine Testing (Part 1) Hardware System Design"
+date: "2025-08-04"
+slug: "149901451"
+tags: ["#单片机", "#嵌入式硬件"]
+source: "https://blog.csdn.net/szxinmai/article/details/149901451"
+originalTitle: "基于ZYNQ的应变_温度同步采集系统在发动机和燃气轮机检测的应用（一）硬件系统设计"
+---
+
+Aero-engines and gas turbines hold extremely important positions in the industrial sector. As one of the critical components of aero-engines and gas turbines, turbine blades face harsh environments such as high temperatures, strong airflow, and intense vibrations during operation. These conditions can easily lead to problems like fatigue fracture, thermal damage, and wear. However, in high-speed rotating equipment, traditional contact-based measurement can no longer meet the requirements. Therefore, to ensure the safe operation and performance optimization of the equipment, developing a wireless strain/temperature acquisition system suitable for rotating environments is crucial.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/149901451/01_50cd725749844862bfc3cc052536cd3c.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/149901451/02_38c006ae047a4045b9b61629c2874837.png)
+
+A synchronous acquisition system for strain and temperature parameters is specifically designed to acquire, process, and convert strain and temperature signals. Its main function is to collect in real-time the response of structures or materials under stress and temperature changes, thereby analyzing their mechanical properties and thermal stability. The system measures the deformation degree of materials or structures using strain sensors and monitors temperature changes using thermocouples. After synchronizing these two types of data, the performance of the test piece under different environmental conditions can be accurately evaluated. This chapter will achieve accurate and stable acquisition of strain and temperature signals by analyzing and researching resistance strain gauges and thermocouples and their measurement methods.
+
+2.3 Overall System Design
+
+2.3.1 System Hardware Design
+
+To meet the requirements of tasks in rotating environments, the strain/temperature synchronous signal acquisition system is divided into a rotor part and a stator part. Its block diagram is shown in Figure 2.5. The stator component primarily consists of a wireless power transmission module, while the rotor component is mainly composed of a control board, a signal conditioning board, and a wireless charging receiver module. After the 8-channel temperature and strain signals are amplified and filtered by the signal conditioning board, an ADC controlled by the ZYNQ chip performs the analog-to-digital conversion of the signals. The control board is equipped with peripherals such as QSPI Flash, SD card, DDR3, and USB, and runs the Linux operating system. The control board connects to a Wi-Fi module via USB and forms a local area network with the host computer to achieve wireless data transmission.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/149901451/03_7a7a5ea5ec704e92ae29484d751e07a9.png)
+
+2.3.1.1 ZYNQ-7000 Architecture
+
+The ZYNQ-7000 series chip is a highly integrated System-on-Chip (SoC). It integrates a dual-core ARM Cortex-A9 processor and a traditional Field-Programmable Gate Array (FPGA) logic component into a single chip. It is divided into a Processing System (PS) and a Programmable Logic (PL) part. A simplified architectural model of the ZYNQ chip is shown in Figure 2-6. On the ZYNQ, the ARM Cortex-A9 is an application-level processor capable of running operating systems like Linux, while the programmable logic part is based on the Xilinx 7 series FPGA architecture.
+
+2.3.2 System Software Design
+
+The software design for the strain/temperature synchronous signal acquisition system mainly comprises two parts: the logic and Linux software design for the ZYNQ chip in the rotor component, and the host computer software design. In the program design for the rotor component, it consists of two parts: the PL (Programmable Logic) side and the PS (Processing System) side programs of the ZYNQ chip. The PL side program is responsible for the logical control of the ADC, while the PS side is ported with the Linux operating system. When configuring the Linux kernel, it is necessary to configure the driver program for the Wi-Fi chip [39], and design and write the DMA interrupt driver program [40], the network communication server application based on the UDP protocol [41], and the data reading application. Microsoft Visual Studio integrated development environment was chosen for host computer software development, with development based on the .NET framework. Although Microsoft Visual Studio has higher requirements for programmers, the research group has already achieved certain results in developing host computer software in this development environment, making it relatively easy to complete the development of a new host computer, and implement functions such as receiving data via UDP protocol and waveform display.
+
+2.3.3 System Specifications Design
+
+Addressing the actual needs for strain and temperature signal acquisition in high-speed rotating environments, this paper comprehensively investigated the operating parameters of domestic and international products, thereby defining the performance indicators for the designed acquisition system circuit.
+
+① Number of Channels: 8
+② Signal Measurement Accuracy: Thermocouple signal ±0.2% FS, Strain signal ±0.1% FS
+③ Supported Standard Thermocouple Types: K-type, S-type
+④ Strain Measurement Range: ±5000με
+⑤ Bridge Excitation Voltage: +2.5V
+⑥ Wireless Power Supply Distance: 5mm~10mm
+⑦ Wireless Charging Power: ≥9W
+⑧ Maximum Rotational Speed: ≥8000 RPM
