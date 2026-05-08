@@ -1,0 +1,49 @@
+---
+title: "ARM+FPGA+AI Real-time System Solution Based on RK3588 and ZYNQ7045"
+date: "2025-09-18"
+slug: "151825054"
+tags: ["#嵌入式硬件", "#arm开发", "#人工智能", "#fpga开发"]
+source: "https://blog.csdn.net/szxinmai/article/details/151825054"
+originalTitle: "基于RK3588与ZYNQ7045的ARM+FPGA+AI实时系统解决方案"
+---
+
+The ARM+FPGA+AI real-time system solution based on RK3588 and ZYNQ7045 combines the high computing power of Rockchip's flagship processor with the hardware acceleration capabilities of FPGA, making it suitable for industrial control, edge computing, and other scenarios. Below are the core architecture and technical features:
+
+#### I. Hardware Architecture Design
+
+1.  ‌**Main Control Chip Combination**‌
+    *   ‌**RK3588**‌: Utilizes an 8nm process, quad-core A76 + quad-core A55 architecture, integrates a 6TOPS NPU, supports 8K video encoding/decoding and multi-channel camera access13.
+
+*   ‌**ZYNQ7045**‌: Interconnected with RK3588 via PCIe 3.0, enabling hardware-level signal preprocessing (e.g., DMA acceleration, image enhancement) and reducing the main controller's load24.![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/151825054/01_4689830912c744108487838233da2a23.jpeg)
+
+1.  ‌**Interface Expansion Capabilities**‌
+    *   Supports industrial interfaces such as USB3.0, RS485/232, and GPIO, allowing connection to devices like PLCs and sensors2.
+    *   FPGA provides flexible I/O expansion, supporting multi-screen splicing (e.g., 12-screen heterogeneous display) and multi-channel synchronous signal acquisition23.
+
+#### II. Real-time Optimization Technologies
+
+1.  ‌**Heterogeneous Computing Architecture**‌
+    
+    *   Based on an AMP (Asymmetric Multi-Processing) architecture, the master core runs a Linux system, while the slave core runs an RTOS to handle high real-time tasks (e.g., EtherCAT communication)2.
+    *   FPGA performs hardware-level preprocessing (e.g., ISP enhancement, 3DNR), improving NPU object detection efficiency (e.g., YOLOv5 model achieves 49fps@640x640)24.
+2.  ‌**Low-Latency Communication**‌
+    
+    *   Utilizes GPIO interrupt and DMA technology, achieving 4μs-level inter-core communication to meet the urgent response requirements of industrial control2.
+
+#### III. AI and Vision Processing Capabilities
+
+1.  ‌**NPU Acceleration**‌
+    
+    *   Supports INT4/INT8/INT16/FP16 mixed precision operations and is compatible with model conversion from frameworks like TensorFlow/PyTorch13.
+    *   YOLO series models can be deployed, enabling real-time analysis of 1080P video streams4.![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/151825054/02_b49c3a0b3efd4512823c78c31bb0f17d.jpeg)
+2.  ‌**Multi-channel Video Processing**‌
+    
+    *   RK3588 supports 7-channel camera input and 7-screen heterogeneous display, with FPGA assisting in multi-channel 8K video synchronous processing34.
+
+#### IV. Typical Application Scenarios
+
+*   ‌**Industrial Vision**‌: Multi-channel camera acquisition + NPU-based defect detection2.
+*   ‌**Intelligent Transportation**‌: LED multi-screen control (12-screen matrix splicing)2.
+*   ‌**Unmanned Systems**‌: FPGA+NPU collaborative processing of 1080P real-time video streams2.
+
+This solution, through a combination of localized chips (e.g., Ziguang Tongchuang FPGA replacing ZYNQ) and operating system adaptation (e.g., Kylin OS), can meet the demanding requirements of harsh industrial environments.

@@ -1,0 +1,62 @@
+---
+title: "【JETSON+FPGA+GMSL】Real-world Test Sharing | How to Achieve High-Precision Time Synchronization Between LiDAR and Cameras?"
+date: "2025-10-16"
+slug: "153410623"
+tags: ["#fpga开发", "#数码相机", "#人工智能", "#机器人", "#自动驾驶", "#机器学习"]
+source: "https://blog.csdn.net/ARM_FPGA_AI/article/details/153410623"
+originalTitle: "【JETSON+FPGA+GMSL】实测分享 | 如何实现激光雷达与摄像头高精度时间同步？"
+---
+
+**Foreword**
+
+In modern industrial and scientific research fields, the collaborative operation of multi-sensor systems has become the norm. Whether it's the perception systems of autonomous driving vehicles, industrial quality inspection platforms, or scientific data acquisition devices, multiple sensors (such as cameras, LiDAR, etc.) need to operate under strict time synchronization.
+
+Currently, multi-sensor systems still face significant synchronization challenges during the data acquisition phase. In distributed systems, different sensors have independent clock bases. Ensuring that devices at different physical locations can operate based on the same time reference is a complex technical problem that urgently needs to be solved.
+
+Sienovo, leveraging its technical expertise in visual sensing and autonomous driving, innovatively proposes a "hardware trigger + protocol timing" combined strategy. Based on its self-developed CS300 GPS-Time/Trigger Synchronization Box, Sienovo has created a **cross-platform, high-precision time synchronization solution** that covers all scenario requirements, from multi-camera synchronization to multi-sensor fusion.
+
+**_01_**
+
+**LiDAR and Camera Synchronization Verification**
+
+In autonomous driving, robot navigation, and intelligent transportation systems, synchronized data acquisition from LiDAR and cameras is crucial. Only by ensuring high consistency between their data in both time and space can accurate environmental perception and object recognition be achieved.
+
+The synchronization box supports PTP and gPTP master/slave modes, serving as the system's core time source. It can generate high-precision timestamps and synchronized trigger pulses, providing a unified time reference for various sensors and eliminating time discrepancies between devices.
+
+To verify the synchronization performance of the time synchronization solution in multi-sensor systems, we set up a dynamic simulation scenario in a laboratory environment and conducted verification tests through real-time data recording and analysis.
+
+X86 Platform LiDAR and Camera Synchronization Solution
+
+During the test, the CS300 synchronization box provided an external timing signal to the PCIe image acquisition card, precisely controlling the camera's synchronized exposure, allowing it to complete image acquisition and timestamping according to the trigger signal. Simultaneously, it transmitted the time reference to the LiDAR via a PTP switch, enabling the LiDAR to generate timestamped point cloud data based on the synchronized time.
+
+The test results show that the camera and LiDAR not only achieved high-precision clock traceability and alignment but also accomplished synchronization of point cloud data and image data at the frequency and phase levels, with system timing accuracy reaching microsecond levels. This achievement demonstrates the quality of multi-sensor data fusion and the reliability of system perception, effectively validating the applicability of the synchronization solution in multi-sensor collaborative scenarios.
+
+**_02_**
+
+**Multi-Camera Synchronization Verification**
+
+In fields such as intelligent manufacturing, security surveillance, and AI visual analysis, synchronized acquisition from multiple cameras has become a common requirement. Multi-camera systems can capture target information simultaneously from different angles, providing more comprehensive visual data. The main challenges in achieving multi-camera synchronization include timestamp alignment and bandwidth bottlenecks. Multiple cameras may exhibit startup time differences or inter-frame offsets, while bandwidth limitations can affect the stability and integrity of data transmission.
+
+The synchronization box can generate high-precision trigger signals at 10-120Hz with microsecond accuracy, transmitting them at high speed to each camera via GMSL channels. This directly controls their exposure timing, achieving exposure synchronization at the hardware level. Furthermore, GMSL channels inherently offer core advantages such as long-distance transmission, high bandwidth, high reliability, and low latency, providing reliable assurance for the stability and integrity of camera data transmission.
+
+To comprehensively evaluate the actual performance of the time synchronization solution in multi-camera systems, we used a running light test for synchronization accuracy verification.
+
+To verify camera image synchronization performance, a precisely controllable and time-quantifiable reference object is required. This test method simulates dynamic targets using high-speed moving light spots. Its high time base accuracy and clear motion trajectory can intuitively and quantitatively demonstrate the deviation between the exposure moments of different cameras, making it a widely recognized method for testing synchronization performance in the industry.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153410623/01_4a1351cf693e4772980d5e352d3aa4fe.png)
+
+X86 Platform Multi-Camera Synchronization Solution
+
+The test results indicate that in the running light test, the timestamp sequences of images captured by the two cameras were perfectly consistent, and there was no deviation in the position of the captured light spots. The overall system synchronization accuracy reached the microsecond level, verifying the excellent temporal consistency and operational stability of the synchronization solution, and effectively meeting the high-precision requirements for multi-camera synchronized acquisition in various fields.
+
+**_03_**
+
+**Cross-Platform Synchronization Solution**
+
+Addressing the differentiated host platform requirements across various fields, the synchronization solution provides comprehensive cross-platform support, compatible with X86 systems and various embedded platforms, meeting the needs of multi-scenario applications.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153410623/02_d3419edea59a49ef9aff9eaf3ce08535.png)
+
+Jetson AGX Orin Platform Multi-Sensor Synchronization Solution
+
+In response to the widespread application of embedded platforms in the field of artificial intelligence and the growing demand for camera data acquisition and processing, Sienovo has developed a series of GMSL to MIPI signal vision development kits for mainstream development platforms such as NVIDIA Jetson AGX Orin, Raspberry Pi 5, and Rockchip RK3588. This kit, when combined with the CS300 synchronization box, can simultaneously achieve high-speed acquisition and precise synchronization of multi-camera data, perfectly adapting to the high-precision vision application requirements in embedded scenarios.

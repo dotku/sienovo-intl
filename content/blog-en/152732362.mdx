@@ -1,0 +1,54 @@
+---
+title: "Research on a Power Grid Suspension Insulator Defect Detection System Based on ZYNQ ARM+FPGA+AI YOLOv4"
+date: "2025-10-08"
+slug: "152732362"
+tags: ["#人工智能", "#YOLO", "#arm开发", "#fpga开发", "#嵌入式硬件"]
+source: "https://blog.csdn.net/szxinmai/article/details/152732362"
+originalTitle: "基于 ZYNQ ARM+FPGA+AI YOLOV4 的电网悬垂绝缘子缺陷检测系统的研究"
+---
+
+With the rapid development of power systems, insulators, as critical components in power systems, their stability directly affects the normal operation of power equipment. Traditional insulator defect detection methods rely on manual inspection, which is labor-intensive and inefficient, often leading to missed or false detections. Therefore, deep learning-based defect detection technology has gradually become a research hotspot, with significant application prospects in the maintenance of power equipment. This paper primarily focuses on insulator defect detection based on the YOLOv4-Tiny algorithm, and through algorithm optimization and FPGA hardware deployment, it aims to meet the demand for efficient detection in power systems.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/152732362/01_cc41ce078c244e05b0666e0c70c7c48c.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/152732362/02_bd71e2c7dfcb441ba36cbde2930cd908.png)
+
+YOLOv4-Tiny\[50\] is a lightweight version of YOLOv4, which helps achieve faster inference times, making it highly suitable for porting and development on mobile and embedded devices.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/152732362/03_f43cf25b19214cfc9b732b14dcd2d69f.png)
+
+**3.3 Improved YOLOv4-Tiny Algorithm for Insulator Image Defect Detection**
+
+**3.3.1 Construction of Insulator Image Dataset**
+
+(1) Insulator Image Acquisition
+
+In deep learning, the quantity and quality of datasets play a crucial role in the training effect of models. In the field of insulator detection, insulators can be classified by material into ceramic insulators, glass insulators, and composite insulators. Self-explosion, missing parts, and damage are common defects that can occur in insulators of these materials. Therefore, the dataset in this paper is constructed focusing on insulator self-explosion, missing parts, and damage for training the YOLOv4-Tiny algorithm. Due to the specificity of the power industry, it is currently difficult to obtain a large number of datasets specifically for these three types of insulator defects. Therefore, this paper collected 1230 insulator images of varying resolutions from relevant papers, online sources, and outdoor photography. Among these, 960 images contain defects, and 270 images show normal insulators. A portion of the insulator dataset is shown in Figure 3.6.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/152732362/04_1dfd0b8fa0d24558993555dcc6034805.png)
+
+(2) Insulator Image Augmentation
+
+Data augmentation is a commonly used technique in deep learning tasks such as image classification. By transforming original data to generate new training samples, it effectively enhances the model's generalization ability. For the insulator dataset, data augmentation operations can significantly improve the model's ability to recognize insulators in different environments. This paper applied operations such as rotation, mirroring, noise addition, and brightness adjustment to the insulator dataset. The purpose is to increase image diversity and enhance the model's adaptability to various scene changes. Figure 3.7 shows an original image from the insulator image dataset and its transformed versions, illustrating the differences in morphology and brightness in the augmented dataset. After augmentation, the total number of images in this dataset reached 7380, a significant increase compared to the original dataset. This enhanced the robustness of model training and its adaptability to new environments, improving detection accuracy, especially in scenarios with high natural environmental complexity, significantly boosting system performance.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/152732362/05_aefd5701bbcc4bf19a06e257af08b3bf.png)![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/152732362/06_d0bbc4de96824ff4b08a349f073b1446.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/152732362/07_22b38e512b94454fb7c788e4383ee79e.png)
+
+**4.5 Experimental Results and Analysis of the Detection System**
+
+**4.5.1. Experimental Conditions**
+
+This paper uses the ZYNQ-7020 series development board developed by Myir Tech as the hardware platform. This development board is equipped with a high-performance ARM Cortex-A9 dual-core processor, capable of meeting complex computational requirements. During the training phase, this paper used an Intel i5-12400F as the main processor and an ASUS DUAL GTX-4060 graphics card for model training, all within a Windows 10 operating system environment. For the software environment, Python was chosen as the programming language, and the training and optimization of the improved YOLOv4-Tiny model were completed in the PyCharm 2021.1.1 integrated development environment. The sample set consists of 7380 insulator defect images, including both complete and defective insulators, ensuring the diversity and representativeness of the training data.
+
+In the algorithm deployment phase, also under the Windows 10 operating system, toolchains such as Vivado 2019.2, Vitis IDE 2019.2, and Vivado HLS 2019.2 were used. Vivado 2019.2 was used for FPGA logic synthesis and place-and-route. Vivado HLS 2019.2 was used to convert the high-level description of the algorithm into Hardware Description Language (HDL) and generate efficient hardware acceleration IP cores, with synthesis and implementation completed in Vivado 2019.2. Subsequently, an SDK program was written, and the generated bitstream file and application were programmed onto the ZYNQ-7020 development board using Vitis IDE 2019.2 for actual hardware deployment and experimental verification. The overall hardware experimental platform is shown in Figure 4.18.
+
+**4.5.3 Comparison of Image Detection Results on FPGA Platform**
+
+After hardware deployment of the improved algorithm, comparisons were made between the FPGA platform and the PC platform. Additionally, the detection performance of the algorithm before and after improvement was compared on the FPGA platform. In the detection images, green boxes indicate insulators, red boxes indicate insulator defects, and the numbers in the upper-left corner of the detection boxes represent confidence scores.
+
+(1) Comparison of Detection on FPGA Platform and PC Platform
+
+The comparison of detection results between the FPGA platform and the PC platform is shown in Figure 4.21. This figure illustrates the effect of insulator defect detection performed on two different platforms. Figures (a) and (c) show the detection results on the FPGA platform, while Figures (b) and (d) show the detection results on the PC platform. Figures (a) and (b) respectively display the detection results for multiple defects in insulator images. Figures (c) and (d) show the detection results for a single insulator defect in insulator images.
+
+Through comparative observation, the detection effects for multiple defects in Figures (a) and (b) are similar, with almost identical confidence scores. Comparing the detection effects for a single insulator defect in Figures (c) and (d), the insulator detection confidence decreased from 0.93 to 0.73, and the insulator defect detection confidence decreased from 0.73 to 0.71. Although the confidence scores decreased, the defect information could still be accurately identified. Comprehensive analysis shows that despite using 16-bit fixed-point quantization for inference on the FPGA platform, it did not significantly impact the final detection performance. This indicates that, even with fixed-point operations, the FPGA platform can effectively perform high-precision defect detection tasks while ensuring real-time performance and hardware resource utilization. This provides strong support for the future application of FPGAs in real-time defect detection in the power grid defect detection field.![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/152732362/08_f52715a3324349058b715d481f7910f1.png)

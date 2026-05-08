@@ -1,0 +1,87 @@
+---
+title: "Application of RK3568/RK3588+FPGA Power Gateway in Environmental Monitoring and Energy Storage Energy Management Systems"
+date: "2025-08-20"
+slug: "150555658"
+tags: ["#fpga开发", "#RK3588", "#linux"]
+source: "https://blog.csdn.net/ARM_FPGA_AI/article/details/150555658"
+originalTitle: "基于RK3568/RK3588+FPGA电力网关在动环监控+储能能源管理系统的应用"
+---
+
+Serial servers play a crucial role in industrial data acquisition by connecting traditional devices to IP networks. This article will introduce the physical interface configuration of a serial server based on the Rockchip RK3588 processor (8nm, 4xA76+4xA55) and objectively discuss its applicable scenarios in Energy Storage Management Systems (EMS) and Environmental Monitoring.![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/150555658/01_b4ae0d8fcc304bb0a2e6685106d0c6f1.jpeg)
+
+I. Core Hardware Specifications Overview
+Processor: Rockchip RK3588
+
+Operating System: Optional Open-source EulerOS, Kylin, KylinSec, Ubuntu
+
+Memory/Storage: 8GB / 128GB eMMC
+
+NPU: 6TOPS computing power (supports multiple precisions)
+
+II. Configuration and Application
+The interface design of this serial server is mainly divided into front and rear sections:
+
+Front Interfaces (Device Access Side):
+
+Serial Ports: 16-channel RS485 (each with an indicator light).
+
+Digital I/O (DIO): 12-channel DI (Input) + 4-channel DO (Output).
+
+Control: 1 power switch.
+
+Rear Interfaces (Network, Management, and Expansion Side):
+
+Network:
+
+LAN: Optional 2 / 4 / 6 Gigabit Ethernet ports.
+
+Wireless/Cellular (Optional): Dual-band WiFi, Bluetooth 5.0+, M.2 interface (4G/5G), SIM card slot.
+
+Display: 1 HDMI port.
+
+General: 1x USB Type-C (OTG), 2x USB 3.0.
+
+Expansion I/O: Additional 1x DI + 1x DO.
+
+Debug: 1x DEBUG serial port.
+
+Supplemental Serial Ports: Additional 2-channel RS485.
+
+Power Input: 220V AC dual-redundant (automatic switching upon single-path failure).
+
+Power Output: 6-channel 2PIN 12V DC (can power sensors, etc.).
+
+Safety Protection: Multiple power system protections (undervoltage/short circuit/overcurrent/overvoltage), I/O channel 1500V DC isolation.
+
+Environmental Adaptability: Operating temperature -40°C ~ +70°C, storage temperature -40°C ~ +80°C, humidity 20%~90% (non-condensing).
+
+Dimensions: 437(483)mm * 414.6mm * 44.5mm.![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/150555658/02_a4e19a6c61fd4c00a948dc9a232a6f62.jpeg)
+
+III. Applicable Scenarios in Environmental Monitoring Systems
+The industrial-grade features of this device make it suitable for demanding environmental monitoring environments:
+
+Multi-device Access: 18-channel RS485 can connect temperature and humidity sensors, water leak detectors, air conditioning/UPS controllers, access control systems, power distribution cabinets, etc.
+
+Digital Signal Processing: 17 DI + 5 DO are suitable for connecting alarm signals from smoke detectors, infrared sensors, door contacts, etc., and controlling lighting, fans, and other equipment.
+
+Network Connectivity and Backup: Multiple Gigabit Ethernet ports support traffic distribution or redundancy; optional 4G/5G can serve as a wired network backup.
+
+Local Power Supply and Expansion: 6-channel 12V output can power common sensors; USB interface facilitates debugging.
+
+Wide Temperature Adaptability: The -40°C ~ +70°C operating range is suitable for environments such as unconditioned equipment rooms and outdoor cabinets.
+
+IV. Applicable Scenarios in Energy Storage EMS Systems
+The multi-interface design of this device can meet the connection requirements of energy storage EMS for on-site device data acquisition and control:
+
+High-density Serial Access: A total of 18-channel RS485 (16 front + 2 rear) can centrally connect a large number of devices based on protocols like Modbus, such as BMS slave controllers, PCS, smart meters, and fire alarm panels.
+
+Networked Data Forwarding: Collected data is forwarded to the EMS server or cloud platform via Gigabit Ethernet ports or 4G/5G (optional).
+
+Status Monitoring and Control: 17-channel DI (12 front + 1 rear) + 5-channel DO (4 front + 1 rear) can be used to connect alarm signals or execute simple control commands.
+
+Local Edge Processing (Potential): RK3588 + NPU provide the hardware foundation for edge-side data preprocessing (filtering, caching, protocol conversion).
+
+Power Supply Reliability: Dual redundant power supplies ensure continuous node operation, and 6-channel 12V output can simplify power supply for on-site sensors.
+
+Summary:
+This RK3588-platform serial server provides a hardware connectivity solution for scenarios requiring connection to a large number of serial and digital devices (such as energy storage EMS and environmental monitoring), by offering high-density RS485 (18 channels), rich DIO (17 DI/5 DO), flexible network configuration (multiple Ethernet ports + optional wireless), dual redundant power input, and a wide-temperature industrial-grade design. Its local processing capability also leaves room for edge computing applications. Actual deployment requires planning in conjunction with specific device protocol compatibility and system architecture.

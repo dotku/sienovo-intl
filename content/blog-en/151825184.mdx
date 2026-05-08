@@ -1,0 +1,49 @@
+---
+title: "RK3588+FPGA-based Drone Flight Control System, Featuring AI Computing Power, FPGA Real-time Capabilities, Powerful Image Processing, and Full Domestic Localization"
+date: "2025-09-18"
+slug: "151825184"
+tags: ["#人工智能", "#fpga开发", "#无人机"]
+source: "https://blog.csdn.net/ARM_FPGA_AI/article/details/151825184"
+originalTitle: "基于RK3588+FPGA的无人机飞控系统，支持AI算力和FPGA实时性，强大的图像处理能力，支持全国产化"
+---
+
+The RK3588+FPGA-based drone flight control system combines the AI computing power of ARM processors with the real-time hardware acceleration capabilities of FPGAs, offering significant advantages in flight control, image processing, and communication transmission. Below are the core technical features and application implementations of this solution:![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/151825184/01_b58a3ab39d694acab27ae2effe94899f.png)
+
+#### I. Hardware Architecture Design
+
+1.  ‌**Main Control Chip Collaboration**‌
+    
+    *   ‌**RK3588**‌: Utilizes an 8nm process with a quad-core A76 + quad-core A55 architecture, integrating 6TOPS NPU computing power. It supports 8K video encoding/decoding and multi-camera input, meeting the demands for flight control computation and AI tasks‌12.
+    *   ‌**FPGA**‌: Interconnected with RK3588 via PCIe 3.0, it enables hardware-level signal pre-processing (e.g., DMA acceleration, image stabilization compensation), reducing the main controller's load and enhancing real-time performance‌34.
+2.  ‌**Interface Expansion Capabilities**‌
+    
+    *   Supports MIPI CSI, USB3.0, RS485/232, and other interfaces, allowing connection to cameras, sensors, and wireless video transmission modules‌15.
+    *   FPGA provides flexible I/O expansion, supporting multi-channel video synchronous acquisition and low-latency transmission (e.g., 1080P@60fps)‌45.
+
+#### II. Key Technologies of the Flight Control System
+
+1.  ‌**Real-time Flight Control**‌
+    
+    *   Based on an AMP (Asymmetric Multi-Processing) architecture, the main core runs a Linux system, while the auxiliary core runs an RTOS to handle high real-time tasks (e.g., attitude estimation, PID control), with FPGA assistance achieving microsecond-level response‌45.
+    *   Supports EtherCAT communication protocol, meeting industrial-grade control precision requirements‌4.![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/151825184/02_d7ebb0fa6bd4a18b9d61a9a395867b3.png)
+2.  ‌**AI Vision and Tracking**‌
+    
+    *   NPU accelerates YOLO series models, enabling drone object detection (e.g., ships, vehicles) and multi-object tracking (using the ByteTrack algorithm)‌15.
+    *   FPGA implements image enhancement (3DNR, defogging) and shake compensation, improving recognition accuracy in complex environments‌13.
+3.  ‌**Wireless Video Transmission Optimization**‌
+    
+    *   Supports H.265 hardware encoding, with end-to-end transmission latency as low as 30-60ms, enabling stable transmission of 1080P video streams over narrow-band channels (500Kbps~2Mbps)‌1.
+    *   Multi-channel video fusion technology ensures smooth footage, supporting multi-source inputs such as SDI/MIPI‌1.![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/151825184/03_1f12fc7ed2bc43129cfe4ba7097db07a.png)
+
+#### III. Typical Application Scenarios
+
+*   ‌**Industrial Inspection**‌: Achieves automatic tracking of targets up to 15km away using a dual-sensor gimbal (visible light + infrared), with an endurance of over 2 hours‌1.
+*   ‌**Agricultural Plant Protection**‌: Features 3D vision-based obstacle avoidance and path planning, supporting high-altitude irrigation and pest/disease monitoring‌56.
+*   ‌**Emergency Search and Rescue**‌: FPGA+NPU collaboratively process 1080P real-time video streams for rapid localization of trapped personnel‌45.
+
+#### IV. Domestic Localization and Reliability
+
+*   Utilizes domestic FPGAs such as Unigroup Guoxin to replace ZYNQ, adapts to domestic operating systems like Galaxy Kylin, and has passed -40℃~85℃ industrial temperature range tests‌24.
+*   Lightweight design (core board size 45×50mm) and a fully enclosed heat dissipation solution adapt to complex electromagnetic environments‌12.
+
+This solution, through its heterogeneous computing architecture and hardware acceleration technology, significantly enhances the real-time performance, intelligence, and reliability of drone systems, making it suitable for military, industrial, and civilian applications‌.

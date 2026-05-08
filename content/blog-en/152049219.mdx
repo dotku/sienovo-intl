@@ -1,0 +1,32 @@
+---
+title: "ZYNQ-based ARM+FPGA+YOLO AI Real-time Fire Monitoring and Recognition System"
+date: "2025-09-24"
+slug: "152049219"
+tags: ["#arm开发", "#fpga开发", "#YOLO"]
+source: "https://blog.csdn.net/szxinmai/article/details/152049219"
+originalTitle: "基于ZYNQ的ARM+FPGA+yolo AI火灾实时监测与识别系统"
+---
+
+2.1 Overall System Design Flow
+This paper studies a monitoring system, which requires image acquisition. The system should be able to connect to cameras or other image sensors to acquire image data in real time. Next, logical design is performed on the FPGA to achieve real-time image preprocessing [27-28], including denoising, Gaussian filtering, and histogram equalization, to improve the accuracy of subsequent processing. To meet the system's scalability requirements, a Linux operating system [29-30] is ported to the ARM, and an Ethernet connection is configured to facilitate peripheral expansion. To achieve hardware acceleration, Xilinx's DPU module is called to improve the efficiency and performance of image processing. Furthermore, the system should possess long-term stability. Figure 2.1 shows the schematic diagram of the overall solution.![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/152049219/01_8381eae3658a4486aa1a2399af6ebc6f.png)2.2 Monitoring System Hardware Design
+The hardware design of this system includes circuit design, FPGA logic design, and PS (Processing System) configuration. The PS side connects to an SD card, UART interface, DP interface, and Ethernet interface, and custom IP cores are designed in the PL (Programmable Logic) through logic design. Figure 2.2 shows the Zynq hardware architecture diagram.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/152049219/02_aefinc490b01c4366a57693b2069c3c71.png)2.3 Monitoring System Software Design
+In the software design, Linux needs to be ported to the ARM side, and drivers for the camera and VDMA need to be written.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/152049219/03_deb4aa6dad5a4a7a9b981c952ac3997a.png)2.4 ZYNQ Platform Introduction
+2.4.1 ZYNQ Development Flow
+The ZYNQ System-on-Chip (SoC) development process integrates the concept of software and hardware co-design to achieve efficient system performance and functional optimization. Development is carried out using the Xilinx suite, specifically including Vivado and Vitis software. Figure 2.4 visually illustrates the Xilinx development tool flow.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/152049219/04_5d0f12b2b72341de80aa3241664fef4c.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/152049219/05_72ce314f0ab949e2b393e58cc5272cd4.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/152049219/06_38e42298781e4b40bfb3ca160a4c4e09.png)![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/152049219/07_410d049eebb345cf9ece52299928ba0d.png)
+
+5.3.2 Network Model Training
+Generally, the accuracy of models increases with the number of training iterations. However, accuracy often fluctuates significantly across many training iterations. This design employs semi-supervised learning simulation to enhance recognition performance. The best model generated from the first 50 epochs is saved and used as the initialization model for the second round, which leads to relatively stable accuracy. Figure 5.10 shows the loss rate and accuracy curves for three different models.![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/152049219/08_e3068577206d4cdd9d7871e082cdb4a3.png)5.3.2 Network Model Training
+Generally, the accuracy of models increases with the number of training iterations. However, accuracy often fluctuates significantly across many training iterations. This design employs semi-supervised learning simulation to enhance recognition performance. The best model generated from the first 50 epochs is saved and used as the initialization model for the second round, which leads to relatively stable accuracy. Figure 5.10 shows the loss rate and accuracy curves for three different models.
+
+.3.3 DPU Acceleration
+Xilinx's dedicated neural network unit, the DPU module [60-62], can perform computations efficiently, especially in convolution modules, providing higher speeds for neural network modules. In practical operation, the DPU IP is called on the Linux system of the PS side to perform neural network computations. Figure 5.11 shows the flowchart for DPU convolutional computation.![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/152049219/09_40943834981d4859b92dd4f5ead688b9.png)

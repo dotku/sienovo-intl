@@ -1,0 +1,41 @@
+---
+title: "AM5728 Linux Kernel Compilation Method"
+date: "2019-06-14"
+slug: "91978735"
+tags: ["#AM5728", "#内核", "#编译", "#linux"]
+source: "https://blog.csdn.net/yeyuangen/article/details/91978735"
+originalTitle: "AM5728 linux内核编译方法"
+---
+
+I. Compiling the Linux Kernel
+
+In the Linux kernel source installation directory, execute the following command to compile the Linux kernel:
+
+```hljs
+Host# make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- zImage -j 32
+```
+
+"-j 32" is a compilation option that tells the operating system to use 32 threads for compilation, thereby speeding up the compilation process.
+After compilation, the kernel image file `zImage` will be generated in the "arch/arm/boot" path within the Linux kernel source installation directory. The compiled kernel image file can be used to replace the kernel image file in the development board's file system.
+When booting the system using an SD boot card, if you need to replace the kernel image, there are the following methods:
+
+*   Use the new kernel image file, keeping the filename consistent with the original, to replace the corresponding file in the "/boot" directory of the SD boot card's rootfs partition.
+*   Use the new kernel image file, keeping the filename consistent with the original, to replace the corresponding file in the SD boot card creation directory, and then recreate the SD boot card.
+
+II. Compiling Modules
+In the Linux kernel source installation directory, execute the following command to compile the modules selected in the kernel configuration:
+
+```hljs
+Host# make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- modules -j 32
+```
+
+Insert the SD boot card into a PC and successfully mount it to Ubuntu. Execute the following command to install the compiled modules to the system card's rootfs partition:
+
+```hljs
+Host# make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- modules_install INSTALL_MOD_PATH=/media/rootfs/
+```
+
+"/media/rootfs/" is the mount path of the SD card's file system in Ubuntu.
+
+On the development board's file system, execute the following command to view the installed driver modules:
+Host# lsmod

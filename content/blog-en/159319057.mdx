@@ -1,0 +1,68 @@
+---
+title: "ZYNQ MPSOC-based Ship Data Acquisition Instrument Design (Part 2): EMC Reliability Design"
+date: "2026-03-21"
+slug: "159319057"
+tags: ["#fpga开发", "#嵌入式硬件", "#人工智能", "#arm开发"]
+source: "https://blog.csdn.net/szxinmai/article/details/159319057"
+originalTitle: "基于ZYNQ MPSOC船舶数据采集仪器设计（二）EMC可靠性设计"
+---
+
+Main Control Board Circuit Design
+
+The main control board circuit design is shown in Figure 3-1, primarily including the peripheral circuits of the main control chip and the design of some functional circuits.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/159319057/01_0d38ee685088457ca493e384fb2fab38.png)
+
+3.5 Electromagnetic Compatibility Design for Cabin Environment
+
+Electromagnetic interference in a ship environment is complex and variable. To ensure stable and reliable operation of the data acquisition and recording device, electromagnetic compatibility (EMC) design must be emphasized in hardware design. This design adopted the following EMC measures:
+
+(1) Hardware Circuit Electromagnetic Compatibility Design:
+
+In the circuit design of this system, particular attention was paid to power quality and signal integrity:
+
+① Each power node is configured with decoupling capacitor filtering, using 10μF and 0.1μF capacitors in parallel to filter out low-frequency and high-frequency interference respectively, ensuring stable power voltage;
+
+② Multi-stage decoupling capacitor filtering is arranged near the power pins of critical chips (such as ZYNQ processors, ADC chips).
+
+(2) PCB Layout and Routing Optimization
+
+PCB design adheres to strict EMC principles:
+
+① Layout is clearly divided by functional modules, with digital and analog circuits physically isolated;
+
+② Digital ground and analog ground are separated and use single-point grounding;
+
+③ High-frequency circuits (Gigabit Ethernet interface, DDR4, etc.) use equal-length routing and impedance matching techniques to improve signal quality;
+
+④ Differential signals such as CAN bus employ strict differential pair routing to enhance signal anti-interference capability and reduce electromagnetic radiation.
+
+(3) Shielding and Enclosure Design
+
+Comprehensive shielding measures are adopted for the high electromagnetic interference environment on ships:
+
+① The system uses a full-metal aluminum alloy enclosure design with a thickness of 1.5mm, preventing electromagnetic interference generated inside the device from leaking out, while effectively shielding external electromagnetic radiation;
+
+② Input EMI filters and TVS protection circuits are used to prevent conducted interference from power lines and transient overvoltage.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/159319057/02_0b1c962521a44c57a4dd677fa7514edd.png)
+
+To further reduce electromagnetic radiation, an external aluminum alloy chassis (480×410×100mm) is added, equipped with multi-parameter input interfaces, a power switch, and network cable holes. An anti-vibration base is installed at the bottom. The structure is shown in Figure 3-34.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/159319057/03_680fb04159064b568212bfdc69f53938.png)
+
+3.6.2 Thermal Design
+
+Since ship compartments may be high-temperature environments, to prevent the device's functional operation from being affected by excessive temperature, thermal management is required for high-power consumption chips on the board.
+
+Thermal solution: Heat is conducted using designed thermal strips, and dissipated through thermal holes (13mm×13mm) in the device's mounting base. High-power consumption chips such as the ZYNQ and DC-DC power supply are designed to be installed on the exterior of the board, effectively reducing the temperature of these high-heat chips through the thermal layer and thermal holes. A specific schematic of the thermal design is shown in Figure 3-35.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/159319057/04_243ffc10e6c7412eb41a5f96cd778fd6.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/159319057/05_0146e99c59034ff6a047191ef875eb9b.png)
+
+5.2 Weight, Volume, and Power Consumption Testing
+
+As shipborne equipment has specific requirements for weight, volume, and power consumption, these indicators were tested. The test results are shown in Table 5-2.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/159319057/06_dd47a7d3c96e4f058b691c648817ba32.png)

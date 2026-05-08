@@ -1,0 +1,90 @@
+---
+title: "UAV Flight Control System Design Based on RK3576+FPGA"
+date: "2025-09-18"
+slug: "151825375"
+tags: ["#fpga开发", "#RK3588", "#linux", "#rk3568", "#无人机"]
+source: "https://blog.csdn.net/ARM_FPGA_AI/article/details/151825375"
+originalTitle: "基于RK3576+FPGA的无人机飞控系统设计"
+---
+
+#### UAV Flight Control System Design Based on RK3576+FPGA
+
+This solution utilizes a collaborative architecture of the Rockchip RK3576 processor and FPGA, combining heterogeneous computing and real-time control technologies to meet the high dynamic response, multi-sensor fusion, and AI vision processing requirements of UAVs. Here are the core design points:![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/151825375/01_a14b25289d6747fabae4b334ed51f23c.png)
+
+* * *
+
+#### 1\. ‌**Hardware Architecture Design**‌
+
+*   ‌**Heterogeneous Computing Core**‌
+    
+    *   ‌**RK3576**‌: Quad-core Cortex-A72 (2.3GHz) runs path planning algorithms (e.g., A\*, RRT\*), and quad-core Cortex-A53 (2.2GHz) processes IMU/GPS/vision multi-sensor fusion (sampling rate 1kHz)12.
+    *   ‌**FPGA Expansion**‌: Connects to FPGA via PCIe x4 or FlexBus interface (e.g., Anlogic, Gowin, or Unisoc series) to achieve hardware acceleration tasks such as LiDAR point cloud filtering and encoder signal decoding (data exchange rate 280MB/s)13.
+*   ‌**Multi-modal Perception Interface**‌
+    
+    *   ‌**Vision and Positioning**‌: Dual MIPI CSI-2 interface supports 4K@60fps stereo vision obstacle avoidance, integrating RTK GPS (UBLOX ZED-F9P) and IMU (MPU-6050), with indoor and outdoor positioning accuracy reaching ±2cm and ±5cm respectively5.
+    *   ‌**Communication Link**‌: 5G (Quectel RM500Q) and WiFi 6E dual-redundancy design, supporting MAVLink 2.0 protocol, with packet loss resistance improved by 80%25.![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/151825375/02_55d7cd1fdcf84ad0a0f15ed8988bca90.png)
+*   ‌**Real-time Control Module**‌
+    
+    *   ‌**Cortex-M0 Hard Real-time Core**‌: Implements microsecond-level PID control loop (period 20μs), directly driving brushless ESCs and servos12.
+    *   ‌**FPGA Acceleration**‌: Deploys hardware PID control loop and pulse signal generation, with a response period ≤50μs37.
+
+* * *
+
+#### 2\. ‌**Software Protocol Stack Implementation**‌
+
+*   ‌**Real-time Operating System**‌
+    
+    *   Adopts Linux 6.1 kernel + RT-Preempt patch or SylixOS (ASIL-D level), with task scheduling jitter <10μs, supporting Xenomai real-time domain12.
+    *   Example Code (FPGA-PID Control Thread):
+        
+        cCopy Code
+        
+        `RT_TASK motor_ctrl_task; void motor_control(void *arg) { while (1) { read_sensor_data(&imu_data); pid_calculate(&ctrl_output); pwm_set_duty(ESC_CH1, ctrl_output); rt_task_wait_period(); // Hard real-time period 20μs } }`
+        
+*   ‌**Flight Control Algorithm Optimization**‌
+    
+    *   ‌**Visual SLAM**‌: NPU (6TOPS computing power) accelerates the ORB-SLAM3 algorithm, with a mapping update frequency of 30Hz5.
+    *   ‌**Dynamic Obstacle Avoidance**‌: Fuses LiDAR and visual data, supporting 8-direction obstacle recognition (minimum detection distance 0.5m)15.
+
+* * *
+
+#### 3\. ‌**Localization and Reliability Design**‌
+
+*   ‌**Domestic Chip Replacement**‌: RK3576+FPGA (e.g., Fudan Micro JFM7K325T) achieves 100% localization, meeting military-grade autonomous and controllable requirements26.
+*   ‌**Environmental Adaptability**‌: -40℃~85℃ wide temperature operation, passes MIL-STD-810G vibration test, and withstands 50g mechanical shock12.
+
+* * *
+
+#### 4\. ‌**Performance Comparison and Advantages**‌
+
+‌**Aspect**‌
+
+‌**RK3576+FPGA Solution**‌
+
+‌**Traditional x86 Solution (e.g., J1900)**‌
+
+‌**Real-time Control**‌
+
+Hard real-time loop period 20μs
+
+Software PID latency >200μs
+
+‌**Computing Power Density**‌
+
+Heterogeneous octa-core + 6TOPS NPU
+
+Quad-core x86 without AI unit
+
+‌**Communication Reliability**‌
+
+Dual CAN-FD + 5G redundant link
+
+High failure rate for USB-to-CAN bus adapters
+
+‌**Localization Degree**‌
+
+Fully domestic chips + operating system
+
+x86 architecture has export control risks
+
+This solution significantly outperforms traditional solutions in terms of real-time performance, computing power, and localization, making it suitable for military/industrial-grade UAV scenarios.
