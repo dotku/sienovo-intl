@@ -11,6 +11,8 @@ export const revalidate = 3600;
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
   const heroImage = `${SITE_URL}/images/pptx/aibox-sg8.png`;
+  const absUrl = (path: string) =>
+    /^https?:\/\//.test(path) ? path : `${SITE_URL}${path.startsWith("/") ? "" : "/"}${path}`;
 
   // Static landing pages
   const staticEntries: MetadataRoute.Sitemap = [
@@ -32,7 +34,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: p.updatedAt,
       changeFrequency: "monthly" as const,
       priority: 0.7,
-      images: [p.image || heroImage],
+      images: [absUrl(p.image || heroImage)],
     }));
   } catch (err) {
     console.error("[sitemap] prisma.product.findMany failed", err);
