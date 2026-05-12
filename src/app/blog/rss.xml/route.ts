@@ -2,7 +2,7 @@ import { getAllPosts } from "@/lib/blog";
 import { SITE_URL } from "@/lib/site";
 
 export async function GET() {
-  const posts = getAllPosts();
+  const posts = getAllPosts("en");
   const siteUrl = SITE_URL;
 
   const items = posts
@@ -24,7 +24,7 @@ export async function GET() {
     <title>Sienovo Blog</title>
     <link>${siteUrl}/blog</link>
     <description>Technical articles on embedded systems, edge AI, FPGA, ARM platforms, and industrial computing solutions.</description>
-    <language>zh-cn</language>
+    <language>en-us</language>
     <atom:link href="${siteUrl}/blog/rss.xml" rel="self" type="application/rss+xml" />
 ${items}
   </channel>

@@ -8,6 +8,7 @@ import Scenarios from "@/components/Scenarios";
 import Cases from "@/components/Cases";
 import Platform from "@/components/Platform";
 import CTA from "@/components/CTA";
+import LatestInsights from "@/components/LatestInsights";
 import Footer from "@/components/Footer";
 
 export default function Home() {
@@ -23,6 +24,7 @@ export default function Home() {
         <Cases />
         <Specs />
         <Platform />
+        <LatestInsights locale="en" />
         <CTA />
       </main>
       <Footer />

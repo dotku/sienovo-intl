@@ -238,7 +238,7 @@ function brandIntro() {
   // Chinese-speaking readers who know the parent company bridge to
   // the new English brand.
   return [
-    `*Originally published on the [Sienovo Engineering Blog](${SITE_URL}/en/blog). ` +
+    `*Originally published on the [Sienovo Engineering Blog](${SITE_URL}/blog). ` +
     `Sienovo is the overseas brand of 深圳信迈 (Shenzhen Xinmai), ` +
     `building edge AI computing solutions for industrial video analytics.*`,
     "",
@@ -248,7 +248,7 @@ function brandIntro() {
 }
 
 function aiDisclosureFooter(post) {
-  const sienovoUrl = `${SITE_URL}/en/blog/${post.slug}`;
+  const sienovoUrl = `${SITE_URL}/blog/${post.slug}`;
   return [
     "",
     "---",
@@ -263,7 +263,7 @@ function aiDisclosureFooter(post) {
 }
 
 function buildArticlePayload(post) {
-  const canonicalUrl = `${SITE_URL}/en/blog/${post.slug}`;
+  const canonicalUrl = `${SITE_URL}/blog/${post.slug}`;
   const tags = normalizeTags(post.tags);
   const title = normalizeBrand(post.title);
   const body = brandIntro() + normalizeBrand(post.content.trim()) + aiDisclosureFooter(post);

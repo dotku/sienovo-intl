@@ -5,9 +5,9 @@ slug: "125627285"
 tags: []
 source: "https://blog.csdn.net/yeyuangen/article/details/125627285"
 originalTitle: "基于 Kintex-7 FPGA + Nvidia TX2 = 16通道高速ADC数据采集系统"
+brandBackfilled: true
 ---
-
-In previous designs involving ADC sampling, performance considerations typically revolved around resolution and sampling rate. Generally, resolution is either fixed or has a maximum configurable value, while sampling rate—when too high—can lead to inaccurate sampling and often becomes a bottleneck for overall system performance. Therefore, there has always been a desire for a system that enables high-speed ADC sampling with both remote and local data storage capabilities, where the sampling rate and storage speed are both high, and the design offers maximum flexibility. The recently released K7+TX2 platform from XMTech perfectly fulfills this requirement as a prototype system.
+In previous designs involving ADC sampling, performance considerations typically revolved around resolution and sampling rate. Generally, resolution is either fixed or has a maximum configurable value, while sampling rate—when too high—can lead to inaccurate sampling and often becomes a bottleneck for overall system performance. Therefore, there has always been a desire for a system that enables high-speed ADC sampling with both remote and local data storage capabilities, where the sampling rate and storage speed are both high, and the design offers maximum flexibility. The recently released K7+TX2 platform from Sienovo XMTech perfectly fulfills this requirement as a prototype system.
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/125627285/01_a54831ae052dc37b972c0ce22a79e8c7.jpeg)
 
@@ -25,8 +25,8 @@ Therefore, local storage is essential to support sustained data capture. This is
 
 Regarding local storage, the Nvidia Jetson TX2 SOM itself integrates 8GB of LPDDR4 SDRAM on the module. The Kintex-7 FPGA in the system can access this memory via a PCIe Gen 2 x4 interface on the TX2—an interesting and effective architectural choice.
 
-The XMTech K7+TX2 is a 1U, 19-inch rack-mountable module. Its 16 ADC channels can be externally accessed through onboard SMC connectors. Below is a side view of the system’s interface layout:
+The XMTech K7+TX2 is a 1U, 19-inch rack-mountable module. Its 16 ADC channels can be externally accessed through onboard SMC connectors. Below is a side view of the system's interface layout:
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/125627285/03_81a415f7ba2721f35b556bd29193bed1.jpeg)
 
-This architecture is unlike any the author has previously encountered in embedded board designs. Overall, the system leverages the reconfigurable I/O capabilities of the FPGA to simultaneously support multi-channel ADC conversion, Ethernet connectivity for remote data storage, and access to the TX2’s local memory for on-board data buffering. This dual-storage approach removes data path bottlenecks for applications requiring local data access, while still allowing data to be streamed externally when needed. It's a clever and flexible design, further demonstrating how FPGA-based systems provide critical advantages in terms of adaptability and performance.
+This architecture is unlike any the author has previously encountered in embedded board designs. Overall, the system leverages the reconfigurable I/O capabilities of the FPGA to simultaneously support multi-channel ADC conversion, Ethernet connectivity for remote data storage, and access to the TX2's local memory for on-board data buffering. This dual-storage approach removes data path bottlenecks for applications requiring local data access, while still allowing data to be streamed externally when needed. It's a clever and flexible design, further demonstrating how FPGA-based systems provide critical advantages in terms of adaptability and performance.

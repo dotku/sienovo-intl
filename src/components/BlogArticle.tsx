@@ -9,7 +9,7 @@ export default function BlogArticle({
   post: BlogPost;
   locale: BlogLocale;
 }) {
-  const backHref = locale === "en" ? "/en/blog" : "/blog";
+  const backHref = locale === "zh" ? "/zh/blog" : "/blog";
 
   return (
     <article className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

@@ -6,6 +6,13 @@ export const metadata = {
   title: "Technical Blog - Embedded Systems, Edge AI & Industrial Computing",
   description:
     "Technical articles on embedded systems, edge AI, FPGA, ARM platforms, and industrial computing solutions from Sienovo.",
+  alternates: {
+    canonical: "/blog",
+    languages: {
+      en: "/blog",
+      zh: "/zh/blog",
+    },
+  },
 };
 
 export default async function BlogPage({
@@ -20,7 +27,7 @@ export default async function BlogPage({
     <>
       <Header />
       <main className="min-h-screen bg-gray-50">
-        <BlogList locale="zh" page={page} />
+        <BlogList locale="en" page={page} />
       </main>
       <Footer />
     </>

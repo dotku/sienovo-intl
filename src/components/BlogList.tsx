@@ -12,7 +12,7 @@ export default async function BlogList({
     page,
     locale,
   );
-  const basePath = locale === "en" ? "/en/blog" : "/blog";
+  const basePath = locale === "zh" ? "/zh/blog" : "/blog";
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

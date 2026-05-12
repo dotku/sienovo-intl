@@ -15,11 +15,11 @@ export default function Header() {
     const newLocale = locale === "en" ? "zh" : "en";
     setLocale(newLocale);
 
-    // Navigate between /blog and /en/blog paths
-    if (pathname.startsWith("/en/blog")) {
-      router.push(pathname.replace(/^\/en\/blog/, "/blog"));
+    // /blog (en, default) ↔ /zh/blog
+    if (pathname.startsWith("/zh/blog")) {
+      router.push(pathname.replace(/^\/zh\/blog/, "/blog"));
     } else if (pathname.startsWith("/blog")) {
-      router.push(`/en${pathname}`);
+      router.push(`/zh${pathname}`);
     }
   }
 

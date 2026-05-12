@@ -15,6 +15,8 @@ export interface BlogPost {
   source: string;
   content: string;
   originalTitle?: string;
+  seoTitle?: string;
+  seoDescription?: string;
 }
 
 function getBlogDir(locale: BlogLocale = "zh"): string {
@@ -39,6 +41,8 @@ export function getAllPosts(locale: BlogLocale = "zh"): BlogPost[] {
         source: data.source || "",
         content,
         originalTitle: data.originalTitle,
+        seoTitle: data.seoTitle,
+        seoDescription: data.seoDescription,
       } as BlogPost;
     })
     .sort((a, b) => (b.date > a.date ? 1 : -1));
@@ -62,7 +66,52 @@ export function getPostBySlug(slug: string, locale: BlogLocale = "zh"): BlogPost
     source: data.source || "",
     content,
     originalTitle: data.originalTitle,
+    seoTitle: data.seoTitle,
+    seoDescription: data.seoDescription,
   };
+}
+
+// Posts shorter than this are stubs/link-only pages translated from CSDN —
+// indexing them dilutes the site's quality signal and contributes to the
+// "Discovered/Crawled - currently not indexed" GSC bucket. We still serve
+// them at /blog/<slug> for users that follow direct links, but mark them
+// noindex and exclude from the sitemap so Google focuses crawl budget on
+// the substantive technical articles.
+export const LOW_QUALITY_THRESHOLD = 1500;
+
+export function isLowQualityPost(post: BlogPost): boolean {
+  return (post.content?.length ?? 0) < LOW_QUALITY_THRESHOLD;
+}
+
+// Pick up to `limit` substantive posts that share at least one tag with
+// `post`, ranked by tag-overlap then content length. Used to render an
+// internal-linking "Related posts" section on blog detail pages — the
+// SEO checklist asks for 3-5 internal links per article, and this surfaces
+// them automatically from existing tags rather than hand-curated maps.
+export function getRelatedPosts(
+  post: BlogPost,
+  locale: BlogLocale,
+  limit = 4
+): BlogPost[] {
+  if (!post.tags || post.tags.length === 0) return [];
+  const tagSet = new Set(post.tags);
+  return getAllPosts(locale)
+    .filter(
+      (p) =>
+        p.slug !== post.slug &&
+        !isLowQualityPost(p) &&
+        p.tags.some((t) => tagSet.has(t))
+    )
+    .map((p) => ({
+      post: p,
+      overlap: p.tags.filter((t) => tagSet.has(t)).length,
+    }))
+    .sort((a, b) => {
+      if (b.overlap !== a.overlap) return b.overlap - a.overlap;
+      return (b.post.content?.length ?? 0) - (a.post.content?.length ?? 0);
+    })
+    .slice(0, limit)
+    .map((x) => x.post);
 }
 
 export function getAllTags(locale: BlogLocale = "zh"): string[] {

@@ -55,7 +55,7 @@ const PROVIDERS = {
   gateway: {
     name: "Vercel AI Gateway",
     url: "https://ai-gateway.vercel.sh/v1/chat/completions",
-    key: process.env.VERCEL_AI_GEWAY_API_KEY,
+    key: process.env.AI_GATEWAY_API_KEY,
     model: "google/gemini-2.5-flash",
     format: "openai",
   },
@@ -73,7 +73,7 @@ const availableProviders = Object.entries(PROVIDERS)
   .map(([id, p]) => ({ id, ...p }));
 
 if (availableProviders.length === 0) {
-  console.error("No AI API keys found. Set GEMINI_API_KEY, VERCEL_AI_GEWAY_API_KEY, or OPENROUTER_API_KEY.");
+  console.error("No AI API keys found. Set GEMINI_API_KEY, AI_GATEWAY_API_KEY, or OPENROUTER_API_KEY.");
   process.exit(1);
 }
 

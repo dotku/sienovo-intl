@@ -29,11 +29,11 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Sienovo | Edge AI Computing Solutions for Industrial Video Analytics",
+    default: "Sienovo | Edge AI Computing for Industrial Video Analytics",
     template: "%s | Sienovo",
   },
   description:
-    "Sienovo provides intelligent edge AI computing solutions for industrial video analytics. Featuring INT-AIBOX series with up to 12 TOPS AI power, 8/16-channel HD video, 40+ built-in algorithms for smart monitoring, safety, and automation.",
+    "Edge AI computing for industrial video analytics. INT-AIBOX series with up to 12 TOPS, 8/16-channel HD video, and 40+ built-in AI algorithms ready to deploy.",
   keywords: [
     "edge AI",
     "video analytics",
@@ -78,7 +78,14 @@ export const metadata: Metadata = {
     canonical: "/",
     languages: {
       en: "/",
-      zh: "/?lang=zh",
+      "x-default": "/",
+      zh: "/zh",
+    },
+    types: {
+      "application/rss+xml": [
+        { url: "/rss.xml", title: "Sienovo · Edge AI Insights (EN)" },
+        { url: "/zh/rss.xml", title: "Sienovo · 边缘 AI 洞察（中文）" },
+      ],
     },
   },
   robots: {
@@ -148,13 +155,9 @@ export default function RootLayout({
               name: "INT-AIBOX-P-8",
               description:
                 "High-performance edge AI computing device with 7.2 TOPS INT8 AI power, 8-channel HD video, 40+ built-in AI algorithms.",
+              image: `${siteUrl}/images/pptx/aibox-sg8.png`,
               brand: { "@type": "Brand", name: "Sienovo" },
               category: "Edge AI Computing",
-              offers: {
-                "@type": "Offer",
-                availability: "https://schema.org/InStock",
-                priceCurrency: "USD",
-              },
             }),
           }}
         />

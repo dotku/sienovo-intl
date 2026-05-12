@@ -3,12 +3,19 @@ import Footer from "@/components/Footer";
 import BlogList from "@/components/BlogList";
 
 export const metadata = {
-  title: "Technical Blog - Embedded Systems, Edge AI & Industrial Computing",
+  title: "技术博客 - 嵌入式系统、边缘 AI 与工业计算 | Sienovo",
   description:
-    "Technical articles on embedded systems, edge AI, FPGA, ARM platforms, and industrial computing solutions from Sienovo.",
+    "Sienovo 关于嵌入式系统、边缘 AI、FPGA、ARM 平台与工业计算解决方案的技术文章。",
+  alternates: {
+    canonical: "/zh/blog",
+    languages: {
+      en: "/blog",
+      zh: "/zh/blog",
+    },
+  },
 };
 
-export default async function EnBlogPage({
+export default async function ZhBlogPage({
   searchParams,
 }: {
   searchParams: Promise<{ page?: string }>;
@@ -20,7 +27,7 @@ export default async function EnBlogPage({
     <>
       <Header />
       <main className="min-h-screen bg-gray-50">
-        <BlogList locale="en" page={page} />
+        <BlogList locale="zh" page={page} />
       </main>
       <Footer />
     </>

@@ -51,7 +51,12 @@ jobs:
           if [ "$DRAFT" = "true" ]; then DRAFT_FLAG="--draft"; fi
           node scripts/publish-devto.mjs --limit "${LIMIT:-3}" $DRAFT_FLAG
 
+      # Run even if "Publish next batch" exited non-zero — partial successes
+      # already wrote rows to data/devto-published.jsonl, and skipping the
+      # commit lets dev.to and our state drift apart, leading to repeated
+      # 422 "canonical url already taken" errors on subsequent runs.
       - name: Commit published-state log
+        if: always()
         run: |
           if [ -n "$(git status --porcelain data/devto-published.jsonl)" ]; then
             git config user.name "sienovo-bot"

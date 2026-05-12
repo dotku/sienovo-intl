@@ -3,7 +3,7 @@ import { SITE_URL } from "@/lib/site";
 
 export async function GET() {
   const siteUrl = SITE_URL;
-  const posts = getAllPosts();
+  const posts = getAllPosts("en");
 
   const postSections = posts
     .map(

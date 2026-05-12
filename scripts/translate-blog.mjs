@@ -15,6 +15,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from "fs";
 import { join } from "path";
 import { config } from "dotenv";
+import { execSync, spawn } from "node:child_process";
 
 // ── Load .env.local ─────────────────────────────────────────────────────────
 const PROJECT_ROOT = new URL("..", import.meta.url).pathname;
@@ -24,9 +25,28 @@ config({ path: join(PROJECT_ROOT, ".env.local") });
 const SOURCE_DIR = join(PROJECT_ROOT, "content/blog");
 const TARGET_DIR = join(PROJECT_ROOT, "content/blog-en");
 const DELAY_MS = parseInt(process.env.TRANSLATE_DELAY_MS || "6500", 10); // Pace at ~9 RPM to stay under Gemini free-tier 10 RPM limit
+const CLAUDE_TIMEOUT_MS = parseInt(process.env.CLAUDE_TIMEOUT_MS || "180000", 10);
+
+function hasClaudeCLI() {
+  try {
+    execSync("command -v claude", { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 // ── Provider definitions ────────────────────────────────────────────────────
 const PROVIDERS = {
+  // Best quality: Claude via the subscription-backed `claude -p` headless CLI.
+  // Auth comes from the cached OAuth login (no env key needed). Subject to
+  // the user's subscription rate limits (5h rolling window).
+  claude: {
+    name: "Claude (subscription)",
+    format: "claude-cli",
+    model: process.env.CLAUDE_MODEL || "sonnet",
+    available: hasClaudeCLI(),
+  },
   // Daily sync: Gemini 2.5 Flash free tier — 10 RPM, 250 RPD (as of 2025)
   gemini: {
     name: "Gemini Direct",
@@ -39,7 +59,7 @@ const PROVIDERS = {
   gateway: {
     name: "Vercel AI Gateway",
     url: "https://ai-gateway.vercel.sh/v1/chat/completions",
-    key: process.env.VERCEL_AI_GEWAY_API_KEY,
+    key: process.env.AI_GATEWAY_API_KEY,
     model: "google/gemini-2.5-flash",
     format: "openai",
   },
@@ -53,13 +73,15 @@ const PROVIDERS = {
   },
 };
 
-// Build provider chain: prefer gateway > openrouter > gemini
+// Build provider chain: prefer claude > gateway > openrouter > gemini.
+// Claude has no env key — its `available` flag is set when the CLI is
+// installed; everything else gates on a key.
 const availableProviders = Object.entries(PROVIDERS)
-  .filter(([, p]) => p.key)
+  .filter(([, p]) => p.available ?? !!p.key)
   .map(([id, p]) => ({ id, ...p }));
 
 if (availableProviders.length === 0) {
-  console.error("No AI API keys found. Set VERCEL_AI_GEWAY_API_KEY, OPENROUTER_API_KEY, or GEMINI_API_KEY.");
+  console.error("No AI providers available. Install `claude` CLI or set AI_GATEWAY_API_KEY, OPENROUTER_API_KEY, or GEMINI_API_KEY.");
   process.exit(1);
 }
 
@@ -102,6 +124,39 @@ async function translateOpenAI(provider, prompt) {
   return text;
 }
 
+// ── Translation via Claude headless CLI (subscription auth) ────────────────
+async function translateClaude(provider, prompt) {
+  return new Promise((resolve, reject) => {
+    const args = ["-p"];
+    if (provider.model) args.push("--model", provider.model);
+    const child = spawn("claude", args, { stdio: ["pipe", "pipe", "pipe"] });
+    let stdout = "";
+    let stderr = "";
+    const timer = setTimeout(() => {
+      child.kill("SIGKILL");
+      reject(new Error(`${provider.name} timed out after ${CLAUDE_TIMEOUT_MS}ms`));
+    }, CLAUDE_TIMEOUT_MS);
+
+    child.stdout.on("data", (d) => { stdout += d.toString(); });
+    child.stderr.on("data", (d) => { stderr += d.toString(); });
+    child.on("error", (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+    child.on("close", (code) => {
+      clearTimeout(timer);
+      if (code !== 0) {
+        return reject(new Error(`${provider.name} exit ${code}: ${stderr.slice(0, 200) || stdout.slice(0, 200)}`));
+      }
+      const text = stdout.trim();
+      if (!text) return reject(new Error(`Empty response from ${provider.name}`));
+      resolve(text);
+    });
+    child.stdin.write(prompt);
+    child.stdin.end();
+  });
+}
+
 // ── Translation via Gemini native API ──────────────────────────────────────
 async function translateGemini(provider, prompt) {
   const response = await fetch(provider.url, {
@@ -125,7 +180,7 @@ async function translateGemini(provider, prompt) {
 }
 
 // ── Translate with fallback chain ──────────────────────────────────────────
-async function translate(title, content) {
+async function translate(title, tags, content) {
   const prompt = `You are a professional technical translator. Translate the following Chinese technical blog post to English.
 
 Rules:
@@ -140,8 +195,20 @@ Brand handling (important):
 - Preserve product codes verbatim (e.g. XM-5125 stays XM-5125, INT-AIBOX-P-8 stays as-is). Only the company name swaps to Sienovo; do not rename products.
 - If the article is about 深圳信迈 generally, the translated text should refer to "Sienovo" throughout.
 
+Tags handling:
+- Translate each tag to a short English equivalent. Keep the leading # if present. Use camel case for multi-word tags (e.g. #人工智能 → #AI, #fpga开发 → #FPGADev, #工业物联网 → #IIoT).
+- Preserve tags that are already English (e.g. "#AM5728") unchanged.
+- Return tags as a JSON array on a single line prefixed with "Tags: " — e.g.: Tags: ["#AI", "#FPGADev"]
+
+Output format (strict, in this order):
+Title: <translated title>
+Tags: <JSON array of translated tags>
+Content:
+<translated markdown content>
+
 ---
 Title: ${title}
+Tags: ${tags}
 
 Content:
 ${content}`;
@@ -157,9 +224,10 @@ ${content}`;
   let lastError;
   for (const provider of providers) {
     try {
-      const result = provider.format === "gemini"
-        ? await translateGemini(provider, prompt)
-        : await translateOpenAI(provider, prompt);
+      const result =
+        provider.format === "claude-cli" ? await translateClaude(provider, prompt) :
+        provider.format === "gemini" ? await translateGemini(provider, prompt) :
+        await translateOpenAI(provider, prompt);
       return { text: result, provider: provider.name };
     } catch (err) {
       lastError = err;
@@ -173,23 +241,43 @@ ${content}`;
 
 // ── Parse translated response ───────────────────────────────────────────────
 function parseTranslation(translatedText, originalFrontmatter) {
-  // The response might include a translated title line — extract it
   const lines = translatedText.trim().split("\n");
   let translatedTitle = originalFrontmatter.title;
-  let translatedContent = translatedText.trim();
+  let translatedTags = originalFrontmatter.tags; // raw "..,.." string fallback
+  let i = 0;
 
-  // Check if Gemini returned "Title: ..." at the start
-  if (lines[0].startsWith("Title:")) {
-    translatedTitle = lines[0].replace(/^Title:\s*/, "").trim();
-    // Skip the title line and any separator
-    let startIdx = 1;
-    if (lines[startIdx]?.trim() === "" || lines[startIdx]?.trim() === "---") startIdx++;
-    if (lines[startIdx]?.startsWith("Content:")) startIdx++;
-    if (lines[startIdx]?.trim() === "") startIdx++;
-    translatedContent = lines.slice(startIdx).join("\n").trim();
+  // Title:
+  if (lines[i]?.startsWith("Title:")) {
+    translatedTitle = lines[i].replace(/^Title:\s*/, "").trim();
+    i++;
   }
+  // Tags:
+  if (lines[i]?.startsWith("Tags:")) {
+    const tagsLine = lines[i].replace(/^Tags:\s*/, "").trim();
+    try {
+      const parsed = JSON.parse(tagsLine);
+      if (Array.isArray(parsed)) {
+        translatedTags = parsed
+          .map((t) => `"${String(t).replace(/"/g, '\\"')}"`)
+          .join(", ");
+      }
+    } catch {
+      // leave fallback
+    }
+    i++;
+  }
+  // skip optional separators / "Content:" header
+  while (
+    i < lines.length &&
+    (lines[i].trim() === "" ||
+      lines[i].trim() === "---" ||
+      lines[i].startsWith("Content:"))
+  ) {
+    i++;
+  }
+  const translatedContent = lines.slice(i).join("\n").trim();
 
-  return { translatedTitle, translatedContent };
+  return { translatedTitle, translatedTags, translatedContent };
 }
 
 // ── Main ────────────────────────────────────────────────────────────────────
@@ -270,15 +358,15 @@ async function main() {
       }
 
       // Translate
-      const { text: translatedText, provider: usedProvider } = await translate(fm.title, content);
-      const { translatedTitle, translatedContent } = parseTranslation(translatedText, fm);
+      const { text: translatedText, provider: usedProvider } = await translate(fm.title, fm.tags, content);
+      const { translatedTitle, translatedTags, translatedContent } = parseTranslation(translatedText, fm);
 
       // Write translated MDX
       const mdx = `---
 title: "${translatedTitle.replace(/"/g, '\\"')}"
 date: "${fm.date}"
 slug: "${fm.slug}"
-tags: [${fm.tags}]
+tags: [${translatedTags}]
 source: "${fm.source}"
 originalTitle: "${fm.title.replace(/"/g, '\\"')}"
 ---

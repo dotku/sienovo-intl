@@ -2,11 +2,11 @@
 title: "基于AM5728的OpenCL例程开发分享"
 date: "2021-05-16"
 slug: "116897118"
-tags: ["#AM5728", "#OPENCL", "#OPENCV", "#OPENMP", "#多核异构"]
+tags: ["#AM5728", "#OPENCL", "#OPENCV", "#OPENMP", "#MulticoreHeterogeneous"]
 source: "https://blog.csdn.net/yeyuangen/article/details/116897118"
 originalTitle: "基于AM5728的OpenCL例程开发分享"
+brandBackfilled: true
 ---
-
 ---
 Title: OpenCL Example Development Guide Based on AM5728
 
@@ -19,7 +19,7 @@ OpenCL (short for Open Computing Language) is the first open, royalty-free stand
 
 **2 Compiling OpenCL Examples**
 
-This example is developed using the Xinming XM5728-IDK-V3 development board.
+This example is developed using the Sienovo XM5728-IDK-V3 development board.
 
 On Ubuntu, execute the following command to install `gawk`, a text find-and-replace utility:
 
@@ -51,7 +51,7 @@ After compilation completes, executable files will be generated under the curren
 
 Figure 4
 
-For customer convenience, verified OpenCL executable files are provided on the CD-ROM at the path `Demo/OpenCL/OpenCL/bin/opencl.tar.gz`. Copy this file to the development board's file system. Navigate to the directory and run the following command to extract:
+For customer convenience, Sienovo provides verified OpenCL executable files on the CD-ROM at the path `Demo/OpenCL/OpenCL/bin/opencl.tar.gz`. Copy this file to the development board's file system. Navigate to the directory and run the following command to extract:
 
 Target# tar xvf opencl.tar.gz
 
@@ -65,7 +65,7 @@ Figure 5
 
 Run the following command on the development board's file system to test the `vecadd` example:
 
-****Target****  ./opencl/vecadd/vecadd
+****Target****  ./opencl/vecadd/vecadd
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/116897118/06_255c2e6e9811b64f11dec56817cdec47.png)
 
@@ -77,9 +77,9 @@ The result shows: addition of two 4D vectors with 8192K elements takes 26,476 mi
 
 This example performs vector addition (8192 elements, 1D vector) using OpenMP parallelization. Execute the following commands on the development board's file system:
 
-****Target****  cd opencl/vecadd\_openmp
+****Target****  cd opencl/vecadd\_openmp
 
-****Target****  ./vecadd\_openmp
+****Target****  ./vecadd\_openmp
 
 Figure 7
 
@@ -89,9 +89,9 @@ This example performs floating-point calculations on both the ARM side (using tw
 
 On the development board's file system, execute:
 
-****Target****  cd opencl/float\_compute/
+****Target****  cd opencl/float\_compute/
 
-****Target****  ./float\_compute
+****Target****  ./float\_compute
 
 Figure 8
 
@@ -101,9 +101,9 @@ As shown in the output above, the ARM side takes 4,010 μs, while the DSP side t
 
 On the development board's file system, run the following commands to test FFT computation. The results are shown below:
 
-****Target****  cd opencl/dsplib\_fft/
+****Target****  cd opencl/dsplib\_fft/
 
-****Target****  ./dsplib\_fft
+****Target****  ./dsplib\_fft
 
 Figure 9
 
@@ -111,9 +111,9 @@ Figure 9
 
 Run the following commands on the development board's file system to test the Monte Carlo method accelerated by OpenCL on the DSP:
 
-****Target****  cd opencl/monte\_carlo
+****Target****  cd opencl/monte\_carlo
 
-****Target****  ./monte\_carlo
+****Target****  ./monte\_carlo
 
 Figure 10
 
@@ -133,9 +133,9 @@ Test image path: CD-ROM `Demo/OpenCL/OpenCL_performance_test/data`
 
 Copy the example source code from the cloud drive `Demo/OpenCL/OpenCL_performance_test/src` to any directory on Ubuntu. Enter the source directory and run the following command to compile:
 
-****Host****\#  cd ~/AM57xx/Demo/OpenCL/OpenCL\_performance\_test/src
+****Host****\#  cd ~/AM57xx/Demo/OpenCL/OpenCL\_performance\_test/src
 
-****Host****# make SDK\_INSTALL\_PATH=/home/xmtech/ti-processor-sdk-linux-am57xx-evm-03.01.00.06
+****Host****# make SDK\_INSTALL\_PATH=/home/xmtech/ti-processor-sdk-linux-am57xx-evm-03.01.00.06
 
 Figure 12
 
@@ -151,11 +151,11 @@ The following tests compare performance with OpenCL disabled and enabled, using 
 
 Run the following commands: first disable OpenCL, then clear the cache before testing. Repeat the cache-clearing and testing steps five times, as shown below:
 
-****Target****\#  source bin/opencl\_off.sh
+****Target****\#  source bin/opencl\_off.sh
 
-****Target****\#  sync; echo 3 >/proc/sys/vm/drop\_caches
+****Target****\#  sync; echo 3 >/proc/sys/vm/drop\_caches
 
-****Target****\#  ./canny data/XM5728\_IDK\_V3.jpg
+****Target****\#  ./canny data/XM5728\_IDK\_V3.jpg
 
 Figure 14
 
@@ -168,11 +168,11 @@ Take the average of the five test results:
 
 Run the following commands: first enable OpenCL, then clear the cache before testing. Repeat the cache-clearing and testing steps six times, as shown below:
 
-****Target****\#  source bin/opencl\_on.sh
+****Target****\#  source bin/opencl\_on.sh
 
-****Target****\#  sync; echo 3 >/proc/sys/vm/drop\_caches
+****Target****\#  sync; echo 3 >/proc/sys/vm/drop\_caches
 
-****Target****#  ./canny data/XM5728\_IDK\_V3.jpg
+****Target****#  ./canny data/XM5728\_IDK\_V3.jpg
 
 Figure 15
 
