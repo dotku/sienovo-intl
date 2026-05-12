@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
+import { createContext, useContext, useCallback, useEffect, useMemo, ReactNode } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { type Locale, type Dictionary, getDictionary, defaultLocale } from "./index";
 
 interface I18nContextType {
@@ -15,12 +16,14 @@ const I18nContext = createContext<I18nContextType>({
   setLocale: () => {},
 });
 
-function getSavedLocale(): Locale | null {
-  const saved = localStorage.getItem("locale") as Locale | null;
-  if (saved === "en" || saved === "zh") return saved;
-  const browserLang = navigator.language.toLowerCase();
-  if (browserLang.startsWith("zh")) return "zh";
-  return null;
+// URL is the single source of truth: paths starting with `/zh` (or just `/zh`)
+// render in Chinese, everything else is English. This prevents UI/navigation
+// strings from drifting out of sync with article content when localStorage
+// holds an opposite preference (the original bug: visiting /blog/X with a
+// saved zh preference showed English article + Chinese chrome).
+function localeFromPath(pathname: string | null): Locale {
+  if (!pathname) return defaultLocale;
+  return pathname === "/zh" || pathname.startsWith("/zh/") ? "zh" : "en";
 }
 
 export function I18nProvider({
@@ -30,26 +33,39 @@ export function I18nProvider({
   children: ReactNode;
   initialLocale?: Locale;
 }) {
-  const [locale, setLocaleState] = useState<Locale>(initialLocale || defaultLocale);
+  const pathname = usePathname();
+  const router = useRouter();
+  const locale: Locale = initialLocale ?? localeFromPath(pathname);
 
-  // Sync from localStorage after hydration to avoid SSR mismatch
+  // Keep <html lang> in sync (mainly for a11y / SEO).
   useEffect(() => {
-    if (!initialLocale) {
-      const saved = getSavedLocale();
-      if (saved && saved !== locale) {
-        setLocaleState(saved);
-        document.documentElement.lang = saved;
-      }
+    if (typeof document !== "undefined") {
+      document.documentElement.lang = locale;
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [locale]);
 
-  const dict = getDictionary(locale);
+  const dict = useMemo(() => getDictionary(locale), [locale]);
 
-  const setLocale = useCallback((newLocale: Locale) => {
-    setLocaleState(newLocale);
-    localStorage.setItem("locale", newLocale);
-    document.documentElement.lang = newLocale;
-  }, []);
+  // setLocale now navigates between the two URL spaces — the URL is canonical,
+  // so flipping locale = flipping the prefix in the current path.
+  const setLocale = useCallback(
+    (newLocale: Locale) => {
+      if (newLocale === locale) return;
+      const path = pathname ?? "/";
+      const stripped = path === "/zh"
+        ? "/"
+        : path.startsWith("/zh/")
+          ? path.slice(3)
+          : path;
+      const target = newLocale === "zh"
+        ? stripped === "/"
+          ? "/zh"
+          : `/zh${stripped}`
+        : stripped;
+      router.push(target);
+    },
+    [locale, pathname, router],
+  );
 
   return (
     <I18nContext.Provider value={{ locale, dict, setLocale }}>
