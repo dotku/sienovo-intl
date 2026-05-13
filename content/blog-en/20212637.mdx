@@ -1,0 +1,214 @@
+---
+title: "[Sorting] Quick Sort C++ Implementation Summary"
+date: "2014-03-01"
+slug: "20212637"
+tags: ["#QuickSort", "#C++"]
+source: "https://blog.csdn.net/yeyuangen/article/details/20212637"
+originalTitle: "【排序】快速排序C++实现总结"
+---
+
+## I. Algorithm Steps
+
+The basic idea of Quick Sort is:
+
+1.  Select an element from the array as the pivot.
+2.  Partitioning process: Place all elements greater than the pivot to its right, and all elements less than or equal to the pivot to its left.
+3.  Recursively apply step 2 to the left and right sub-arrays until each sub-array contains only one element.
+
+Algorithm steps:
+
+1) Initialize two variables i and j. At the start of sorting: i=0, j=N-1;
+2) Use the first array element as the key data, assign it to **key**, i.e., **key**\=A\[0\];
+3) Search backward from j (j--), find the first value A\[j\] less than **key**, and assign A\[j\] to A\[i\];
+4) Search forward from i (i++), find the first value A\[i\] greater than **key**, and assign A\[i\] to A\[j\];
+5) Repeat steps 3 and 4 until i=j;
+
+## II. Illustrated Execution Process
+
+Although Quick Sort is referred to as a divide-and-conquer algorithm, the term 'divide-and-conquer' alone doesn't fully encapsulate all its steps. Therefore, I've provided a further explanation of Quick Sort: 'Hole-filling' + Divide-and-Conquer:
+
+Let's look at an example first; the definition will be given later (it's best to summarize the definition in your own words, as this helps with code implementation).
+
+Using an array as an example, take the first element of the range as the pivot.
+
+| 0  | 1 | 2  | 3  | 4  | 5  | 6  | 7  | 8  | 9  |
+|----|---|----|----|----|----|----|----|----|----|
+| 72 | 6 | 57 | 88 | 60 | 42 | 83 | 73 | 48 | 85 |
+
+Initially, i = 0; j = 9; X = a\[i\] = 72
+
+Since the number in a\[0\] has been saved to X, it can be understood that a 'hole' has been dug at array position a\[0\], and other data can be filled into it.
+
+Starting from j, search backward for a number less than or equal to X. When j=8, the condition is met. Extract a\[8\] and fill it into the previous hole a\[0\]. a\[0\]=a\[8\]; i++; This way, the hole at a\[0\] is filled, but a new hole is created at a\[8\]. What now? Simple, find another number to fill the hole at a\[8\]. This time, starting from i, search forward for a number greater than X. When i=3, the condition is met. Extract a\[3\] and fill it into the previous hole: a\[8\]=a\[3\]; j--;
+
+The array becomes:
+
+| 0  | 1 | 2  | 3  | 4  | 5  | 6  | 7  | 8  | 9  |
+|----|---|----|----|----|----|----|----|----|----|
+| 48 | 6 | 57 | 88 | 60 | 42 | 83 | 73 | 88 | 85 |
+
+i = 3; j = 7; X=72
+
+(Note: The two 88s are because a\[8\]=a\[3\])
+
+Repeat the above steps, **first searching backward, then searching forward**.
+
+Starting from j, search backward. When j=5, the condition is met. Extract a\[5\] and fill it into the previous hole: a\[3\] = a\[5\]; i++;
+
+Starting from i, search forward. When i=5, the loop exits because i==j.
+
+At this point, i = j = 5, and a\[5\] is precisely the hole dug last time, so X is filled into a\[5\] (the pivot is placed).
+
+The array becomes:
+
+| 0  | 1 | 2  | 3  | 4  | 5  | 6  | 7  | 8  | 9  |
+|----|---|----|----|----|----|----|----|----|----|
+| 48 | 6 | 57 | 42 | 60 | 72 | 83 | 73 | 88 | 85 |
+
+It can be seen that all numbers before a\[5\] are smaller than it, and all numbers after a\[5\] are greater than it. Therefore, the above steps can be repeated for the two sub-arrays a\[0…4\] and a\[6…9\].
+
+## III. Implementation Methods
+
+### 1. Recursive Implementation
+
+Method 1:
+
+Summary of the 'Hole-filling' method
+
+1.  i = L; j = R; Extract the pivot to form the first hole a\[i\].
+2.  Decrement j (j--) and search backward for a number smaller than the pivot. Once found, extract this number and fill it into the previous hole a\[i\].
+3.  Increment i (i++) and search forward for a number larger than the pivot. Once found, extract this number and fill it into the previous hole a\[j\].
+4.  Repeat steps 2 and 3 until i==j, then fill the pivot into a\[i\].
+
+Following this summary, implementing the 'hole-filling' code is straightforward:
+
+```cpp
+int AdjustArray(int s[], int l, int r) //Returns the position of the pivot after adjustment
+{
+       int i = l, j = r;
+       int x = s[l]; //s[l] or s[i] is the first hole
+       while (i < j)
+       {
+              // Search from right to left for a number less than x to fill s[i]
+              while(i < j && s[j] >= x)
+                     j--;
+               if(i < j)
+              {
+                     s[i] = s[j]; //Fill s[j] into s[i], s[j] becomes a new hole
+                     i++;
+              }
+               // Search from left to right for a number greater than or equal to x to fill s[j]
+              while(i < j && s[i] < x)
+                     i++;
+               if(i < j)
+              {
+                     s[j] = s[i]; //Fill s[i] into s[j], s[i] becomes a new hole
+                     j--;
+              }
+       }
+       //When exiting, i equals j. Fill x into this hole.
+       s[i] = x;
+        return i;
+}
+```
+Then write the divide-and-conquer code:
+```cpp
+void quick_sort1(int s[], int l, int r)
+{
+       if (l < r)
+    {
+              int i = AdjustArray(s, l, r);//First adjust s[] using the hole-filling method
+              quick_sort1(s, l, i - 1); // Recursive call
+              quick_sort1(s, i + 1, r);
+       }
+}
+```
+Such code is clearly not concise enough; let's combine and refactor it:
+```cpp
+//Quick Sort
+void quick_sort(int s[], int l, int r)
+{
+    if (l < r)
+    {
+              //Swap(s[l], s[(l + r) / 2]); //Swap the middle element with the first element, see Note 1
+        int i = l, j = r, x = s[l];
+        while (i < j)
+        {
+            while(i < j && s[j] >= x) // Search from right to left for the first number less than x
+                            j--;
+             if(i < j)
+                            s[i++] = s[j];
+                                while(i < j && s[i] < x) // Search from left to right for the first number greater than or equal to x
+                            i++;
+             if(i < j)
+                            s[j--] = s[i];
+        }
+        s[i] = x;
+        quick_sort(s, l, i - 1); // Recursive call
+        quick_sort(s, i + 1, r);
+    }
+}
+int main(){
+    int array[]={72,6,57,88,60,42,83,73,48,85};
+    quick_sort(array,0,9);//or quick_qort1()
+    for(int i = 0 ; i <= 9 ; i++)
+        cout<<array[i]<<" ";
+    cout<<endl;
+    return 0;
+}
+```
+
+### 2. Non-recursive (simulated with a stack)
+
+```cpp
+#include<iostream>
+#include<stack>
+ struct Num{
+    int low,high;
+    Num(int low = 0, int high = 0)
+    {
+        this->low = low;
+        this->high = high;
+    }
+};
+void sort(int val[],int ,int );
+int main(int argc, _TCHAR* argv[]){
+    int arg[5] = {90,70,18,30,520};
+    sort(arg,0,4);
+    for(int i = 0; i < 5; i++)
+    {
+        std::cout<<arg[i]<<" ";
+    }
+    system("pause");
+    return 0;
+}
+  void sort(int arr[], int begin, int end){
+    std::stack<Num> myStack;
+    myStack.push(Num(begin, end));
+    while(!myStack.empty())
+    {
+        int i = myStack.top().low;
+        int j = myStack.top().high;
+        int b = i;
+        int e = j;
+        myStack.pop();
+        if(i >= j)
+            continue;
+        int key = arr[i];
+        while(i < j)
+        {
+            while(i < j && arr[j] >= key)
+                j--;
+            if(i < j)
+                arr[i++] = arr[j];
+            while(i < j && arr[i] <= key)
+                i++;
+            if(i < j)
+                arr[j--] = arr[i];
+        }
+        arr[i] = key;
+        myStack.push(Num(b, i - 1));
+        myStack.push(Num(i + 1, e));
+    }
+}
+```
