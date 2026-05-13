@@ -1,0 +1,76 @@
+---
+title: "【JETSON+FPGA+GMSL+AI】How to Achieve High-Precision Time Synchronization for Cameras in Autonomous Driving and Mobile Robots?"
+date: "2025-10-16"
+slug: "153411071"
+tags: ["#FPGADev", "#AutonomousDriving", "#AI", "#CNN", "#Networking", "#MachineLearning"]
+source: "https://blog.csdn.net/ARM_FPGA_AI/article/details/153411071"
+originalTitle: "【JETSON+FPGA+GMSL+AI】自动驾驶与移动机器人的摄像头如何实现高精度时间同步？"
+---
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153411071/01_0b96fa0a1335084a34e8db56562ff3d2.png)
+
+RGB Point Cloud Map _(Source: Internet)_
+
+In fields such as autonomous driving and machine vision, multi-sensor collaborative perception is crucial for reliable system operation. Whether for localization and navigation, mapping, or obstacle detection, data fusion from cameras and other sensors (such as LiDAR, IMU, etc.) is essential. Time synchronization plays a critical role in data fusion, especially in high-speed motion scenarios like autonomous driving and mobile robots, where synchronization requirements are even higher, typically demanding sub-millisecond (ms, 1e-3s) precision.
+
+NVIDIA Jetson AGX Orin, with its high computing power and flexible scalability, has become a mainstream computing platform in autonomous driving, mobile robotics, and other domains. However, achieving high-precision synchronization for cameras connected to the Orin platform remains a key challenge.
+
+Currently, mainstream camera solutions on the market each have their characteristics: USB cameras are plug-and-play but have unstable connections, lack synchronization mechanisms, and are prone to frame loss; network cameras offer good adaptability but require additional synchronization signals and have long transmission latency (approx. 100ms); GMSL cameras provide stable connections, low latency, support transparent transmission of synchronization signals, and can theoretically achieve microsecond (μs, 1e-6s) level synchronization precision, making them the preferred solution for visual sensors in autonomous driving and robotics.
+
+When GMSL cameras are connected to the Jetson AGX Orin platform, the Orin's built-in timer is typically used to generate trigger signals. These signals are transmitted via an FPC cable to the deserializer and then transparently transmitted through the GMSL link to control camera exposure.
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153411071/02_dbbc13252dc547e40ecdd055c3bdc4a0.png)
+
+Orin Host Software Driver Synchronization Example Diagram
+
+The GMSL 2 protocol boasts a transmission bandwidth of up to 6Gbps and supports point-to-point link communication. Its mechanism for direct hardware signal transmission and reception ensures that hardware trigger signals sent by the host reach the device side (e.g., camera) with extremely low latency (<20μs), while the time difference of trigger signals received by multiple devices is very small (<2μs).
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153411071/03_e6b92723a9bb8cbab308fa7a390590bd.jpeg)
+
+GMSL Camera Time Synchronization Logic Diagram
+
+Note: τ is the transmission delay from the Trigger signal to the Sensor exposure control signal (FSYNC) < 20μs; ΔT is the time difference of the Trigger signal reaching the CMOS between two cameras < 2μs, demonstrating GMSL's characteristics of low latency and high synchronization.
+
+Actual Measurement Diagram of GMSL Camera Dual-Channel External Synchronization Exposure Trigger Timing
+
+However, in Jetson Orin systems, PWM (Pulse Width Modulation) signals or GPIO pulses are typically used as trigger signals. PWM can output periodic signals of a fixed frequency (e.g., 30Hz), making it more suitable as a trigger control signal for cameras. But cameras, due to their internal multi-frame fusion operating mechanism, have extremely strict timing requirements, needing microsecond-level precision for control signals. Otherwise, issues like frame loss and incorrect frames are prone to occur. In Jetson Orin systems, unless dedicated hardware is used to control PWM timing, its precision cannot meet camera requirements.
+
+**Solution and Technical Architecture**
+
+Sienovo has previously launched a vision development kit for Jetson AGX Orin. Combining its technical expertise in visual sensing and autonomous driving, Sienovo innovatively proposed a "hardware trigger + protocol timing" combination strategy to create a cross-platform, high-precision time synchronization solution, covering all scenario requirements from multi-camera synchronization to multi-sensor fusion.![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153411071/04_6b454e72cf654caabe145677f09e2040.png)
+
+**Microsecond-Level Visual Synchronization: Hardware Triggering to Avoid System Latency**
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153411071/05_884fbf6cad872583042d044f4c44d67b.png)
+
+Synchronization Box High-Precision Synchronization Example Diagram
+
+**Core Mechanism:** The CS300 synchronization box can generate 10-120Hz high-precision trigger signals, with precision reaching sub-microsecond level, transmitted via the GMSL channel to the camera for exposure synchronization control.
+
+Additionally, the CS300 synchronization box supports external synchronization signal sources and performs frequency division processing. For example, it can divide the 200Hz synchronization signal output by an IMU down to 20Hz to achieve synchronization with the camera.
+
+**Key Advantages:** Bypassing the Jetson AGX Orin host software layer and operating system scheduling completely eliminates jitter and latency introduced by them, achieving stable, reliable, sub-microsecond level hardware synchronization for visual devices, and supporting synchronization control for cameras and external sensors.
+
+**System-Level Clock Alignment: PTP Timing, Building a Unified Time Base**
+
+Due to differences in hardware characteristics and transmission links of various sensors (e.g., LiDAR typically supports PTP timing and comes with its own timestamps, while cameras and IMUs do not), a unified system-level time base must be established to meet the high-precision fusion requirements of multiple sensors. The CS300 synchronization box supports PTP and gPTP master/slave modes and can serve as a precise clock source.
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153411071/06_173ddc19e7975ee5218aedc44f9ab234.png)
+
+CS300 Synchronization Box Timing Synchronization Example Diagram
+
+**Core Mechanism:** The CS300 synchronization box, Jetson AGX Orin (configured as a PTP slave clock), and PTP-enabled sensors such as LiDAR collectively form a distributed time synchronization network.
+
+**Key Advantages:** The PTP protocol achieves high-precision clock traceability and alignment for all devices within the system (Orin, cameras, LiDAR, IMU, etc.), with timing precision better than 10 microseconds (μs), ensuring strict spatio-temporal consistency during multi-source data fusion. For non-PTP devices (e.g., ordinary cameras), their trigger times or data acquisition timestamps can be aligned based on this unified clock base.
+
+**Solution Advantages and Application Value**
+
+The time synchronization solution developed by Sienovo based on the Jetson AGX Orin platform, through the "hardware trigger + protocol timing" combination strategy, achieves flexible coverage from high-precision synchronization to multi-sensor fusion, while offering three core values:
+
+**1. Scenario Adaptability:** It supports various synchronization modes, meeting diverse requirements from consumer-grade to automotive-grade, achieving a good balance between precision and cost, and possessing cross-platform applicability.
+
+**2. Development Convenience:** It provides complete drivers and configurations for cameras, supports the V4L2 protocol and ROS framework, and the accompanying SDK enables quick camera parameter setup and synchronization control, significantly shortening the development cycle.
+
+**3. Reliability Assurance:** It adopts hardware-level synchronization mechanisms and anti-interference design, ensuring stable operation in complex in-vehicle environments and providing a solid guarantee for reliable system operation.
+
+Currently, this time synchronization solution has been widely applied in fields with stringent spatio-temporal consistency requirements, such as autonomous driving multi-sensor fusion and mobile robot navigation, providing robust underlying technical support for highly reliable perception systems and facilitating technological upgrades and development in related industries.

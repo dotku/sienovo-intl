@@ -1,0 +1,27 @@
+---
+title: "Design of JETSON+FPGA+GMSL+AI In-Vehicle Video Acquisition and Storage System (Part 2) System Testing"
+date: "2025-10-19"
+slug: "153571037"
+tags: ["#AI", "#FPGADev", "#AudioVideo"]
+source: "https://blog.csdn.net/ARM_FPGA_AI/article/details/153571037"
+originalTitle: "基于 JETSON+FPGA+GMSL+AI 车载视频采集与存储系统设计（二）系统测试"
+---
+
+5.1 System Testing and Experimental Platform Setup
+According to the project requirements, this system needs to acquire high-resolution HD images and output them via a GMSL interface. Therefore, the Sony IMX490-GMSL camera was selected as the image sensor for raw video acquisition. The image sensor model is shown in Figure 5.1. The IMX490 is a CMOS image sensor that supports a maximum output resolution of 2896×1876, approximately 5.4 million effective pixels. Utilizing Gigabit Multimedia Serial Link (GMSL) serializer and deserializer technology, it supports image data output with GMSL interface timing. Furthermore, this GMSL camera can compensate for acquired video images, supporting basic processing such as gamma correction, white balance, saturation, and chroma. Register parameters can be configured for different resolutions, allowing the frame rate of the video images output by the GMSL camera to be adjustable within the 30-60 fps range. The camera's actual power consumption typically fluctuates between 150mW and 200mW during normal operation.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153571037/01_679e49dbe147450aaa0c6820c0afae7b.png)
+
+The IMX490 image sensor outputs images of different resolutions by changing the aspect ratio of the image acquisition window. During video acquisition, camera initialization is completed by sending internal register configuration information to the I2C bus. This allows for parameter settings related to video resolution, video output format, video image chroma, and image contrast. The specific parameters of the IMX490 camera are shown in Table 5.1.![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153571037/02_46e515777f784d33bd155bff0418a5cc.png)
+
+After selecting the camera model, an experimental platform was set up according to the system design scheme detailed in Chapter 3. The assembled experimental circuit is shown in Figure 5.2. The circuit diagram on the left (a) is the GMSL video acquisition and interface conversion circuit unit, which is responsible for timestamp overlay and interface timing transformation of video images output from the GMSL interface. The circuit diagram on the right (b) is the DM8168 embedded processing unit for video acquisition and storage. This unit is primarily responsible for raw video storage and compression encoding of GMSL video data, and then transmitting the compressed and encoded video data over the network. The experimental platform was then used to simulate and verify in-vehicle video acquisition and storage, recording the experimental results and relevant data.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153571037/03_700c471ba6aa4c03aae01e4595c25ea8.png)
+
+5.2 GMSL Video Acquisition and Conversion Unit Test Analysis
+After connecting the GMSL camera to the video acquisition board, the system was powered on. On the FPGA side, the I2C bus data transmission for IMX490 camera power-on initialization was simulated using the simulator integrated into ISE14.7, yielding the power-on timing simulation waveform shown in Figure 5.3. From the simulated timing diagram, it can be observed that transmitting one byte requires 9 clock cycles, and the write and read timings are consistent with the software program design. Compiling the top-level module program of the IMX490 camera acquisition module in ISE14.7 also yields the RTL circuit diagram.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153571037/04_952c1e1cb2a64ad69d004292126967ef.png)
+
+5.4 Chapter Summary
+This chapter completed the test analysis of the system's video data acquisition, video data storage, and video data compression encoding rate. First, the video data acquisition was tested and analyzed. Through LCD screen display and Modesim simulation tests, it was observed that video data acquisition and transmission were normal. The video timestamp overlay was also observed to be normal on the video display. Finally, through video data playback tests, it was confirmed that video storage on the SATA drive was normal. Subsequently, the video compression encoding was tested, and the video compression encoding rate was found to be within the error range, meeting system requirements. Based on the test results above, it is demonstrated that the functions and performance indicators of this system meet the project requirements, and the designed GMSL-based in-vehicle video acquisition and storage system is stable and reliable.

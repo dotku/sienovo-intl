@@ -1,0 +1,179 @@
+---
+title: "JETSON+FPGA+GMSL Cameras vs. Traditional Industrial Cameras: How High Dynamic Range and Low Latency are Reshaping Machine Perception Vision?"
+date: "2025-10-16"
+slug: "153410115"
+tags: ["#DigitalCamera", "#AI", "#AutonomousDriving", "#MachineLearning"]
+source: "https://blog.csdn.net/ARM_FPGA_AI/article/details/153410115"
+originalTitle: "基于JETSON+FPGA+GMSL相机 vs 传统工业相机：高动态范围与低延迟如何重塑机器感知视觉?"
+---
+
+As industrial manufacturing strives for "micrometer-level precision and millisecond-level response," traditional industrial cameras have become a bottleneck in many high-end application scenarios. GMSL cameras, originating from the automotive sector, are redefining industrial vision standards with their high dynamic range, clear imaging in low light, and low motion latency.
+
+As an innovator in this field, Sienovo GMSL cameras introduce automotive-grade reliability into industrial environments, demonstrating excellent performance in high-speed inspection, robot navigation, and precision measurement. This article will delve into the technical differences between GMSL cameras and traditional industrial cameras, and analyze the core advantages of the product.
+
+**I. Technical Comparison of GMSL Cameras and Traditional Industrial Cameras**
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153410115/20_5eea40218ca9990b4973459d31e34daf.png)
+
+**1. Architectural Differences: Simple vs. Complex**
+
+The signal chain of a traditional industrial camera (taking a GigE Vision camera as an example) typically includes three main components: an image sensor, a processor, and an Ethernet PHY. The processor needs to convert the raw image data from the image sensor into Ethernet frames, a process that often involves image processing, compression, or frame buffering.
+
+In contrast, the signal chain of a GMSL camera is simpler, containing only an image sensor and a serializer. The serializer directly converts the raw data from the image sensor, transmitting it over the link in its original format without the need for an additional processor. This simplified architecture offers advantages in size and power consumption, making it more suitable for space-constrained applications.
+
+**Feature**
+
+**GMSL Camera**
+
+GigE Vision Camera
+
+USB3.0 Camera
+
+Signal Chain
+
+Complexity
+
+Low (Sensor + Serializer)
+
+High (Sensor + Processor + Ethernet PHY)
+
+Medium (Sensor + USB Controller)
+
+Processing Latency
+
+Extremely Low
+
+Medium-High
+
+Medium
+
+Power Consumption
+
+Low
+
+Medium-High
+
+Medium
+
+Size
+
+Compact
+
+Larger
+
+Moderate
+
+Table: Architectural Comparison of GMSL Cameras and Traditional Industrial Cameras
+
+**2. Transmission Performance: Low Latency, High Bandwidth Determine User Experience**
+
+Latency performance is a core competitive advantage of GMSL cameras. From the serializer's input to the deserializer's output, the GMSL camera system exhibits low and deterministic latency. This is crucial for applications requiring real-time feedback, such as robot obstacle avoidance and high-speed quality inspection.
+
+Traditional GigE Vision cameras typically have higher and non-deterministic latency due to internal processing and complex network traffic. In applications requiring multi-camera collaboration, GMSL supports hardware-level triggering, ensuring multiple cameras capture images at the exact same moment, with strict frame-to-frame alignment. USB cameras usually rely on software triggering for "soft synchronization," and errors amplify as the number of cameras increases.
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153410115/02_9927068a8a8f186e3527cd9adc7fa8c3.jpeg)
+
+Image: Sienovo GMSL Camera
+
+Regarding bandwidth, GMSL 2 supports data transfer rates up to 6Gbps, easily enabling real-time, lossless transmission of high-definition or even 4K/30fps high-resolution images. Furthermore, GMSL transmits video data in packet form, resulting in a high effective data rate, with burst ratios potentially reaching 100%.
+
+**3. Connectivity and Cabling: A Revolutionary Breakthrough with Single-Cable Solutions**
+
+One of the most practical advantages of GMSL technology is its support for Power over Coax (PoC), allowing a single coaxial cable to simultaneously transmit data, power, and control signals within a 15-meter range. This greatly simplifies cabling complexity, reduces the number of connectors, and enhances system reliability. Comparing cabling requirements for different interfaces:
+
+*   **GMSL Camera:** Single coaxial cable (data + power);
+*   **Traditional Analog Camera:** Coaxial cable (video) + power cable + control cable (RS-232/RS-485);
+*   **IP Camera:** Ethernet cable; typically requires an additional power cable if PoE is not supported;
+*   **USB3.0 Camera:** USB cable, transmission distance typically <3 meters;
+
+PoC circuits only require a few passive components, whereas high-data-rate PoE circuits require dedicated active components on both the camera and host sides, leading to higher costs.
+
+**II. Core Advantages of GMSL Cameras**
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153410115/20_5eea40218ca9990b497349d31e34daf.png)
+
+**1. High Dynamic Range: Adapting to Extreme Lighting Changes**
+
+In industrial inspection environments, lighting conditions are often suboptimal or even extreme. Dynamic range is a key metric for evaluating a camera's ability to handle scenes with high contrast. Leveraging sensor hardware characteristics and ISP optimization, GMSL cameras achieve a high dynamic range exceeding 120dB. In complex environments with direct strong light and shadows, they can simultaneously preserve details in highlight areas and textures in dark areas, avoiding overexposure or underexposure.
+
+**Flashlight Direct Strong Light Comparison Test**
+
+**Captured by ALI031 High Dynamic Range Camera**
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153410115/04_f19c3e6519c9e6a85f78bc7ce1cb8cdb.png)
+
+No overexposure in the image, the flashlight's filament is clearly visible, excellent HDR effect, and appropriate brightness in all areas except the light source.
+
+**Captured by GigE Vision Industrial Camera**
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153410115/05_dd3bdb11bf7cf8758dd39567f8c29433.png)
+
+Lacks HDR effect, flashlight filament is blurry, and some areas of the image are overexposed.
+
+**Headlight Direct Strong Light Comparison Test in Low Light**
+
+**Captured by ALI031 High Dynamic Range Camera**
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153410115/06_0369aa0a5bc05f6c1b7e5bf56fca87a9.png)
+
+The inner contour of the headlight is clearly discernible, and non-light source areas have moderate brightness.
+
+**Captured by GigE Vision Industrial Camera**
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153410115/07_f42e8f948c79ab185a96cf82d21357d5.png)
+
+No HDR effect, the internal contour of the headlight is not visible, and details in dark areas are lost.
+
+While some traditional industrial cameras support HDR functions, they often rely on software algorithms to synthesize multiple frames. This not only increases processing latency but also tends to cause color distortion and detail loss in high dynamic range scenes above 100dB, making them unsuitable for outdoor operations or industrial environments with strong backlighting.
+
+**2. Clear Imaging in Low Light: Enhancing Performance in Dim Environments**
+
+GMSL cameras employ advanced back-illuminated CMOS technology, combined with multi-element aspherical glass lenses and hardware noise reduction algorithms, to effectively reduce image noise and maintain image clarity in night or low-light scenarios. This characteristic gives them an inherent advantage in low-light scenarios such as smart agriculture for nighttime crop monitoring and industrial darkroom inspection.
+
+Video 2: GMSL Camera vs. GigE Vision Industrial Camera - Low Light Comparison
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153410115/08_b87005d34ad2da3f5a8e432c3387549a.png)
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153410115/09_4a304538706bb99cbe7ba7d54ec37ed5.png)
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153410115/10_de5dbac9eb9659558bc46624d666fcd5.png)
+
+ALI031 High Dynamic Range Camera: In low light, target edges remain clear, brightness is uniform, with no motion blur, ghosting, or artifacts.
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153410115/11_3f5530be98bad96dac56b0e5e1a3806f.png)
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153410115/12_0d8fe65f67f468682277cfd320151638.png)
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153410115/13_e2088789ed961c9832648d5de2efc59f.png)
+
+GigE Vision Industrial Camera: In low-light scenarios, due to extended exposure time, motion blur is exacerbated, the target image is blurry, artifacts are more prone to appear, and the image is darker, affecting observation.
+
+Industrial cameras, limited by their architectural design, often need to extend exposure time to increase brightness in low-light environments, which can easily lead to motion blur for moving objects. Even with supplementary lighting, they struggle to cope with sudden changes in light and increase system deployment costs.
+
+**3. Low Motion Latency: Ensuring Real-time Response**
+
+Latency control is crucial for real-time decision-making scenarios. GMSL cameras, combined with the 6Gbps high-speed transmission capability of the GMSL2 protocol, support 30fps high frame rate output at full resolution, accurately capturing the instantaneous state of high-speed moving objects. This low motion latency is vital for applications such as AGV obstacle avoidance, high-speed production line quality inspection, and human-robot collaboration, significantly improving system response speed and safety.
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153410115/14_2d36d3de52908fd559726b59007d6571.png)
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153410115/15_c3ef4ff816d6925b6348df49b92a2310.png)
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153410115/16_4b5ffe3df76e63e529fd6d5101ada8b1.png)
+
+High Dynamic Range Camera: When capturing fast-moving objects, the camera captures clear target edges, with no motion blur or artifacts.
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153410115/17_c4e12320a756b28d658a8ba78e666f97.png)
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153410115/18_6c1397f3bb1d1e51230e7cfccc787957.png)
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153410115/19_6ee7cb207321d7a4a3b5257db1d9d4a2.png)
+
+GigE Vision Industrial Camera: In fast-moving scenes, the image clearly shows motion blur and ghosting (as in Figure 3), target edges are blurry, and some frames also exhibit artifacts due to multi-frame fusion (as in Figure 2, appearing as background and foreground merging).
+
+Industrial cameras, due to multiple processing steps such as data buffering, format conversion, and network transmission, typically have higher latency and exhibit uncertainty influenced by network conditions. Even with a 10GigE interface, their internal processing and frame encapsulation still introduce millisecond-level delays, making them unable to meet demands for high-speed motion detection, real-time trajectory control, and similar applications.
+
+**III. Application Scenarios for GMSL Cameras in Industrial Vision**
+
+![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153410115/20_5eea40218ca9990b497349d31e34daf.png)
+
+**1. Robotic Vision and

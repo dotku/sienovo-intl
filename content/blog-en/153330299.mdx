@@ -1,0 +1,54 @@
+---
+title: "NI Test Solution: ARM+FPGA-based Vehicle Simulation and Battery Calibration"
+date: "2025-10-15"
+slug: "153330299"
+tags: ["#AI", "#YOLO", "#ARMDev", "#FPGADev"]
+source: "https://blog.csdn.net/szxinmai/article/details/153330299"
+originalTitle: "【NI测试方案】基于ARM+FPGA的整车仿真与电池标定"
+---
+
+With the popularization of electric vehicles, users have higher demands for the safety performance and range accuracy of new energy vehicle batteries. Data interaction and communication between the power battery and the entire vehicle is a crucial link to ensure safety and accuracy, and related testing is highly valued. To achieve stability and accuracy in bus communication for power battery packs (complete packs or standalone BMS), software is needed to simulate vehicle bus communication data. This, combined with a communication interface card, interacts with the power battery pack to complete the simulation and monitoring of electric vehicle driving conditions. During this process, it's necessary to simulate the CAN bus environment of various ECU nodes in the vehicle, respond to various logical conditions and abnormal faults, and monitor various messages and signal changes from the power battery pack. For power battery packs still in the sample stage, it often also requires monitoring and modification of XCP calibration parameters, control of conventional UDS diagnostic commands, fault diagnosis, and clearing operations. Such tests are often long-cycle durability tests involving a certain batch size, thus placing high demands on the stability of the test equipment's software and hardware, and the completeness of the data.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153330299/01_900a7f37464eb1d24176329b6fc9699b.png)
+
+2
+
+**Sienovo Solution**
+
+Utilizing Sienovo's self-developed "CAN Simulation and Monitoring System," only a PC host and a CAN interface card are needed to simulate the vehicle's CAN bus communication environment required by the power battery, and to non-destructively capture CAN bus data generated during PACK communication. By configuring port parameters and database files such as DBC and A2L in the iCANeasy software, it can simulate message information sent by various ECU nodes in the vehicle to the PACK, control the battery pack to enter various operating conditions, and respond promptly and correctly to various messages sent by the battery pack's BMS.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153330299/02_38bef19b2731a85634d9e616b6520b80.png)
+
+The system's hardware is based on NI's XNET hardware platform from the USA, with options for USB/PCIe/PXIe carriers. The recommended hardware selection is NI USB-8502/2, which also supports the full range of NI CAN interface cards. Users can choose different hardware product forms based on various application scenarios.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153330299/03_6363e5623bd32c1672da99802cb4837e.png)
+
+The system software iCANeasy is developed based on LabVIEW and supports flexible residual bus simulation configuration, allowing simulation of vehicle nodes such as VCU, MCU, HCU, and BCM on the CAN bus. By implementing ECU model development in software and combining it with CAN interface card message transmission and reception, bus communication simulation for ECU nodes can be achieved, interacting with the BMS (Battery Management System) to meet the operating condition test requirements for power batteries. The software also supports sending recorded files such as blf/asc through the CAN port, thereby regenerating recorded historical environments in the laboratory. The software, combined with the CAN card and battery pack, forms a complete signal-level vehicle environment. Then, with the cooperation of charge/discharge machines, the PACK is made to enter various operating conditions to complete relevant tests.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153330299/04_e6db1cc3022833335ce2d88fca553747.jpeg)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153330299/05_a4a9ffbf2f292668f8584ca842ba7cf3.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153330299/06_e442ea0089c27fb5146972a682fe6142.jpeg)
+
+The software also features data monitoring and analysis functions, capable of monitoring various characteristics of the battery pack when it enters corresponding operating states, displaying signal values and waveform curves in real-time, and non-destructively recording all messages for subsequent offline analysis. It supports data storage in various formats such as asc/blf/mdf4/csv, numerical list viewing, waveform curve viewing, and threshold alarm analysis.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153330299/07_c36c0db0d91b6923dbdb0195ea765d37.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153330299/08_0bbda5fec4701b12e4f861fccec662ed.jpeg)
+
+The system software also supports functions such as XCP calibration and UDS diagnostics. Engineers can use the system's XCP calibration function to control internal XCP parameters of the BMS, thereby controlling the battery pack's operating status or modifying its internal parameters. It can also effectively read diagnostic information during the battery pack's operation, and control the battery pack or modify parameters and clear faults via UDS commands.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153330299/09_337fea461bdafcdbb54076bb0242eef6.jpeg)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/153330299/10_40b063d02037aad0dbbb5cab23f1237e.jpeg)
+
+3
+
+**Advantages of Choosing Sienovo Products**
+
+The vehicle CAN simulation and calibration diagnostic test system offers the following advantages:
+
+*   Professionally applied to power battery testing, highly targeted, excellent stability, and high cost-effectiveness;
+*   Supports various imported hardware, high stability, meeting requirements for long-cycle reliability testing;
+*   Data formats comply with industry common standards, allowing blf/asc/mdf4 data to be directly used in other tools.
