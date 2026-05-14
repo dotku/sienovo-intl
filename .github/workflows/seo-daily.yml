@@ -1,0 +1,58 @@
+name: SEO daily snapshot
+
+# Snapshots GSC indexing coverage + search analytics every day so we can
+# track Google's crawler performance over time. Sparse data is fine — the
+# point is the trend, not any single day's numbers.
+
+on:
+  schedule:
+    - cron: "30 1 * * *"   # 01:30 UTC daily (09:30 Beijing) — after Google's
+                            # daily processing window finishes (~midnight UTC)
+  workflow_dispatch:
+
+permissions:
+  contents: write    # needed to commit data/seo-reports/
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install deps
+        run: npm i --no-fund --no-audit
+
+      - name: Write service-account key
+        env:
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+        run: |
+          echo "$GCP_SA_KEY" > /tmp/sa.json
+          test -s /tmp/sa.json || { echo "::error::GCP_SA_KEY secret missing or empty"; exit 1; }
+
+      - name: Pull search analytics + coverage
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/sa.json
+        run: |
+          node scripts/gsc-pull.mjs
+          node scripts/gsc-coverage.mjs
+
+      - name: Generate analysis + trend
+        run: |
+          node scripts/seo-analyze.mjs
+          node scripts/seo-trend.mjs
+
+      - name: Commit if there are new reports
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/seo-reports/
+          if git diff --staged --quiet; then
+            echo "no changes — likely already snapshotted today"
+          else
+            git commit -m "chore(seo): daily snapshot $(date -u +%Y-%m-%d)"
+            git push
+          fi
