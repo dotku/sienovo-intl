@@ -1,0 +1,14 @@
+---
+title: "Interview Question [2]: The Difference Between 'exit()' and '_exit()'"
+date: "2014-02-21"
+slug: "19613189"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/19613189"
+originalTitle: "面试题【2】‘exit()’与‘_exit()’的区别"
+---
+
+Firstly, the `_exit()` function's role is the simplest: it directly stops the process, clears its memory space, and destroys its various data structures in the kernel (user-mode constructs). The `exit()` function, however, adds some wrappers on top of this, performing several additional steps before exiting (calling user-defined cleanup routines). For this reason, some people no longer consider `exit()` to be a pure system call.
+
+The biggest difference between the `exit()` function and the `_exit()` function is that `exit()` checks for open files and writes the contents of file buffers back to the files before calling the `_exit()` system call, which is known as "flushing I/O buffers."
+
+Secondly, the numerous differences between `exit()` and `_exit()` become particularly prominent when using `fork()`, and especially `vfork()`.

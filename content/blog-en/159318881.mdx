@@ -1,0 +1,28 @@
+---
+title: "Design of a ZYNQ MPSoC-Based Marine Data Acquisition Instrument (Part 1): Overall Design Scheme, Including Parameters such as Vibration, Pressure, Temperature, and Flow"
+date: "2026-03-21"
+slug: "159318881"
+tags: ["#FPGADev", "#ARMDev", "#AI", "#EmbeddedHardware"]
+source: "https://blog.csdn.net/szxinmai/article/details/159318881"
+originalTitle: "基于ZYNQ MPSOC船舶数据采集仪器设计（一）总体设计方案，包括振动、压力、温度、流量等参数"
+---
+
+This article analyzes the hardware platform performance and software logic design of the device based on the centralized data acquisition and record management requirements within ship cabins, and accordingly formulates the overall scheme. The hardware platform is based on the ZYNQ MPSoC (XCZU5EV) processor, which integrates ARM and FPGA architectures. To meet the centralized multi-parameter data acquisition needs in cabins, a multi-channel high-precision analog acquisition circuit and a multi-protocol communication interface circuit are designed. By completing the driver logic design for the AD chips of various analog acquisition channels on the PL (Programmable Logic) side of the XCZU5EV, a total of 44 channels of high-precision analog acquisition functions for vibration, temperature, pressure, etc., are realized. Simultaneously, driver logic for UART and CAN bus communication protocols is designed to enable data transmission and reception, frame parsing, and timestamping functions for multiple RS232, RS422, RS485, and CAN bus interfaces. Each channel is equipped with a large-capacity FIFO buffer, and its functional parameters are flexibly adjustable, making it suitable for different cabins and equipment.
+
+Based on data record management requirements, a Linux system is ported and customized on the ZYNQ_PS side, enabling peripheral drivers such as NVMe, USB 3.0, and network interfaces. Software development for data recording and export is completed, allowing efficient and orderly storage of acquired data from each channel into a large-capacity SSD. Furthermore, an automatic data export function is realized via the USB 3.0 interface. Concurrently, host computer software is developed, utilizing Gigabit Ethernet for data interaction, enabling flexible configuration of channel parameters and a visualized interface.![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/159318881/01_f0936eebe16c4c6f9f825e610739da93.png)
+
+2.1 Cabin Data Signal Acquisition Requirements Analysis
+
+Based on the requirements for data acquisition and recording devices in new ships under development, and the actual conditions of various cabin environments and equipment operations, the information to be acquired can be categorized by signal type into analog signals, digital (switch) signals, communication signals, etc. Concurrently, for the massive raw data collected, data management is essential, including recording functions such as orderly storage and retrieval, as well as export capabilities.
+
+Specific functional requirements are as follows:
+
+(1) Cabin Analog Signal Requirements Analysis: Analog signals from cabin equipment primarily include vibration, temperature, pressure, liquid level, and flow. Vibration signals encompass engine vibration from power equipment and hull vibration; temperature signals mainly include ambient temperature in various cabins, equipment bearing temperature, and cooling water temperature \[43\]; pressure primarily refers to the pipeline pressure of the equipment's hydraulic system and external seawater pressure on the hull; liquid level and flow signals mainly pertain to the parameters of various water tanks within the cabin.
+
+(2) Cabin Digital (Switch) Signal Requirements Analysis: Digital (switch) signals from cabin equipment primarily include the operating status of various valves and indicator lights. Key valves mainly involve hydraulic system valves, cooling water valves, and ventilation valves \[44\].
+
+(3) Cabin Communication Signal Acquisition Requirements Analysis: The communication data streams from various devices within the cabin are equally crucial, requiring complete reception and recording of their raw data for subsequent research and analysis. The primary industrial control buses used in the marine industry are Industrial Ethernet and CAN bus \[26\], which are used respectively for data interaction with the ship platform management system to receive network commands and for data communication with power distribution systems. For devices within the cabin that rely on serial interfaces, such as certain instruments, control units, or specific sensors, RS232, RS422, and RS485 serial interfaces need to be provided, along with the capability for adjustable special baud rates to meet the demands of high-end equipment, ensuring compatibility and communication reliability between devices \[45\].
+
+(4) Data Record Management: Faced with massive amounts of acquired data, the recording device must possess large-capacity storage capability for convenient offline analysis and long-term preservation. It also needs to implement orderly data storage and management, ensuring the integrity and flexibility of acquired data, and providing data parsing, retrieval, and deletion functions for the management platform.
+
+(5) Data Export Function: To enable

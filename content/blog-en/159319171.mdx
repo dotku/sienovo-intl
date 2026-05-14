@@ -1,0 +1,34 @@
+---
+title: "ZYNQ MPSOC-Based Ship Data Acquisition Instrument Design (Part 3): Vibration, Flow, Power Consumption, EMC, and Reliability Testing"
+date: "2026-03-21"
+slug: "159319171"
+tags: ["#EmbeddedHardware", "#ARMDev", "#AI", "#FPGADev"]
+source: "https://blog.csdn.net/szxinmai/article/details/159319171"
+originalTitle: "基于ZYNQ MPSOC船舶数据采集仪器设计（三）振动，流量，功耗，EMC，可靠性测试"
+---
+
+5.3.1 Vibration Signal Acquisition Channel Performance Testing
+
+To ensure the vibration signal acquisition channel can filter out high-frequency noise, an anti-aliasing low-pass filter circuit was designed in this paper. Simulation tests were performed using Multisim software. The simulation schematic is shown in Figure 5-2 a), and the amplitude-frequency characteristic curve is shown in Figure 5-2 b). When the gain is -3dB, the cutoff frequency is approximately 11kHz, which meets the design specifications.
+
+Next, to verify the AD7768's acquisition performance for different analog vibration signals at a 128 kHz sampling rate, a signal generator was first used to output 2.5 V signals of various frequencies. Each frequency signal was tested 20 times, and the sampled voltage was compared with the actual 2.5 V. The summarized test data is shown in Table 5-3.
+
+AD7768 vibration signal acquisition monitoring is shown in Figure 5-3. Online monitoring was performed using the Logic Analyzer (ILA) probes integrated into Vivado software (as shown in Figure 5-3 a)), and the data in the AD7768 driver cache was monitored using SDK software (as shown in Figure 5-3 b)).
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/159319171/01_ae6d24d3bf454fe5a3aa247569e39381.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/159319171/02_f3383989f59d4d61a26f3a51a81bee0f.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/159319171/03_a222eef62f8d420eb88da0daac408bce.png)
+
+5.3.3 Pressure, Liquid Level, and Flow Signal Acquisition Channel Performance Testing
+
+Due to the lack of real ship environment test conditions, the test plan was based on the sensor manufacturer's calibration curve values. To ensure data reliability, a high-precision programmable power supply (accuracy ±0.01% FS) was used as the standard input source. Data was monitored in real-time online via SDK software. Specifically, the input voltage was tested for the pressure signal acquisition channel, and the input current was tested for the liquid level and flow signal acquisition channels. Each test was repeated 20 times, and extreme values were recorded to determine the maximum absolute error. The power supply equipment connection is shown in Figure 5-6.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/159319171/04_6ef1abb173fe421faa89c4b5789093db.png)![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/159319171/05_88a4b5fd2cf641d3a084f9be1ef48d21.png)![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/159319171/06_393f057919534656858a6f2bbfd9bc35.png)![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/159319171/07_a7ac8d51ac994923bd4aef03d8ed27f9.png)
+
+5.7 Cabin Environment Adaptability Testing
+
+To ensure the reliability and durability of the multi-parameter data acquisition and recording device for ship cabins in harsh marine environments, and in accordance with Classification Society GD28-2023 "Guidelines for Reliability Verification of Marine Equipment and Systems" \[64\], comprehensive environmental adaptability tests were conducted on the device in a reliability test chamber. The tests included temperature and humidity adaptability testing, salt spray testing, vibration testing, and electromagnetic compatibility testing. The test environment is shown in Figure 5-22.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/159319171/08_a1b46fdee6c146caad95779f3abff08b.png)
