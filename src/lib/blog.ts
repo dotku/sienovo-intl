@@ -121,7 +121,7 @@ export function getAllTags(locale: BlogLocale = "zh"): string[] {
   return [...tagSet].sort();
 }
 
-export const POSTS_PER_PAGE = 20;
+export const POSTS_PER_PAGE = 50;
 
 export function getPaginatedPosts(page: number, locale: BlogLocale = "zh") {
   const all = getAllPosts(locale);

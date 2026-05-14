@@ -146,21 +146,10 @@ export default function RootLayout({
             }),
           }}
         />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "Product",
-              name: "INT-AIBOX-P-8",
-              description:
-                "High-performance edge AI computing device with 7.2 TOPS INT8 AI power, 8-channel HD video, 40+ built-in AI algorithms.",
-              image: `${siteUrl}/images/pptx/aibox-sg8.png`,
-              brand: { "@type": "Brand", name: "Sienovo" },
-              category: "Edge AI Computing",
-            }),
-          }}
-        />
+        {/* Product schema removed from root layout: it injected into every page
+            including blog articles, where Google flagged it for missing required
+            fields (`offers` / `aggregateRating` / `review`). Product structured
+            data now belongs only on the product detail page itself. */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-S6MJ5ZRH0E"
           strategy="lazyOnload"

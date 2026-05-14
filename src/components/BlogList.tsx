@@ -24,7 +24,13 @@ export default async function BlogList({
           </h1>
           <p className="text-gray-500">
             {totalPosts} articles on embedded systems, edge AI, and industrial
-            computing
+            computing ·{" "}
+            <Link
+              href={`${basePath}/all`}
+              className="text-accent hover:underline"
+            >
+              browse all
+            </Link>
           </p>
         </div>
         <a
