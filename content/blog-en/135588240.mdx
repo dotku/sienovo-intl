@@ -5,9 +5,74 @@ slug: "135588240"
 tags: ["#DAQCard", "#NIAlternative", "#PXIe‑6378"]
 source: "https://blog.csdn.net/yeyuangen/article/details/135588240"
 originalTitle: "PXIe‑6378国产替代，16路AI（16位，3.5 MS/s/ch），4路AO，48路DIO，PXI多功能I/O模块"
+expanded: true
 ---
+## Overview
 
-PXIe, 16-Channel AI (16-bit, 3.5 MS/s/ch), 4-Channel AO, 48-Channel DIO, PXI Multifunction I/O Module
-The PXIe‑6378 is a multifunction DAQ device with simultaneous sampling. This module provides analog I/O, digital I/O, four 32-bit counters, and analog and digital triggering. Onboard NI‑STC3 timing and synchronization technology provides advanced timing capabilities, including independent analog and digital timing engines and retriggerable measurement tasks. The PXIe‑6378 is suitable for numerous applications, such as IF digitization; transient recording; ISDN, ADSL, and POTS manufacturing tests in the telecommunications industry; ultrasonic and sonar testing; and high-energy physics. The included NI‑DAQmx driver and configuration utility simplify configuration and measurements.
+The PXIe-6378 is National Instruments' high-channel-density, simultaneous-sampling multifunction DAQ module in the PXI Express form factor. It targets applications that demand both high per-channel sample rates and tight synchronization across all input channels — requirements that rule out multiplexed architectures. This post breaks down the module's key capabilities, explains the underlying timing architecture, and outlines the application domains where it is commonly deployed, along with guidance for engineers evaluating domestic Chinese alternatives to NI PXI hardware.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb2.r2.dev/blog/135588240/01_9b3c32628a9a50496fb3c9739274303a.png)
+## Key Specifications at a Glance
+
+| Parameter | Value |
+|---|---|
+| Analog inputs | 16 channels, simultaneous sampling |
+| ADC resolution | 16 bits |
+| Sample rate | 3.5 MS/s per channel |
+| Analog outputs | 4 channels |
+| Digital I/O | 48 channels |
+| Counters/timers | Four 32-bit counters |
+| Triggering | Analog and digital |
+| Timing engine | NI-STC3 (onboard ASIC) |
+| Driver | NI-DAQmx |
+| Form factor | PXIe (PCI Express-based PXI) |
+
+The 3.5 MS/s simultaneous rate across all 16 channels is the defining characteristic. At this rate, each channel produces 3.5 million 16-bit samples per second, giving a Nyquist bandwidth of 1.75 MHz per channel — adequate for intermediate-frequency (IF) signal capture, narrowband sonar, and telecom physical-layer signals such as ADSL and ISDN.
+
+## NI-STC3 Timing and Synchronization Architecture
+
+The onboard NI-STC3 (System Timing Controller, third generation) is an NI-proprietary ASIC that handles all timing and triggering logic without consuming host CPU cycles. Its key features relevant to the PXIe-6378 are:
+
+- **Independent analog and digital timing engines.** The AI subsystem and the DIO subsystem each maintain their own timing references. This means you can clock a 48-channel digital acquisition at a completely different rate and phase from the analog acquisition, without the two interfering with each other.
+- **Retriggerable measurement tasks.** A single configured task can accept multiple trigger events and restart its acquisition window each time, without returning to the host for reconfiguration. This is critical in pulse-echo applications (ultrasonic, sonar) where you want to capture a fixed-length window after every transmitted pulse.
+- **PXI trigger bus integration.** In a PXIe chassis, the module can export its sample clock or start trigger onto the PXI trigger lines, allowing other modules in the same chassis to synchronize to it — or conversely, it can slave its timing to another module acting as the chassis master.
+
+## Application Domains
+
+**IF Digitization**
+Many RF/microwave test systems down-convert a high-frequency signal to an intermediate frequency before digitizing. The PXIe-6378's 1.75 MHz per-channel Nyquist limit and 16-bit dynamic range make it suitable for capturing narrowband IF signals — for example, a 500 kHz IF from a GPS L1 down-conversion chain, or narrowband process-control radios.
+
+**Transient Recording**
+Transient events (power-line disturbances, mechanical shock, explosive detonation) require capturing a short time window at high sample rate with minimal pre-trigger delay. The PXIe-6378's simultaneous sampling ensures that phase relationships between channels are preserved, which is essential when the transient propagates across multiple sensors.
+
+**Telecom Manufacturing Test (ISDN, ADSL, POTS)**
+Production testing of DSL modems, splitters, and subscriber-line interface circuits requires applying stimulus signals and measuring frequency response, noise floor, and line impedance simultaneously. The 16-bit resolution and the availability of both AO and AI channels in the same module reduce cabling complexity on the production floor.
+
+**Ultrasonic and Sonar Testing**
+Ultrasonic NDT (non-destructive testing) and sonar systems transmit a pulse and capture the return echo. The retriggerable task capability of the NI-STC3 makes it straightforward to arm the capture window on each transmit pulse. Multi-channel simultaneous capture across a transducer array preserves the phase data needed for beam-forming algorithms.
+
+**High-Energy Physics**
+Particle detector readout chains often require multi-channel simultaneous digitization of shaped pulse signals at moderate bandwidths with high dynamic range. The PXIe-6378 fits into this niche, and its PXIe backplane interface provides the sustained data throughput needed when all 16 channels are streaming at full rate.
+
+## NI-DAQmx Driver and Configuration
+
+NI-DAQmx is the cross-language driver that abstracts the hardware into a task-based API. A minimal Python example to acquire 1000 simultaneous samples across all 16 channels at 1 MS/s looks like:
+
+```python
+import nidaqmx
+from nidaqmx.constants import AcquisitionType
+
+with nidaqmx.Task() as task:
+    task.ai_channels.add_ai_voltage_chan("PXI1Slot2/ai0:15")
+    task.timing.cfg_samp_clk_timing(
+        rate=1e6,
+        sample_mode=AcquisitionType.FINITE,
+        samps_per_chan=1000
+    )
+    data = task.read(number_of_samples_per_channel=1000)
+```
+
+NI MAX (Measurement & Automation Explorer) provides a GUI for verifying device detection, running self-tests, and configuring channel calibration before committing to programmatic control.
+
+## Domestic Alternatives Context
+
+The PXIe-6378 has historically been procured by Chinese research institutes, universities, and defense-adjacent labs as part of NI PXI systems. As supply-chain constraints and localization mandates have increased, domestic Chinese DAQ vendors have developed PXIe multifunction modules targeting the same specification envelope — 16-bit resolution, multi-MS/s simultaneous sampling, PXIe backplane compatibility, and NI-DAQmx-compatible (or independently-developed) driver stacks. Engineers evaluating a domestic alternative should verify simultaneous-sampling architecture (not multiplexed), per-channel sample rate at all channels populated, trigger bus compatibility with the existing PXIe chassis, and driver API surface area relative to the NI-DAQmx calls already in their test software.

@@ -5,50 +5,79 @@ slug: "135540040"
 tags: ["#DataAcquisition", "#TemperatureMeasurement"]
 source: "https://blog.csdn.net/yeyuangen/article/details/135540040"
 originalTitle: "数据采集卡：4位32路256K同步模拟量输入卡，支持外触发、外时钟，支持多卡同步"
+expanded: true
 ---
+The USB-XM2432 is a 32-channel, 24-bit synchronous analog input data acquisition card that connects directly to a host PC over USB 2.0. Designed for engineers who need high-resolution, multi-channel signal capture without the cost or complexity of a PCI/PCIe card, it targets laboratory instrumentation, quality inspection lines, medical monitoring equipment, and industrial process control. This post breaks down the card's architecture, key performance characteristics, and the scenarios where its feature set is most valuable.
 
-**Product Applications**
+## ADC Architecture: Why Σ-Δ at 24-bit Matters
 
-The USB-XM2432 is a data acquisition card based on the USB 2.0 bus. It can be directly connected to a computer's USB port to form data acquisition, waveform analysis, and processing systems in various fields such as laboratories and product quality inspection centers. It can also be used to build industrial production process monitoring systems. Its main applications include:
+The USB-XM2432 uses the Analog Devices AD7768 as its converter. The AD7768 is a simultaneous-sampling, 24-bit Σ-Δ (sigma-delta) ADC with eight differential input channels per device — four of these devices are used in parallel to cover the card's full 32-channel complement. The Σ-Δ architecture trades raw speed for exceptional resolution and noise performance. Unlike successive-approximation (SAR) ADCs, a Σ-Δ converter oversamples the input and applies a digital decimation filter, pushing quantization noise out of the frequency band of interest. The result is low intrinsic noise and a dynamic range that approaches the theoretical 144 dB limit at lower sampling rates.
 
-Electronic product quality inspection
+For applications such as vibration analysis, load-cell measurement, or biomedical signal acquisition, this architecture delivers the noise floor and linearity that 16-bit SAR-based cards cannot match.
 
-Medical testing
+## Input Stage and Channel Configuration
 
-High-precision synchronous signal acquisition
+All 32 channels accept differential inputs over a ±10 V range with DC coupling. Differential inputs reject common-mode noise that would corrupt measurements in electrically noisy industrial or lab environments — ground loops and electromagnetic interference appear equally on both input lines and cancel at the ADC. DC coupling means the full signal path from DC to the Nyquist frequency is preserved, which is essential when measuring slowly varying phenomena such as temperature via thermocouple conditioning circuits, strain, or quasi-static pressure.
 
-I/O Control
+The AD7768's per-channel architecture provides inherent channel isolation: each channel has its own modulator and digital filter path, so crosstalk between channels is minimized and all 32 channels are sampled simultaneously rather than sequentially multiplexed. Simultaneous sampling is critical whenever phase relationships between channels must be preserved — for example, when correlating vibration on multiple axes of a structure, or synchronizing current and voltage waveforms to compute real power.
 
-**Performance Features**
+## Sampling Rate Modes
 
-A/D Converter: 24-bit Σ-Δ ADC: AD7768
+Sampling frequency is software-configurable across three bandwidth modes:
 
-Low intrinsic noise, high channel isolation;
+- **1 KHz – 256 KHz** (high-speed mode)
+- **1 KHz – 200 KHz** (mid-range mode)
+- **1 KHz – 160 KHz** (low-noise mode)
 
-Differential input range: ±10V;
+The different upper limits reflect a trade-off inherent to Σ-Δ converters: lowering the output data rate allows the decimation filter to average over more samples, reducing the noise floor and improving effective number of bits (ENOB). Selecting 160 KHz as the ceiling sacrifices the top octave of bandwidth in exchange for the best available noise performance. The 256 KHz ceiling maximizes bandwidth for applications such as audio analysis or high-frequency vibration monitoring where spectral content above 100 KHz is meaningful.
 
-A/D Trigger Modes: Software trigger, external trigger;
+## Trigger and Clock Flexibility
 
-Clock Source: Internal clock, external clock (selectable as synchronous clock / trigger clock);
+The card supports both software-initiated (soft-start) and hardware external trigger modes. External trigger mode is indispensable when the USB-XM2432 must start acquisition in precise synchrony with an external event — a mechanical impulse, a relay closure, or a trigger pulse from a function generator. The trigger input allows deterministic, sub-sample-period alignment between the onset of the event and the first acquired sample.
 
-Multi-channel: 32 channels
+Clock source is independently selectable between an internal oscillator and an external clock input. The external clock option can be configured in two sub-modes:
 
-Coupling Method: DC;
+- **Synchronous clock**: an external master clock drives the ADC sample rate directly, locking the card's timebase to a shared system reference.
+- **Trigger clock**: the external signal serves as both trigger and clock source.
 
-Sampling frequency is software-configurable (Range: 1KHz～256KHz / 1KHz～200KHz / 1KHz～160KHz modes selectable);
+This flexibility is the foundation for multi-card synchronization (see below) and for applications where the acquisition must be phase-locked to a rotating machine or a communications signal.
 
-Onboard large-capacity memory (4M words), supports continuous acquisition, enabling real-time monitoring;
+## Onboard Memory and Continuous Acquisition
 
-Board ID recognition (0～15), supports multi-card operation;
+The USB-XM2432 includes 4M words of onboard buffer memory. At 32 channels × 24 bits per sample, a 4M-word buffer holds approximately 125,000 sample frames. The buffer decouples the ADC from USB transfer latency: the card streams samples into onboard memory continuously, and the host retrieves blocks over USB at its own pace. This prevents gaps in the acquired record that would otherwise occur whenever USB bus arbitration or host OS scheduling introduces a brief transfer delay. Continuous, gap-free acquisition is a hard requirement for any application that cannot tolerate missing samples — rotating machinery analysis, event detection in medical signals, or production-line go/no-go testing.
 
-Provides drivers and dynamic link libraries for WIN7/WIN10/XP;
+## Multi-Card Synchronization and Board ID
 
-Dimensions (excluding enclosure): 92(W) × 140(L) (mm);
+Each USB-XM2432 carries a hardware Board ID configurable from 0 to 15, enabling up to 16 cards to operate simultaneously on a single host. The external clock and external trigger inputs make true multi-card synchronization achievable: a shared master clock signal is distributed to all cards so every ADC in the system runs from the same timebase, and a single trigger pulse arms all cards simultaneously. The result is a system with up to 512 simultaneously sampled, phase-coherent channels — a capability typically associated with dedicated chassis-based DAQ systems — delivered over standard USB ports.
 
-**Technical Specifications**
+## Software Support and Integration
 
-   Operating Voltage: 12V±0.25V(0.7A)
+The card ships with drivers and dynamic-link libraries (DLLs) for Windows XP, Windows 7, and Windows 10. The DLL interface allows the card to be integrated into data acquisition applications built with LabVIEW, MATLAB, C/C++, C#, or any environment capable of calling a Windows DLL. Waveform visualization, FFT analysis, and real-time alarming can be built on top of the acquisition DLL using the application framework of the engineer's choice.
 
-   Operating Temperature: 0℃～70℃
+## Electrical and Mechanical Specifications
 
-   Storage Temperature: -10℃～85℃
+| Parameter | Value |
+|---|---|
+| Operating Voltage | 12 V ± 0.25 V, 0.7 A |
+| Operating Temperature | 0 °C to 70 °C |
+| Storage Temperature | −10 °C to 85 °C |
+| Board Dimensions | 92 mm (W) × 140 mm (L), excluding enclosure |
+| Bus Interface | USB 2.0 |
+| ADC | AD7768, 24-bit Σ-Δ |
+| Channels | 32, simultaneous differential |
+| Input Range | ±10 V DC-coupled |
+| Max Sample Rate | 256 KHz per channel (all channels simultaneously) |
+| Onboard Buffer | 4M words |
+| Board ID Range | 0–15 (up to 16 cards per host) |
+
+The card's compact form factor and bus-powered-friendly USB interface make it deployable in space-constrained test fixtures, portable field instruments, and embedded industrial PCs without requiring a dedicated power supply beyond the 12 V rail.
+
+## Typical Use Cases
+
+**Electronic quality inspection**: Automated test equipment (ATE) for PCB functional testing often needs simultaneous voltage and current measurements across dozens of nodes. The USB-XM2432's 32 synchronous channels and external trigger input allow a test fixture to capture the device's full electrical signature at the precise instant a test stimulus is applied.
+
+**Medical instrumentation**: Biopotential signals — ECG, EEG, EMG — are low-amplitude, low-frequency signals where noise floor and channel isolation dominate design requirements. The AD7768's Σ-Δ architecture and per-channel isolation address both constraints.
+
+**Industrial process monitoring**: Temperature, pressure, flow, and vibration sensors distributed across a production line can all be wired to a bank of synchronized USB-XM2432 cards, giving process engineers a high-channel-count monitoring system without custom backplane hardware.
+
+**Structural health monitoring and vibration analysis**: Multi-axis accelerometers on a structure require simultaneous sampling across all channels to preserve phase data. With external clock synchronization across multiple cards, the USB-XM2432 scales to large channel counts while maintaining coherent timebase across the entire sensor array.

@@ -5,11 +5,64 @@ slug: "135583754"
 tags: ["#DAQCard", "#NIAlternative", "#PXIe-6386"]
 source: "https://blog.csdn.net/yeyuangen/article/details/135583754"
 originalTitle: "NI PXIe-6386国产替代，8路AI（16位，14 MS/s/ch），2路A​O，24路DIO，PXI多功能I/O模块"
+expanded: true
 ---
+## PXIe-6386 Overview
 
-PXIe-6386
+The NI PXIe-6386 is a high-performance, simultaneous-sampling multifunction DAQ module designed for PXI Express systems that demand fast, synchronized analog acquisition across multiple channels. This post covers the module's key specifications, onboard technology, and the range of demanding test and measurement applications it is built to address — along with guidance on domestic alternatives that deliver equivalent capability.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/135583754/01_d5f41ba5dad00d72c82d4ac05cba387e.png)
+## Key Specifications at a Glance
 
-PXIe, 8-Channel AI (16-bit, 14 MS/s/ch), 2-Channel AO, 24-Channel DIO, PXI Multifunction I/O Module
-The PXIe-6386 is a simultaneous-sampling multifunction DAQ device. This module provides analog I/O, digital I/O, four 32-bit counters, and analog and digital triggering. Onboard NI-STC3 timing and synchronization technology provides advanced timing capabilities, including independent analog and digital timing engines and retriggerable measurement tasks. The PXIe-6386 is suitable for numerous applications such as IF digitization, transient recording, manufacturing test for ISDN, ADSL, and POTS in the telecommunications industry, ultrasound and sonar testing, and high-energy physics. The included NI-DAQmx driver and configuration utility simplify configuration and measurements.
+| Parameter | Specification |
+|---|---|
+| Analog Inputs | 8 channels, simultaneous sampling |
+| ADC Resolution | 16-bit |
+| Sample Rate | 14 MS/s per channel |
+| Analog Outputs | 2 channels |
+| Digital I/O | 24 channels |
+| Counters/Timers | 4 × 32-bit |
+| Triggering | Analog and digital |
+| Form Factor | PXI Express (PXIe) |
+| Driver | NI-DAQmx |
+
+The combination of 16-bit resolution and 14 MS/s per-channel simultaneous sampling places this module squarely in intermediate-frequency (IF) signal acquisition territory — fast enough to digitize bandpass signals in the low tens of megahertz while retaining the dynamic range needed to distinguish small signals from noise.
+
+## Simultaneous Sampling Architecture
+
+Many multifunction DAQ cards multiplex a single ADC across all input channels, which introduces inter-channel phase skew proportional to the sampling rate and channel count. The PXIe-6386 avoids this entirely: each of its eight analog input channels has a dedicated ADC running at 14 MS/s. All eight channels are sampled at the same instant, which is essential whenever phase relationships between channels carry measurement meaning — for example, when computing time-of-flight differences in sonar, comparing differential signal pairs in communications testing, or reconstructing multi-axis vibration modes.
+
+## NI-STC3 Timing and Synchronization Engine
+
+The onboard NI-STC3 (System Timing Controller 3) is NI's third-generation ASIC for timing, triggering, and synchronization. It provides:
+
+- **Independent analog and digital timing engines** — analog acquisition and digital I/O tasks can run on separate clocks and sample rates without coupling.
+- **Retriggerable measurement tasks** — a single software-configured task can automatically restart on each trigger pulse, enabling burst-mode acquisition without round-tripping through the host CPU between bursts. This is particularly valuable for repetitive stimulus-response tests.
+- **Hardware-timed analog and digital triggering** — start triggers, reference triggers, and pause triggers can be sourced from the analog input comparator or from any digital line, giving flexible control over when acquisition begins and ends.
+
+In a PXIe chassis, the module can additionally synchronize to the PXI Express timing and synchronization bus (PXI_CLK10, PXI triggers, and the star trigger), allowing multiple modules to be phase-locked across a chassis for large channel-count systems.
+
+## Analog Output and Digital I/O
+
+The two analog output channels allow the same module to source stimulus signals while simultaneously acquiring responses — a common requirement in manufacturing test where a device under test must be driven before its output is measured. The 24-channel digital I/O bank supports TTL/CMOS logic levels and can be configured for hardware-timed pattern generation or acquisition, complementing the analog paths for mixed-signal DUT interfaces.
+
+The four 32-bit counter/timer channels handle pulse-width measurement, frequency counting, quadrature encoder decoding, and pulse-train generation, rounding out the module's general-purpose instrument capability.
+
+## Target Applications
+
+**IF Digitization:** At 14 MS/s, the module can directly digitize IF signals up to the Nyquist limit (~7 MHz) with full 16-bit dynamic range, making it useful in radar, software-defined radio prototyping, and communications receiver test.
+
+**Transient Recording:** The retriggerable task architecture and deep onboard FIFO allow capture of fast, short-duration events — power supply start-up transients, ESD events, mechanical shock — without missing triggers between acquisitions.
+
+**Telecommunications Manufacturing Test (ISDN, ADSL, POTS):** Legacy wireline interface testing requires simultaneous multi-tone stimulus and measurement across voice-band and broadband frequencies. The PXIe-6386's analog I/O bandwidth and simultaneous sampling suit automated production-line testing of DSLAM line cards and modem chipsets.
+
+**Ultrasound and Sonar:** Phased-array ultrasound and sonar systems rely on precise phase alignment between receive channels to compute beam direction. Simultaneous sampling across all eight channels eliminates the inter-channel skew that would otherwise corrupt beam-forming calculations.
+
+**High-Energy Physics:** Particle detector readout often involves capturing short, well-defined pulse shapes from scintillator or semiconductor detectors. The 14 MS/s rate provides sufficient temporal resolution for many scintillation pulse types, while 16-bit depth preserves pulse-height information needed for energy spectroscopy.
+
+## NI-DAQmx Driver Integration
+
+NI-DAQmx is the standard NI driver for data acquisition hardware. It exposes a task-based API in which hardware resources (channels, timing, triggering) are configured through a unified object model rather than register-level programming. NI-DAQmx supports LabVIEW, C/C++, C#, and Python (`nidaqmx` package), and the accompanying NI MAX (Measurement & Automation Explorer) utility provides a graphical interface for device self-tests, channel calibration, and task prototyping without writing code. This lowers integration time significantly compared to FPGA-based custom acquisition solutions.
+
+## Domestic Alternative Availability
+
+For projects where supply chain resilience, export compliance, or cost is a driver, domestic Chinese alternatives to the NI PXIe-6386 have become increasingly available. Sienovo offers PXIe multifunction I/O modules with equivalent core specifications — 8-channel simultaneous analog input at 16-bit resolution and comparable per-channel sample rates, paired with analog output, 24-channel DIO, and counter/timer resources — designed as drop-in functional replacements in PXI Express chassis. These modules target the same application domains: IF digitization, transient recording, telecom manufacturing test, and physics instrumentation, with compatible software driver models to reduce porting effort from NI-DAQmx-based workflows.
