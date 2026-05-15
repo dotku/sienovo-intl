@@ -1,0 +1,54 @@
+name: Sync ad assets from szxinmai.com
+
+# Manual-trigger only. Internal asset reuse — pulls product photos / hero
+# banners from the same company's CN-only site (szxinmai.com → Sienovo),
+# crops them into the 3 PMax ratios, and opens a PR with the new files.
+
+on:
+  workflow_dispatch:
+    inputs:
+      no-fetch:
+        description: "Skip download, only re-process cached files"
+        required: false
+        default: "false"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install ImageMagick (for crop / resize)
+        run: sudo apt-get update && sudo apt-get install -y imagemagick
+
+      - name: Run sync
+        run: |
+          if [ "${{ inputs.no-fetch }}" = "true" ]; then
+            node scripts/sync-ads-assets.mjs --no-fetch
+          else
+            node scripts/sync-ads-assets.mjs
+          fi
+
+      - name: Open PR with new assets
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: sync/ads-assets
+          delete-branch: true
+          commit-message: "chore(ads): sync ad creative assets from szxinmai.com"
+          title: "Sync ad assets from szxinmai.com"
+          body: |
+            Pulled product/banner images from szxinmai.com, processed into the
+            3 PMax ratios (1:1, 1.91:1, 4:5). Review the files under
+            `public/ads/` before merging — these are the images you'll upload
+            into Google Ads asset groups.
+          add-paths: |
+            public/imported/
+            public/ads/
