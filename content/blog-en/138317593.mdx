@@ -5,64 +5,89 @@ slug: "138317593"
 tags: ["#Loongson", "#VPX"]
 source: "https://blog.csdn.net/yeyuangen/article/details/138317593"
 originalTitle: "6UVPX龙芯3A3000+国产显卡，VPX 3U 龙芯2K主板，龙芯3A3000 VPX 3U主板"
+expanded: true
+---
+China's defense, aerospace, and industrial automation sectors have long depended on imported x86 and PowerPC processors for ruggedized embedded computing. That dependency is shrinking. The three boards covered here — a 6U VPX single-board computer built around the Loongson 3A3000, a compact 3U VPX board based on the Loongson 2K1000, and a second 3U VPX design also using the 3A3000 — represent a maturing domestic ecosystem that pairs MIPS-compatible Chinese processors with the VPX (VITA 46) backplane standard used throughout high-reliability embedded systems worldwide.
+
+## Background: Loongson Processors and the VPX Standard
+
+The Loongson (龙芯) processor family is developed by the Institute of Computing Technology, Chinese Academy of Sciences, and manufactured under the Loongson Technology brand. The 3A3000 is a quad-core, MIPS64-compatible processor running at up to 1.2 GHz, designed for general-purpose computing in embedded and desktop applications. The 2K1000 is a dual-core, lower-power SoC clocked at 800 MHz, aimed at control-plane and communications workloads where raw throughput matters less than integrated peripheral density and power envelope.
+
+VPX (also called VITA 46) is a high-speed backplane standard derived from VMEbus, using multi-gigabit serial fabrics (PCIe, SRIO, Ethernet) over high-density connectors rated for shock, vibration, and wide temperature ranges. 3U and 6U refer to the board height — 100 mm and 233 mm respectively — following standard Eurocard form factors. VPX is the dominant form factor in military electronics, radar, sonar, and industrial control systems that require field-replaceable modules in a ruggedized chassis.
+
 ---
 
-## 6U VPX Loongson 3A3000 + Domestic Graphics Card
+## 6U VPX: Loongson 3A3000 with Domestic Discrete Graphics
 
-■ 7A1000 Chipset
+The flagship board in this lineup is a full 6U VPX single-board computer that pairs the Loongson 3A3000 processor with the Loongson 7A1000 chipset — a companion chip also developed domestically to handle PCIe switching, USB, SATA, and display connectivity.
 
-■ 16GB RAM (International) / 8GB RAM (Domestic)
+**Key specifications:**
 
-■ Lingjiu GP101 discrete graphics card, 1x VGA + 2x DVI output
+- **Processor:** Loongson 3A3000 (quad-core, MIPS64-compatible, 1.2 GHz)
+- **Chipset:** Loongson 7A1000
+- **Memory:** 16 GB (international-market variant) / 8 GB (domestic-market variant)
+- **Graphics:** Lingjiu GP101 discrete GPU — 1× VGA + 2× DVI outputs
+- **Storage:** 256 GB onboard solid-state storage
+- **I/O:** 4× USB 2.0, 4× Gigabit Ethernet
+- **OS support:** NeoKylin (中标麒麟)
+- **Operating temperature:** −40 °C to +65 °C
+- **Storage temperature:** −55 °C to +70 °C
 
-■ Storage: Onboard eMMC/SSD capacity 256GB
+![6U VPX Loongson 3A3000 board](https://pub-048dcb96197b113fcb5939cb9.r2.dev/blog/138317593/01_70539875898713151acf9fad950e3df0.png)
 
-■ 4x USB 2.0 interfaces
+The Lingjiu GP101 is notable here: it is a domestically designed discrete GPU, giving this board a triple-display capability (one VGA, two DVI) without relying on an imported graphics chip. The dual memory-capacity SKU — 16 GB for export markets where foreign DRAM is available, 8 GB for domestic supply chains — reflects the component sourcing realities of the Chinese semiconductor market.
 
-■ 4x Gigabit Ethernet interfaces
+The four Gigabit Ethernet ports make this board suitable as a networked compute node in a multi-slot VPX chassis, for example in image processing or signal intelligence racks where multiple boards share a backplane fabric.
 
-■ Supports Kylin OS
+---
 
-■ Operating temperature: -40℃ to +65℃
+## VPX 3U: Loongson 2K1000 Control Board
 
-■ Storage temperature: -55ºC to +70ºC
+The 3U form factor trades height for packaging density and is common in airborne and vehicle-mounted systems where space is constrained. This board uses the Loongson 2K1000, an SoC that integrates most peripherals on-chip and is well-suited to communication and control roles.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138317593/01_70539875898713151acf9fad950e3df0.png)
+**Key specifications:**
 
-## VPX 3U Loongson 2K Motherboard
+- **Processor:** Loongson 2K1000, 800 MHz
+- **Memory:** 4 GB DDR3 (64-bit bus)
+- **Ethernet:** 2× 1000BASE-X (fiber/SFP-compatible), 4× 1000BASE-T (copper)
+- **CAN bus:** 2× independent isolated CAN interfaces
+- **OS support:** NeoKylin, VxWorks
+- **Operating temperature:** −40 °C to +65 °C
+- **Storage temperature:** −55 °C to +70 °C
 
-■ Loongson 2K1000 chip, 800MHz
+![VPX 3U Loongson 2K1000 board](https://pub-048dcb96197b113fcb5939cb9.r2.dev/blog/138317593/02_1cfcd51a79239598e81700e52dd34d18.png)
 
-■ DDR3 64-bit RAM, 4GB capacity
+The combination of 1000BASE-X and 1000BASE-T Ethernet is deliberate: BASE-X supports SFP modules for long-distance fiber links common in shipboard or ground-vehicle backbones, while BASE-T covers short-range copper connections to sensors and actuators. The two isolated CAN interfaces are significant — CAN bus is the standard field bus in vehicle control systems, industrial machinery, and avionics subsystems, and galvanic isolation protects the processor from ground loops and voltage transients on the field side.
 
-■ 2x 1000BASE-X, 4x 1000BASE-T interfaces
+VxWorks support is particularly important for safety-critical or real-time applications where a certified RTOS is mandatory and Linux cannot meet determinism requirements.
 
-■ 2x independent isolated CAN interfaces
-
-■ Supports Kylin OS, VxWorks OS
-
-■ Operating temperature: -40℃ to +65℃
-
-■ Storage temperature: -55ºC to +70ºC
-
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138317593/02_1cfcd51a79239598e81700e52dd34d18.png)
+---
 
 ## Loongson 3A3000 VPX 3U Motherboard
 
-■ Supports Loongson 3A3000 processor / 1.2GHz
+A second 3U design brings the 3A3000 processor down into the smaller form factor, making it suitable for compute-intensive workloads in space-constrained chassis. This board targets applications that need more processing headroom than the 2K1000 provides but must fit the 3U slot envelope.
 
-■ Loongson 7A1000 chipset
+**Key specifications:**
 
-■ 8GB RAM (imported chips)
+- **Processor:** Loongson 3A3000, 1.2 GHz
+- **Chipset:** Loongson 7A1000
+- **Memory:** 8 GB (imported DRAM chips)
+- **Ethernet:** 2× Gigabit Ethernet (Intel i210 controllers)
+- **Display:** 1× DVI
+- **Serial:** 2× RS232/RS485 (selectable per port)
+- **Management:** IPMI (Intelligent Platform Management Interface)
+- **Storage:** Onboard mSATA SSD
 
-■ 2x Ethernet interfaces (i210)
+![Loongson 3A3000 VPX 3U board](https://pub-048dcb96197b113fcb5939cb9.r2.dev/blog/138317593/03_42153f1f6a037891343fedc4d76accce.png)
 
-■ 1x DVI display interface
+Using Intel i210 Gigabit Ethernet controllers alongside the domestic Loongson chipset is a pragmatic choice: the i210 has mature Linux driver support and is widely used in industrial Ethernet applications requiring Time-Sensitive Networking (TSN) features. The RS232/RS485 dual-mode serial ports accommodate both point-to-point RS232 legacy devices and RS485 multi-drop field buses used in industrial automation. IPMI adds out-of-band management capability — power cycling, sensor monitoring, and remote console access — which is increasingly expected even in embedded military and industrial platforms.
 
-■ 2x RS232/RS485 serial ports
+---
 
-■ Supports IPMI
+## Common Themes Across the Lineup
 
-■ Onboard mSATA SSD
+All three boards share the same extended temperature rating: −40 °C to +65 °C operating, −55 °C to +70 °C storage. These are standard military-grade temperature ranges (per MIL-STD-810) and indicate that the boards are designed for environments where commercial-grade components would fail — outdoor enclosures, vehicle engine bays, airborne platforms, and arctic deployments.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138317593/03_42153f1f6a037891343fedc4d76accce.png)
+NeoKylin (中标麒麟) OS support across all three boards reflects the broader push within Chinese government and defense procurement to standardize on a domestic Linux distribution. For the 2K1000 board specifically, VxWorks support extends applicability into hard-real-time control systems where Linux scheduler latency is unacceptable.
+
+Together, these three boards form a coherent product family that covers a range of VPX slot budgets and computational requirements — from the low-power, peripheral-rich 2K1000 control board up to the dual-display, quad-core 3A3000 compute node — all built on a domestic processor and chipset ecosystem qualified for harsh-environment deployment.

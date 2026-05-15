@@ -5,12 +5,66 @@ slug: "138345188"
 tags: ["#NI", "#DomesticReplacement"]
 source: "https://blog.csdn.net/yeyuangen/article/details/138345188"
 originalTitle: "【国产NI替代】NI-9219 100 S/s/ch，4通道C系列通用模拟输入模块"
+expanded: true
 ---
+## Overview
 
-### 100 S/s/ch, 4-Channel C Series Universal Analog Input Module
+The NI-9219 is one of National Instruments' most versatile C Series modules, purpose-built for engineers who need a single hardware slot to cover a wide variety of sensor types. Rather than committing an entire chassis to one measurement domain, the NI-9219 lets each of its four channels operate independently — measuring a thermocouple on channel 0 while simultaneously reading an RTD on channel 1 and a full-bridge strain gauge on channel 2. This article introduces the module's capabilities and discusses why domestic (Chinese-manufactured) alternatives to this class of instrument are gaining traction in industrial and research applications.
 
-The NI-9219 is designed for multifunction testing. The NI-9219 can be used to measure signals from various sensors (such as strain gauges, resistance temperature detectors (RTDs), thermocouples, load cells, and other active sensors), as well as performing quarter-bridge, half-bridge, and full-bridge current measurements, and features built-in voltage and current excitation. You can independently select different measurement types on each channel.
+## What the NI-9219 Measures
+
+The NI-9219 is rated at **100 samples per second per channel (S/s/ch)** — a deliberate design choice. Universal analog input modules like this one prioritise accuracy and flexibility over raw throughput. At 100 S/s/ch the module can resolve slow-moving physical phenomena (temperature, mechanical strain, weight) with high precision, while the low sample rate allows the internal signal-conditioning circuitry to settle fully between conversions.
+
+Supported measurement types include:
+
+- **Thermocouples** — The module provides cold-junction compensation and supports all standard ITS-90 thermocouple types (J, K, T, E, N, R, S, B). The built-in CJC sensor eliminates the need for an external isothermal terminal block in many lab setups.
+- **RTDs (Resistance Temperature Detectors)** — 2-, 3-, and 4-wire RTD configurations are supported. Built-in current excitation drives the RTD and the module measures the resulting voltage drop, converting it to temperature using the Callendar–Van Dusen equation.
+- **Strain gauges and Wheatstone bridges** — Quarter-bridge (with external completion resistor), half-bridge, and full-bridge configurations are all supported. Built-in voltage excitation supplies the bridge; the module measures the differential output directly.
+- **Load cells and pressure transducers** — These are typically full-bridge devices and benefit from the same built-in excitation and bridge-completion circuitry.
+- **Other active sensors** — Any sensor producing a voltage or current output within the module's input range can be read directly. Current measurement (4–20 mA loops, for example) is supported via a built-in shunt resistor.
+
+## Per-Channel Independence
+
+What sets the NI-9219 apart from single-function modules is **per-channel programmability**. Each channel has its own signal-conditioning path, so you can configure channel 0 as a thermocouple input, channel 1 as a full-bridge strain input with 3.3 V excitation, channel 2 as a 4-wire RTD input, and channel 3 as a ±60 V voltage input — all active simultaneously in a single scan. This is particularly valuable in prototype test rigs and laboratory environments where the sensor mix is heterogeneous and changes frequently.
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138345188/01_38d82fac16200dedef0cc2199e710bc2.png)
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138345188/02_c968cedf0fd66c25fe2f47d048e7f2be.png)
+
+## Built-In Excitation
+
+A key hardware feature is the **integrated voltage and current excitation source**. Passive sensors like RTDs and Wheatstone bridges require a known excitation signal to produce a measurable output. Traditionally this required a separate excitation module or an external power supply with precise regulation. The NI-9219 integrates this directly, reducing channel count, wiring complexity, and overall system cost.
+
+## C Series Form Factor and CompactDAQ / CompactRIO Integration
+
+The NI-9219 follows the C Series module standard, meaning it slots directly into any NI CompactDAQ chassis (USB, Ethernet, or Wi-Fi) or any CompactRIO chassis. The chassis provides the backplane power, timing, and synchronisation fabric, while the module handles signal conditioning and analog-to-digital conversion. This architecture makes it straightforward to mix the NI-9219 with other C Series modules — digital I/O, high-speed analog output, counter/timer — in the same chassis.
+
+## Domestic Alternatives: Why They Matter
+
+NI C Series hardware is well-regarded but carries a price premium that can be prohibitive for high-volume industrial deployments, budget-constrained research projects, or applications where export-control considerations apply. The market for **domestic (guóchǎn, 国产) alternatives** to NI C Series modules has grown substantially, particularly in China, driven by:
+
+1. **Cost reduction** — Domestic equivalents typically list at a fraction of the NI price for comparable channel counts and sample rates.
+2. **Supply-chain sovereignty** — Procurement no longer depends on US export licensing or international logistics lead times.
+3. **Software compatibility** — Many domestic vendors provide NI-DAQmx-compatible drivers or LabVIEW VIs, allowing existing test software to run against the replacement hardware with minimal modification.
+4. **Local technical support** — Regional distributors and manufacturers can provide on-site support and faster warranty resolution.
+
+When evaluating a domestic NI-9219 equivalent, engineers should verify the following specifications against their application requirements:
+
+| Parameter | What to Check |
+|---|---|
+| Sample rate per channel | Must meet or exceed 100 S/s/ch for drop-in equivalence |
+| Input ranges | ±60 V, ±15 V, ±4 V, ±1 V, ±125 mV — NI-9219 supports all of these |
+| Bridge excitation voltage and current | Confirm supported excitation levels match your sensors |
+| Isolation voltage | NI-9219 provides channel-to-channel and channel-to-chassis isolation |
+| Driver compatibility | NI-DAQmx API compatibility or equivalent SDK |
+| Temperature coefficient | Critical for thermocouple and RTD accuracy |
+
+## Typical Use Cases
+
+- **Structural health monitoring** — Attaching strain gauges to mechanical components to track fatigue over time.
+- **Thermal characterisation** — Mapping temperature across a PCB or mechanical assembly using a mix of thermocouples and RTDs.
+- **Force and torque measurement** — Reading load cells on a test bench during product qualification.
+- **Process monitoring** — Reading 4–20 mA current-loop signals from field transmitters in an industrial control system.
+- **R&D prototyping** — Any lab scenario where the sensor mix is unknown at design time and the engineer needs maximum flexibility in a single module slot.
+
+The NI-9219's combination of multifunction measurement, per-channel configurability, and integrated excitation makes it a practical benchmark for evaluating domestic alternatives. A replacement module that matches these capabilities offers engineers a path to lower-cost, locally-sourced instrumentation without sacrificing measurement flexibility.

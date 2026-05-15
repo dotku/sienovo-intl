@@ -5,22 +5,71 @@ slug: "138307611"
 tags: ["#Phytium", "#SmartTransportation"]
 source: "https://blog.csdn.net/yeyuangen/article/details/138307611"
 originalTitle: "飞腾FT2000/4+银河麒麟全国产VPX架构 6U尺寸标准板卡，适用于船舶、交通等领域"
+expanded: true
 ---
+The XM-FT2000-VPX is a fully domestically-sourced single-board computer built around the VPX open standard, designed for mission-critical embedded deployments in marine systems, railway signaling, transportation infrastructure, and other harsh-environment applications. This post walks through the board's hardware architecture, interface complement, and key design decisions that make it suitable for defense-adjacent and industrial programs demanding Chinese supply-chain independence.
 
-## XM-FT2000-VPX Mainboard
+## The Case for a Fully Domestic VPX Platform
 
-The XM-FT2000-VPX mainboard is a standard 6U VPX architecture board card, providing interfaces such as DVI, USB, Ethernet, UART, and PCIe.
+VPX (VITA 46) is the ruggedized successor to VME, offering high-speed switched-fabric backplane interconnects in standard 3U or 6U form factors. It is the dominant architecture for military, avionics, and industrial signal-processing applications worldwide. Until recently, virtually every commercially available VPX SBC relied on x86 or PowerPC silicon from US or European vendors—an untenable dependency for Chinese defense and critical-infrastructure procurement under the current regulatory environment.
 
-*   Processor: FT2000/4 quad-core domestic processor
-*   Chipset: Zhaoxin ZX-200 chipset
-*   Memory: Domestic memory chips, dual-channel DDR4, 16GB capacity
-*   SSD: Onboard mSATA SSD, standard 1TB capacity
-*   Interfaces: Supports 6 USB ports, 1 PCIe 2.0 x16 interface, 4 Gigabit Ethernet ports, UART interfaces, etc.
-*   Dimensions: 233.35mm (L) × 162mm (H), board thickness 2mm
-*   Operating Environment: -40℃ to +65℃ (Industrial grade)
-*   Firmware: UEFI BIOS
-*   Operating System: Adapted for Galaxy Kylin Operating System (Desktop Edition) 4.0.2 SP4
+The XM-FT2000-VPX directly addresses that gap by pairing a domestically fabbed processor with a domestic chipset and domestic DRAM, all running a fully localized operating system, while conforming to the internationally recognized VPX mechanical and electrical standard.
+
+## Processor and Chipset: The Phytium FT2000/4
+
+The heart of the board is the **Phytium FT2000/4**, a quad-core 64-bit ARMv8 processor developed by Tianjin Phytium Information Technology. The FT2000/4 is purpose-built for embedded and edge applications: it targets a lower thermal envelope than Phytium's server-class FT-2000+ (which scales to 64 cores), while still providing enough compute for real-time data acquisition, HMI workloads, protocol conversion, and lightweight AI inference at the edge.
+
+The companion chipset is the **Zhaoxin ZX-200**, sourced from Shanghai Zhaoxin Semiconductor—a joint venture between VIA Technologies and the Shanghai municipal government. The ZX-200 handles southbridge functions: USB hub logic, SATA/mSATA PHY, PCIe root complex support, and legacy I/O. Using a domestic chipset alongside a domestic CPU is essential for supply-chain audit compliance; importing a foreign PCH would reintroduce a potential single point of procurement risk.
+
+## Memory Subsystem
+
+The board ships with **16 GB of dual-channel DDR4** using domestically sourced DRAM dies. Dual-channel configuration doubles the theoretical memory bandwidth compared with single-channel, which matters for workloads that stream large buffers—think video decoding for surveillance or buffering high-rate sensor data from radar or sonar systems. At 16 GB the board sits comfortably above the minimum threshold for running a full GUI desktop environment under Galaxy Kylin while still leaving headroom for application data.
+
+## Storage: Onboard mSATA
+
+The design includes an **onboard mSATA socket** with a standard configuration of 1 TB. mSATA was chosen over M.2 because it has a longer ruggedized track record in VPX and VME ecosystems and is widely available in industrial-temperature variants. For shock and vibration environments—shipborne systems, rail vehicles—solid-state storage with no moving parts is mandatory; the mSATA form factor satisfies this while remaining field-replaceable without requiring a full board swap.
+
+## Interface Complement
+
+The XM-FT2000-VPX provides a broad I/O portfolio for a single 6U card:
+
+- **6× USB ports** — sufficient to connect HID devices, external storage, or USB-attached modems simultaneously, useful when the board acts as a consolidated I/O node in a multi-function chassis.
+- **4× Gigabit Ethernet** — quad GbE is a deliberate choice for transportation and marine deployments, where separate physical networks for control, management, passenger services, and sensor data are common practice. Keeping all four ports on-board eliminates the need for an add-in NIC mezzanine in many configurations.
+- **1× PCIe 2.0 ×16** — the full-width PCIe slot enables high-bandwidth expansion: a dedicated GPU for display processing, a FPGA acceleration card, or a high-speed capture card can be added without chassis-level re-engineering. PCIe 2.0 ×16 delivers up to 8 GB/s bidirectional bandwidth, adequate for most embedded acceleration workloads.
+- **DVI video output** — DVI is the practical choice for industrial panel PCs and ruggedized displays that do not yet universally support DisplayPort.
+- **UART interfaces** — serial ports remain essential for communicating with legacy sensors, GPS receivers, industrial PLCs, and embedded microcontrollers that predate Ethernet-based fieldbus.
+- **UEFI BIOS firmware** — UEFI replaces legacy BIOS and is required for GPT disk support, Secure Boot capability, and the kind of remote management features (network boot, PXE) that centralized fleet management depends on.
+
+## Mechanical and Environmental Specifications
+
+| Parameter | Value |
+|---|---|
+| Form factor | 6U VPX |
+| PCB dimensions | 233.35 mm × 162 mm |
+| Board thickness | 2 mm |
+| Operating temperature | −40 °C to +65 °C |
+
+The **6U VPX** form factor (233.35 mm × 162 mm) is the larger of the two standard VPX heights and is preferred when the I/O count, power budget, or cooling requirements exceed what a 3U card can accommodate. At 2 mm board thickness, the PCB itself conforms to standard VPX slot pitch, allowing it to populate any VITA 46-compliant chassis without mechanical modification.
+
+The **−40 °C to +65 °C** industrial-grade temperature range is meaningful in context. Marine engine rooms can exceed +55 °C; topside electronics on Arctic research vessels can drop well below −20 °C; rail-side cabinets in northern China see similar extremes. Qualifying across this full range—rather than the commercial 0–70 °C envelope—is a prerequisite for unattended deployment in these environments.
+
+## Software Stack: Galaxy Kylin Desktop 4.0.2 SP4
+
+The board is pre-validated against **Galaxy Kylin Operating System Desktop Edition 4.0.2 SP4**, developed by Kylin Software (a joint venture with deep roots in China's defense OS ecosystem). Galaxy Kylin is Linux-based and provides a familiar GNOME-derived desktop environment, but its significance here is regulatory: it appears on China's approved software catalog for government and critical-infrastructure procurement, and it ships with localized drivers, security policies, and long-term support commitments from a domestic vendor.
+
+SP4 (Service Pack 4) of the 4.0.2 line is a mature, well-patched release. Having explicit factory-level validation—rather than a generic "Linux compatible" claim—means the board ships with confirmed driver support for the FT2000/4's specific PCIe topology, USB controller, and GbE MACs under this exact kernel and distribution combination.
+
+## Target Applications
+
+The combination of quad-core ARMv8 compute, quad GbE, PCIe expansion, wide-temperature qualification, and VPX mechanical compliance positions the XM-FT2000-VPX for several categories of deployment:
+
+- **Marine command and control**: shipborne systems require salt-fog tolerance, wide thermal range, and multi-network isolation—all addressed by this platform.
+- **Rail and highway transportation management**: trackside or vehicle-mounted controllers benefit from the −40 °C cold-start rating and the consolidated Ethernet ports for separating operational and diagnostic traffic.
+- **Power and energy infrastructure**: substation automation and grid-edge monitoring nodes increasingly require domestically sourced computing under national infrastructure security mandates.
+- **Defense-adjacent signal processing**: the VPX standard itself is the architecture of choice for radar, EW, and communications payloads; a fully domestic SBC opens the door for integration into those chassis without foreign-component waivers.
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138307611/01_c7b945d6f6bdb7bce8a5fb7a9f3ca5bd.png)
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138307611/02_3b66b073ff0cbd49e9c1e60bf9897f8e.png)
+
+The XM-FT2000-VPX represents a practical, production-ready answer to the demand for fully localized embedded computing in regulated industries—combining a recognized open-standard form factor with a processor, chipset, memory, and operating system that each satisfy domestic-sourcing requirements.

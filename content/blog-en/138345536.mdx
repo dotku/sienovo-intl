@@ -5,10 +5,68 @@ slug: "138345536"
 tags: ["#DomesticReplacement"]
 source: "https://blog.csdn.net/yeyuangen/article/details/138345536"
 originalTitle: "【国产NI替代】NI-9235 10 kS/s/ch，120 Ω四分之一桥应变计，8通道C系列应变/桥输入模块"
+expanded: true
 ---
+The NI-9235 is a high-performance C Series strain/bridge input module designed for dynamic strain measurement applications where precise, synchronized data acquisition across multiple channels is essential. This post examines the module's key specifications, its technical strengths, and the growing landscape of domestic alternatives that replicate its capabilities for industrial and test-and-measurement applications.
 
-### 10 kS/s/ch, 120 Ω Quarter-Bridge Strain Gauge, 8-Channel C Series Strain/Bridge Input Module
+## What the NI-9235 Does
 
-The NI‑9235 can simultaneously measure dynamic strain on all channels, enabling high-speed synchronized measurements. This feature is crucial for applications requiring comparison of multiple channels at a specific moment, such as impact testing.\\n\\nThe NI‑9235 features built-in voltage excitation for quarter-bridge sensors. It also features 60 VDC isolation and 1,000 Vrms transient isolation, providing high common-mode noise rejection and enhanced safety.
+At its core, the NI-9235 is an 8-channel C Series module optimized for quarter-bridge strain gauge measurements. It samples at up to **10 kS/s per channel**, and because all eight channels sample simultaneously — not in a round-robin multiplexed fashion — every data point is time-coherent across the full channel array. That simultaneous sampling architecture is the defining characteristic that separates the NI-9235 from lower-cost alternatives and makes it appropriate for transient and shock-event capture.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138345536/01_5090f7e78eaecb699cc568fe525859b1.png)
+The module is built around **120 Ω quarter-bridge completion**, meaning it provides the internal completion resistors necessary to form a Wheatstone bridge when used with standard 120 Ω foil strain gauges. No external completion network is required, which simplifies wiring and reduces the chance of impedance mismatch errors in the bridge circuit.
+
+![NI-9235 module](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138345536/01_5090f7e78eaecb699cc568fe525859b1.png)
+
+## Synchronized Multi-Channel Measurement
+
+The ability to synchronize all channels at the hardware level is not merely a convenience feature — it is a fundamental requirement for certain classes of structural testing. In **impact testing**, for example, a drop weight or ballistic event excites a structure over a window that may last only a few milliseconds. If channels are sampled sequentially, the skew between the first and last channel can be tens or hundreds of microseconds, which introduces phase error that corrupts modal analysis, load-path reconstruction, and damage localization algorithms.
+
+The NI-9235 eliminates this skew by triggering all eight analog-to-digital converters simultaneously. Combined with the 10 kS/s rate, the module can resolve strain wavefronts traveling through stiff structures — composite panels, machined aluminum frames, and similar materials — with sufficient temporal resolution to distinguish individual reflections.
+
+This makes the module well suited for:
+
+- **Structural impact testing** (drop tests, Charpy-equivalent instrumented strikes)
+- **Fatigue and vibration monitoring**, where phase relationships between sensor locations matter
+- **Multi-axis load cell conditioning** when the load cell uses a quarter-bridge output stage
+- **Rotating machinery analysis**, when combined with slip rings or telemetry, to capture bending modes synchronously
+
+## Electrical Architecture and Safety Isolation
+
+The NI-9235 includes **built-in voltage excitation** for the bridge circuit. Rather than requiring a separate signal conditioner or excitation supply, the module drives the sensor bridge directly. This integrated excitation simplifies the measurement chain and ensures the excitation voltage remains stable and matched to the module's reference, which is important for maintaining gain accuracy across the full temperature range.
+
+The isolation specification is a practical strength of the design:
+
+- **60 VDC channel-to-chassis isolation** — protects the chassis and downstream DAQ hardware from ground loops and low-level DC offset that commonly appear when sensors are mounted on large metal structures with multiple ground reference points.
+- **1,000 Vrms transient isolation** — provides protection against high-energy transients such as nearby relay switching, motor inrush, or electrostatic discharge events in industrial environments.
+
+Together these ratings give the module high **common-mode noise rejection**, which is critical when long cable runs pick up 50/60 Hz interference or when sensors are located near variable-frequency drives, welding equipment, or other EMI sources. In practice, this means the NI-9235 can be deployed close to the device under test — even inside a machine enclosure — without requiring additional signal conditioning stages.
+
+## C Series Form Factor and Ecosystem Compatibility
+
+The NI-9235 follows the C Series mechanical and electrical standard, meaning it slots into any CompactDAQ (cDAQ) or CompactRIO (cRIO) chassis. A single cDAQ-9178 8-slot USB chassis, for example, can hold eight NI-9235 modules, providing 64 simultaneous quarter-bridge channels from a single USB connection. Scaling to cRIO gives access to the FPGA fabric for custom triggering, real-time signal processing, or closed-loop control based on measured strain values.
+
+## Domestic Replacement Context
+
+As supply chain diversification becomes a strategic priority across manufacturing, aerospace, and energy sectors, there is increasing demand for domestically sourced alternatives to NI C Series modules. A credible domestic replacement for the NI-9235 must match the key specifications that define its utility:
+
+| Parameter | NI-9235 Specification |
+|---|---|
+| Channels | 8, simultaneous |
+| Sample rate | 10 kS/s/ch |
+| Bridge configuration | Quarter-bridge, 120 Ω |
+| Isolation | 60 VDC / 1,000 Vrms transient |
+| Excitation | Built-in voltage excitation |
+| Form factor | C Series (cDAQ / cRIO compatible) |
+
+Domestic alternatives targeting this specification profile typically compete on integration — offering the same simultaneous-sampling ADC architecture, internal bridge completion, and isolation ratings while providing local support, shorter lead times, and pricing structures that reduce dependence on a single international supplier. Evaluating any replacement requires verifying not just the headline sample rate but also the noise floor (expressed in με RMS), gain accuracy over temperature, and whether the software driver integrates cleanly with existing NI-DAQmx or LabVIEW-based test sequences.
+
+## Practical Deployment Notes
+
+When working with the NI-9235 or a compatible replacement in the field, several engineering details are worth keeping in mind:
+
+- **Shunt calibration**: Always perform a shunt calibration at the module level before a test run. A precision resistor placed in parallel with one bridge arm simulates a known strain and verifies the full signal chain from the gauge to the recorded value.
+- **Lead wire resistance**: Quarter-bridge configurations with long cable runs accumulate lead resistance that shifts the apparent zero-strain reading. A three-wire connection compensates for this by measuring and subtracting lead resistance continuously.
+- **Excitation voltage selection**: The built-in excitation should be set to the lowest level that still gives adequate signal-to-noise ratio. Higher excitation increases sensitivity but also causes self-heating in the gauge, which produces apparent strain drift over time — particularly on small or thin specimens.
+- **Grounding**: Even with 60 VDC isolation, maintaining a single, clean chassis ground for the DAQ system reduces the chance of common-mode voltage saturating the isolation barrier and degrading CMRR in practice.
+
+The NI-9235's combination of simultaneous sampling, integrated bridge excitation, and robust isolation makes it a reference-class module for dynamic strain applications, and these same parameters define what a domestic replacement must deliver to be a true functional equivalent.
