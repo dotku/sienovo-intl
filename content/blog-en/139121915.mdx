@@ -5,8 +5,60 @@ slug: "139121915"
 tags: ["#DAQCard", "#NIAlternative"]
 source: "https://blog.csdn.net/yeyuangen/article/details/139121915"
 originalTitle: "【NI国产替代】PXI-6133多功能数据采集设备,8路AI（14位，2.5 MS/s/ch），8路DIO，PXI多功能I/O模块"
+expanded: true
 ---
+## 8 AI Channels (14-bit, 2.5 MS/s/ch), 8 DIO Channels, PXI Multifunction I/O Module
 
-### 8 AI Channels (14-bit, 2.5 MS/s/ch), 8 DIO Channels, PXI Multifunction I/O Module
+The PXI-6133 is a simultaneously sampling, multifunction data acquisition device designed for high-speed, precision measurement applications. This article introduces the device's core capabilities and the growing ecosystem of domestic Chinese alternatives targeting engineers who need NI-compatible DAQ performance without the cost or supply-chain dependencies of imported instrumentation.
 
-The PXI-6133 is a simultaneously sampling, multifunction data acquisition device. It provides analog input, digital I/O, two 24-bit counters, and digital triggering. The PXI-6133 is suitable for a wide range of applications, including IF digitization, transient recording, ISDN, ADSL, and POTS manufacturing testing in the telecommunications industry, ultrasound and sonar testing, and high-energy physics. ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/139121915/01_c7f4b1f7ae6e3516ccb0ffb01c09b7c7.png)
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/139121915/01_c7f4b1f7ae6e3516ccb0ffb01c09b7c7.png)
+
+## What Is the PXI-6133?
+
+The PXI-6133 is a PXI-form-factor data acquisition module originally developed by National Instruments (now NI, a part of Emerson). It occupies a single PXI slot and connects to a PXI chassis backplane, making it part of a modular, rack-based test system architecture widely used in aerospace, defense, telecommunications, and research laboratories.
+
+The device provides:
+
+- **8 analog input (AI) channels** with simultaneous sampling — meaning all eight channels are sampled at exactly the same instant rather than being multiplexed sequentially. This is critical when measuring phase relationships between signals.
+- **14-bit ADC resolution** per channel, giving approximately 1 part in 16,384 of full-scale range.
+- **2.5 MS/s per channel** sample rate — sustained simultaneously across all 8 channels, yielding an aggregate throughput of 20 MS/s.
+- **8 digital I/O (DIO) channels** for TTL-level control and handshaking.
+- **Two 24-bit counters/timers** for frequency measurement, pulse generation, and event counting.
+- **Digital triggering** to synchronize acquisitions with external events or other instruments in the chassis.
+
+## Simultaneous Sampling: Why It Matters
+
+Most lower-cost DAQ cards multiplex a single ADC across multiple input channels. While cost-effective, multiplexing introduces a small but nonzero time skew between channels — typically a few microseconds per channel. For applications measuring phase, coherence, or cross-correlation between signals (for example, a sonar beam-forming array or a power electronics switching waveform), that skew directly introduces measurement error.
+
+The PXI-6133 avoids this by dedicating a separate ADC to each of its eight analog inputs, so all channels share a common sample clock. The result is phase accuracy that is limited only by clock jitter and analog front-end mismatch, not by multiplexer switching time.
+
+## Target Applications
+
+The PXI-6133 was explicitly designed for several demanding measurement domains:
+
+**IF Digitization** — In radio and communications test, intermediate-frequency (IF) signals typically fall in the range of a few MHz to tens of MHz. At 2.5 MS/s per channel, the PXI-6133 can directly digitize IF signals up to the Nyquist limit and apply digital down-conversion in software.
+
+**Transient Recording** — Capturing fast, non-repetitive events such as mechanical shock, electrical transients, or explosive detonation requires high sample rates and precise triggering. The PXI-6133's digital trigger input and deep onboard buffer enable reliable transient capture.
+
+**Telecommunications Manufacturing Test (ISDN, ADSL, POTS)** — Telecom line-card manufacturing test requires simultaneous measurement of multiple analog signal parameters — signal level, noise floor, frequency response — across multiple ports in a production environment. The combination of simultaneous sampling and digital I/O makes the PXI-6133 well suited for go/no-go fixture testing.
+
+**Ultrasound and Sonar Testing** — Phased-array ultrasound and sonar systems rely on precisely time-aligned waveforms across multiple transducer elements. Simultaneous sampling across all channels preserves the inter-channel phase fidelity required to validate beam-steering algorithms and transducer matching.
+
+**High-Energy Physics** — Particle detector readout and timing systems often require synchronized, high-throughput digitization of detector signals. The PXI form factor integrates cleanly into trigger-synchronized chassis used in physics experiments.
+
+## The Case for a Domestic Alternative
+
+NI instrumentation has long set the benchmark for PXI-based DAQ, but procurement challenges — including lead times, export controls, and cost structures — have driven Chinese test-and-measurement manufacturers to develop pin-compatible or functionally equivalent PXI modules. These domestic alternatives aim to match the PXI-6133's key specifications (simultaneous sampling, 14-bit resolution, 2.5 MS/s/ch) while offering:
+
+- Shorter domestic supply chains and faster delivery
+- Localized technical support and documentation in Simplified Chinese
+- Pricing structures better suited to high-volume manufacturing test deployments
+- Compatibility with the PXI standard (PICMG 2.0 / PXI-1 backplane), so they drop into existing NI chassis
+
+When evaluating a domestic PXI-6133 equivalent, engineers should verify simultaneous (not multiplexed) sampling architecture, confirm the ADC bit depth and per-channel sample rate under full-channel load, check the digital trigger input specifications, and validate software driver compatibility with their existing NI-DAQmx or IVI-compliant test code.
+
+## Integration Considerations
+
+PXI modules like the PXI-6133 are intended to operate inside a PXI chassis that provides the system timing reference (10 MHz backplane clock and PXI_STAR trigger lines). Standalone operation outside a chassis is not supported — a compatible PXI chassis and system controller are required. When building a new system around a domestic alternative module, confirm that the module correctly implements PXI trigger bus routing and backplane timing so that multi-module synchronized acquisitions work as expected.
+
+For software integration, NI-DAQmx is the standard API for PXI-6133 programming. Domestic alternatives may ship their own driver libraries or claim NI-DAQmx compatibility through a shim layer — testing this compatibility thoroughly before committing to production deployment is strongly recommended.

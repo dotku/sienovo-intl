@@ -5,10 +5,48 @@ slug: "139551542"
 tags: ["#Networking"]
 source: "https://blog.csdn.net/yeyuangen/article/details/139551542"
 originalTitle: "智能变电站网络报文记录及故障录波分析装置"
+expanded: true
 ---
+Smart substations rely on high-speed, time-sensitive communication networks — primarily IEC 61850-based Ethernet — to coordinate protection relays, merging units, and intelligent electronic devices (IEDs). When a fault occurs, engineers need millisecond-accurate packet captures and waveform records to reconstruct what happened and why. A general-purpose network tap or software-based packet capture tool is rarely adequate: substation environments demand fanless operation across wide temperature ranges, deterministic real-time capture with no dropped frames, and hardware-grade timestamps that can be correlated with GOOSE trips and sampled-value streams. The device described here is purpose-built to meet exactly those requirements.
 
-This is a highly integrated hardware platform based on Intel® X86, PowerPC, and FPGA technologies, incorporating multiple advanced techniques such as high-performance CPU fanless cooling, network data acquisition, high-speed data compression, storage, and encryption. It enables high-performance computing, multi-port synchronized high-speed data acquisition, real-time data analysis, and large-capacity data storage.  
-● While meeting industrial standards, it includes specialized optimizations tailored to the characteristics of various industries, ensuring compliance with specific requirements and application scenarios.  
-● The system adopts a modular architecture, consisting of a data acquisition unit and a data processing unit, connected via dedicated communication cables. This design allows flexible configuration of data acquisition ports, supporting up to 24 Ethernet data acquisition channels. By leveraging an embedded real-time processor, the device achieves multi-channel parallel data acquisition with zero packet loss, combined with high-precision hardware timestamping, fulfilling the requirements for network packet recording and fault recording analysis in smart substations.
+## Hardware Foundation: X86, PowerPC, and FPGA Working Together
+
+The platform integrates three processor architectures, each assigned to what it does best.
+
+**Intel X86** handles the heavy analytical workload: protocol decoding, search and indexing of captured traffic, compression, encryption, and presentation to the operator. Modern x86 cores offer the memory bandwidth and instruction-set breadth needed to run IEC 61850 parsing and large-capacity storage management without becoming a bottleneck.
+
+**PowerPC** has a long history in industrial and communications equipment. Its deterministic interrupt latency and real-time operating system support make it well-suited to control-plane tasks that must respond predictably regardless of system load.
+
+**FPGA** is the key to zero-packet-loss capture. Software stacks — even DPDK-accelerated ones — can be preempted, suffer cache misses, or drop frames under burst traffic. An FPGA fabric runs capture logic in hardware, timestamping every Ethernet frame the instant it arrives on the wire, independently of anything happening on the CPUs. This is the embedded real-time processor mentioned in the source: line-rate capture across multiple ports with deterministic, sub-microsecond timestamp resolution.
+
+## Fanless, Industrial-Grade Thermal Design
+
+Substations are not climate-controlled data centers. Equipment must operate reliably across wide ambient temperature swings, in electrically noisy environments, and often in sealed enclosures where active cooling is impractical. The fanless thermal design eliminates the single most common mechanical failure point in embedded systems. Heat is conducted away from the CPU and dissipated through the chassis rather than blown away by a fan that can clog, fail, or introduce airflow-borne contamination.
+
+## Modular Split Architecture: Acquisition Unit + Processing Unit
+
+The device is divided into two physically separate units connected by a dedicated communication cable.
+
+- **Data Acquisition Unit** — lives as close to the network under test as necessary. It houses the FPGA capture engine and the Ethernet tap ports. Because it is separate from the processing unit, it can be positioned in the switchgear bay or relay room without dragging the full processing stack into a space-constrained panel.
+
+- **Data Processing Unit** — handles storage, analysis, compression, encryption, and operator interfaces. It can be mounted in a more accessible location, such as a control room rack, without any distance penalty on capture fidelity.
+
+This split also means the acquisition port count can be scaled independently of the processing unit. The design supports **up to 24 Ethernet data acquisition channels**, a figure that matters in large substations where dozens of IEDs, merging units, and bay-level switches generate simultaneous traffic that must all be captured and correlated.
+
+## Zero Packet Loss and High-Precision Hardware Timestamps
+
+Zero packet loss is non-negotiable for fault analysis. If even a single GOOSE message or sampled-value packet is dropped during a protection operation, the post-event reconstruction may be incomplete or misleading. The FPGA capture engine handles frames at line rate without relying on the host CPU's interrupt handling, ensuring that multi-channel parallel capture does not introduce drops even during traffic bursts that accompany a fault event.
+
+Hardware timestamps are applied by the FPGA at the moment of frame reception, before any software layer touches the packet. This preserves the true inter-arrival timing between frames across different ports — critical when correlating a GOOSE trip command on one port with the sampled-value stream on another, or with the fault waveform recorded by a merging unit. Software timestamps, by contrast, are subject to OS scheduling jitter that can easily exceed hundreds of microseconds, which is unacceptable when protection events unfold in single-digit milliseconds.
+
+## Industry-Specific Optimizations
+
+Beyond the core architecture, the platform includes optimizations tailored to specific industry requirements. For smart substations this means compliance with IEC 61850 communication profiles, support for the GOOSE and Sampled Values (SV) transport mappings over Ethernet, and the ability to align captured packets with fault recording waveforms for unified post-event analysis. The same hardware foundation can be adapted to other verticals — power generation, rail, oil and gas — by adjusting the protocol decoding and storage configuration while keeping the fanless, industrial-hardened chassis.
+
+## Practical Role in Substation Protection Engineering
+
+When a line protection relay operates, the sequence of events can span multiple IEDs and multiple logical nodes: a merging unit publishes sampled values, a protection IED detects a fault condition, it publishes a GOOSE trip, a circuit breaker IED receives the GOOSE and opens the breaker. Each step is a packet on the station bus or process bus. A network packet recorder captures all of it with hardware timestamps, and the fault recording function captures the associated analog waveforms. Together they give protection engineers the complete picture: not just that a relay operated, but exactly which packets arrived in what order, whether any were delayed or lost, and how the analog signals looked at the moment of operation.
+
+This combination of high channel count, zero packet loss, hardware timestamping, and modular industrial packaging positions the device as a diagnostic and compliance tool for the communication infrastructure that modern digital substations depend on.
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/139551542/01_e9d3634086787af9f6287a79e1f35a03.png)

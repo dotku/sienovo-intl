@@ -5,15 +5,66 @@ slug: "139551914"
 tags: ["#EdgeComputing", "#DataAcquisition"]
 source: "https://blog.csdn.net/yeyuangen/article/details/139551914"
 originalTitle: "【NI国产替代】500 MSPS 采样率，14 bit 分辨率数据采集盒子"
+expanded: true
 ---
+High-speed data acquisition has long been dominated by Western vendors — National Instruments (now NI) chief among them. For engineers in industrial automation, radar signal processing, communications testing, and edge-AI inference pipelines, sourcing a domestically manufactured alternative that matches NI's performance envelope has historically been difficult. Sienovo's high-speed data acquisition box changes that calculus, delivering 500 MSPS sampling, 14-bit resolution, and a rich connectivity stack in a compact form factor purpose-built for demanding field and lab environments.
 
-• Dual high-speed, high-precision data acquisition channels
-• Supports precise internal and external triggered sampling modes
-• Extensive bus and control interfaces
-• Strong anti-interference capability
+## Core Acquisition Performance
 
-The high-speed data acquisition box is a dual-channel, high-speed, high-precision data acquisition device featuring a 500 MSPS sampling rate and 14-bit resolution. It has an analog input bandwidth of 200 MHz, utilizes a Xilinx high-performance MPSoC processor, and includes built-in 2GB DDR4 and 16GB eMMC storage. It supports trigger input/output functions. Additionally, it offers rich communication interfaces such as Gigabit Ethernet, CAN, RS485, and RS232.
+The headline specification is a **500 MSPS (megasamples per second) sampling rate** across **two independent channels**, each resolving signals at **14-bit depth**. Together these figures define the system's Nyquist ceiling and dynamic range floor.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/139551914/01_3a39766f1a2885ff51011587ec51578f.png)
+- At 500 MSPS, the Nyquist limit is 250 MHz. The device's **200 MHz analog input bandwidth** sits just inside that ceiling, meaning the anti-aliasing filter is matched to the converter — a sign of careful front-end design rather than a paper specification that ignores bandwidth-rate coherence.
+- 14-bit resolution yields 16,384 discrete amplitude levels, giving a theoretical dynamic range of roughly 86 dB (6.02 dB × 14 bits). In practice, effective number of bits (ENOB) will be lower due to noise and distortion, but 14-bit ADCs at this sample rate are solidly in the mid-to-high tier for industrial and test-and-measurement use cases — well above the 12-bit parts common in lower-cost boards.
+
+For reference, NI's FlexRIO and PXIe digitizer cards targeting the same class of applications occupy a similar specification band, which is the direct competitive context this device addresses.
+
+## Processor and Memory Architecture
+
+The acquisition box is built around a **Xilinx high-performance MPSoC** (Multi-Processor System-on-Chip). Xilinx MPSoC devices (the Zynq UltraScale+ family being the flagship line) integrate ARM Cortex-A53 application processors, ARM Cortex-R5 real-time processors, and programmable logic (FPGA fabric) on a single die. This heterogeneous architecture is well suited to data acquisition because:
+
+- The **FPGA fabric** handles time-critical tasks: ADC interfacing, trigger logic, DMA transfers, and real-time signal conditioning — all with deterministic, sub-microsecond latency.
+- The **ARM application cores** run the Linux-based control plane, managing Ethernet stacks, file I/O to eMMC, and communication with host software.
+- The **real-time cores** can be assigned hard-deadline tasks such as trigger timestamping or protocol offload.
+
+On-board memory is provisioned generously for an embedded acquisition device:
+
+| Resource | Capacity |
+|---|---|
+| DDR4 RAM | 2 GB |
+| eMMC Flash | 16 GB |
+
+The 2 GB DDR4 enables deep capture buffers — at 500 MSPS with 14-bit samples packed into 16-bit words, a single channel generates 1 GB/s of raw data. Two GB of RAM therefore provides approximately one second of dual-channel capture at full rate before data must be streamed out or written to storage. The 16 GB eMMC gives the device a self-contained logging capability without requiring an external SD card or USB drive, which matters for sealed enclosures in industrial environments.
+
+## Trigger Architecture: Internal and External Modes
+
+A differentiating feature for test-and-measurement applications is the **support for both internal and external trigger modes** with precision timing.
+
+- **Internal triggering** allows the device to self-trigger based on configurable signal-level thresholds detected in the ADC data stream itself — analogous to the trigger system on a digital oscilloscope.
+- **External triggering** accepts a hardware trigger signal via dedicated trigger input/output (I/O) lines, enabling multi-device synchronization or event-locked capture from an external source such as a pulse generator, GNSS timing receiver, or another instrument.
+
+The availability of trigger output in addition to trigger input means this box can act as a **trigger master** in a multi-unit system, fanning out a precise timing edge to other instruments or DUTs (devices under test). This is essential in phased-array signal processing, multi-sensor fusion, and time-domain reflectometry setups where inter-channel or inter-device phase coherence is required.
+
+## Communication and Bus Interfaces
+
+Industrial data acquisition equipment lives or dies by its connectivity. The device provides a comprehensive stack:
+
+- **Gigabit Ethernet** — primary data exfiltration path; at 125 MB/s theoretical throughput, it can sustain a significant fraction of the raw sample stream after compression or decimation, and serves as the control channel for remote configuration.
+- **CAN bus** — the standard in automotive and industrial machine-control networks; allows the acquisition box to participate in existing plant-floor communication fabrics without an external gateway.
+- **RS-485** — multi-drop serial, common in SCADA, sensor networks, and building automation; supports long cable runs (up to ~1200 m) and multi-node topologies.
+- **RS-232** — legacy point-to-point serial; useful for interfacing with older instrumentation or providing a debug console.
+
+The combination of CAN and RS-485 alongside Gigabit Ethernet is deliberate: it allows the device to be dropped into existing industrial infrastructure where older field buses are already installed, without forcing a full network modernization.
+
+## Anti-Interference Design
+
+High-speed ADC inputs are inherently susceptible to electromagnetic interference. At 500 MSPS, even small parasitic coupling can corrupt samples. The device is designed with **strong anti-interference capability** — this typically encompasses differential analog input stages, ground-plane isolation between the digital and analog domains, shielded enclosure construction, and filtering on power supply rails. For field deployments near motors, switching power supplies, or RF transmitters, this hardening is not optional — it is the difference between a working system and a noise floor that obscures the signal of interest.
+
+## Positioning as an NI Domestic Alternative
+
+The framing as an "NI domestic alternative" reflects a real procurement reality in China's industrial and defense-adjacent sectors, where supply chain diversification and domestic sourcing requirements have accelerated demand for locally manufactured high-performance instrumentation. This device targets the core NI digitizer use case — high-bandwidth, triggered, multi-channel acquisition with software-configurable parameters — while running on a Xilinx MPSoC platform that Chinese engineers are increasingly familiar with through the broader embedded FPGA ecosystem.
+
+For teams evaluating a replacement for NI PXI digitizers or USB-based high-speed acquisition modules in applications such as radar echo capture, ultrasonic NDT (non-destructive testing), communications signal analysis, or power electronics characterization, the combination of 500 MSPS / 14-bit / 200 MHz bandwidth / dual-channel in a single box with integrated storage and multi-protocol connectivity represents a credible, deployable alternative worth benchmarking.
+
+![](https://pub-048dcb96175f476697b113fcb5939cb9.r2.dev/blog/139551914/01_3a39766f1a2885ff51011587ec51578f.png)
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/139551914/02_009023bd057951fda3fd68cb11ef88dc.png)

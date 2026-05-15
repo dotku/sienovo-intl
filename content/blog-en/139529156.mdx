@@ -5,20 +5,107 @@ slug: "139529156"
 tags: ["#AI", "#EdgeComputing"]
 source: "https://blog.csdn.net/yeyuangen/article/details/139529156"
 originalTitle: "Nvidia/算能 +FPGA+AI大算力边缘计算盒子：自动清理机器"
+expanded: true
+---
+Outdoor cleaning robots and high-density AI edge boxes represent two converging trends in industrial edge computing: autonomous mobile platforms that must process multi-sensor fusion in real time, and compact appliances that pack data-center-class inference throughput into a fanless enclosure. This post covers both — ViaBot's NVIDIA Jetson-powered cleaning robot and the XM-AIBOX-32, an edge AI box built on Sophon's BM1684X SoC — to show how today's edge silicon makes both possible.
+
+## ViaBot: Modular Outdoor Cleaning Robots on NVIDIA Jetson
+
+Silicon Valley-based ViaBot was founded in 2016 when Gregg Ratanaphanyarat and Dawei Ding dropped out of Penn State University to build outdoor cleaning robots for enterprise customers. Their bet is paying off: the company is now running a pilot with a large partner to autonomously clean a Bay Area parking lot, with plans to expand.
+
+The insight behind ViaBot is a gap in the facilities-management market. Robotics companies typically target a single task — sweeping, mowing, or security — while building managers need multiple services from one vendor. ViaBot addresses this with modular hardware: the same four-wheeled RUNO platform can swap payloads to clean, collect recyclables, or scan license plates.
+
+### RUNO Platform Architecture
+
+The RUNO robot is built around a **NVIDIA Jetson TX2** module, which handles all sensor fusion and inference on a single low-power board. The sensor suite includes:
+
+- **7 cameras** for 360° visual coverage and object detection
+- **4 sonar sensors** for close-range obstacle avoidance
+- **GPS** for global localization
+
+All sensor readings are fused with GPS so the robot can maintain a map of obstacle positions relative to known waypoints. CTO Dawei Ding described the approach: *"All sensor readings are fused with GPS to understand where obstacles are at those points. We can know from there where to go and what areas need to be swept."*
+
+On a single charge, RUNO runs for up to **4 hours** of autonomous operation. Maintenance staff only need to empty the recycling and trash bins — all navigation, detection, and docking is handled onboard.
+
+### Computer Vision Stack
+
+ViaBot uses **YOLO** as its object detection backbone. The team collected 500 images specifically labeled for recyclable materials and fine-tuned the network on that dataset, allowing RUNO to distinguish waste types during collection. License plate recognition runs on a separate, traditional computer-vision pipeline rather than a neural network, which keeps that task lightweight and deterministic.
+
+### Robot-as-a-Service (RaaS) Model
+
+ViaBot sells access to RUNO on a **monthly subscription basis**. The base tier covers sweeping; clients can add recycling identification, license plate scanning, or physical attachments like a modular mowing box (planned for release by end of year). Each service is priced per robot deployed in the facility, giving property managers a predictable operational cost without capital expenditure on hardware.
+
 ---
 
-Silicon Valley-based ViaBot is conducting pilot tests for its enterprise robots.
+## XM-AIBOX-32: Sophon BM1684X Edge AI Appliance
 
-In 2016, Gregg Ratanaphanyarat and Dawei Ding dropped out of Penn State University to found an outdoor cleaning robot startup.
+Where ViaBot's RUNO is a mobile platform, the **XM-AIBOX-32** is a fixed edge inference appliance targeting smart-city, campus, and industrial surveillance deployments. Its core is the **Sophon BM1684X** SoC — a chip designed specifically for multi-stream video AI.
 
-Today, that gamble seems to be paying off. Their startup, ViaBot, is partnering with a large company on a pilot project to use robots to clean a parking lot in the Bay Area. The work is currently progressing well, with prospects for expanding to more business.
+### Compute Specifications
 
-The co-founders stated that robotics is difficult to apply to outdoor maintenance because developers typically focus on a single area, while building managers require multiple services.
+| Precision | Peak Throughput |
+|-----------|----------------|
+| INT8 | **32 TOPS** |
+| FP16 / BF16 | **16 TFLOPS** |
+| FP32 | **2 TFLOPS** |
 
-ViaBot aims to meet diverse outdoor maintenance needs with modular robots.
+The BM1684X pairs an **8-core ARM Cortex-A53 @ 2.3 GHz** host CPU with dedicated neural processing units. The codec engine handles **H.264/H.265 decode at 1080P × 800 fps** aggregated, supporting up to **32 simultaneous 1080P streams** for decoding and **12 streams** for encoding — enough for a mid-sized camera network with a single box and no GPU server.
 
-Ratanaphanyarat, the company's CEO, said: "This will make mobile robots efficient, productive, and cost-effective, something previous robots couldn't achieve."
+Image throughput reaches **600 JPEG frames per second**, and the decoder supports resolutions up to **32768 × 32768 pixels**, making it suitable for gigapixel panoramic or aerial inputs.
 
-Like many robotics newcomers, ViaBot uses sensors and cameras, along with object detection algorithms and maps running on [NVIDIA Jetson](https://www.nvidia.com/zh-cn/autonomous-machines/embedded-systems-dev-kits-modules/ "NVIDIA Jetson") to process all the data required for navigation.
+### Memory and Storage
 
-Jetson provides robotics developers with high-performance, low-power processing methods. [Our new modules](https://www.nvidia.com/zh-cn/autonomous-machines/embedded-systems-dev-kits-modules/ "我们的
+- **16 GB LPDDR4** system memory
+- **64 GB eMMC** internal flash with optional main/backup partition layout for high-availability deployments
+- **MicroSD** slot for additional storage
+- **M.2 SSD** (optional) for local video archiving up to 2 TB
+- **Mini-PCIe 4G** or **M.2 5G** module slot for wireless backhaul
+- **Wi-Fi 802.11a/b/g/n/ac** and **Bluetooth 5.0** on-board
+
+### I/O and Connectivity
+
+The box is designed for direct field deployment without additional networking gear:
+
+- **2 × GbE** (10/100/1000 Mbps auto-negotiating)
+- **2 × USB 3.0**, **2 × USB 2.0**
+- **1 × HDMI** display output
+- **RS-232** and **RS-485** serial ports for legacy device integration
+- **Standard SIM card slot** for cellular modules
+- **SMA antenna connectors** for LTE (×1), 5G (×4, requires base-board swap), Wi-Fi (×2), Bluetooth (×1)
+
+Northbound interfaces support **HTTP**, **MQTT**, and **GB/T 28281** (China national video surveillance standard). Southbound interfaces support **GB/T 28281**, **ONVIF**, and **RTSP**, so the box integrates with virtually any IP camera already in the field.
+
+### Built-in AI Algorithm Library
+
+Rather than requiring customers to bring their own models, the XM-AIBOX-32 ships with **30+ pre-loaded algorithms** that can be freely combined per camera channel. The library covers:
+
+- **Person analytics**: structured attributes, face recognition, fall detection, sleeping-on-duty, loitering, headcount (regional underpopulation / overcrowding / anomaly)
+- **PPE compliance**: hard hat, reflective vest, work uniform, face mask, static-electricity elimination check
+- **Vehicle analytics**: license plate recognition, structured attributes, illegal parking, entry/exit flow counting
+- **Safety and fire**: flame detection, smoke detection, fire-exit obstruction, fire-lane blockage
+- **Behavior detection**: phone use, smoking, camera tamper / displacement
+- **Waste management**: trash-not-in-bin, full bin overflow, disposal guidance
+
+Each video channel supports **up to 3 simultaneous AI tasks**; the box runs **32 AI analysis tasks in parallel** across all streams, with round-robin polling for workloads that exceed that limit.
+
+### Development Toolchain
+
+Sophon's **Sophon SDK** provides an end-to-end development path. Supported frameworks include Caffe, DarkNet, TensorFlow, PyTorch, MXNet, ONNX, and PaddlePaddle. Models are compiled to BM1684X's TPU instruction set via the SDK's model compiler, with support for custom operator development. Docker container images are available for rapid algorithm packaging and OTA deployment.
+
+### Physical and Environmental Specs
+
+| Parameter | Value |
+|-----------|-------|
+| Dimensions | 210 mm × 130 mm × 44.5 mm |
+| Power supply | DC 12 V |
+| Typical power draw | ≤ 20 W (excluding SSD and wireless modules) |
+| Operating temperature | −20 °C to +60 °C |
+| Protection rating | IP30, fanless (model-dependent) |
+
+The fanless thermal design and wide-temperature rating make the XM-AIBOX-32 suitable for outdoor cabinets, factory floors, and uncontrolled utility rooms where active cooling is impractical.
+
+---
+
+## Takeaway
+
+Both ViaBot's RUNO and the XM-AIBOX-32 illustrate the same architectural principle: pairing a purpose-built AI SoC (NVIDIA Jetson TX2 or Sophon BM1684X) with a rich sensor or camera interface lets a compact, low-power device replace what previously required a rack-mounted GPU server. For mobile robotics, Jetson's ecosystem and CUDA toolchain accelerate model iteration; for fixed multi-camera deployments, Sophon's codec-plus-TPU integration delivers the highest stream count per watt at the edge. The modular RaaS model ViaBot pioneered — pay per robot, add services à la carte — maps cleanly onto the XM-AIBOX-32's per-algorithm licensing approach, suggesting this subscription pattern is becoming the dominant commercial model for edge AI deployments across both mobile and fixed form factors.
