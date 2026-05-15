@@ -5,18 +5,147 @@ slug: "140547420"
 tags: ["#ARMDev", "#FPGADev", "#VideoCodec", "#IVD", "#MedicalImaging"]
 source: "https://blog.csdn.net/yeyuangen/article/details/140547420"
 originalTitle: "【医学影像】RK3588+FPGA：满足远程诊疗系统8K音视频编解码及高效传输需求"
+expanded: true
 ---
-
-Medical Imaging
+Medical imaging and telemedicine are among the most demanding application domains for embedded computing hardware. High-resolution diagnostic imagery, real-time video consultation, and AI-assisted diagnosis all impose simultaneous burdens on compute, memory bandwidth, codec throughput, and network I/O. This post examines how Rockchip RK3588-based industrial boards address those burdens in two concrete use cases: telemedicine video systems and medical imaging information systems (MIIS).
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/140547420/01_882602ef9c9e15233bd551957a249b20.jpeg)
 
-We provide computer hardware such as Computer-on-Modules (CoMs), Mini-ITX motherboards, PICO-ITX motherboards, and industrial PCs based on Intel, NXP, and Rockchip platforms. Our products feature onboard memory, integrate ultra-high-definition encoding/decoding video engines, possess excellent data processing and graphics processing capabilities, and offer highly integrated functionality. They can be applied in medical imaging equipment such as ultrasound machines, CT scanners, MRI systems, and digital X-ray imaging systems.
+Sienovo supplies computer hardware — Computer-on-Modules (CoMs), Mini-ITX motherboards, PICO-ITX motherboards, and industrial PCs — built on Intel, NXP, and Rockchip platforms. Each integrates ultra-high-definition encode/decode video engines and is qualified for use inside ultrasound machines, CT scanners, MRI systems, and digital X-ray imaging systems.
 
-## **Meeting the 8K Audio/Video Encoding/Decoding and High-Efficiency Transmission Requirements of Telemedicine Systems**
+## Meeting the 8K Audio/Video Encoding/Decoding and High-Efficiency Transmission Requirements of Telemedicine Systems
 
-Against the backdrop of deep integration between new-generation information technology and the healthcare industry, innovative service models like telemedicine and "Internet+Healthcare" are experiencing rapid development. Adapting to market trends, we have developed industrial control motherboards and other products that support telemedicine system applications.
+### The Telemedicine Landscape
 
-**Innovative Service Models for Telemedicine**
+Public expectations around healthcare access have shifted sharply: patients in under-served regions increasingly demand specialist consultations without the cost and delay of travel, while regulatory frameworks in multiple countries now actively encourage "Internet + Healthcare" platforms. The resulting telemedicine systems are not simple video calls — they must synchronise patient monitoring data from IoT endpoints, transmit diagnostic-quality imaging in real time, maintain audit logs, and stay online under clinical-grade reliability requirements.
 
-In recent years, public awareness of health issues has steadily increased,
+Meeting those requirements in a single embedded platform means the SoC must provide:
+
+- **High-throughput CPU cores** for complex data orchestration and real-time protocol handling
+- **A capable GPU** for rendering and compositing high-resolution imagery on local displays
+- **A dedicated video codec engine** for 8K-class encode and decode without burdening the CPU
+- **Wired and wireless network interfaces** supporting both high-bandwidth LAN and cellular fallback (4G/5G)
+- **Serial interfaces** for legacy medical peripheral integration
+- **Wide-temperature operation** for deployment in environments that may not be climate-controlled
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/140547420/02_7778c5f837a05400656ebe004f684d88.jpeg)
+
+### Industrial Control Motherboard for Telemedicine (EMB-2582)
+
+The EMB-2582 industrial control motherboard is built around the Rockchip RK3588, Rockchip's flagship AIoT SoC. RK3588 is an octa-core device pairing four ARM Cortex-A76 cores running at up to 2.4 GHz with four Cortex-A55 efficiency cores at 1.8 GHz, and includes an integrated NPU delivering 6 TOPS of AI inference throughput. Its key technical characteristics relevant to telemedicine are as follows.
+
+**Processor and AI compute**
+- RK3588: 4×A76 @ 2.4 GHz + 4×A55 @ 1.8 GHz
+- Integrated 6 TOPS NPU supporting INT4/INT8/INT16/FP16 mixed-precision inference
+
+**Memory and storage**
+- 4 GB or 8 GB onboard LPDDR4X
+- 1× eMMC slot supporting up to 32/64 GB
+- 1× mSATA slot for additional storage expansion
+
+**Video codec and display**
+- ARM Mali-G610 MP4 GPU
+- Hardware decode: 8K @ 60 fps H.265/VP9
+- Hardware encode: 8K @ 30 fps H.265/H.264, simultaneous encode and decode supported
+- Display outputs: 1× Mini HDMI, 1× eDP, 1× MIPI — independent multi-display capable
+
+**Networking**
+- 2× Gigabit RJ45 Ethernet
+- Onboard Wi-Fi
+- 1× Mini-PCIe slot for 4G/5G module expansion
+
+**Serial and expansion I/O**
+- 2× RS-232/TTL, 1× RS-485 for short- and long-distance high-speed data transfer
+- 2× USB 3.0, 2× USB 2.0
+- 5× GPIO, 2× CAN, 1× FAN header
+
+**Audio**
+- 1× Headphone output
+- 1× 2×5 W amplifier output (1×4 2.0 mm connector)
+
+**System and form factor**
+- Linux OS with watchdog functionality for stable, maintainable operation
+- Active cooling (fan included) for sustained high-load operation
+- DC 12 V single-supply input
+- Operating temperature: 0 °C to 65 °C
+- Dimensions: 105 × 80 mm
+
+The 8K encode/decode capability is the headline feature for telemedicine. Rather than streaming compressed frames to the CPU for software decoding — which would consume the majority of available CPU bandwidth — the RK3588's dedicated VPU handles the codec pipeline independently. The CPU is then free to manage encryption, protocol handling, AI inference for anomaly alerting, and UI rendering simultaneously.
+
+The dual Gigabit Ethernet plus cellular expansion combination is equally important in clinical settings: primary traffic runs over wired LAN for maximum throughput and determinism, while the 4G/5G module provides seamless failover for mobile clinics or locations where cabling is impractical.
+
+---
+
+## Providing Hardware Support for the "Technology Leap" in Medical Imaging Information Systems
+
+### Medical Imaging Information Systems: Demands and Trends
+
+Standard medical imaging modalities — X-ray CT, magnetic resonance imaging (MRI), and digital X-ray (DR/CR) — capture internal anatomy by applying physical stimuli (ionising radiation, strong magnetic fields, ultrasound) and reconstructing the result as a digital image dataset. These datasets drive clinical decisions, so both resolution and diagnostic software accuracy are safety-critical.
+
+Several converging trends are rapidly escalating hardware requirements:
+
+- **AI-assisted diagnosis** — deep-learning models for lesion detection, segmentation, and classification must run either at the point of care or in near-real-time on edge servers.
+- **3D visualisation** — volume rendering of CT or MRI stacks requires a capable GPU and fast memory bandwidth; a 512×512×1000-slice dataset streamed at cinematic frame rates stresses both.
+- **Rapid and high-resolution imaging** — newer modalities push pixel counts and frame rates upward, inflating the raw data pipeline.
+- **Domestic hardware adoption** — regulatory and procurement trends in multiple markets increasingly favour locally-designed SoCs and boards, making high-integration Rockchip-based solutions attractive alternatives to Intel/AMD-based platforms.
+- **Multi-domain expansion** — MIIS is moving beyond radiology departments into health management programs and medical education, each adding functional requirements (multi-user access, content management, network streaming) that demand richer I/O and higher compute density.
+
+All of these trends point to the same set of hardware requirements: strong AI compute, fast GPU for multimedia, broad I/O, and industrial-grade reliability.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/140547420/04_dade89aff64ee2bd1bbc3f6854be9bf7.jpeg)
+
+### Embedded Motherboard for Medical Imaging (EMB-3582)
+
+The EMB-3582 embedded motherboard targets the MIIS use case with an RK3588 platform designed around fanless thermal management and a richer display and connectivity matrix than the telemedicine board.
+
+**Processor and AI compute**
+- RK3588: 4×A76 @ 2.4 GHz + 4×A55 @ 1.8 GHz
+- Integrated 6 TOPS NPU; INT4/INT8/INT16/FP16 mixed-precision
+- Framework support: TensorFlow, MXNet, PyTorch, Caffe model conversion
+
+**Memory and storage**
+- Onboard 4 GB or 8 GB LPDDR4X; maximum expandable to 16 GB
+- 1× SATA 3.0, 1× eMMC (up to 128 GB), 1× TF card slot (up to 1 TB)
+
+**Video codec and display**
+- ARM Mali-G610 GPU
+- Hardware decode: 8K @ 60 fps; Hardware encode: 8K @ 30 fps
+- 2× HDMI TX, 1× HDMI RX, 1× dual-channel 24-bit LVDS
+- Supports real-time multi-channel ultra-HD video splicing and multi-screen independent display
+
+The HDMI RX input is significant for medical imaging: it allows the board to capture video output from legacy imaging modalities that output HDMI rather than network streams, process or annotate that footage in real time, and redistribute it to multiple displays or a recording system — all without a separate capture card.
+
+**Networking**
+- 2× Gigabit RJ45 Ethernet
+- Onboard Wi-Fi / Bluetooth (optional Wi-Fi 6 / BT 5.0)
+- 1× Mini-PCIe for 4G module expansion
+- 1× M.2 for 5G module
+
+**I/O and expansion**
+- 4× USB 3.0, 4× USB 2.0
+- 4× RS-232, 2× RS-232/485
+- 1× Headphone, 1× MIC-IN, 2× 5 W AMP
+- 2× 100-pin connectors exposing: 1× PCIe x4, 4× PCIe x1, 1× USB Type-C/DP, 2× MIPI TX, 4× MIPI RX, 3× I2C, GPIO, 2× CAN Bus
+- 12× GPIO, 1× CAN, 1× FAN, 1× Touch, 2× LED
+
+**System and form factor**
+- Linux OS with watchdog support
+- Operating temperature: 0 °C to 60 °C; EMI-resistant design
+- Fanless thermal design; DC 12 V supply
+- Dimensions: 146 × 115 mm
+
+The fanless design is especially relevant in medical environments where particulate contamination is a concern and fan noise can interfere with acoustic diagnostic tools. The 100-pin expansion connectors expose the RK3588's MIPI camera interfaces directly, enabling the board to serve as the compute backbone for imaging probes or modality acquisition subsystems without additional bridging hardware.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/140547420/05_e47bb74e7d5cf0e1290a70ef678dba36.jpeg)
+
+### Industrial PC Integration
+
+Beyond bare boards, the same RK3588 platform is available in a fully enclosed industrial PC configuration (such as the BIS-6390ARA-C50), which bundles the board, power supply, enclosure, and thermal management into a deployable unit for environments where system integration effort must be minimised.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/140547420/06_a5f5f4af4c8b1a00a139d22830bb1d3b.jpeg)
+
+---
+
+## Summary
+
+The RK3588's combination of 6 TOPS NPU inference, 8K hardware video encode/decode, Mali-G610 GPU rendering, and a broad mix of wired/wireless/serial interfaces makes it a strong candidate for both telemedicine and medical imaging platforms. The two boards described here — one optimised for networked telemedicine with active cooling and cellular expansion, the other for imaging station duty with fanless operation, HDMI capture, and deep MIPI connectivity — demonstrate how a single SoC can be configured to address markedly different segments of the medical hardware market. Both designs ship with Linux and watchdog support, satisfying the reliability baseline that clinical deployments require.

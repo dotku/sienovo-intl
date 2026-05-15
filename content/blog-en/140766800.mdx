@@ -5,88 +5,118 @@ slug: "140766800"
 tags: ["#FPGADev", "#linux", "#DevOps"]
 source: "https://blog.csdn.net/yeyuangen/article/details/140766800"
 originalTitle: "RDC x86 CPU+FPGA 模块,支持WinCE5.0，WinCE6.0，DOS，Win2000，WinXP， Linux，QNX等操作系统"
+expanded: true
 ---
+## RDC 3306-Based SOM Express Module: A Compact x86+FPGA Platform for Industrial Computing
 
-This is an SOM Express module based on the RDC 3306. The RDC 3306 X86 architecture CPU is a high-performance, highly stable processor. It is a flexible and compact mainboard (measuring 91.8mm × 68.6mm) that can be flexibly integrated into user carrier boards, saving development costs. The module's connectors use a pin-header format, ensuring stability during use.
+When a design requires the familiar x86 instruction set in a ruggedized, space-constrained form factor, the SOM Express module built around the RDC 3306 processor is worth a close look. This article walks through the module's hardware architecture, key peripheral set, FPGA integration, and broad operating-system support — giving engineers enough detail to evaluate it for embedded industrial, automation, or HMI applications.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/140766800/01_60746f65672b4fb3bba68e67cd5470a9.png)
+## The RDC 3306 Processor
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/140766800/02_ed236e147278443cb91059d8f045e46b.png)
+The RDC 3306 is an x86-architecture SoC from RDC Semiconductor designed specifically for embedded and industrial use. Running at 1 GHz, it integrates CPU, memory controller, and peripheral logic into a single chip, reducing board complexity and power draw compared to a traditional chipset-based PC design. The x86 ISA means that mature toolchains, BSPs, and commercial operating systems can target the platform without porting effort — a meaningful advantage in markets where WinCE, DOS, or Linux deployments already exist and need hardware continuity.
 
-Specifications
+The SoC approach also contributes directly to the module's low power budget: the entire module draws no more than 6 W (DC 5 V at ≤ 1.2 A), making passive or modest active cooling practical even in sealed industrial enclosures.
 
-Product Type
+## Form Factor and Carrier-Board Integration
 
-SOM Express Module
+The module measures 91.8 mm × 68.6 mm — roughly the size of a standard credit-card pair side by side. Connectivity to a custom carrier board is handled through pin-header connectors rather than high-density board-to-board sockets, a deliberate choice that improves mechanical retention under vibration and simplifies rework in the field. For OEM hardware developers, this means the carrier board layout is straightforward: route the pin headers, provide the 5 V rail, and the SOM handles the rest of the digital logic.
 
-Chipset
+The compact footprint and simple power requirement make the module a natural drop-in compute engine for panel PCs, thin clients, industrial controllers, and portable test instruments.
 
-SOC
+## Memory and Storage
 
-CPU
+The module ships with 512 MB of onboard DDRII memory. Soldering RAM directly to the SOM rather than using SODIMM slots removes a potential failure point in high-vibration environments and locks in validated timing parameters. Designers should size their application's RAM needs against this fixed 512 MB ceiling before committing to the platform.
 
-RDC 3306 1GHz Processor
+## Display Interfaces
 
-Memory
+Three display output options are available simultaneously or in combination depending on the carrier board implementation:
 
-Onboard 512MB DDRII Memory
+- **LVDS 18-bit** — suited for industrial flat panels and embedded TFT displays; the 18-bit colour depth covers 262,144 colours, typical for cost-effective industrial LCD panels.
+- **TTL** — parallel RGB, useful for legacy or commodity display panels that lack an LVDS receiver.
+- **VGA** — analog output for standard monitors or projectors; supported maximum resolution is 1024 × 768 at standard refresh rates.
 
-Display
+LVDS and VGA both cap at 1024 × 768, which is adequate for HMI dashboards, status displays, and operator terminals that don't demand high-resolution graphics.
 
-LVDS 18-bit, TTL, VGA. LVDS and VGA support a maximum resolution of 1024×768
+## I/O Peripheral Set
 
-USB
+### USB
+Four USB 2.0 host ports cover the most common peripheral attachment scenarios — barcode readers, USB storage, input devices, and USB-to-serial adapters. A dedicated USB Device port allows the module to enumerate as a USB peripheral on a host PC, useful for firmware flashing, data offload, or USB gadget applications.
 
-4×USB 2.0, 1×USB Device Interface
+### Serial Communications
+Three RS-232 ports with programmable baud rates spanning 50 bps to 460.8 Kbps address the long tail of industrial serial protocols. Legacy PLCs, weigh scales, barcode scanners, and GPS receivers that speak NMEA all fall within this range. The wide baud-rate span is a practical necessity in industrial settings where equipment generations span decades.
 
-Serial Ports
+### Ethernet
+A single 10/100 Mbps Ethernet port covers standard factory network connectivity. For applications that need Gigabit or dual-port redundancy, a carrier board can extend the PCI lane (see below) with an additional NIC.
 
-3×RS-232, programmable baud rate from 50 to 460.8K bps
+### Audio
+Standard audio input/output is present for applications such as alarm annunciation, voice prompts, or audio recording in industrial or kiosk contexts.
 
-Audio
+### PCI Expansion
+One PCI lane is exposed to the carrier board. PCI remains the practical expansion bus for a wide range of industrial add-in cards — motion control boards, serial port expanders, frame grabbers, and industrial communication cards (CANbus, PROFIBUS, etc.) — many of which have no PCIe equivalent in the market. This single lane is often sufficient for the one custom function that differentiates the end product.
 
-Standard Audio Input/Output
+## FPGA Integration and Programmable GPIO
 
-Ethernet
+The most distinctive feature of this SOM is its onboard FPGA, which exposes 127 programmable GPIO pins to the carrier board. This is a substantial I/O count that opens several design possibilities not achievable with a pure-CPU module:
 
-1×10/100Mbps Ethernet
+- **Custom parallel interfaces** — direct connection to ADCs, DACs, or sensor arrays with timing requirements too tight for a software-driven GPIO loop.
+- **Protocol bridging** — implementing proprietary or legacy serial/parallel protocols in hardware without an off-the-shelf ASIC.
+- **Real-time control loops** — offloading time-critical PWM generation, encoder counting, or step/direction signalling from the CPU to deterministic FPGA logic.
+- **I/O expansion** — replacing multiple discrete I/O expander chips with a single configurable logic block.
 
-Expansion
+The FPGA pin budget of 127 is generous enough to implement small but complete custom interfaces alongside a handful of general-purpose control lines.
 
-1-lane PCI
+## System Reliability Features
 
-Power Supply
+### Watchdog Timer
+A hardware watchdog with 255 programmable levels (1–255 second timeout) provides automatic system recovery from software hangs. In unattended industrial installations, a hardware watchdog is a baseline requirement; the 255-level granularity allows fine-tuning the timeout window to match application startup times and keep false-reset rates low.
 
-DC 5V ≤ 1.2A
+### AMI BIOS
+The AMI BIOS is a well-understood firmware baseline that supports standard BIOS setup menus, boot device selection, and hardware initialisation sequences compatible with all the supported operating systems. Field engineers familiar with PC BIOS workflows can configure the platform without specialised tools.
 
-Watchdog
+### Extended Temperature Range
+Both operating and storage temperatures span -40 °C to +85 °C — the full industrial temperature grade. This range covers outdoor enclosures, unheated machinery cabinets, and cold-storage environments without requiring supplemental heating or cooling hardware.
 
-255 levels, 1 to 255 seconds reset/reboot
+## Operating System Support
 
-BIOS
+The module's x86 heritage and AMI BIOS translate directly into a wide OS compatibility matrix:
 
-AMI
+| OS | Typical Use Case |
+|---|---|
+| MS-DOS | Legacy industrial applications, CNC machine frontends |
+| Windows 2000 | Older SCADA systems, HMI software requiring Win2K drivers |
+| Windows XP | Established HMI and kiosk deployments |
+| Windows CE 5.0 | Compact embedded GUI applications |
+| Windows CE 6.0 | CE 6 kernel with improved memory architecture |
+| Linux | Open-source RTOS alternatives, custom BSP development |
+| QNX | Hard real-time POSIX applications requiring deterministic scheduling |
 
-GPIO
+The breadth of this list is significant in industrial markets where the OS is often dictated by the application software or by a machine OEM's existing software stack, not by the hardware designer. Being able to supply a single hardware module that satisfies multiple OS requirements across a product line simplifies procurement and spare-parts management.
 
-16-bit Input/Output
+## Full Specification Summary
 
-Dimensions
+| Parameter | Value |
+|---|---|
+| Product Type | SOM Express Module |
+| CPU | RDC 3306 x86, 1 GHz |
+| Chipset | SoC (integrated) |
+| Memory | 512 MB onboard DDRII |
+| Display | LVDS 18-bit, TTL, VGA (max 1024×768) |
+| USB | 4× USB 2.0 Host + 1× USB Device |
+| Serial | 3× RS-232, 50–460.8 Kbps |
+| Ethernet | 1× 10/100 Mbps |
+| Audio | Standard in/out |
+| Expansion | 1× PCI |
+| GPIO | 16-bit CPU GPIO + 127-pin FPGA GPIO |
+| BIOS | AMI |
+| Watchdog | 255 levels, 1–255 s |
+| Power | DC 5 V, ≤ 1.2 A |
+| Dimensions | 91.8 mm × 68.6 mm |
+| Operating Temp | -40 °C to +85 °C |
+| Storage Temp | -40 °C to +85 °C, 10–95% RH non-condensing |
+| OS Support | DOS, Win2000, WinXP, WinCE 5.0/6.0, Linux, QNX |
 
-91.8mm × 68.6mm
+## Design Considerations
 
-FPGA
+Engineers evaluating this module should keep a few practical points in mind. The fixed 512 MB RAM is sufficient for most HMI and control applications but may constrain data-intensive workloads like local video recording or large in-memory databases. The FPGA GPIO count is generous, but carrier board layout must account for signal integrity at the pin-header interface — keeping FPGA signal traces short and away from noisy power planes is advisable. Finally, the 1× PCI lane is the primary path for adding specialised I/O; plan the carrier board around a single half-length PCI card slot if expansion is likely.
 
-FPGA supports 127 programmable GPIO pins
-
-Operating Temperature
-
--40~85℃
-
-Storage Temperature
-
--40~85℃, 10%~95% RH, non-condensing
-
-OS
-
-Supports WinCE 5.0, WinCE 6.0, DOS, Win2000, WinXP, Linux, QNX, and other operating systems
+Overall, the RDC 3306 SOM Express module occupies a practical niche: x86 compatibility, broad OS support, FPGA-augmented I/O, true industrial temperature ratings, and a compact footprint that fits custom carrier boards — all within a straightforward 5 V power budget.

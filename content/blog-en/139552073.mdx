@@ -5,30 +5,60 @@ slug: "139552073"
 tags: ["#DataAcquisition"]
 source: "https://blog.csdn.net/yeyuangen/article/details/139552073"
 originalTitle: "【NI国产替代】产线综测仪：锂电池保护板测试仪，支持快速定制"
+expanded: true
 ---
+## SG2336 Lithium Battery Protection Board Tester: High-Precision Production-Line Testing with Up to 24 Parallel Channels
 
-• 0.01% Accuracy
+As lithium battery packs become ubiquitous in everything from power tools to electric vehicles, the protection board (BMS protection IC + passive components) sitting between the cells and the load is a safety-critical component that must be validated before every unit ships. Historically, production-line testers for these boards came from vendors like National Instruments, whose platform costs and import lead times made domestic Chinese manufacturers look for alternatives. The SG2336 from Sienovo is one such domestically-developed alternative: a compact, high-integration instrument designed specifically for characterising and stress-testing lithium battery protection boards at both the R&D bench and on the production line.
 
-• Supports conventional tests such as DC voltage, current, nA-level standby current, and resistance.
+## What the SG2336 Tests
 
-• Supports protection tests such as overvoltage, undervoltage, overshoot, overdischarge, overtemperature, and short circuit.
+A lithium battery protection board has two broad categories of behaviour that must be verified:
 
-• Programmable communication bus levels, compatible with various types.
+**Basic electrical characteristics** — the board must accurately sense and report the cell stack voltage, load current, and quiescent (standby) current under normal operating conditions. Standby current on a good protection board can be in the tens of nanoamperes; a leaky circuit will drain the pack during storage. The SG2336 covers:
 
-• Supports SWD or IIC firmware programming.
+- DC voltage measurement
+- DC current measurement
+- nA-level standby current measurement
+- Resistance measurement
 
-• Fast test speed, supports up to 24 channels of parallel testing.
+The 0.01% accuracy class ensures that nA-level standby current and milliohm-range resistance readings are resolved with enough margin to catch marginal parts before they reach the field.
 
-• Powerful software platform, user-friendly human-machine interface, connectable to MES systems for data upload, can be used as a test device for R&D or production lines.
+**Protection threshold characteristics** — the protection board is supposed to cut the circuit when the cell stack goes outside safe operating limits. Every protection threshold must be exercised and confirmed to trip within spec:
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/139552073/01_d5f59c3814ed8f23ecfe054bb714c7a3.png)
+- Overvoltage protection (OVP)
+- Undervoltage protection (UVP)
+- Overcharge current / overshoot protection
+- Overdischarge current protection
+- Overtemperature protection (OTP)
+- Short-circuit protection (SCP)
 
-The SG2336 Lithium Battery Protection Board Tester is a high-precision measurement instrument primarily used for testing the basic and protection characteristics of lithium battery protection boards, featuring high accuracy, high reliability, high integration, and compact size.
+Testing these thresholds accurately requires the tester to drive controlled fault conditions — apply a voltage ramp past the OVP trip point, sink a rising current past the overcurrent trip point, and so on — while simultaneously measuring the exact voltage or current at which the protection board responds. The SG2336 is built to do this autonomously without operator intervention.
 
-##### **Interface Diagram**
+## Architecture Highlights
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/139552073/02_d61e8ee534aaa6e071ddf70db04fd83a.png)
+### Parallel Multi-Channel Testing
 
-##### **Test Block Diagram**
+The most production-line-relevant feature is support for up to 24 channels of simultaneous parallel testing. Rather than testing one board, moving it out, loading the next, and repeating, a fixture can hold a full panel or tray of boards and the SG2336 tests all of them concurrently. This dramatically increases throughput on high-volume lines where protection boards are manufactured in large panel arrays.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/139552073/03_e6b248c118a3d333926733b4b0a7bd99.png)
+### Programmable Communication Bus Levels
+
+Modern protection ICs communicate over digital buses — most commonly I²C, but also proprietary single-wire protocols and SMBus variants. The SG2336's communication bus levels are software-programmable, allowing the same hardware to interface with protection ICs from different vendors without re-cabling or swapping interface boards.
+
+### Integrated Firmware Programming
+
+Beyond electrical test, production flow often requires burning a calibration or configuration firmware image into the protection IC before sealing the pack. The SG2336 integrates both **SWD** (Serial Wire Debug, used by ARM Cortex-M based protection ICs) and **IIC** (I²C) firmware programming, eliminating the need for a separate programmer station in the production line layout.
+
+## Software Platform and MES Integration
+
+The tester ships with a software platform described as having a powerful feature set and a user-friendly human-machine interface. For production use, a key capability is the ability to upload test results directly to a **MES (Manufacturing Execution System)**. This is essential for traceability: every tested board gets a pass/fail record tied to its serial number, and that record flows into the factory's quality database in real time. The same software platform can be used in the R&D lab to characterise new protection board designs before they go to production, making the SG2336 a single tool that serves both engineering and manufacturing.
+
+## Interface and Signal Routing
+
+The interface diagram (shown above) illustrates how the SG2336 connects to a device under test. The test block diagram shows the internal signal path: source instruments (voltage source, current source), measurement instruments (voltmeter, ammeter, nano-ammeter, ohmmeter), the digital communication interface, and the firmware programming interface are all integrated into a single chassis. This high integration is what allows the compact footprint — a key constraint on production lines where bench space is shared across many test stations.
+
+## Positioning as a Domestic NI Alternative
+
+National Instruments (now NI, part of Emerson) has long been the reference platform for automated test in China's electronics manufacturing sector. The "domestic alternative" framing in the product title reflects a broader industry trend: with PXI-based NI systems carrying significant cost and import complexity, instrument vendors like Sienovo are building purpose-built alternatives that match the measurement accuracy and software capability of a custom NI system for a specific vertical — in this case, lithium battery protection board test — at a fraction of the system integration effort.
+
+The SG2336's 0.01% accuracy, 24-channel parallelism, integrated firmware programming, and MES connectivity represent a purpose-built answer to exactly what a protection board production line needs, without requiring the customer to assemble a general-purpose modular system from scratch.
