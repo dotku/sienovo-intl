@@ -5,19 +5,52 @@ slug: "138613790"
 tags: ["#FPGADev"]
 source: "https://blog.csdn.net/yeyuangen/article/details/138613790"
 originalTitle: "FPGA+海思ARM方案，可同时接收HDMI/VGA 两种信号，远程控制"
+expanded: true
 ---
+Dual-channel video capture — receiving HDMI and VGA signals simultaneously on the same board — is a recurring challenge in industrial remote-monitoring and control systems. This post walks through the architecture of an FPGA + HiSilicon ARM solution designed to do exactly that, while also compressing, wirelessly transmitting, and optionally stitching both channels into a single output stream for remote-control applications.
 
-FPGA + HiSilicon ARM solution, capable of simultaneously receiving both HDMI and VGA signals, and outputting either signal or a stitched image via configuration.
+## Why FPGA + ARM for Multi-Channel Video Capture?
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138613790/01_b62d8bf26d2218ddd2ba5137170a29f7.png)
+HDMI and VGA are fundamentally different signal types. HDMI carries a serialised TMDS bitstream with embedded clock and audio, while VGA is an analogue RGB signal with separate sync lines that must be digitised first. Handling both in real time requires parallel front-end logic that can decode one signal while simultaneously sampling and digitising the other — a task that maps naturally onto an FPGA's concurrent fabric.
 
-Customer Application: Wireless Remote Control
+Once the raw pixel data is captured and normalised by the FPGA, a general-purpose application processor takes over for compression, encoding, network transmission, and configuration management. HiSilicon's ARM-based SoCs (commonly used in IP camera and video-codec platforms) are a well-established fit for this role: they include hardware H.264/H.265 encode engines, multiple network interfaces, and rich peripheral buses, and they run a full Linux stack that simplifies application development.
 
-Key Features:
+The FPGA in this solution therefore acts as the real-time signal front-end and pixel pipeline, while the HiSilicon ARM SoC acts as the intelligent back-end for compression and connectivity.
 
-1.  Supports any resolution format below 2K.
-2.  Supports H.264 compressed images.
-3.  Supports Wi-Fi/4G wireless transmission.
-4.  Supports adaptive input image resolution.
-5.  Supports stitching HDMI/VGA dual-channel signals of any resolution into a specified resolution image.
-6.  Customizable features, expandable applications.
+## Signal Reception and Adaptive Resolution Handling
+
+One of the practical difficulties in a dual-channel capture system is that the two input sources can arrive at completely different resolutions and refresh rates — a 1920×1080 HDMI source and an 1024×768 VGA source, for example. The FPGA must detect each input's timing parameters independently, lock its PLLs or MMCM blocks to the incoming pixel clocks, and produce a normalised pixel stream for each channel without dropping frames during source hot-plug or resolution changes.
+
+This solution supports adaptive input image resolution — meaning the FPGA continuously monitors the sync timing of each channel and reconfigures its capture path automatically when the source changes resolution. This avoids the need for the operator to manually reconfigure the system when a connected device switches modes, which is important in remote-control deployments where the operator may not have physical access to the source equipment.
+
+The supported range covers any resolution below 2K (i.e., up to 2048×1080 or equivalent pixel-budget formats), which encompasses the full range of standard VGA, XGA, SXGA, 720p, 1080p, and similar modes used by industrial PCs, HMIs, and embedded displays.
+
+## Image Stitching
+
+Beyond simply outputting one channel or the other, the system can stitch the HDMI and VGA channels into a single composite image at a specified output resolution. The FPGA handles this in the pixel domain: it reads pixel data from both capture buffers and writes them side-by-side (or in a configured layout) into a single output frame buffer at the target resolution.
+
+Because the two input channels may have different resolutions, the stitching path must include per-channel scaling logic so that both sources are resized to fit their allocated region in the output canvas before compositing. The output resolution is operator-configurable, so the result can be sized to match the transmission bandwidth budget or the display on the remote-control terminal.
+
+This feature is particularly useful when an operator needs to monitor two independent video feeds simultaneously — for example, a camera feed over HDMI alongside a VGA output from an industrial PC — without running two separate video streams to the control room.
+
+## H.264 Compression and Wireless Transmission
+
+Raw 1080p video at 60 fps occupies roughly 3 Gbps of bandwidth, which is far beyond the capacity of any practical wireless link. The HiSilicon SoC's hardware H.264 encoder compresses the captured (or stitched) frame buffer down to a manageable bitrate suitable for transmission over Wi-Fi or 4G.
+
+H.264 (AVC) remains the dominant codec for this class of application because decoder support is universal — virtually every platform capable of running a remote-control client (Windows, Linux, Android, iOS) has hardware-accelerated H.264 decode. The compressed stream is packetised and sent over the wireless interface to the remote operator's terminal, where it can be decoded and displayed in near real time.
+
+Supporting both Wi-Fi and 4G gives deployment flexibility: Wi-Fi is appropriate for factory-floor or campus environments where an access point can be positioned near the controlled equipment, while 4G covers outdoor, mobile, or geographically distributed installations where a fixed network is unavailable.
+
+## Customer Application: Wireless Remote Control
+
+The primary application demonstrated for this platform is wireless remote control — a scenario where an operator at a remote terminal needs a live view of what is being displayed on equipment they cannot physically reach. Typical use cases include:
+
+- **Remote equipment commissioning**: An engineer views the HMI or PC screen of a machine being commissioned in a remote facility, without needing a KVM extender or on-site technician.
+- **Unmanned vehicle or drone monitoring**: Onboard HDMI/VGA video sources (cameras, avionics displays) are captured, compressed, and streamed back to a ground station over 4G.
+- **Industrial surveillance and process monitoring**: Dual-channel stitching lets a single operator monitor two process displays simultaneously on one screen.
+
+## Customisation and Extensibility
+
+The platform is positioned as a customisable base rather than a fixed product. The FPGA fabric can be modified to add input pre-processing (deinterlacing, colour-space conversion, overlay generation), additional capture channels, or proprietary encoding pipelines. The ARM Linux environment supports standard application development, so custom control protocols, encryption layers, or integration with existing SCADA/HMI software stacks can be added at the application layer.
+
+This combination of a reconfigurable FPGA front-end and a Linux-capable ARM back-end gives integrators a practical path to adapting the platform for specific industrial or defence applications without redesigning the core video-capture and wireless-transmission infrastructure.

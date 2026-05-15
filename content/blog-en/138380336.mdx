@@ -5,86 +5,88 @@ slug: "138380336"
 tags: ["#Phytium"]
 source: "https://blog.csdn.net/yeyuangen/article/details/138380336"
 originalTitle: "飞腾FT2000+64核ATX主板详细介绍"
+expanded: true
 ---
+The Phytium FT2000+ is one of China's most capable domestically developed server-class processors, and the ATX motherboard built around it represents a serious platform for organizations that need high core-count compute while staying within China's autonomous and controllable (自主可控) technology ecosystem. This post breaks down the full specification of this board and explains what each feature means for system integrators and data-center operators evaluating it.
 
----
-Title: Detailed Introduction to the Phytium FT2000+ 64-Core ATX Motherboard
+## Processor: Phytium FT-2000+
 
-Content:
-### Detailed Introduction to the Phytium FT2000+ 64-Core ATX Motherboard
+The FT-2000+ is a 64-core ARM-architecture processor developed by Phytium Technology (天津飞腾信息技术有限公司). Its cores implement the ARMv8-A ISA, making it binary-compatible with the broad Linux ARM64 software ecosystem. With 64 physical cores on a single socket, this chip targets workloads that traditionally required dual-socket x86 configurations — think HPC simulation, parallel database query engines, dense virtualization, and cloud infrastructure.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138380336/01_d750589cc1b83cfae9dc9fb687d3cfde.jpeg)
+Placing the FT-2000+ on a standard ATX form factor (330 mm × 305 mm) is a deliberate design choice: it lets the board drop into standard ATX tower and rack-mount chassis, lowering integration cost compared to proprietary server sled designs.
 
-**Item**
+## Memory Subsystem: Up to 1 TB via 8 R-DIMM Slots
 
-**Main Technical Specifications**
+The board provides eight DDR4 Registered DIMM (R-DIMM) slots. R-DIMMs use a register (buffer) chip on the DIMM itself to re-drive command and address signals, which reduces electrical load on the memory controller and enables larger per-slot capacities and longer trace lengths. With eight slots and 128 GB R-DIMMs — which are standard in the DDR4 generation — the platform can reach 1 TB of system RAM, sufficient for in-memory database workloads or large-scale scientific computing jobs that cannot tolerate frequent DRAM-to-storage spilling.
 
-CPU
+## Storage: Onboard SATA 3.0 with Hardware RAID
 
-Onboard Phytium FT-2000+, 64-core
+Four SATA 3.0 (6 Gb/s) ports are provided alongside an onboard RAID controller supporting RAID 0, 1, and 10.
 
-Memory
+- **RAID 0** stripes data across drives for maximum throughput with no redundancy — appropriate for scratch or temporary storage.
+- **RAID 1** mirrors two drives; any single drive failure is tolerated with no data loss.
+- **RAID 10** combines striping and mirroring (minimum four drives) for both performance and fault tolerance.
 
-Supports 8\*DDR4 R-DIMM slots, up to 1TB memory capacity
+For higher-throughput NVMe storage, the board includes an M.2 2280 slot, which accepts PCIe-based M.2 SSDs. Two Mini SAS 3.0 (SAS-3, 12 Gb/s) connectors extend the storage fabric to external SAS/SATA enclosures — useful in storage-server or NAS configurations where a large number of spinning disks or SAS SSDs must be attached.
 
-RAID Functionality
+## PCIe Expansion: Six Full-Size Slots Plus Mini-PCIe
 
-Onboard SATA 3.0 controller, supports RAID 0, 1, and 10
+The expansion bus is a standout feature of this design:
 
-VGA Display
+| Slot Type | Count | Lane Width | Typical Use |
+|---|---|---|---|
+| PCIe 3.0 | 2 | ×16 | GPU, FPGA accelerator, high-speed NIC |
+| PCIe 3.0 | 4 | ×8 | 10/25 GbE NIC, HBA, NVMe add-in card |
+| Mini-PCIe | 1 | — | Wireless, GNSS, or LTE module |
 
-BMC-integrated display controller
+Six full-size PCIe slots on a single-socket ARM board is unusually generous. In a server context, the ×16 slots can host compute accelerators (inference cards, FPGAs) without lane starvation, while the four ×8 slots cover networking and storage HBA needs. The Mini-PCIe slot follows the legacy server tradition of hosting a management co-processor card or a low-power wireless module.
 
-Network Controller
+## Networking: Quad Gigabit Ethernet
 
-Onboard 4 Gigabit Ethernet ports
+Four onboard 1000BASE-T (GbE) ports are exposed at the rear panel — more than enough for link aggregation (LACP/802.3ad bonding), dedicated storage traffic, and out-of-band management, all on separate physical interfaces. Organizations that need 10 GbE or higher can add a NIC in one of the PCIe ×8 slots.
 
-External and Onboard Interfaces
+## Rear Panel I/O Summary
 
-4 rear USB 3.0 ports
+| Interface | Quantity | Notes |
+|---|---|---|
+| USB 3.0 Type-A | 4 | Host ports for peripherals or boot media |
+| Gigabit Ethernet | 4 | Data-plane network |
+| BMC management port | 1 | Dedicated OOB management network |
+| COM (RS-232) | 1 | Serial console access |
+| VGA | 1 | Local KVM display output |
 
-4 rear Gigabit Ethernet ports
+The dedicated BMC management port is kept physically separate from the data-plane Ethernet ports, which is standard server practice — it ensures that even if the OS crashes or network bonding misbehaves, the administrator can still reach the BMC on a different switch port.
 
-1 rear BMC management network port
+## BMC: Remote Management Without a KVM Cart
 
-1 rear COM port
+The onboard Baseboard Management Controller (BMC) is arguably the most operationally important feature for data-center deployments. It provides:
 
-1 rear VGA port
+- **KVM over IP** — full keyboard/video/mouse redirection through a browser or IPMI-compliant client, so a technician can interact with BIOS setup, boot menus, or a crashed OS remotely.
+- **Remote power control** — power on, power off, and hard reset without physical access to the chassis.
+- **System status monitoring** — fan speeds, CPU and board temperatures, power supply voltages, and hardware health events surfaced through IPMI/Redfish interfaces.
 
-2 onboard PCIe 3.0 x16 slots
+The VGA display output on the rear panel is driven by the BMC's integrated display controller, not a discrete GPU. This is standard for server boards: the BMC renders the BIOS UI and pre-OS console, while GPU compute tasks are handled by PCIe add-in cards.
 
-4 onboard PCIe 3.0 x8 slots
+## Software Ecosystem: Domestic OS First
 
-1 onboard Mini-PCIe slot
+The board is validated for China's two leading domestic Linux distributions:
 
-2 onboard Mini SAS 3.0 connectors
+- **Kylin OS (银河麒麟)** — developed by Kylin Software, widely deployed in Chinese government and defense sectors.
+- **UOS (统信UOS)** — developed by Uniontech, targeting enterprise desktops and servers.
 
-1 onboard M.2 2280 slot
+Both distributions ship ARM64 kernels and package repositories compatible with the FT-2000+ instruction set. From a software perspective, any workload that runs on standard AArch64 Linux — containerized services, Java middleware, Python data pipelines, PostgreSQL, Nginx — will run on this platform without recompilation.
 
-4 onboard SATA 3.0 interfaces
+The BIOS is described as a domestically developed, secure, and controllable firmware, meaning it does not rely on AMI, Phoenix, or other foreign firmware vendors. This satisfies the 自主可控 (autonomous and controllable) procurement requirements common in Chinese public-sector and critical-infrastructure projects.
 
-1 onboard USB 3.0 pin header
+## Environmental Ratings
 
-BMC Management Features
+| Parameter | Operating | Non-operating |
+|---|---|---|
+| Temperature | 0°C to 40°C | −20°C to 70°C |
+| Humidity | 10%–90% | 5%–95% (non-condensing) |
 
-Onboard BMC management module, 1 BMC management network port, supports KVM over IP, remote power on/off, system status monitoring, and more
+The 0–40°C operating range covers standard data-center and office environments. The non-operating range of −20°C to 70°C ensures the board survives transit and storage in harsh climates without thermal shock damage to solder joints or capacitors.
 
-Firmware
+## Summary
 
-Domestically developed, secure, and controllable BIOS
-
-Operating System
-
-Supports domestic server operating systems such as Kylin OS and UOS
-
-Physical Dimensions
-
-330mm x 305mm
-
-Temperature
-
-Operating: 0°C to 40°C; Non-operating: -20°C to 70°C
-
-Humidity
-
-Operating: 10% to 90%; Non-operating: 5% to 95% (non-condensing)
+The Phytium FT2000+ ATX motherboard is a capable, well-specified single-socket server platform oriented around China's domestic technology stack. Its 64-core ARM processor, 1 TB memory ceiling, six PCIe expansion slots, hardware RAID, full-featured BMC, and validated support for Kylin and UOS make it a credible alternative to x86-based servers for organizations that must meet 自主可控 requirements. System integrators evaluating it should verify DDR4 R-DIMM interoperability with their chosen DIMM vendors and confirm PCIe device driver availability in their target OS distribution before committing to a production deployment.

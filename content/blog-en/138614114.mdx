@@ -5,24 +5,51 @@ slug: "138614114"
 tags: ["#FPGADev"]
 source: "https://blog.csdn.net/yeyuangen/article/details/138614114"
 originalTitle: "FPGA+MCU+SDRAM方案，用于服装厂生产过程中以及设计过程中制作样板，剪裁布料"
+expanded: true
 ---
+In garment manufacturing, two of the most precision-demanding tasks are pattern making and fabric cutting. A misaligned plotter head or an uncalibrated cutter can waste meters of expensive fabric in seconds. This article outlines an FPGA+MCU+SDRAM hardware solution purpose-built for these workflows, covering the architectural choices behind the design and why each feature matters on the factory floor.
 
-FPGA+MCU+SDRAM Solution for Pattern Making and Fabric Cutting in Garment Factory Production and Design Processes
+## Why FPGA+MCU+SDRAM?
 
-Client Application: Garment Factory Manufacturing
+Garment plotters and cutters must coordinate real-time motion control, print-head firing, host communication, and user interface simultaneously — workloads that a microcontroller alone struggles to handle deterministically. The architecture here splits responsibilities: the FPGA handles time-critical tasks like motor pulse generation and print-head timing where microsecond accuracy matters, while the MCU manages higher-level logic such as protocol parsing, LCD rendering, and host communication. SDRAM provides the large frame buffer needed to hold decompressed pattern data before it is streamed to the output device.
 
-Key Features:
+## Motion Control: Three-Axis Coordination
 
-1. Supports stepper motors and DC motors
-2. Supports simultaneous 3-axis motor coordinated operation
-3. Supports Ethernet/USB connectivity control
-4. Supports LCD screen status display
-5. Supports multiple HP11/HP45 print heads
-6. Supports electromagnetic cutters and stepper motor cutters
-7. Supports PC host software for configuration and print data
-8. Supports material jam and collision detection and protection
-9. Supports protocol data decompression
+The solution supports both **stepper motors** and **DC motors**, giving integrators flexibility depending on the cost and precision requirements of the target machine. More significantly, it supports **simultaneous three-axis coordinated operation** — typically X (carriage), Y (media feed), and Z (pen lift or cutter pressure). True simultaneous coordination means the FPGA generates synchronized pulse trains for all axes, preventing the stepped, jerky movement that results from naive sequential axis updates. For pattern plotting, this translates directly into smooth diagonal lines and clean curves on the output paper or fabric.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138614114/01_9ebe8051877429f02dde98a8772ea67a.png)
+## Connectivity: Ethernet and USB
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138614114/02_518ee783d7d9cb6acf6236df3da075ac.png)
+Production environments require reliable, high-throughput data transfer. The system supports both **Ethernet and USB online control**, allowing it to integrate with existing factory network infrastructure or connect directly to a design workstation via USB. Ethernet connectivity is especially valuable in larger factories where the plotter or cutter sits on the shop floor away from the design station, and where print jobs may be queued from a central server.
+
+## Print Head Support: HP11 and HP45
+
+Supporting **HP11 and HP45 ink-jet print heads** is a deliberate choice. These are industry-standard thermal inkjet cartridges that are widely available, inexpensive to replace, and well-understood in the industrial plotter space. The FPGA drives the print-head firing signals directly, precisely timing each nozzle pulse to match the carriage velocity — critical for accurate ink placement at plotting speeds.
+
+## Cutting Mechanisms
+
+The design accommodates two distinct cutter types:
+
+- **Electromagnetic cutters** — fast, suitable for straight or lightly curved cuts driven by a solenoid.
+- **Stepper motor cutters** — more precise, able to follow complex curves by coordinating cutter angle with XY motion.
+
+Having both options in the same platform means the same controller board can be adapted for different machine configurations without a full redesign.
+
+## Safety: Jam and Collision Detection
+
+Fabric and paper plotters are prone to two failure modes: **material jams** (media stops feeding while the carriage continues moving) and **carriage wall collisions** (the axis overshoots its travel limit). The solution implements active monitoring and protection for both. On a jam event, motion is halted immediately to prevent head crashes or torn material. On a wall collision, the firmware cuts motor drive before mechanical damage occurs. These protections reduce machine downtime and protect expensive print heads.
+
+## Data Handling: Protocol Decompression
+
+Pattern data sent from PC host software is often compressed to reduce transfer time. The system includes **on-device protocol data decompression**, meaning the MCU or FPGA logic unpacks the incoming data stream before rendering it to the SDRAM frame buffer. This keeps the host-side workflow simple — the PC sends a compact job file — while the embedded system handles the compute work of expansion.
+
+## PC Host Software Integration
+
+A Windows-based PC host application handles **job configuration and print data preparation**. Operators compose or import patterns on the PC, configure cut/plot parameters, and push jobs to the device over Ethernet or USB. The **LCD screen** on the device displays real-time status — current job progress, axis positions, error states — so operators on the floor do not need to return to the workstation to check machine status.
+
+## Application Context
+
+![Garment plotter system overview](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138614114/01_9ebe8051877429f02dde98a8772ea67a.png)
+
+![Controller hardware detail](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138614114/02_518ee783d7d9cb6acf6236df3da075ac.png)
+
+This solution is targeted at **garment factory manufacturing** environments where pattern-making plotters and fabric-cutting machines run in production shifts. The combination of FPGA determinism for motion and print timing, MCU flexibility for protocol and UI logic, and SDRAM capacity for pattern buffering gives the design the headroom to handle large, complex garment patterns without sacrificing real-time performance.

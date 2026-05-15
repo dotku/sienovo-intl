@@ -5,20 +5,53 @@ slug: "138607817"
 tags: ["#FPGADev"]
 source: "https://blog.csdn.net/yeyuangen/article/details/138607817"
 originalTitle: "FPGA OSD 方案，应用于XBOX游戏机收费等领域"
+expanded: true
 ---
+FPGA-based On-Screen Display (OSD) overlays are a well-established technique in video processing systems, and this solution brings that capability to the HDMI domain with zero-latency pass-through — making it practical for real-time commercial applications such as pay-per-use gaming kiosks.
 
-FPGA solution: HDMI IN receives the original HDMI signal, HDMI OUT outputs the HDMI signal with overlaid characters/images.
+## What the System Does
 
-Customer Application: XBOX game console monetization
+The core architecture is straightforward: an FPGA sits in-line between a video source and a display. HDMI IN captures the raw HDMI signal from the source device (a game console, media player, set-top box, or PC), while HDMI OUT delivers the same video stream with characters or images composited on top. The FPGA handles both the signal capture and the overlay rendering in hardware, which is why the system can achieve zero added latency — the overlay pixels are written into the output stream on the fly, not after a frame buffer round-trip.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138607817/01_27a678c71236a03bf26852007ceb149e.png)
+This is a fundamentally different approach from software-based overlays (e.g., OBS Studio or a capture card feeding a PC), which introduce at least one frame of pipeline delay and depend on a host CPU. An FPGA implementation processes every pixel in real time, making it suitable for latency-sensitive use cases.
 
-Key Features:
+## Customer Application: XBOX Console Monetization
 
-1. Supports multi-resolution format display
-2. Supports OSD overlaying multiple layers
-3. Supports flexible font size configuration
-4. Supports flexible font format configuration
-5. Zero latency, instant output upon input
-6. Supports independent audio signal output
-7. Customizable functions, extensible applications
+One concrete deployment for this solution is pay-per-use XBOX gaming stations — the kind found in internet cafés, arcades, or gaming lounges. In these environments the operator needs to display a countdown timer, session credits, or promotional messaging directly on the screen without modifying the console itself or breaking HDMI HDCP in any way that would disrupt normal gameplay. The FPGA OSD passthrough inserts a non-intrusive overlay on top of whatever the console is rendering, giving the operator full control of the on-screen UI while the gaming experience remains unaffected underneath.
+
+## Key Technical Features
+
+**Multi-Resolution Support**
+
+The system handles multiple HDMI resolution formats. This is important in a public gaming environment where different titles or console settings may output 720p, 1080p, or 4K signals. The FPGA logic auto-adapts to the incoming pixel clock and blanking intervals rather than requiring a fixed resolution.
+
+**Multi-Layer OSD Compositing**
+
+Multiple independent OSD layers can be overlaid simultaneously. In practice this means a timer countdown, a logo watermark, and an alert message can each occupy their own layer with independent positioning, transparency, and update rates. Layer-based compositing is a standard technique in broadcast and embedded video IP cores; the FPGA implements it in dedicated hardware rather than relying on a 2D GPU.
+
+**Flexible Font Size and Format Configuration**
+
+Font size and format are configurable — operators can match the overlay typography to their branding or readability requirements. This typically involves storing glyph bitmaps in on-chip BRAM or external flash and indexing them at render time. Configurable font format support implies the system can handle proportional or fixed-width glyphs and potentially different character sets.
+
+**Zero Latency**
+
+The design's headline claim is zero latency: input is output. In FPGA video processing this means the overlay logic is pipelined to complete within the same horizontal line or frame it receives, so no buffering delay is accumulated. For a gaming console application this is critical — any perceptible display lag would degrade the player's experience even if the game itself is running at full speed.
+
+**Independent Audio Pass-Through**
+
+Audio is handled independently from the video path and can be extracted and output on its own. This allows the operator to route audio to external speakers or a headphone amplifier while the video goes to the display, a common requirement in arcade-style setups.
+
+**Customizable and Extensible**
+
+The FPGA fabric itself is programmable, so the OSD IP can be extended or modified for new use cases — dynamic QR codes for payment, real-time score overlays, multi-language text rendering, or integration with an external control MCU over UART/SPI. This extensibility is a key advantage of FPGA over a fixed-function OSD chip.
+
+## Where Else This Architecture Applies
+
+Beyond gaming kiosks, the same HDMI-in / OSD / HDMI-out pipeline is used in:
+
+- **Digital signage** — overlaying dynamic content (prices, schedules) on a static background video source
+- **Medical imaging** — adding patient data or calibration markers to a video feed without modifying the imaging device
+- **Broadcast and production** — inserting lower-thirds, tally indicators, or watermarks in a live signal chain
+- **Industrial HMI** — overlaying alert states or process data on a camera feed displayed at a workstation
+
+The FPGA approach is attractive in all of these because it introduces no host compute dependency, survives source resolution changes gracefully, and keeps the signal path deterministic — properties that are harder to guarantee with a software-based solution running on an embedded Linux SoC.

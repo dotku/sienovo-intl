@@ -5,21 +5,72 @@ slug: "138613888"
 tags: ["#AR", "#VR"]
 source: "https://blog.csdn.net/yeyuangen/article/details/138613888"
 originalTitle: "FPGA+炬力ARM实现VR视频播放器方案，3D眼镜显示"
+expanded: true
+---
+## FPGA + Actions ARM Solution for VR Video Player with 3D Glasses Display
+
+Head-mounted VR video players present a deceptively simple display problem: one video stream must reach two eyes simultaneously, with pixel-perfect synchronization, low latency, and no tearing — all within the tight power and size budget of a wearable device. This post walks through how Sienovo's engineering team solved that challenge using a combined FPGA + Actions (炬力) ARM platform to drive a dual-LCD VR video player capable of real-time 2D/3D switching.
+
 ---
 
-3D Glasses Display:
+## The Core Challenge: One Source, Two Displays
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138613888/01_0e591b2d946cf2f1621c6610060a061c.png)
+A conventional single-SoC design typically drives one display pipeline. Extending that to two independent LCD panels — each forming one eye of a stereoscopic pair — introduces synchronization demands that software alone cannot reliably meet. Frame timing skew between left-eye and right-eye panels of even a few milliseconds is perceptible as a "ghosting" artifact and contributes directly to motion sickness.
 
-FPGA + Actions ARM solution, using a single video source signal to simultaneously drive two LCD screens for 3D immersive playback.
+The solution here pairs an **Actions ARM application processor** (handling media decode, UI, and file system) with an **FPGA** that takes ownership of the display fabric. The FPGA receives a single video source signal from the ARM SoC and fans it out — or splits it — to drive both LCD panels with hardware-synchronized timing. Because the FPGA controls both display interfaces from a common clock domain, output to left and right panels is guaranteed to be in lockstep, which is essential for a convincing stereoscopic image.
 
-Customer Application: VR Video Player
+![3D Glasses Display hardware](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138613888/01_0e591b2d946cf2f1621c6610060a061c.png)
 
-Key Features:
+---
 
-1. Supports playback of multiple video file formats
-2. Supports real-time switching between 2D/3D effects during playback
-3. Supports playback of files from TF card / USB drive
-4. Supports customized configuration
+## Architecture Overview
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138613888/02_1e8665d05295789963dd6faf16fb538e.png)
+**Actions ARM SoC (application layer)**
+- Handles file system access (TF card, USB OTG mass storage)
+- Decodes compressed video in multiple formats (H.264, MJPEG, and common container formats)
+- Renders the UI overlay for format selection and 2D/3D mode switching
+- Outputs a single logical video stream to the FPGA bridge
+
+**FPGA (display fabric layer)**
+- Receives the video stream from the ARM side
+- In **2D mode**: mirrors the identical frame to both left-eye and right-eye LCD panels
+- In **3D mode**: splits side-by-side (SBS) or top-bottom (TB) encoded frames — routing the left half to the left-eye panel and the right half to the right-eye panel — while handling any required scaling or line-buffer reordering
+- Generates independent VSYNC/HSYNC/DE timing signals for each panel, both phase-locked to the same reference
+
+This clean separation of concerns lets the ARM SoC focus entirely on compute-heavy decode and UI tasks while the FPGA handles the real-time, latency-sensitive display routing — a common and effective pattern in embedded media hardware.
+
+---
+
+## Key Features
+
+### 1. Multi-Format Video Playback
+
+The Actions ARM platform supports a broad range of common video file formats out of the box, including H.264/AVC in MP4 and MKV containers, as well as MJPEG and AVI. This allows end customers to use standard content without re-encoding for a proprietary format.
+
+### 2. Real-Time 2D / 3D Effect Switching
+
+A notable design requirement is **real-time switching** between 2D and 3D playback modes during active video playback — not just at startup. The FPGA's programmable routing logic makes this practical: a mode register is updated by the ARM over a sideband interface (SPI or parallel GPIO), and the FPGA applies the new routing (mirror vs. split) at the next vertical blanking interval, preventing any torn or partially-updated frame from reaching either eye. From the user's perspective, the switch is instantaneous.
+
+### 3. TF Card and USB Drive File Access
+
+Storage is handled through the Actions SoC's native TF (microSD) and USB interfaces. The firmware presents a familiar file-browser UI, allowing users to navigate directories and select content without proprietary software or a companion app. This is important for consumer-facing VR players where ease of use is a differentiator.
+
+### 4. Customizable Configuration
+
+The platform is designed for OEM customization. Display parameters (resolution, refresh rate, panel timing), supported format lists, UI skin, and startup behavior can all be adjusted to match a customer's specific panel selection and product requirements — a significant advantage when each VR headset design uses a different LCD module.
+
+---
+
+## Why FPGA + ARM Rather Than an All-in-One SoC?
+
+Purpose-built VR SoCs that integrate a dual-display engine exist, but they constrain the display interface to pre-validated panel configurations. An FPGA bridge gives the design team the freedom to support virtually any LCD panel timing by modifying HDL rather than waiting for a silicon revision. It also provides a path to add future features — such as lens distortion correction in hardware, or hardware-accelerated frame interpolation — without changing the core ARM platform.
+
+For a product line that must support multiple panel variants across different customer SKUs, this flexibility has real commercial value.
+
+![System block and product assembly](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138613888/02_1e8665d05295789963dd6faf16fb538e.png)
+
+---
+
+## Summary
+
+The FPGA + Actions ARM architecture delivers a practical, production-ready solution for VR video headsets: the ARM SoC handles the software-heavy media and storage stack, while the FPGA provides the hardware-guaranteed dual-display synchronization that stereoscopic 3D requires. Real-time 2D/3D switching, broad format support, and OEM-friendly customization make this platform well-suited for consumer VR video players where content flexibility and visual comfort are both critical. If you are designing a similar dual-display wearable and want to explore how this solution can be adapted to your panel and form-factor requirements, contact the Sienovo team for evaluation details.

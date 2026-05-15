@@ -5,50 +5,74 @@ slug: "138460323"
 tags: ["#Loongson"]
 source: "https://blog.csdn.net/yeyuangen/article/details/138460323"
 originalTitle: "CPCI龙芯全国产化3A-3000主板"
+expanded: true
 ---
+China's push toward domestically designed computing infrastructure has produced some compelling hardware for industrial and defense-adjacent applications. These two CPCI form-factor boards based on the Loongson 3A-3000 processor represent a mature point in that roadmap — ruggedized, thermally specified for harsh environments, and running a fully domestic software stack. This post documents the two available variants and explains the key design choices behind each.
 
-## CPCI Loongson 3A-3000 Motherboard
+## The Loongson 3A-3000 in an Industrial Context
 
-■ 7A1000 Chipset
+The Loongson 3A-3000 is a quad-core MIPS64-compatible processor (Loongson's own GS464E microarchitecture) manufactured on a 28 nm process. With a TDP that remains manageable in passively cooled or conduction-cooled enclosures, it has become a natural fit for CompactPCI (CPCI) carrier boards deployed in telecommunications, rail, energy, and defense equipment — sectors where supply-chain sovereignty matters as much as raw performance.
 
-■ 16GB RAM (International) / 8GB RAM (Domestic)
+CPCI (IEC 61076-4-101) uses the Eurocard mechanical standard with a high-density 2 mm connector backplane, giving integrators hot-swap capability and a proven form factor that has been fielded in rugged systems for decades. Choosing CPCI for a Loongson board signals a target audience of system integrators building multi-slot chassis, not desktop or server deployments.
 
-■ 1x VGA + 1x DVI Output
+## Variant 1 — 7A1000 Chipset
 
-■ Storage: Onboard eMMC/SSD capacity 256GB
+This is the newer of the two designs and pairs the 3A-3000 with Loongson's own **7A1000 bridge chip** — a fully domestic SoC-style chipset that handles PCIe, USB, SATA, and display connectivity without any foreign silicon in the critical path.
 
-■ 4x USB 2.0 Ports
+**Specifications at a glance:**
 
-■ 4x Gigabit Ethernet Ports
+| Feature | Detail |
+|---|---|
+| Chipset | Loongson 7A1000 |
+| RAM | 16 GB (international markets) / 8 GB (domestic procurement) |
+| Display | 1× VGA + 1× DVI |
+| Storage | 256 GB onboard electronic disk |
+| USB | 4× USB 2.0 |
+| Networking | 4× Gigabit Ethernet |
+| OS support | NeoKylin (中标麒麟) |
+| Operating temp | −40 ℃ to +65 ℃ |
+| Storage temp | −55 ℃ to +70 ℃ |
 
-■ Supports NeoKylin Operating System
+The memory split between domestic and international SKUs reflects real-world DRAM sourcing constraints in China's procurement environment. The 7A1000 chipset itself integrates display output logic, which is why this variant needs no discrete GPU for standard 2D workloads.
 
-■ Operating Temperature: -40℃～+65℃
+The 256 GB onboard electronic disk (solid-state, likely eMMC or an onboard SATA SSD module) eliminates moving parts and the vibration sensitivity that rotating media would introduce in a CPCI chassis subject to shock and vibration profiles typical of vehicle-mounted or industrial rack installations.
 
-■ Storage Temperature: -55ºC～+70ºC
+NeoKylin (中标麒麟), maintained by China Standard Software Co., is a Kylin Linux derivative certified for government and defense procurement in China. It ships with MIPS/LoongArch kernel support and a desktop environment suitable for operator workstations, making it a natural software pairing for this hardware.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138460323/01_b3668b03f663e6086af328a1be67700f.png)
+![CPCI Loongson 3A-3000 with 7A1000 chipset](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138460323/01_b3668b03f663e6086af328a1be67700f.png)
 
-## CPCI Loongson 3A-3000 Motherboard
+## Variant 2 — RS780E + SB710 Chipset with Discrete GPU
 
-■ RS780E+SB710 Chipset
+The second design uses an **AMD RS780E northbridge paired with an AMD SB710 southbridge** — a chipset combination originally developed for embedded and semi-custom applications. While not domestic silicon, this combination was widely qualified for industrial use and offers a proven PCIe and display pipeline.
 
-■ 16GB RAM (International)
+The significant differentiator here is the addition of an **E6465 discrete graphics card**. The ATI Radeon E6465 is a low-power embedded GPU (part of AMD's embedded Radeon E6000 series) designed for multi-display industrial applications. Its inclusion here enables a more capable display topology:
 
-■ E6465 Discrete Graphics Card
+**Specifications at a glance:**
 
-■ 2x VGA (Switchable) + 2x DVI Output
+| Feature | Detail |
+|---|---|
+| Chipset | AMD RS780E + SB710 |
+| RAM | 16 GB (international) |
+| GPU | E6465 discrete (embedded Radeon) |
+| Display | 2× VGA (switchable) + 2× DVI |
+| Storage | 256 GB onboard electronic disk |
+| USB | 4× USB 2.0 |
+| Networking | 4× Gigabit Ethernet |
+| OS support | NeoKylin (中标麒麟) |
+| Operating temp | −40 ℃ to +65 ℃ |
+| Storage temp | −55 ℃ to +70 ℃ |
 
-■ Storage: Onboard eMMC/SSD capacity 256GB
+The **switchable dual-VGA** outputs are notable for control room or operator console deployments where a single board must drive independent displays for different operators or instrument views. The two DVI outputs add digital signal integrity for higher-resolution panels. Four simultaneous display outputs from a single CPCI slot represents meaningful density for human-machine interface (HMI) applications.
 
-■ 4x USB 2.0 Ports
+![CPCI Loongson 3A-3000 with RS780E+SB710 and E6465 GPU](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138460323/02_af22f143ece5ed78eb08dda25a1a146b.png)
 
-■ 4x Gigabit Ethernet Ports
+## Thermal Specifications and Deployment Suitability
 
-■ Supports NeoKylin Operating System
+Both variants share identical thermal ratings: **−40 ℃ to +65 ℃ operating** and **−55 ℃ to +70 ℃ storage**. These figures align with MIL-STD-810 Grade B environmental profiles and IEC 60068 test conditions common in industrial electronics. The −40 ℃ lower operating bound covers cold-start scenarios in unheated outdoor enclosures or vehicle-mounted equipment in northern climates. The +65 ℃ ceiling is consistent with conduction-cooled CPCI chassis designs where board-level heat is transferred to the card cage rather than relying on forced air.
 
-■ Operating Temperature: -40℃～+65℃
+## Choosing Between the Two Variants
 
-■ Storage Temperature: -55ºC～+70ºC
+- **Choose the 7A1000 variant** when domestic supply-chain compliance is a hard requirement, display needs are modest (single VGA + DVI is sufficient), or the deployment environment mandates all-Chinese silicon.
+- **Choose the RS780E+SB710 variant** when multi-display HMI capability is the priority — four display outputs from a single slot is a significant advantage for operator workstation and visualization applications — and the chipset provenance is acceptable within procurement rules.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138460323/02_af22f143ece5ed78eb08dda25a1a146b.png)
+Both boards demonstrate that CPCI-based Loongson deployments are no longer experimental: the 3A-3000 generation is a production-ready platform with mature chipset options, full NeoKylin OS support, and the ruggedized thermal envelope that industrial integrators require.

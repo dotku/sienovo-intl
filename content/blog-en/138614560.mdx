@@ -5,17 +5,71 @@ slug: "138614560"
 tags: ["#FPGADev"]
 source: "https://blog.csdn.net/yeyuangen/article/details/138614560"
 originalTitle: "FPGA采集卡，可实现CVBS/HDMI/SDI三种信号转换"
+expanded: true
 ---
+## An FPGA-Based Multi-Format Capture Card Supporting CVBS, HDMI, and SDI Conversion
 
-Capable of CVBS/HDMI/SDI signal conversion.
-Customer Applications: TV stations, stages, conference rooms.
-Key Features:
-1: Standard CVBS signal input, standard HDMI signal input, standard SDI signal input; adaptive input signals.
-2: Optional 3G/HD/SD SDI signal output.
-2: Optional common resolutions: 1080P/1080I/720P/480I/576I.
-Special resolutions like 1080PsF/720P30/25/24.
-3: Supports embedding external analog stereo audio signals into the SDI signal.
-4: SDI output can be set to "variable frequency" or "fixed frequency".
-5: Special functions are customizable.
+Professional broadcast and AV integration work rarely involves a single signal standard. A television station may need to ingest legacy composite video from an archive deck, accept HDMI output from a modern graphics workstation, and simultaneously feed a live SDI router — all from the same piece of rack equipment. This FPGA capture card addresses exactly that scenario, providing hardware-level conversion between CVBS, HDMI, and SDI in a single unit aimed at broadcast studios, live-event stages, and corporate conference rooms.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138614560/01_9140615f2ab8985d8a0b5c5adaf80e4e.png)
+## Signal Input and Adaptive Detection
+
+The card accepts three distinct input formats:
+
+- **CVBS (Composite Video Baseband Signal)** — the analogue standard that has been the backbone of broadcast infrastructure since the NTSC/PAL era. CVBS carries luminance, colour, and sync on a single coaxial line, typically at 480i (NTSC) or 576i (PAL).
+- **HDMI** — the digital consumer/prosumer interface now ubiquitous on cameras, laptops, and presentation equipment.
+- **SDI (Serial Digital Interface)** — the ITU-R BT.656/BT.1120 coaxial standard used throughout professional broadcast chains.
+
+A key practical feature is **adaptive input detection**: the card identifies which format is connected and locks automatically, eliminating the need to manually select an input mode in software or via DIP switches. For live-event environments where sources change quickly, this removes a common source of human error.
+
+## SDI Output Variants
+
+The SDI output side supports the full family of serial digital standards:
+
+| Standard | Bit-rate | Typical use |
+|---|---|---|
+| SD-SDI | 270 Mbit/s | Standard-definition 480i/576i legacy routing |
+| HD-SDI | 1.485 Gbit/s | 720p and 1080i HD production |
+| 3G-SDI | 2.97 Gbit/s | 1080p50/60 and high-frame-rate workflows |
+
+Selecting among these is done at configuration time, allowing the same card to slot into an SD legacy facility or a 3G HD facility without hardware changes.
+
+## Resolution Support
+
+Supported output resolutions cover the full range of current broadcast practice:
+
+- **1080P** — full progressive HD, the standard for modern production
+- **1080I** — interlaced HD, still the transmission standard in many broadcast chains worldwide
+- **720P** — progressive HD widely used in sports and live events
+- **480I / 576I** — standard definition for NTSC and PAL markets respectively
+
+Beyond these common presets, the card also handles several specialised frame rates and scan formats:
+
+- **1080PsF (Progressive Segmented Frame)** — used in cinema-style cameras to carry 24p material over HD-SDI infrastructure designed for interlaced signals
+- **720P at 30, 25, and 24 fps** — for film-rate and broadcast-rate progressive workflows
+
+This breadth means a single unit can serve as the conversion bridge between a film-acquisition workflow (24p PsF) and a live broadcast router expecting 1080i/50 or 1080i/59.94.
+
+## Embedded Audio: Analogue Stereo into SDI
+
+SDI carries audio as embedded AES packets within the serial stream. The card supports **embedding an external analogue stereo audio input** directly into the SDI output signal. This matters in facilities that route audio and video separately up to the point of transmission — for example, a stage where a mixing desk produces balanced analogue outputs that need to travel down the same coax as the video to the broadcast truck.
+
+## Output Frequency Modes
+
+Two SDI output clocking modes are offered:
+
+- **Variable frequency ("变频") output** — the output clock follows the input source. This is appropriate when the downstream router or switcher can genlock to whatever it receives, or when the source and destination are already synchronised.
+- **Fixed frequency output** — the card free-runs at a defined standard rate regardless of input timing. This is the safer choice when feeding equipment that expects a stable, house-sync-referenced signal, such as a master control switcher.
+
+The ability to switch between these modes makes the card useful both as a simple format converter and as a light timing corrector at the edge of a synchronised facility.
+
+## Target Applications
+
+The combination of multi-format input, full SDI output variants, embedded audio, and flexible clocking makes this card a fit for several common scenarios:
+
+- **Television stations** needing to ingest legacy CVBS archive material or HDMI laptop feeds into an SDI routing infrastructure
+- **Live-event stages** where diverse sources (cameras, presentation PCs, playback servers) must all be normalised to a single SDI standard for the video switcher
+- **Conference rooms and corporate AV** where HDMI sources need to be distributed over an existing SDI cable plant
+
+Custom feature sets are available for OEM and integrator requirements, allowing the firmware and I/O configuration to be adapted for specific deployment constraints.
+
+![FPGA Capture Card — CVBS/HDMI/SDI Converter](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138614560/01_9140615f2ab8985d8a0b5c5adaf80e4e.png)

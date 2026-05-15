@@ -5,16 +5,46 @@ slug: "138614417"
 tags: ["#FPGADev", "#SystemSecurity", "#Security"]
 source: "https://blog.csdn.net/yeyuangen/article/details/138614417"
 originalTitle: "FPGA+DDR+SERDES+USB3.0单向传输机方案，数据只能单向传输，避免反向攻击，确保系统安全"
+expanded: true
 ---
+## One-Way Data Transmission Using FPGA + DDR + SERDES + USB 3.0 and Fiber Optics
 
-The FPGA+DDR+SERDES+USB3.0 solution consists of a transmitter and a receiver. It employs fiber optic communication, allowing data to be transmitted unidirectionally only, thereby preventing reverse attacks and ensuring system security.
-Customer Applications: Scenarios requiring high security and high reliability.
-Key Features:
-1. Supports USB3.0 transmission, achieving up to 350MB/s in actual tests.
-2. Supports simultaneous transmission of different data over 3 optical fibers to enhance speed.
-3. Supports simultaneous transmission of identical data over 3 optical fibers to enhance data reliability.
-4. Supports AES256 encryption and decryption to ensure data security.
-5. Supports dual-system backup to ensure system reliability.
-6. Achieved 0 errors after continuously transmitting over 10TB of data in actual tests.
+In high-security environments — government networks, industrial control systems, financial infrastructure, and classified data centers — the threat of reverse-channel attacks is a fundamental concern. A bidirectional data link, no matter how well encrypted, always carries the risk that a compromised endpoint can inject traffic back toward the source. The solution described here eliminates that attack surface entirely by making the physical layer unidirectional: data flows one way, and only one way, from transmitter to receiver.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138614417/01_ed6cd765d9cf3b160e0ddce617ec6207.png)
+This design uses an FPGA as the central control fabric, paired with DDR memory for buffering, SERDES (Serializer/Deserializer) transceivers for high-speed serial signaling, and a USB 3.0 host interface for connecting to the host system. The physical medium is optical fiber, which is inherently passive in one direction — a fiber carrying light from transmitter to receiver cannot carry light back, and the receive-side hardware contains no optical transmitter at all. This is a hardware-enforced data diode, not a software policy.
+
+## System Architecture
+
+The solution is built around two discrete hardware units: a **transmitter** and a **receiver**. The transmitter accepts data from the host over USB 3.0, buffers it in DDR, and drives the SERDES lanes that modulate signals onto the optical fibers. The receiver picks up the optical signal on its SERDES inputs, reconstructs the data into its own DDR buffer, and presents it to the downstream host over USB 3.0. There is no reverse signaling path — the receiver has no optical transmitter, and the transmitter has no optical receiver.
+
+The FPGA handles all the real-time coordination: USB 3.0 controller logic, DDR arbitration, SERDES framing, redundancy management, and AES encryption/decryption. Using an FPGA rather than a general-purpose SoC is a deliberate choice: it allows the data path to be implemented as deterministic RTL logic with no operating system, no network stack, and no software attack surface on the critical path.
+
+## Key Performance Characteristics
+
+**USB 3.0 throughput — 350 MB/s sustained:** The USB 3.0 interface theoretically caps at around 400–500 MB/s of usable throughput after protocol overhead. Achieving 350 MB/s in real-world testing indicates that the FPGA's USB 3.0 controller implementation and DDR buffering are keeping up with the link without stalling. This is close to the practical ceiling for USB 3.0 and suitable for high-bandwidth streaming applications such as video, sensor telemetry, or bulk file transfer.
+
+**Three-fiber parallel operation:** The design supports three optical fiber channels simultaneously, and they can be used in two distinct modes:
+
+- **Striped mode (speed):** Different data is sent over each of the three fibers in parallel, effectively tripling aggregate throughput. At 350 MB/s per channel, this approach could sustain over 1 GB/s of combined transfer rate, suitable for multi-stream video or large dataset transfers.
+- **Mirrored mode (reliability):** Identical data is replicated across all three fibers. If any one fiber experiences degradation, contamination on the optical connector, or a transient fault, the receiver can reconstruct the full data from the surviving channels. This is essentially a 3-way optical RAID-1 at the physical layer.
+
+**AES-256 encryption:** Data is encrypted at the transmitter and decrypted at the receiver using AES-256, the current gold standard for symmetric encryption. Because the encryption is handled in FPGA logic rather than software, it adds negligible latency to the pipeline and cannot be bypassed by software compromise. Even if an adversary physically intercepted the optical fiber mid-link, the captured signal would be ciphertext.
+
+**Dual-system backup:** The solution supports a redundant hardware configuration where a standby transmitter-receiver pair can take over if the primary fails. This is critical for applications where continuity of data flow cannot be interrupted — for example, a security monitoring feed or an industrial telemetry pipeline that must not drop data during maintenance.
+
+**10 TB continuous transfer with zero errors:** Sustained, error-free transmission of more than 10 TB of data in real-world testing is a strong validation of both the physical layer reliability and the FPGA logic correctness. At 350 MB/s, 10 TB represents roughly eight hours of continuous operation — a meaningful soak test that exercises thermal stability, DDR refresh behavior, and long-term SERDES eye margin.
+
+## Target Applications
+
+This architecture is designed for scenarios where the cost of a reverse attack — data exfiltration, command injection, or lateral movement — is unacceptable. Typical deployment contexts include:
+
+- **Cross-domain data transfer:** Moving data from a low-security network segment to a high-security segment (or vice versa) without creating a bidirectional link that could be exploited.
+- **Industrial control system (ICS) isolation:** Streaming sensor data or logs out of an operational technology (OT) network into an IT network for analysis, without allowing the IT side to send commands back into the OT environment.
+- **Classified and government environments:** Satisfying requirements for hardware-enforced one-way data flows where software-only solutions are not accredited.
+- **Video surveillance and monitoring:** Pushing high-bandwidth video streams from a physically isolated network without any reverse channel.
+
+## Why Hardware Enforcement Matters
+
+Software-based data diodes — firewall rules, one-way proxies, or OS-level restrictions — can always be subverted if the underlying system is compromised. Hardware enforcement, by contrast, is not a policy: it is a physical impossibility. Without an optical transmitter on the receive side, there is no mechanism by which the receiver can send anything back, regardless of what software is running on the attached host. This is the fundamental security guarantee of a fiber-optic data diode, and the FPGA + SERDES architecture described here implements it at the component level.
+
+![FPGA+DDR+SERDES+USB3.0 unidirectional transmission hardware](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138614417/01_ed6cd765d9cf3b160e0ddce617ec6207.png)

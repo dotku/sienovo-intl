@@ -5,20 +5,64 @@ slug: "138607878"
 tags: ["#ComputerPeripherals"]
 source: "https://blog.csdn.net/yeyuangen/article/details/138607878"
 originalTitle: "基于FPGA实现的HDMI TO MIPI扩展显示器方案"
+expanded: true
 ---
+## FPGA-Based HDMI to MIPI Extended Display Solution
 
-FPGA solution: HDMI IN receives the original HDMI signal and outputs it for display on an LCD screen.
+Modern embedded display systems increasingly demand flexible, low-latency video routing between source interfaces and panel types that don't natively match. A common challenge arises when a host device outputs HDMI — the universal standard for consumer and professional video — but the target display panel speaks MIPI DSI, eDP, LVDS, or parallel RGB. Bridging these two worlds typically requires either a dedicated bridge IC (which locks you into a fixed resolution and limited feature set) or a software-driven SoC path (which introduces latency and processing overhead). This post introduces an FPGA-based solution that accepts a raw HDMI input signal and drives a wide range of LCD panel interfaces with zero-latency, full-pipeline flexibility.
 
-Customer Application: Extended Display
+![FPGA HDMI to MIPI block diagram](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138607878/01_681ac209d293c06487317b249ef2dacb.png)
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138607878/01_681ac209d293c06487317b249ef2dacb.png)
+## Why FPGA for HDMI-to-Panel Bridging?
 
-Key Features:
+Fixed-function bridge chips such as the Toshiba TC358870 or Analogix ANX7625 handle specific interface pairs well, but they are constrained in resolution support, lack OSD compositing, and offer little room for customization. An FPGA implementation, by contrast, processes the video stream entirely in programmable logic — the HDMI receiver, pixel clock recovery, color-space conversion, scaler, OSD compositor, and panel serializer are all implemented as configurable RTL blocks. This gives system designers the ability to tailor timing parameters, add proprietary overlays, and retarget to a different panel interface without a hardware spin.
 
-1. Supports display of any resolution below 2K
-2. Supports OSD overlay with multiple layers
-3. Supports MIPI/EDP/LVDS/RGB screens
-4. Supports scaling to match screen resolution
-5. Zero latency, input-to-output
-6. Supports independent audio signal output
-7. Customizable features, expandable applications
+## Key Technical Features
+
+### Any Resolution Below 2K
+
+The solution supports arbitrary input resolutions up to 2K (2048 × 1080 / 1920 × 1080 and below), covering the full range of common HDMI sources: 480p, 720p, 1080i, 1080p, and intermediate custom resolutions. The FPGA HDMI receiver block detects the incoming pixel clock and blanking intervals automatically, making the design plug-and-play with standard HDMI sources such as PCs, set-top boxes, and single-board computers.
+
+### Multi-Layer OSD Overlay
+
+On-Screen Display (OSD) compositing is implemented directly in the FPGA fabric. Multiple independent graphical layers — such as UI chrome, status indicators, or logo watermarks — can be blended over the live video stream using alpha compositing. Because the overlay happens in-line with the video pipeline, it adds no perceptible latency and requires no CPU involvement at runtime.
+
+### Broad Panel Interface Support
+
+One of the most commercially significant features of this design is its multi-protocol output capability:
+
+- **MIPI DSI** — the dominant interface for smartphone and embedded panels, typically at 1–4 data lanes running at high-speed differential signaling.
+- **eDP (Embedded DisplayPort)** — common in laptop displays and high-resolution industrial panels.
+- **LVDS** — a mature, noise-tolerant interface found on many industrial-grade and automotive displays.
+- **Parallel RGB** — used on smaller, lower-cost TFT panels and legacy display modules.
+
+Selecting the target interface is a matter of FPGA bitstream configuration, allowing the same base hardware to serve multiple product SKUs.
+
+### Hardware Scaler for Resolution Matching
+
+The built-in hardware scaler up-scales or down-scales the incoming video frame to match the native resolution of the attached display panel. For example, a 1080p HDMI source can be scaled to a 1280×800 WXGA panel or a 2560×1600 WQXGA panel without any host-side driver changes. The scaler operates on a line-buffer architecture inside the FPGA, preserving aspect ratio or performing stretch-to-fit depending on firmware configuration.
+
+### Zero-Latency Pipeline
+
+Because the entire signal path — HDMI decode, color conversion, scaling, OSD blend, and panel serialization — is implemented in synchronous logic clocked to the incoming pixel clock, the end-to-end latency is effectively one frame pipeline depth or less. There is no frame buffer write-back to DRAM and no OS scheduling jitter. This makes the solution suitable for latency-sensitive applications such as industrial HMIs, medical imaging monitors, and gaming peripherals where even a single frame of delay is unacceptable.
+
+### Independent Audio Output
+
+HDMI carries embedded audio alongside the video stream. This design extracts the audio data from the HDMI auxiliary channel (AUX) and routes it to an independent I²S or SPDIF output, decoupled from the display pipeline. The host system can therefore use the display output on one panel while simultaneously routing audio to an external DAC or amplifier — a common requirement in kiosk, digital-signage, and conferencing system designs.
+
+## Typical Application: Extended Display
+
+The primary customer application is **extended display** — scenarios where a device (PC, embedded SBC, or media player) outputs HDMI and the system integrator needs to drive a custom panel that the source device does not natively support. Examples include:
+
+- Industrial control panels with LVDS or MIPI interfaces driven by a standard PC HDMI output.
+- Ruggedized handheld devices using an embedded MIPI panel fed from an external HDMI-capable processing board.
+- Retail kiosks and digital signage that must display a standard HDMI desktop on a non-standard aspect-ratio or resolution panel.
+- Medical carts where a host workstation drives a custom display module with OSD overlays for patient data.
+
+## Customization and Extensibility
+
+Because the design lives in FPGA logic, customers can request additional features without changing the hardware platform: custom color correction LUTs, frame-rate conversion, HDR tone mapping for SDR panels, or proprietary communication protocols for panel configuration via I²C/SPI. The modular RTL architecture allows new blocks to be integrated alongside the existing pipeline with well-defined AXI-stream interfaces between stages.
+
+## Summary
+
+This FPGA-based HDMI-to-panel bridge offers a compelling alternative to fixed-function bridge ICs for system designers who need resolution flexibility, multi-protocol panel support, OSD compositing, and deterministic zero-latency throughput in a single, customizable solution. By moving the entire video pipeline into programmable logic, the design avoids the constraints of off-the-shelf bridge chips and opens the door to application-specific extensions that would otherwise require a dedicated ASIC or a high-power host processor.
