@@ -90,6 +90,24 @@ const ASSET_LIMITS_PMAX = {
   YOUTUBE_VIDEO: { recommended: 1, max: 5, label: "Videos (YouTube)" },
 };
 
+// Campaign-level brand identity (Business name / Logo / Landscape logo set in
+// the campaign's "Brand identity" section) — propagates to every asset group
+// in the campaign, but doesn't show up in `asset_group_asset`. Pre-fetch and
+// merge into per-asset-group byField counts so the audit reflects what
+// Google actually sees per asset group.
+const campaignAssets = await gaql(`
+  SELECT campaign.id, asset.id, asset.type,
+         campaign_asset.field_type, campaign_asset.status
+  FROM campaign_asset
+  WHERE campaign.id = ${CAMPAIGN_ID}
+    AND campaign_asset.status != 'REMOVED'
+`);
+const campaignByField = {};
+for (const a of campaignAssets) {
+  const ft = a.campaignAsset.fieldType;
+  (campaignByField[ft] ||= []).push(a);
+}
+
 console.log(`\n=== Asset coverage per asset group ===`);
 const allFindings = [];
 
@@ -114,6 +132,11 @@ for (const r of ags) {
   for (const a of aga) {
     const ft = a.assetGroupAsset.fieldType;
     (byField[ft] ||= []).push(a);
+  }
+
+  // Merge campaign-level brand identity into this asset group's counts.
+  for (const [ft, list] of Object.entries(campaignByField)) {
+    (byField[ft] ||= []).push(...list.map((a) => ({ ...a, _source: "campaign" })));
   }
 
   for (const [field, info] of Object.entries(ASSET_LIMITS_PMAX)) {
