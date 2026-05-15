@@ -5,18 +5,74 @@ slug: "141129565"
 tags: ["#ARMDev"]
 source: "https://blog.csdn.net/yeyuangen/article/details/141129565"
 originalTitle: "基于IMX6ULL+FPGA全自动荧光免疫分析仪解决方案"
+expanded: true
 ---
+Fluorescence immunoassay (FIA) sits at the intersection of biochemistry and embedded systems engineering. This post walks through a complete hardware platform design for a fully automatic fluorescence immunoassay analyzer — a class of point-of-care instrument used in hospital laboratories to detect trace biomarkers in patient samples — built around an NXP i.MX6ULL application processor paired with an FPGA for real-time signal acquisition and control.
 
-Fully Automatic Fluorescence Immunoassay Analyzer: Fluorescence immunoassay technology offers advantages such as strong specificity, high sensitivity, and good practicality. Therefore, it is used to measure very low concentrations of bioactive compounds, such as proteins (enzymes, receptors, antibodies), hormones (steroids, thyroid hormones, phthalate hormones), drugs, and microorganisms, etc.
+## What Fluorescence Immunoassay Actually Measures
 
-Fully Automatic Fluorescence Immunoassay Analyzer
+Fluorescence immunoassay technology exploits the highly selective binding between an antigen and its corresponding antibody. A fluorescent label is attached to one of the binding partners; when excitation light at the correct wavelength hits the label, it re-emits at a longer wavelength. The intensity of that emission is proportional to the concentration of the target analyte.
 
-IMX6ULL Core Board
+The technique's three defining characteristics make it well-suited for clinical diagnostics:
 
-Fully automatic fluorescence immunoassay analyzers are used for in vitro diagnostics in hospitals, primarily for testing human serum, plasma, whole blood, and urine samples.
+- **Strong specificity** — antigen–antibody binding is highly selective, so cross-reactivity with other molecules in a complex biological matrix (whole blood, serum) is minimal.
+- **High sensitivity** — modern fluorescent dyes and time-resolved fluorescence methods can detect analyte concentrations in the picomolar range, enabling detection of low-abundance proteins and hormones.
+- **Good practicality** — lateral-flow or microfluidic FIA cartridges are self-contained, reducing contamination risk and operator skill requirements compared with wet-chemistry or ELISA-based methods.
 
-The IMX6ULL core board adopts an industrial-grade solution specifically tailored for low-power, low-cost, and compact applications. It is ideal for energy-saving and compact applications such as HMI, control systems, and IoT. With Linux system support, you can choose a cost-optimized core board configuration based on actual project requirements to meet various application and cost demands.
+Target analytes span a wide clinical range: structural proteins such as enzymes, receptors, and antibodies; hormones including steroids, thyroid hormones (TSH, T3, T4), and peptide hormones; small-molecule drugs for therapeutic drug monitoring; and microbial antigens for infectious-disease screening.
 
-#### Solution Topology Diagram
+## Application Context: In-Vitro Diagnostics at the Point of Care
+
+The fully automatic fluorescence immunoassay analyzer described here is designed for in-vitro diagnostic (IVD) use in hospital settings. It accepts the four most common human biological matrices:
+
+| Sample type | Typical analytes |
+|---|---|
+| Serum | Cardiac markers, thyroid hormones, tumor markers |
+| Plasma | Coagulation factors, drug levels |
+| Whole blood | CRP, PCT, HbA1c |
+| Urine | Kidney injury markers, urinary tract infection markers |
+
+"Fully automatic" means the instrument handles reagent loading, sample aspiration, incubation timing, optical measurement, and result reporting without manual intervention between sample loading and report printout. This level of automation demands tight coordination between mechanical actuators (pumps, valves, a sample carousel), the optical measurement subsystem, and the host UI — exactly the challenge that motivates the heterogeneous IMX6ULL + FPGA architecture.
+
+## Hardware Architecture: IMX6ULL + FPGA
+
+The solution partitions responsibilities cleanly between two processors.
+
+### IMX6ULL Application Processor
+
+The NXP i.MX6ULL is a single-core ARM Cortex-A7 SoC running at up to 800 MHz. It is part of NXP's i.MX 6 UltraLite family, which is specifically positioned for low-power, low-cost, and compact embedded Linux applications. Key reasons it fits this design:
+
+- **Industrial-grade operating range** — guaranteed operation across extended temperature ranges suitable for medical equipment environments.
+- **Rich peripheral set** — USB OTG, multiple UARTs, SPI, I²C, and LCD controller cover HMI touch panels, barcode readers, and communication interfaces without external bridge chips.
+- **Linux BSP availability** — running a full Linux stack (commonly a Yocto or Buildroot image) enables standard middleware: Qt for the HMI, OpenSSL for encrypted result transmission, and POSIX process management for the analyzer's workflow engine.
+- **Low power consumption** — medical bench instruments operate continuously in a clinical environment; the i.MX6ULL's efficient Cortex-A7 core keeps thermal dissipation low without active cooling.
+
+The core board design follows a cost-optimized module approach: customers can select the LPDDR3/DDR3L capacity and eMMC/NAND flash configuration that matches their bill-of-materials target, from a minimal 256 MB / 256 MB configuration up to larger options for instruments that cache waveform data locally.
+
+### FPGA for Real-Time Signal Acquisition and Motion Control
+
+The FPGA partner (shown in the solution topology diagram below) handles tasks that require deterministic microsecond-level timing, which a Linux SoC cannot guarantee:
+
+- **PMT / photodiode signal digitization** — fluorescence emission pulses from a photomultiplier tube or silicon photodiode must be sampled at high speed and integrated over a precise window. The FPGA implements the ADC interface, integration timer, and digital filtering in hardware logic.
+- **Laser/LED excitation source control** — the excitation source must be pulsed or modulated with nanosecond precision. An FPGA-based PWM controller provides this without jitter from OS scheduling.
+- **Stepper motor and servo control** — the sample carousel, reagent dispensing arm, and incubation shuttle each require coordinated step-pulse generation. The FPGA runs these motion profiles in parallel, freeing the application processor entirely.
+- **Interlock and safety logic** — door interlocks, liquid-leak sensors, and over-temperature shutoffs are wired directly to FPGA GPIO so they assert a hardware stop independent of software state.
+
+The i.MX6ULL communicates with the FPGA over a high-speed parallel bus or SPI, exchanging measurement results, motion commands, and status registers.
+
+### Solution Topology
+
+The block diagram below illustrates how the subsystems interconnect — from the sample input and optical measurement chain through the FPGA signal-processing layer to the i.MX6ULL running the Linux-based workflow engine and touchscreen HMI.
 
 ![荧光免疫分析仪-框图-行业应用.png](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141129565/02_39b2020ae7525ec28c1514cfbb2adc80.png)
+
+## Why This Combination Works for Medical IVD Instruments
+
+Medical instrument design faces constraints that differ from general industrial automation. Results carry diagnostic weight, so measurement reproducibility and traceability are paramount. The IMX6ULL + FPGA split addresses this directly:
+
+1. **Determinism where it matters** — fluorescence integration windows and motor step timing live entirely in the FPGA, immune to Linux kernel scheduling latency.
+2. **Software flexibility where it matters** — calibration curve algorithms, connectivity (HL7, LIS integration), and regulatory logging run on Linux where they can be updated and audited independently of the measurement firmware.
+3. **Cost and form-factor discipline** — the i.MX6ULL's compact BGA package and the FPGA's programmable fabric together fit on a board small enough for a benchtop analyzer chassis, without the cost penalty of a higher-end application processor.
+4. **Long supply-chain horizon** — both NXP i.MX6ULL and mainstream Xilinx/Altera FPGA families have extended availability commitments, reducing obsolescence risk over a medical product's 10+ year lifecycle.
+
+This architecture is a well-proven pattern in the IVD industry. Engineers evaluating a similar design can use the topology above as a starting reference for partitioning their own signal chain, motion control, and HMI requirements across the two processors.

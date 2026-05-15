@@ -5,10 +5,70 @@ slug: "141129867"
 tags: ["#ARMDev", "#fpga"]
 source: "https://blog.csdn.net/yeyuangen/article/details/141129867"
 originalTitle: "基于NXP IMX6+FPGA的 POCT荧光免疫分析仪解决方案"
+expanded: true
 ---
+Point-of-care testing (POCT) demands compact, reliable, and cost-effective embedded platforms that can handle real-time signal acquisition, motor control, and a responsive user interface simultaneously. This post covers how NXP i.MX6 series processors, combined with FPGA-assisted signal processing, serve as the hardware backbone for a multi-model fluorescence immunoassay analyzer — and how a unified Linux/Android software stack makes it practical to ship several product tiers from a single codebase.
 
-To cover various medical institution testing scenarios, fluorescence immunoassay analyzers can be categorized into handheld, single-channel, multi-channel, and fully automatic models. Among these, multiple core boards and mainboards based on the i.MX6 series processor can respectively meet users' performance and cost requirements. Liaowang Electronics has specifically achieved software platform compatibility, utilizing the same Linux kernel version, compilation tools, and QT development environment. This allows user applications to be freely switched between platforms, maintaining software and application consistency while also meeting the needs of both high-end and low-end hardware platforms.
+## What Is a Fluorescence Immunoassay Analyzer?
 
-The fluorescence immunoassay analyzer project consists of a series of boards and peripherals such as the main control board, sub-board, turntable, slave board, and thermal printer. The solution covers a range of components including core boards, M3 microcontrollers, etc., with the system optionally running Linux/Android 5. We provide services such as system customization and EMC rectification to minimize customer development cycles and difficulty, thereby accelerating time-to-market.
+Fluorescence immunoassay analyzers detect target biomarkers (cardiac markers, hormones, infectious disease antigens, etc.) by illuminating a test strip with a specific wavelength of light and measuring the resulting fluorescent emission. The intensity of that emission correlates to analyte concentration. Because the optical signal is weak and time-sensitive, the embedded platform must coordinate precise motor timing, analog front-end control, and a display pipeline without dropping samples.
 
-![201607121011818771.jpg](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141129867/01_196215ccdeb4b908bc039e65681acc47.jpeg)
+POCT versions of these instruments must also be portable, battery-tolerant, and manufacturable at different price points — from a handheld unit used at a clinic bedside to a fully automated multi-channel analyzer in a hospital lab.
+
+## Hardware Architecture
+
+The solution is organized around a hierarchical board topology:
+
+- **Main control board** — hosts the i.MX6 system-on-module (SOM) and acts as the application processor hub. It runs the Linux or Android OS, orchestrates the measurement workflow, renders the Qt-based UI, and communicates with all downstream subsystems.
+- **FPGA sub-board** — handles time-critical, deterministic tasks that the Linux kernel scheduler cannot guarantee: precise PWM generation for the excitation laser or LED, synchronous ADC sampling of the photodetector, and low-latency digital filtering of the raw fluorescence signal. Offloading these tasks to an FPGA keeps the optical measurement repeatable regardless of OS jitter.
+- **Turntable / reagent carousel** — a motorized platform that positions the test cartridge under the optical head. Stepper or servo control signals originate from either the FPGA or a dedicated slave board.
+- **Slave board with ARM Cortex-M3 microcontroller** — manages slower peripherals and safety interlocks (temperature sensors, door locks, reagent level detection) and communicates with the main board over a serial bus such as UART or CAN.
+- **Thermal printer** — provides on-site result printouts, connected to the main board via a standard serial or USB interface.
+
+## Why i.MX6?
+
+NXP's i.MX6 family spans from the single-core i.MX6ULL (Cortex-A7, ~500 MHz) up to the quad-core i.MX6Q (Cortex-A9, up to 1.2 GHz). This range lets the same mechanical design and software stack support:
+
+| Model tier | Typical SOM | Typical OS |
+|---|---|---|
+| Handheld / single-channel | i.MX6ULL or i.MX6Solo | Linux (headless or framebuffer Qt) |
+| Multi-channel bench-top | i.MX6Dual / i.MX6DualLite | Linux + Qt Embedded |
+| Fully automatic | i.MX6Quad | Android 5 or Linux + Qt |
+
+All variants in the i.MX6 family share pin-compatible SOMs within the same form factor, making it straightforward to drop in a higher-performance module without redesigning the carrier board.
+
+## Software Platform Compatibility
+
+One of the explicit design goals of this solution is that the same application binary — or at minimum the same source tree — runs across all hardware tiers without modification. This is achieved by:
+
+1. **Fixed Linux kernel version** — all SOMs are brought up on the same kernel source. Board-specific differences are handled in device tree overlays rather than by forking the kernel.
+2. **Common toolchain** — a single cross-compiler (e.g., arm-linux-gnueabihf from Linaro or Yocto) produces binaries for every board variant.
+3. **Qt development environment** — the UI layer is written in Qt, which abstracts away the framebuffer or OpenGL ES backend. The same Qt application renders correctly whether the display is a 480×272 resistive touch panel on a handheld or a 1024×600 capacitive panel on a bench-top unit.
+4. **Android 5 option** — for customers who need the Android app ecosystem or a consumer-grade touch UX, the system can alternatively boot AOSP Android 5, which is supportable on i.MX6 via NXP's BSP.
+
+This approach means the application software team works against a single API surface. Hardware configuration differences (number of optical channels, motor parameters, printer presence) are pushed into configuration files or runtime capability queries rather than compile-time ifdefs.
+
+## FPGA Integration for Real-Time Signal Acquisition
+
+The fluorescence signal from a test strip is typically in the microwatt range and rides on top of background scatter and electrical noise. Accurate quantification requires:
+
+- **Synchronous detection** — the excitation source is modulated at a known frequency, and the photodetector output is sampled in phase. Lock-in amplifier techniques implemented in FPGA logic can reject DC offset and broadband noise by several orders of magnitude.
+- **Precise timing** — the interval between exciting the strip and sampling the emission must be controlled to microsecond accuracy to correlate with the assay's kinetic profile.
+- **Multi-channel parallel sampling** — a multi-channel analyzer reads several strips simultaneously; the FPGA can pipeline ADC reads across channels without the latency penalty of sequential OS-level I/O.
+
+The i.MX6 communicates with the FPGA over a high-speed parallel bus or SPI/LVDS link depending on bandwidth requirements, retrieving pre-processed measurement vectors rather than raw ADC streams.
+
+## System Services: Customization and EMC
+
+Beyond the core hardware and software, the solution includes:
+
+- **System customization (裁剪)** — stripping the Linux image down to only the drivers and userspace libraries required by the analyzer. This reduces boot time (critical for POCT instruments that need to be ready within seconds of power-on), flash footprint, and attack surface.
+- **EMC rectification** — medical devices must meet IEC 60601-1-2 electromagnetic compatibility requirements. The solution provider offers board-level EMC review and rework guidance, covering shielding, grounding strategies, and filtering on power rails and signal lines.
+
+Both services directly reduce the customer's development cycle — the EMC and BSP work that typically consumes months of a team's time is handled as part of the platform engagement.
+
+## Summary
+
+The NXP i.MX6 + FPGA architecture gives POCT fluorescence immunoassay analyzer makers a scalable embedded platform: one software stack targets handheld through fully-automatic product tiers by swapping the SOM, while the FPGA handles the deterministic optical acquisition that Linux alone cannot guarantee. The ARM Cortex-M3 slave board covers peripheral management and interlocks, and Qt provides a consistent UI layer across display sizes. For teams entering the POCT market, starting from a validated platform with Linux BSP, EMC support, and software compatibility across hardware tiers substantially compresses the path from prototype to regulatory submission.
+
+![Fluorescence immunoassay analyzer hardware layout](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141129867/01_196215ccdeb4b908bc039e65681acc47.jpeg)

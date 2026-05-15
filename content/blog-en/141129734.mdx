@@ -5,12 +5,47 @@ slug: "141129734"
 tags: ["#ARMDev", "#FPGADev", "#imx6ul"]
 source: "https://blog.csdn.net/yeyuangen/article/details/141129734"
 originalTitle: "基于NXP IMX6Q+FPGA全自动血液分析仪解决方案"
+expanded: true
 ---
+Fully automatic blood cell analyzers — known clinically as complete blood count (CBC) analyzers, hemocytometers, or blood cell counters — are among the most widely deployed instruments in clinical laboratories worldwide. They automate the detection and classification of red blood cells, white blood cells, and platelets within a defined volume of whole blood, replacing the laborious and error-prone manual differential count. Embedding this capability into a compact, cost-effective embedded platform is a recurring design challenge: the system must drive precision analog front-ends, communicate with FPGA-based signal processing logic, render a clinician-friendly GUI, and meet strict medical reliability standards — all simultaneously. This post outlines a solution architecture that tackles exactly that combination using the NXP i.MX6Q application processor paired with an FPGA co-processor.
 
-A fully automatic blood cell analyzer, also known clinically as a CBC analyzer, blood analyzer, or blood cell counter, is a routine clinical laboratory instrument that automatically analyzes the heterogeneity of blood cells within a certain volume of whole blood.
+## Why i.MX6Q for Medical Instrumentation
 
-The NXP IMX6Q core board features a quad-core Cortex-A9 architecture, clocked at 1GHz, and utilizes a 12-layer PCB immersion gold process to ensure optimal electrical performance. It supports multiple display interfaces to accommodate various display screens. Additionally, the CPU includes 3D acceleration and hardware video encoding/decoding, ensuring smooth graphics rendering and video playback for system applications.
+The NXP i.MX6Q (Quad) is a member of NXP's i.MX6 Cortex-A series, integrating four ARM Cortex-A9 cores running at up to 1 GHz. The quad-core configuration is well suited to medical instruments that must do several things in parallel: one core can manage real-time communication with peripheral sub-systems (motor controllers, reagent dispensers, optical detectors), another can run the Linux-based application stack, and headroom remains for background data logging and network connectivity.
 
-![641d2592b1ef6c428e589f601411bfd8.jpg](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141129734/01_b94a1e9d7e3927950ccc92814207e07d.jpeg)
+Key hardware attributes of the i.MX6Q core board used in this solution:
 
-Solution Topology Diagram
+- **Processor**: Quad-core ARM Cortex-A9 @ 1 GHz
+- **PCB construction**: 12-layer immersion gold (ENIG) process — immersion gold provides a flat, oxidation-resistant surface finish that is critical for high-density BGA footprints and improves solderability and long-term contact reliability in environments subject to humidity and chemical reagent vapors
+- **Display interfaces**: Multiple output types supported (LVDS, HDMI, parallel RGB), allowing the same core module to drive everything from a 7-inch resistive touchscreen at the instrument panel to a larger capacitive display for a workstation-class UI
+- **Multimedia acceleration**: On-chip Vivante GC2000 3D GPU and dedicated hardware video encode/decode (H.264), ensuring the GUI renders smoothly even when overlaying real-time cell count histograms, scatter plots, and video from a microscope camera
+
+The ENIG finish and multi-layer stackup are not mere marketing points in this context: medical instruments operate in environments where reagents and cleaning agents can degrade lesser PCB surface treatments, and the signal integrity requirements of a 1 GHz SoC demand controlled impedance on every high-speed trace.
+
+## Role of the FPGA in the Signal Chain
+
+A blood cell analyzer's core detection mechanism — typically impedance-based (Coulter principle), laser light-scattering, or a hybrid of both — generates high-frequency analog pulses that must be digitized, filtered, and classified in real time. An FPGA handles this front-end signal processing work far better than the application processor alone:
+
+- **Deterministic timing**: pulse width and amplitude must be captured within microsecond windows; an FPGA delivers cycle-accurate capture without OS jitter
+- **Parallel processing**: simultaneous acquisition from multiple detector channels (forward scatter, side scatter, fluorescence in multi-parameter analyzers)
+- **Custom digital filtering**: matched filters and threshold logic implemented in programmable logic run at ADC clock rates without CPU involvement
+- **Motor and fluid sequencing**: precision timing for stepper motors driving the sample aspiration and reagent mixing subsystems
+
+The i.MX6Q communicates with the FPGA over a high-speed parallel bus or SPI/QSPI interface, receiving pre-processed cell event data rather than raw ADC streams. This division of labor keeps the Linux application stack responsive while the FPGA maintains real-time guarantees.
+
+## Solution Topology
+
+The solution topology diagram (shown above) illustrates how these subsystems connect. At the center sits the i.MX6Q core board, interfacing outward to:
+
+- The FPGA co-processor handling analog front-end control and real-time signal acquisition
+- The display subsystem (touchscreen panel + GPU-accelerated GUI)
+- Storage (eMMC/SD for the OS and patient result database)
+- Ethernet/Wi-Fi for LIS (Laboratory Information System) connectivity
+- USB for barcode readers, external drives, or firmware update ports
+- Serial interfaces (UART/RS-485) for motor controllers and reagent management boards
+
+## Why This Architecture Scales
+
+The combination of an i.MX6Q running embedded Linux and an FPGA handling deterministic I/O is a proven pattern in mid-to-high-throughput clinical analyzers. Linux provides the ecosystem for a full-featured Qt or web-based GUI, DICOM/HL7 integration libraries, and over-the-air update infrastructure. The FPGA provides the hard real-time layer that Linux cannot guarantee. The 12-layer immersion gold board design ensures the solution can pass EMC and safety certifications (IEC 61010-2-101 for in-vitro diagnostic equipment) without hardware redesigns driven by signal integrity failures.
+
+For OEM manufacturers targeting the 3-part or 5-part differential CBC instrument market, a validated i.MX6Q + FPGA module significantly shortens time-to-certification compared to starting from discrete components, while the multiple display interface options allow the same hardware platform to serve both entry-level clinic instruments and higher-end hospital analyzers.
