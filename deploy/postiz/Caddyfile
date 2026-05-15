@@ -1,0 +1,14 @@
+postiz.sienovo.cn {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:4007
+
+	# Postiz uploads images; allow up to 50MB.
+	request_body {
+		max_size 50MB
+	}
+
+	log {
+		output file /var/log/caddy/postiz.access.log
+		format console
+	}
+}

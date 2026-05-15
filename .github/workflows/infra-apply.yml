@@ -1,0 +1,50 @@
+name: Tofu apply
+
+# Manual-dispatch only. After your PR with tofu-plan output is merged, come
+# here, click "Run workflow", review the inline plan, then approve.
+#
+# Not on push-to-main to avoid silent infrastructure drift triggered by
+# unrelated PRs touching infra/.
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "apply" to confirm'
+        required: true
+        default: ""
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  apply:
+    if: ${{ inputs.confirm == 'apply' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: "1.8.x"
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Tofu init
+        run: tofu init -input=false
+
+      - name: Tofu plan
+        run: tofu plan -no-color -input=false -out=tfplan
+
+      - name: Tofu apply
+        run: tofu apply -input=false -auto-approve tfplan
+
+      - name: Show outputs
+        run: tofu output

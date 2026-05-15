@@ -1,0 +1,66 @@
+name: Tofu plan
+
+# Runs on PRs that touch infra/. Shows the diff as a sticky PR comment so
+# review happens before anything hits AWS.
+
+on:
+  pull_request:
+    paths:
+      - "infra/**"
+      - ".github/workflows/infra-*.yml"
+
+permissions:
+  id-token: write       # required for OIDC
+  contents: read
+  pull-requests: write  # for sticky comment
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: "1.8.x"
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Tofu init
+        run: tofu init -input=false
+
+      - name: Tofu fmt check
+        run: tofu fmt -check -recursive
+
+      - name: Tofu validate
+        run: tofu validate
+
+      - name: Tofu plan
+        id: plan
+        run: |
+          tofu plan -no-color -input=false -out=tfplan 2>&1 | tee plan.txt
+          {
+            echo "plan<<EOF"
+            tail -c 60000 plan.txt
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: tofu-plan
+          message: |
+            ### 🔎 Tofu plan
+
+            <details><summary>output</summary>
+
+            ```hcl
+            ${{ steps.plan.outputs.plan }}
+            ```
+
+            </details>
