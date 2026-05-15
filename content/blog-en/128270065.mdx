@@ -5,106 +5,67 @@ slug: "128270065"
 tags: ["#Robotics", "#5G"]
 source: "https://blog.csdn.net/yeyuangen/article/details/128270065"
 originalTitle: "基于Intel® Core™ i5 机器人控制器"
+expanded: true
 ---
+The XM-6815 is a compact, wall-mountable embedded industrial PC from Sienovo, built on Intel's 11th Generation Core i-series platform. Designed for demanding industrial environments, it targets applications such as robotic arm controllers, machine vision processing nodes, and AGV (Automated Guided Vehicle) control units — use cases that require a combination of real-time serial communication, multi-network isolation, and reliable 24/7 operation inside control cabinets or on mounting rails.
 
-The XM-6815 is a wall-mounted PC based on the Intel 11th Gen Core i-series platform CPU, featuring an expandable memory slot, 1× mSATA, 3× Gigabit Ethernet ports, 6× COM ports, 4× USB 3.0, and 4× USB 2.0. This product is suitable for wall-mounted applications such as industrial robot controllers and machine vision controllers.
+## Platform and Processing
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128270065/01_e19cf08faef8482b359e7140ac13ec76.png)
+At the heart of the XM-6815 are two CPU options from Intel's Tiger Lake-H embedded product line:
 
-**Product Specifications**
+- **Intel® Core™ i3-1115G4E** — a dual-core, four-thread processor with a base clock of 2.2 GHz (burst to 4.1 GHz), designed for sustained industrial workloads with extended availability guarantees.
+- **Intel® Core™ i5-1145G7E** — a quad-core, eight-thread variant clocking up to 4.1 GHz, adding Intel® Iris® Xe Graphics for light machine vision inference or multi-display scenarios.
 
-Product Type
+Both are part of Intel's "E" (embedded) SKU family, which carries a seven-year production lifecycle — an important factor for industrial OEMs who cannot afford mid-cycle platform changes in certified machinery.
 
-Intel 11th Gen Core i-series Platform Embedded Industrial PC
+The system ships with DDR4-SODIMM memory supporting up to 32 GB, providing ample headroom for running a real-time OS alongside a full vision pipeline or a robot middleware stack such as ROS 2.
 
-CPU
+## Connectivity for Industrial Networking
 
-Intel® Core™ i3-1115G4E
+One of the XM-6815's standout features for robotics applications is its **three independent Gigabit Ethernet ports**, each driven by the Intel i211 NIC chipset. This allows system integrators to physically separate:
 
-Intel® Core™ i5-1145G7E
+1. **Robot control network** — low-latency, deterministic communication to servo drives or safety PLCs via EtherCAT or PROFINET.
+2. **Machine vision network** — dedicated bandwidth to GigE Vision cameras without contention.
+3. **Enterprise / 5G uplink** — connectivity to factory MES, SCADA, or a 5G CPE for cloud telemetry.
 
-Memory
+Network isolation at the hardware level is far preferable to VLAN-only solutions when safety-critical protocols share the same physical medium.
 
-DDR4-SODIMM memory, up to 32 GB
+For serial communication — still ubiquitous in industrial fieldbus and legacy sensor ecosystems — the XM-6815 provides **six COM ports**, with two configurable as RS-485 for half-duplex multi-drop bus topologies commonly found in conveyor systems and collaborative robot bases.
 
-BIOS
+## USB and Storage
 
-AMI UEFI
+The **4× USB 3.0 + 4× USB 2.0** complement makes it straightforward to connect USB 3D cameras, depth sensors, barcode readers, and HMI peripherals simultaneously. The dual-storage configuration — a full-size **mSATA slot** alongside a **SATA 3.0 bay** for a 2.5" SSD or HDD — supports split-drive deployments: OS and real-time control software on the mSATA SSD, with logging, map data, or vision model weights on the larger SATA drive.
 
-Ethernet
+## Expansion and Wireless
 
-3× RJ45 Gigabit Ethernet, i211 chip
+The onboard **M.2 A/E Key slot** accepts standard Wi-Fi/Bluetooth combo modules (e.g., Intel AX200 or AX210 series), and the two antenna pass-throughs on the chassis allow external dipole or panel antennas to be routed for robust signal in metal enclosures. This is particularly relevant for 5G-enabled robot cells where a Mini PCIe or M.2 5G module can be substituted for the Wi-Fi card, turning the XM-6815 into a 5G-connected edge node without additional hardware.
 
-USB
+## Thermal Design and Environmental Ratings
 
-4× USB 3.0
+Thermal management is tiered by TDP:
 
-4× USB 2.0
+- The **i3-1115G4E uses passive cooling** (fanless heatsink), making it suitable for sealed, dusty, or vibration-heavy environments where fan bearings would degrade over time.
+- The **i5-1145G7E uses active fan cooling** to handle its higher sustained TDP under full multi-core load.
 
-Storage
+The operating range of **-20 °C to 65 °C** covers most factory floor and outdoor control cabinet scenarios, while the storage range of **-40 °C to 85 °C** accommodates logistics and cold-chain environments.
 
-1× SSD or HDD, SATA 3.0
+## Display and Audio
 
-1× Full-size mSATA
+Dual display output — **1× VGA and 1× HDMI** — allows simultaneous connection of an operator HMI panel (often legacy VGA on older machinery) and a modern HDMI monitor for engineering or diagnostic use. The 3.5 mm audio jack is useful when audible alarms or voice prompts are required at the robot cell.
 
-Display Interface
+## Power and Mounting
 
-1× VGA
+The **12 V DC input via a 3-pin terminal block** aligns with standard DIN rail power supplies commonly found inside control cabinets (e.g., 24 V systems stepped down via a DC-DC converter). The front-panel power switch, combined with HDD and PWR indicator LEDs, provides basic operator feedback without requiring a full HMI.
 
-1× HDMI
+Wall-mount and desktop orientations are both supported within the compact **163.70 mm × 125.1 mm × 75 mm** footprint, making it easy to install inside a standard 19" rack enclosure or directly on a robot arm's base plate bracket.
 
-Internal Expansion
+## Software Ecosystem
 
-1× A/E Key M.2 interface, supports Wi-Fi
+The XM-6815 supports **Linux and Windows 10**, giving integrators flexibility:
 
-Power Switch
+- On Linux, it runs ROS 2 Humble or Jazzy natively, and can be configured with the `PREEMPT_RT` kernel patch for soft real-time performance.
+- On Windows 10, it supports Windows-based HMI frameworks and vendor SDKs that require a Win32 environment (common in legacy machine vision toolkits from Cognex, Halcon, or MVTec).
 
-Front Panel
+## Summary
 
-Audio
-
-1× Audio-out 3.5mm jack
-
-Antenna Holes
-
-2
-
-Cooling Method
-
-i3 processor passive cooling, i5 processor active fan cooling
-
-Indicators
-
-HDD LED, PWR LED
-
-Watchdog
-
-None
-
-Serial Ports
-
-6× Serial ports (2 optional RS485) terminal blocks
-
-Power Input
-
-Supports 12V input, 3-pin terminal block
-
-Mounting Method
-
-Wall-mount, Desktop
-
-Operating Temperature
-
--20~65℃, 10%~90% RH, non-condensing
-
-Storage Temperature
-
--40~85℃, 5%~95% RH, non-condensing
-
-Dimensions
-
-163.70mm×125.1mm×75mm
-
-OS
-
-Linux, Windows 10
+The XM-6815 occupies a practical niche in industrial automation: it is not a high-end workstation, but a purpose-built, thermally and mechanically hardened controller node with the I/O density that robotic and vision applications demand — multiple isolated Ethernet ports, rich serial I/O, dual storage, and an expandable wireless slot — all within a compact wall-mount form factor rated for real factory conditions.

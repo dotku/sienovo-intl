@@ -5,21 +5,70 @@ slug: "129842333"
 tags: ["#chatgpt", "#Robotics"]
 source: "https://blog.csdn.net/yeyuangen/article/details/129842333"
 originalTitle: "ChatGPT +工业机器人/自动驾驶控制器的一些尝试"
+expanded: true
 ---
-
-> ChatGPT's capabilities have now extended to the field of robotics, allowing intuitive control via language over various platforms such as robotic arms, drones, and home assistant robots. Will this change the future of human-robot interaction?
-
-Have you ever imagined telling a robot what to do in your own words, just like speaking to a person?
-
-For example, simply telling your home assistant robot 'Please heat up my lunch' and it can then find the microwave itself. Pretty amazing, right?
-
-Although language is the most intuitive way for humans to express intentions, for a long time, people have heavily relied on writing code to control robots. However, with the advent of ChatGPT, this situation is about to change.
-
-In a recent study, the Microsoft team explored how to use OpenAI's new AI language model, ChatGPT, to enable natural human-robot interaction.
-
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129842333/01_7c694de8ecba75634168aafdb0cac479.png)
+ChatGPT is a language model trained on a vast corpus of text and human interactions, enabling it to generate coherent, grammatically correct responses across a wide range of prompts. But can it go beyond text and reason about the physical world well enough to help robots complete real tasks? That is exactly what a Microsoft Research team set out to answer in a 2023 paper exploring how ChatGPT can serve as a natural-language interface for robotic platforms—including robotic arms, drones, and home assistant robots—without requiring users to write a single line of code.
 
 Paper link:
 https://www.microsoft.com/en-us/research/uploads/prod/2023/02/ChatGPT___Robotics.pdf
 
-ChatGPT is a language model trained on a vast corpus of
+## The Problem with Today's Robot Programming Workflow
+
+The conventional robot programming pipeline starts with an engineer or highly skilled technical user who translates a task requirement into system code. That engineer stays in the loop throughout, continuously writing new code and specifications to correct the robot's behavior whenever something goes wrong. The process is slow (low-level code must be written for every new scenario), expensive (it demands deep robotics knowledge), and inefficient (multiple correction iterations are the norm rather than the exception).
+
+ChatGPT opens the door to a fundamentally different paradigm. Rather than requiring a programmer in the loop, it allows non-technical users to participate directly—monitoring robot performance and providing high-level natural-language feedback to the large language model (LLM). The robot's behavior is guided not by hand-crafted code but by the model's ability to translate intent into executable instructions in real time.
+
+## Design Principles: How to Actually Make This Work
+
+Prompting an LLM for robotics is, as the researchers put it, a highly empirical science. Through extensive trial and error, the Microsoft team established a set of design principles for writing effective prompts in robotic contexts:
+
+**1. Define a high-level API library first.**
+Before giving the model any task, the team defined a set of descriptively named robot API functions—things like `move_forward(distance)`, `detect_object(label)`, or `get_distance_to_obstacle()`. These functions map to lower-level implementations in the robot's existing control stack or perception pipeline. Using descriptive names is critical: ChatGPT infers a function's behavior from its name and signature, so `pick_up_object()` works far better than `action_3()`.
+
+**2. Write a structured text prompt that constrains the solution space.**
+The prompt describes the task goal, explicitly lists which API functions are available, and may include constraints (e.g., "do not exceed 5 m altitude") or formatting instructions (e.g., "output Python code only, using no external libraries"). The more context the prompt provides about the physical environment and the robot's capabilities, the more useful the generated code tends to be.
+
+**3. Keep a human in the loop for evaluation and refinement.**
+A user reviews ChatGPT's code output—either by direct inspection or by running it inside a simulator—before anything touches real hardware. If the output is incorrect or unsafe, the user provides natural-language feedback and ChatGPT revises. Once the user is satisfied, the code is deployed to the robot.
+
+This human-in-the-loop step is not a weakness of the approach; it is an intentional safety layer. The researchers are explicit that ChatGPT's output should never be deployed directly to a robot without careful analysis.
+
+## What ChatGPT Can Actually Do: Experiments
+
+### Zero-Shot Task Planning with Drones
+
+The team used ChatGPT as a natural-language interface to control a real drone. When a user's instruction was ambiguous, ChatGPT asked clarifying questions before generating code—exactly the behavior you would want from a collaborator. It was able to produce complex flight patterns (such as a zigzag inspection sweep) from a plain-English description, and it even learned to take a selfie when asked.
+
+The same approach was tested in a simulated industrial inspection scenario using Microsoft AirSim. ChatGPT successfully parsed high-level user intent and geometric cues (e.g., "fly along the left wall of the warehouse") and translated them into accurate drone control commands.
+
+### User-in-the-Loop: Building Complex Skills Through Conversation
+
+For robotic arm manipulation, the team used iterative conversational feedback to teach ChatGPT how to compose the initially provided API calls into higher-order functions—essentially auto-programming new capabilities on the fly. Using a curriculum-based strategy, the model chained learned skills together logically to perform multi-step operations such as stacking blocks.
+
+A particularly striking demonstration involved building the Microsoft logo out of physical wooden blocks. ChatGPT recalled the logo from its internal knowledge, "drew" it as SVG code, and then reasoned about which available robot motions could replicate that shape in the physical world—bridging the textual and physical domains in a single coherent chain of thought.
+
+For drone navigation, the researchers asked ChatGPT to write an obstacle-avoidance algorithm given only the information that the drone had a forward-facing distance sensor. The model immediately produced most of the critical building blocks of such an algorithm. Subsequent refinement required only natural-language feedback from the human operator, with ChatGPT making localized code edits in response—no re-prompting from scratch.
+
+### Perception–Action Loops
+
+Any useful robot must be able to perceive its environment before acting on it. To test whether ChatGPT understood this concept, the researchers gave it object-detection and object-distance API functions and asked it to explore an environment until it found a user-specified object. The generated code correctly implemented the perceive-then-act loop.
+
+In a further experiment, instead of having ChatGPT generate a looping control script, the researchers fed it a text description of the camera image at each conversational step and asked it to decide in real time where the robot should move next. The model successfully steered the robot to the target object through step-by-step conversational guidance—a compelling demonstration of online, sensor-driven decision making via natural language.
+
+## PromptCraft: An Open Collaboration Platform
+
+Effective prompt engineering is central to all of this, yet the field lacks standardized, accessible resources. To address that gap, the Microsoft team introduced **PromptCraft**, a collaborative open-source platform where researchers and practitioners can share prompt strategies and example conversations for different robot categories. All prompts and conversations used in the paper were published there.
+
+Beyond prompt sharing, the researchers also released an **AirSim environment integrated with ChatGPT**, allowing anyone to experiment with these ideas in simulation before considering any real-world deployment.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129842333/09_1557a6f74076395a5313c20edea71217.png)
+
+*The ChatGPT–AirSim interface.*
+
+## What This Means for Industrial Robotics
+
+The Microsoft team frames this research as the beginning of a shift in how robotic systems are developed. Language-based robot control has the potential to bring robotics out of specialized engineering environments and into the hands of everyday users—a significant step for industrial settings where retraining a robot for a new task currently requires expensive engineering time.
+
+Two important caveats are worth underscoring. First, simulation before deployment is not optional—it is the safeguard that makes the whole approach responsible. Second, what the paper demonstrates represents only a small slice of what becomes possible when LLMs and robotics intersect. The researchers explicitly frame it as an invitation to the broader research community to explore this space further.
+
+For engineers at the edge of industrial AI—working with embedded controllers, autonomous vehicles, or collaborative robots—this research signals that natural-language interfaces are no longer science fiction. The scaffolding (structured APIs, prompt discipline, simulation-gated deployment) is concrete enough to build on today.

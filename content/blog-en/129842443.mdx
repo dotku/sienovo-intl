@@ -6,17 +6,93 @@ tags: ["#AI", "#AutonomousDriving", "#chatgpt", "#LLM"]
 source: "https://blog.csdn.net/yeyuangen/article/details/129842443"
 originalTitle: "大模型多模态Chatgpt+自动驾驶控制器设计方案"
 brandBackfilled: true
+expanded: true
 ---
-/Introduction/
+## Decision-Making Challenges in Autonomous Driving
 
-Recently, the tech community has been abuzz with Microsoft's ChatGPT. As a chatbot launched by AI company OpenAI in November 2022, it can engage in conversations by learning and understanding human language, interact based on chat context, and even perform tasks such as writing emails, video scripts, copy, translations, and code. Its intelligence far surpasses all current human-computer interaction models. The sensation caused by ChatGPT has also put unprecedented pressure on major tech companies like Google and Baidu, whose primary business is search. They have since launched their own ChatGPT-like models, but their actual performance remains questionable.
+In the autonomous driving industry, decision-making and planning serve as the brain of the entire system — a core algorithmic module that is central to both functional realization and safety assurance. The majority of companies implementing assisted or autonomous driving today rely on rule-based approaches. Rule-based systems offer a key advantage: the decision logic is traceable. When something goes wrong, engineers can follow the rule chain back to the source of the failure.
 
-So, if text learning can reach such a level of intelligence, what can ChatGPT bring to the autonomous driving industry? Can it provide a breakthrough for the decision-making challenges that have plagued practitioners for years?
+Reinforcement learning (RL), by contrast, carries a well-known structural weakness: when the model produces a bad output, root-cause analysis is extremely difficult. The only viable response is continued iteration — collecting more edge-case data, retraining, and hoping the next model version handles the scenario correctly. Worse, RL requires large-scale training and a robust evaluation framework. Without a reliable way to score model outputs, there is no signal for improvement, and in extreme corner cases the model may produce dangerous decisions.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129842443/01_82fd33815f83d4be904aacf2fad9a0fe.png)
+These combined limitations — the brittleness of rule-based systems against long-tail edge cases, and the opacity and evaluation difficulty of reinforcement learning — are widely cited as the fundamental reason why L4 and L5 autonomous driving has remained out of reach.
 
-**Decision-Making Challenges in Autonomous Driving**
+## What ChatGPT Brings to Autonomous Driving
 
-In the autonomous driving industry, decision-making and planning, as the brain of the entire system, are core algorithmic modules. They play a crucial role in the realization of autonomous driving functions and the assurance of
+To understand what ChatGPT can contribute, it helps to be precise about what it is technically. ChatGPT is a natural language processing tool trained on the GPT-3.5 architecture using hundreds of billions of parameters. Its core neural architecture is the Transformer, a relatively simple encoder-decoder structure that can be stacked at near-arbitrary depth to form large-scale pretrained language models. The Transformer has strong sequential data processing capability — it handles contextual dependencies well — which is why it generalizes across tasks like fill-in-the-blank, sentence generation, translation, and summarization.
 
-Sienovo provides a ChatGPT + autonomous driving demo solution.
+Critically, ChatGPT also incorporates **Reinforcement Learning from Human Feedback (RLHF)**, a training methodology that uses human-labeled preference data to align model outputs with human expectations while minimizing harmful, misleading, or biased responses. This combination — Transformer architecture + large-scale pretraining + RLHF — is the formula that produced ChatGPT's notable capabilities.
+
+The connection to autonomous driving becomes clear when you recognize that RLHF addresses exactly the evaluation bottleneck that makes RL-based planning so difficult. ChatGPT proves that a model can learn to assess the quality of outputs well enough to self-correct — at scale, without manually labeling every example.
+
+## Mapping ChatGPT's Approach onto Autonomous Driving
+
+### Imitation Learning as the Foundation
+
+One class of autonomous driving decision algorithms already follows a related philosophy: **imitation learning (IL)**. IL is a supervised learning approach where a model is trained to replicate expert behavior. Its earliest application in autonomous driving dates to ALVINN in 1989, which mapped sensor data directly to steering commands for rural road following. The core idea is that if you expose the model to enough examples of skilled human driving across diverse scenarios, it learns generalizable strategies rather than brittle hand-coded rules.
+
+The ChatGPT analogy is direct: just as ChatGPT learns language patterns from massive corpora of human-generated text, an IL-based driving model learns decision patterns from massive corpora of human driving data.
+
+### Using RLHF to Scale Beyond Manual Annotation
+
+Manual annotation is the practical bottleneck of imitation learning at scale. Labeling millions of driving clips for training is slow, expensive, and inconsistent. This is where the ChatGPT training methodology offers a concrete path forward.
+
+ChatGPT's RLHF pipeline works in three stages:
+1. **Supervised fine-tuning**: human trainers provide example prompt-response pairs to teach baseline behavior.
+2. **Preference model training**: human raters rank multiple model outputs for the same prompt, and a reward model is trained on these rankings.
+3. **Policy optimization**: the language model is updated using PPO (Proximal Policy Optimization) to maximize the reward signal from the preference model.
+
+Applied to autonomous driving, the equivalent pipeline looks like this:
+
+1. Train an initial driving policy on large-scale human driving demonstrations (the IL stage).
+2. Train a reward model on human preference signals — including **takeover events**, where a human driver intervened to correct the autonomous system. Each takeover is a direct signal that the model's decision was suboptimal.
+3. Refine the driving policy using the reward model's feedback, without requiring manual labeling of every new scenario.
+
+Takeover data is particularly valuable because it is already being collected by deployed test fleets. Every intervention is simultaneously a negative sample (the autonomous decision that was overridden) and a positive sample (the human correction that replaced it). Both signals can be used to improve the reward model.
+
+ChatGPT also demonstrates that AI can be trained to evaluate AI output quality — the RLAIF (Reinforcement Learning from AI Feedback) direction, where a "constitution" of principles replaces much of the manual annotation burden. This trajectory suggests that autonomous driving evaluation pipelines could eventually reduce their dependence on human raters as the reward model matures.
+
+## Technical Comparison: ChatGPT vs. Autonomous Driving ML Systems
+
+The Chinese source provides a detailed side-by-side comparison worth examining carefully.
+
+| Dimension | ChatGPT (RLHF) | Autonomous Driving (ML Planning) |
+|---|---|---|
+| **Architecture** | Transformer + iteratively updated reward model (RM) and policy model | VectorNet-inspired architecture; PointNet encodes per-agent/map-element vectors; Transformer aggregates into global embeddings; kinematic decoder produces actions |
+| **Supervised stage** | Human trainers write expected responses to sampled prompts; supervised fine-tuning of a pretrained model | Imitation learning from expert driving demonstrations; minimize loss between model-predicted trajectory and ground-truth trajectory |
+| **Preference model** | Human raters rank candidate responses; reward model trained on preference ordering | Driving policy evaluated against driver feedback; perturbation-augmented training reduces covariate shift; kinematic decoder penalizes jerk and curvature |
+| **Reinforcement stage** | PPO algorithm initialized from supervised model, maximizes reward model feedback | Fallback layer evaluates trajectories for dynamic feasibility, legality, and collision probability before execution |
+| **Error tolerance** | Moderate — incorrect answers are undesirable but recoverable | Near-zero — a single incorrect control decision can cause an irreversible safety-critical failure |
+
+The most important structural difference is **error tolerance**. ChatGPT operates in a domain where a wrong answer is a nuisance. Autonomous driving operates in a domain where functional safety and cybersecurity standards (ISO 26262, SOTIF) demand near-zero fault rates. This asymmetry means the reward model for autonomous driving cannot simply be trained to maximize human preference the way a language model can — it must incorporate hard constraints around collision avoidance, traffic law compliance, and dynamic feasibility.
+
+## Perception and the Transformer Connection
+
+The ChatGPT analysis also has implications for the perception stack. Applying Transformer-based architectures to autonomous driving perception means the vision model must understand full contextual relationships across a scene — not just detect individual objects, but reason about their interactions. This requires training data that is comprehensive, diverse, and well-distributed across rare scenarios.
+
+The data pipeline that results mirrors ChatGPT's training approach:
+1. Collect large-scale unlabeled driving data.
+2. Train a general perception model using self-supervised or weakly supervised methods.
+3. Use annotation (human or machine, depending on quality requirements) to select and validate the model's best outputs.
+
+This data-loop approach — collect on vehicle or in cloud, process, feed back into training — is already standard practice for leading autonomous driving programs. ChatGPT's success validates the underlying principle: scale and feedback quality matter more than the elegance of the initial model design.
+
+## Challenges and Limitations
+
+Despite the conceptual alignment, applying ChatGPT's approach to autonomous driving introduces practical challenges beyond the error-tolerance gap.
+
+**Data privacy** is the most immediate concern. Training a driving model on fleet-scale data — including geolocation, passenger behavior, and road-level mapping — raises significant privacy questions. Several major cloud providers have already warned enterprise customers against sharing sensitive operational data with large language model APIs, and the same caution applies to vehicle data pipelines. Autonomous driving telemetry is especially sensitive because it directly relates to passenger safety and mobility patterns.
+
+**Computational and infrastructure demands** are also non-trivial. The scale of training required to reach ChatGPT-level generalization is substantial, and reproducing that in the driving domain requires not just data volume but high-quality expert demonstrations across a wide distribution of scenarios, including the rare long-tail events that most matter for safety.
+
+**Domain shift** between simulation and real-world deployment remains unsolved. ChatGPT's training distribution (internet text) is dense and relatively stationary. A driving model's training distribution must cover an open-world environment that changes continuously with geography, weather, traffic culture, and regulation.
+
+## The Path Forward
+
+ChatGPT's release offered the autonomous driving industry a concrete proof of concept: RLHF at scale works. The combination of large pretrained models, human preference signals, and iterative reward model refinement can produce behavior that generalizes well and self-corrects reliably. The technical roadmap for applying this to autonomous driving is coherent:
+
+- Use fleet takeover data as a structured source of human feedback.
+- Train a reward model on that feedback, separate from the driving policy.
+- Iterate the driving policy against the reward model using constrained RL that respects safety invariants.
+- Progressively replace manual annotation with AI-generated labels as the reward model matures (the RLAIF path).
+
+The bottleneck is not conceptual — it is the gap in error tolerance between language generation and vehicle control, and the regulatory and safety frameworks that must govern any deployment. Closing that gap is the central engineering challenge for the next generation of autonomous driving decision systems.

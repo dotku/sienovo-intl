@@ -5,14 +5,124 @@ slug: "129054299"
 tags: ["#HardwareArchitecture", "#PrecisionMotionController", "#DSP+FPGA"]
 source: "https://blog.csdn.net/yeyuangen/article/details/129054299"
 originalTitle: "基于 VPX 总线的工件台运动控制系统研究与开发-DSP+FPGA硬件架构（一）"
+expanded: true
 ---
+As one of the core units of a lithography machine, the ultra-precision wafer stage is responsible for fast scanning, wafer loading and unloading, precise positioning, leveling, and focusing. Achieving sub-nanometer repeatability across 44 motor axes — while closing servo loops in 100 µs — demands a control architecture that pushes the limits of both bus bandwidth and processor throughput. This post documents the hardware architecture of a new VPX-bus-based wafer stage motion control system designed to replace a legacy VME-based solution, covering the system requirements analysis, board-level hardware selection, and the RapidIO interconnect topology that ties everything together.
 
-As one of the core units of a lithography machine, the ultra-precision wafer stage is mainly responsible for achieving functions such as fast scanning, wafer loading/unloading, precise positioning, leveling, and focusing. Currently, most mature solutions adopt a VME parallel bus architecture to build ultra-precision wafer stage control systems. However, as system performance requirements increase, the VME bus and its corresponding processors can no longer meet the demands, thus necessitating the design of a new type of wafer stage control system.
+## Why the VME Architecture Hit Its Limit
 
-2.1 System Design Requirements Analysis
+Mature lithography wafer stage controllers have long relied on a VME parallel bus backbone. In the system under study, the motion control side consisted of multiple Motion Control cards (MC cards), a single-board computer, and a Master Bus Controller (MBC) with fiber interfaces — all housed in a VME chassis. MC cards exchanged real-time servo data over a custom non-multiplexed synchronous Position Data Bus (PDB) wired through the VME backplane's P2 connector.
 
-2.1.1 Wafer Stage System Overview
+Four specific bottlenecks drove the decision to redesign:
 
-As shown in Figure 2-1, the wafer stage of a step-and-scan projection lithography machine is mainly composed of three major parts: the measurement wafer stage, the exposure wafer stage, and the reticle stage. A projection system is located between the wafer stage and the reticle stage. During the exposure process, the control system needs to perform high-precision position measurements of the wafer stage and reticle stage using laser interferometers, and control and adjust multiple degrees of freedom to achieve precise positioning motion of the wafer stage.
+**1. Insufficient bus bandwidth.** The PDB bus offered a theoretical 320 Mbps. With servo data and status information for all axes estimated between 800 B and 4 KB per 200 µs interrupt cycle, the bandwidth margin was inadequate for any planned reduction in servo period.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129054299/01_28348
+**2. Processor clock rate.** Each MC card integrated a single-core TMS320C6713b running at 300 MHz. Modern DSPs exceed 1 GHz, meaning a processor upgrade alone could meaningfully shorten algorithm execution time.
+
+**3. Fiber interface scarcity.** Because each MC card had a limited number of fiber ports, a single card could not collect all sensor feedback for the axes it was responsible for. This forced two workarounds: feedback signals that "belonged" to one MC had to be collected by a neighboring MC and forwarded over the PDB, and motor control outputs from one MC had to be relayed through another MC's fiber port to reach the drive amplifier. The result was an unnecessarily convoluted data flow with extra latency at every hop.
+
+**4. Single-core parallel scaling.** Adding compute capacity in the VME world meant either stacking more single-core DSP chips on a board (increasing board area and straining I/O) or inserting additional boards (filling chassis slots). Neither path composed well with multi-core DSPs, which had become the more economical route to parallel throughput.
+
+## The Scale of the Problem: 44 Axes, Hundreds of Sensors
+
+To appreciate why bandwidth and compute matter so much, consider the full axis count. The wafer stage system alone — measurement wafer stage plus exposure wafer stage — requires 32 drive axes:
+
+- **Coarse stage (X/Y/Rz):** 4 coil arrays, each with 3 coil units
+- **Fine stage:** 2 X-axis moving-iron voice coil motors, 2 Y-axis voice coil motors, 4 Z-axis voice coil motors
+- **Balance mass:** 4 anti-drift motors per stage
+
+The reticle stage adds another 12 axes (2 X + 2 Y + 4 Z voice coil motors on the fine stage, 2 Y linear motors on the coarse stage, 2 anti-drift motors on the balance mass), bringing the grand total to **44 drive axes**.
+
+The measurement system is equally dense. On the wafer stage side alone:
+- 18-axis laser interferometer for fine-stage absolute position feedback
+- 3 PSD sensors for fine-stage / coarse-stage relative position local closed-loop
+- 2 PSD sensors for coarse-stage / cable stage relative position
+- 2 grating encoders for cable stage / balance mass relative position
+- 4 absolute grating encoders for balance mass position
+- 8 electrical limit signals
+
+The reticle stage adds a 9-axis laser interferometer, 8 eddy-current sensors, 4 absolute encoders, and 8 electrical limit signals. Every one of these signals must reach the motion controller within a single servo cycle.
+
+The target servo period for the new system was **100 µs** — half the 200 µs period of the VME system.
+
+## Processor Selection: Why TMS320C6678
+
+The MC card is the computational heart of the system. The design team evaluated five processor families:
+
+| Platform | Assessment |
+|---|---|
+| MCU | Suitable only for low-end applications |
+| ARM | Strong OS and task management; insufficient floating-point throughput for dense servo math |
+| FPGA | Highest parallelism, but long compilation cycles and complex development; retained as co-processor only |
+| PowerPC (single-core, as used by ASML) | High cost, technology access restrictions, and measured RapidIO communication latency exceeded system requirements |
+| Multi-core DSP | Best balance of raw data throughput, system density, development portability from single-core predecessors |
+
+The selected processor is TI's **TMS320C6678** — an 8-core fixed/floating-point DSP with a maximum clock of 1.25 GHz (conservatively operated at 1 GHz in this design). Each core delivers up to 16 GFLOPS, giving a single C6678 128 GFLOPS peak — a 4× frequency improvement over the C6713b, with the addition of true hardware parallelism across 8 cores.
+
+## Motion Control Card: MC\_4DSP\_VPX
+
+The MC\_4DSP\_VPX is a 6U VPX board. To provide compute headroom for future subsystem integration (alignment, exposure control), the board integrates **4× TMS320C6678** plus **1× Kintex-7 (K7) FPGA**. Key specifications:
+
+- Each C6678 supports up to 4 GB DDR3 external memory; total on-board capacity reaches **16 GB**
+- Two C6678 chips form one processing node, interconnected via **HyperLink** (TI's high-speed chip-to-chip serial interface)
+- Each C6678 connects to an on-board **RapidIO switch** via one ×4 RapidIO link; the K7 FPGA connects via two ×4 RapidIO links
+- The RapidIO switch exposes 4× ×4 RapidIO links to the VPX backplane P1 connector, enabling multi-board data exchange across the chassis fabric
+
+The FPGA acts as co-processor, handling signal reception, transmission, and interface protocol management — tasks where its parallel logic resources outperform a general-purpose DSP core.
+
+## Fiber Interface Card: FC\_FPGA\_VPX
+
+Separating the fiber interface function from the compute function directly solves the port-scarcity problem identified in the VME system. All fiber connectivity is consolidated onto a single dedicated 6U VPX board, the **FC\_FPGA\_VPX**, managed by one K7 FPGA. Interface resources include:
+
+- **Front panel:** 12 protocol-configurable fiber ports in SFP form factor, each with LED link status indicators
+- **Front panel:** 1× synchronization timing output, 1× synchronization timing input, both via RJ45
+- **P1 backplane:** K7 FPGA provides 4× ×4 GTX transceivers
+- **P2 backplane:** 2× ×1 PCIe
+- **P4 backplane:** Multiple LVDS differential pairs, 2× Gigabit Ethernet
+- **P5 backplane:** Multiple LVDS differential pairs, user-defined
+- **P6 backplane:** System synchronization signals and a 32-bit custom bus
+
+With all 12 fiber ports on one card, any MC card can issue motor commands or receive sensor data through the FC card over the RapidIO fabric — eliminating the relay hops that plagued the VME topology.
+
+## Host Controller Card: HOST\_CPU\_VPX
+
+The subsystem-layer master controller is the **HOST\_CPU\_VPX**, based on a high-performance PowerPC processor. Key resources:
+
+- 8 GB DDR3 at 1600 MHz
+- 256 GB SSD
+- 1× PCIe-to-RapidIO switch
+- VxWorks 6.8 real-time OS
+- Front panel: 3× USB 2.0, 2× Gigabit Ethernet (RJ45), 1× VGA
+- Backplane: 2× ×4 RapidIO to the system fabric
+
+The host card operates in master mode over the VPX fabric, handling command reception from the supervisory PC over Ethernet, command parsing, task scheduling, and data upload.
+
+## VPX Chassis and Backplane Topology
+
+The laboratory chassis is a **6U ruggedized VPX enclosure with 6 slots**: 1 power slot and 5 processing module slots. Slot 3 is the master slot (host controller); slots 1, 2, 4, and 5 are load slots (MC and FC cards).
+
+The backplane connector assignments:
+
+- **P0:** +12 V and +5 V primary power, system management and reset signals
+- **P1:** 4× ×4 RapidIO links arranged in a **full-mesh** topology between all slots
+- **P4:** 2× Gigabit Ethernet per load slot
+- **P4/P5:** Configurable as 4× ×4 TS201-style LINK interfaces or 32 high-speed LVDS pairs
+- **P6:** 32-bit custom bus and 23-bit synchronous single-ended timing bus
+
+The full-mesh RapidIO topology on P1 is the critical design decision. Unlike the VME PDB, which was a shared bus with fixed 320 Mbps aggregate bandwidth, the RapidIO switch-based full mesh gives each board pair a dedicated ×4 link. At 3.125 Gbaud per lane, a ×4 link delivers approximately 10 Gbps raw (roughly 1 GB/s effective), an order-of-magnitude increase over the PDB, and the bandwidth scales with the number of boards rather than being divided among them.
+
+## Five-Layer Control Hierarchy
+
+The full wafer stage system is organized into five layers:
+
+1. **Supervisory layer** — host PC providing HMI, test diagnostics, data logging, and cross-subsystem coordination
+2. **Subsystem layer** — HOST\_CPU\_VPX (PowerPC) managing the motion control subsystem; communicates with the supervisory PC over Gigabit Ethernet
+3. **Motion control layer** — MC\_4DSP\_VPX cards performing closed-loop servo computation; FC\_FPGA\_VPX handling fiber data routing; laser counter cards for synchronized interferometer data acquisition
+4. **I/O interface layer** — power amplifier cards (drives) receiving motion commands via fiber and converting them to motor currents; sensor interface cards aggregating sensor signals and forwarding them upward over fiber
+5. **Sensor/actuator layer** — physical sensors (laser interferometers, PSDs, encoders, eddy-current probes) and motors
+
+The laser dual-frequency interferometer signal processing, which requires specialized hardware, is retained on a legacy VME subsystem on the measurement side and connected to the VPX motion control side via high-speed fiber — preserving prior investment while the compute-intensive servo layer is upgraded.
+
+## What This Architecture Achieves
+
+By moving from VME+PDB to VPX+RapidIO, replacing single-core 300 MHz DSPs with quad-C6678 boards running at 1 GHz with 8 cores each, and consolidating all 12 fiber interfaces onto a dedicated FC card, the new system resolves every bottleneck identified in the VME design. The target outcome is a servo period of **100 µs** — sufficient to support the position measurement, data transfer, control computation, and command output workload across all 44 axes in a single cycle. Part 2 of this series will cover the software architecture and servo algorithm implementation built on top of this hardware foundation.

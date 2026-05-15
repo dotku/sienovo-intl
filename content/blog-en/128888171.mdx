@@ -5,12 +5,88 @@ slug: "128888171"
 tags: ["#ComputerVision", "#AI", "#PhoneAppearanceInspection"]
 source: "https://blog.csdn.net/yeyuangen/article/details/128888171"
 originalTitle: "多机型手机外观清洁与检测设备设计"
+expanded: true
 ---
+Automated smartphone exterior inspection sits at the intersection of precision mechanics, machine vision, and adaptive lighting — and building a single machine that handles *multiple phone models* compounds every challenge. This post walks through the design rationale, sensor selection, and hard-won calibration lessons behind a commercial multi-model smartphone cleaning and inspection line, including two alternative strategies for acquiring phone dimensions without relying on a customer-supplied model database.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128888171/01_a2974ab80e1f6cf22df0480326588df3.png)
+## Industry Context
 
-With the development of Germany's "Industry 4.0" and America's "Industrial Internet," our country has also proposed "Made in China 2025" to address the Fourth Industrial Revolution [14]. The primary goal of "Made in China 2025" is intelligent manufacturing, which must integrate a high degree of automation, digitalization, and networking. In the future, China will experience rapid development in automated production and the visual inspection industry [15]. Over the next period, an increasing number of domestic factories will extensively introduce automated equipment. Considering current customer demands and the actual production status of factories, smartphone-related equipment will account for a significant proportion. For instance, processes from front-end screen cutting, cleaning, and inspection to later stages like finished product assembly, exterior cleaning, and inspection [16] can all be accomplished using automated equipment.
+The wave of "Made in China 2025" smart-manufacturing initiatives has accelerated demand for in-line optical inspection across the consumer electronics supply chain. Smartphone production in particular spans the full product lifecycle: front-end processes (screen cutting, cleaning, first-pass inspection) through final-assembly stages (exterior cleaning, cosmetic inspection, packaging). Each of these steps is a candidate for automation, and visual inspection is the linchpin that ties quality assurance to throughput.
 
-1.2.1 Current Status of Domestic and International Research on Inspection Equipment
+## State of the Art in Defect Detection
 
-Abroad, factories exhibit a high degree of intelligence, with many operations completed using automated equipment. In recent years, with the development of
+### International Research
+
+Foreign factories achieved higher baseline automation early. Vision-guided CCD positioning, dimensional measurement cameras, and 3-D profile scanning are all established practice. Defect detection research, however, reveals persistent limitations:
+
+- Italy's Mitra S.K. and Parker J.M. designed a vision inspection unit capable of discriminating dozens of defect types.
+- The UK's Latham V. and Nixon M. developed a vision system for flat glass.
+- Germany's Schmiedl analysed defect detection during the float-glass manufacturing stage.
+
+The majority of screen-defect algorithms in use today still rely on first-order statistical methods: threshold segmentation, edge detection, variance analysis, and greyscale histograms. Korea's Kim team proposed an adaptive multi-scale threshold method driven by local greyscale statistics for dot-defect detection. Tsai applied Fourier-domain background removal, but at the cost of poor real-time performance. Lee and Shie combined cumulative-difference imaging with multi-resolution background subtraction, which works well only when the fixture is mechanically stable. Frequency-domain processing consistently delivers strong detection quality, but the computational overhead and long processing times make it impractical for production line deployment.
+
+### Domestic Research
+
+Chinese researchers have advanced rapidly: Zhang Wujie (2010) fitted circles and lines to detect battery surface defects; Du Liuqing (2013) extracted chaotic feature parameters from magnetic-tile images; Wang Xinxin (2014) built a TFT-LCD defect detection system on machine-vision theory; Zhang Liuyun (2018) designed a non-local means denoising algorithm (FoPLBP) specifically for metal smartphone back-plates.
+
+Despite this progress, virtually all fielded equipment — domestic and foreign — shares one critical limitation: **it is designed for a fixed phone model**. That constraint is acceptable for large-volume new-product lines where a single SKU runs for months, but it excludes rework, refurbishment, and mixed-model production scenarios where batch sizes are small and changeovers are frequent.
+
+## The Multi-Model Problem
+
+Adapting inspection optics, fixtures, and lighting to an arbitrary phone model requires knowing three dimensions at runtime: **length, width, and thickness**. When customers cannot supply model data ahead of time, the system must measure the phone itself. Two hardware strategies were developed for this.
+
+### Strategy 1 — Laser Displacement Sensor + Absolute Encoder Servo
+
+A laser displacement sensor is added to the existing fixture. A reference phone of known thickness (e.g. 8 mm) is first measured: the sensor reads the gap to its upper surface and records value *A*. The production phone is then loaded; the sensor records value *B*. Phone thickness = 8 + A − B.
+
+For length and width, incremental encoders are replaced with **absolute-value encoders** on the centering servo axes. Incremental encoders lose position on power loss and accumulate zero-point drift, requiring a homing cycle after every fault. Absolute encoders derive position from mechanical code tracks — no homing, no count memory, no zero drift, and position is retained through power loss. When the centering clamps close on the phone's short edges and bring it to mid-position, the real-time encoder readings directly yield the phone's width (and by a similar axis the length).
+
+### Strategy 2 — Laser Displacement Sensor + Additional Linear Displacement Sensor
+
+Built on Strategy 1, this variant replaces the absolute-encoder width measurement with a dedicated **linear displacement sensor** reading against a measurement plate. A reference phone of known length (e.g. 160 mm) is centered; the sensor records gap-to-plate value *C*. The production phone is centered the same way, yielding value *D*. Phone length = 160 + 2(C − D). The factor of 2 arises because the centering mechanism splits the dimensional delta equally on both sides. The same principle is applied to width. Thickness measurement is identical to Strategy 1.
+
+## Lighting Design for Multi-Color Phones
+
+Phone color has no effect on the cleaning process, but it directly impacts image quality during line-scan acquisition. Different chassis colors (black, white, gold, blue, etc.) reflect light with very different intensities. The system uses **multiple independently-controlled linear light sources** whose intensity is set by the control system based on the phone color detected or entered. This ensures consistent image brightness regardless of chassis finish.
+
+## Camera Setup and Calibration
+
+### Mid-Frame Inspection
+
+The mid-frame (chassis edge) inspection station uses three line-scan cameras arranged vertically (top, middle, bottom) paired with an arc light source. The optimal working distance for each camera is 100 mm. During calibration:
+
+1. Adjust each camera's position and angle so that all three optical axes converge at a single focal point.
+2. Align that focal point to the centre of the arc light source.
+3. Move any phone edge to the arc source centre and review the capture.
+4. Micro-adjust each camera's position until the image is sharp.
+
+### Front/Back Face Inspection — First-Generation Problems
+
+The original front/back design used a single line-scan camera tilted 15° from vertical, with one linear light source above and one below. Two critical problems emerged during commissioning:
+
+1. **Depth of field**: a line-scan camera has a depth of field of only 0.3 mm. With phones varying significantly in thickness across models, images of thicker or thinner phones were too blurred for recognition.
+2. **Lighting coverage**: the limited number of fixed-angle light sources could not accommodate the wide variety of phone sizes and colours.
+
+### Front/Back Face Inspection — Optimised Design
+
+The camera was rotated to **vertical orientation**, which reduced the overall mechanism footprint. A **Z-axis linear module** (1 µm repeatability) was added so the camera height can be adjusted per phone thickness, solving the depth-of-field problem without optics changes.
+
+The light source layout was redesigned comprehensively: the upper linear source was relocated to mirror the lower source, side-fill lights were added on both lateral faces, and a **coaxial light source** was mounted directly below the camera. The phone is now surrounded by light sources on all four sides (above the lens, left, right, front, back). Each source's intensity is individually controlled in real time based on phone colour, guaranteeing the best exposure for every unit regardless of finish.
+
+## Calibration Efficiency Improvements
+
+The mid-frame station's original design mounted the arc light source on the front/back mechanism rather than on the same sub-frame as the three line-scan cameras. Because the light source and cameras were on separate assemblies with no fixed relative position, every calibration session required iterative adjustment of both independently — a process that consumed **nearly one week** for the first unit.
+
+The fix was straightforward: integrate the arc light source and all three line-scan cameras into **a single rigid chassis**. The sub-frame mounts on a base plate that allows lateral, fore/aft, and angular adjustment as a unit; each camera still has its own fine-adjustment, but the light-to-camera relationship is preserved across moves.
+
+A further refinement added **graduated scale markings** to every adjustable axis — cameras, light sources, and linear slides. Having reference positions to return to or interpolate between eliminated guesswork and gave technicians repeatable starting points for each model changeover.
+
+Results after optimisation:
+- Mid-frame station calibration: **~1 week → ~3 hours**
+- Front/back station calibration: **1.5 days → ~2 hours**
+
+These reductions directly compress new-model qualification time, lower engineering labour costs per deployment, and allow faster customer response when production recipes change.
+
+## Takeaways for Vision System Designers
+
+Building a truly model-agnostic inspection platform requires solving three coupled problems simultaneously: **dimensional sensing** (so the machine knows what it is holding), **optical reach** (depth of field and working distance must cover the dimensional range), and **adaptive illumination** (so image quality is consistent across reflective finishes). Solving any one of these in isolation leaves the other two as residual failure modes. The architecture described here — absolute encoders or displacement sensors for dimensioning, Z-axis motorised camera positioning for depth of field, and per-source intensity control for colour compensation — addresses all three in a single, field-validated design.

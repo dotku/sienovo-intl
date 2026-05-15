@@ -5,12 +5,163 @@ slug: "129415949"
 tags: ["#AI", "#IndustrialSwitch", "#RK3588", "#MultiEthernet"]
 source: "https://blog.csdn.net/yeyuangen/article/details/129415949"
 originalTitle: "基于RK3588人工智能大算力5网口工业交换机"
+expanded: true
 ---
+The RK3588 is Rockchip's most powerful SoC to date — an octa-core, 8K-capable chip that brings datacenter-grade AI compute to the edge. This post walks through the full hardware specification of a 5-port industrial switch built on the RK3588, explaining why each subsystem matters for demanding edge-AI and industrial networking deployments.
 
-The RK3588 is Rockchip's latest 8K flagship SoC chip, adopting an ARM architecture and primarily used in PCs, personal mobile internet devices, edge computing, and other digital multimedia applications. The RK3588 integrates a quad-core Cortex-A76 and a quad-core Cortex-A55, along with a dedicated NEON co-processor, supporting 8K video encoding and decoding. Numerous powerful embedded hardware engines provide optimized performance for high-end applications. It features a rich set of functional interfaces to meet product customization requirements across various industries.
+![RK3588 AI Industrial Switch](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129415949/01_95924bb0d473b9bd800f334586043383.png)
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129415949/01_95924bb0d473b9bd800f334586043383.png)
+## Why RK3588 for an Industrial Switch?
 
-RK3588 AI High-Performance 5-Port Switch
+Traditional managed switches run lightweight MIPS or ARM Cortex-A cores that handle packet forwarding but leave no headroom for on-device intelligence. The RK3588 breaks that trade-off: its highly integrated SoC design packs a powerful CPU cluster, a dedicated NPU, a full-featured GPU, and a wide array of high-speed peripherals into a single die, reducing BOM cost while enabling AI workloads — traffic classification, anomaly detection, or video analytics — to run directly on the switch without a separate inference server.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129415949/02_6812549aa72318be203ca7415d2c45
+![RK3588 AI High-Performance 5-Port Industrial Switch](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129415949/02_6812549aa72318be203ca7415d2c456e.png)
+
+![Switch board detail](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129415949/03_135021bc2399ceaf01d5390e12b77fa7.png)
+
+## CPU Architecture
+
+The processor cluster follows a big.LITTLE topology with independent power domains for every core:
+
+- **Big cluster:** 4× ARM Cortex-A76 cores, each with 64 KB L1I + 64 KB L1D + 512 KB L2 cache
+- **Little cluster:** 4× ARM Cortex-A55 cores, each with 32 KB L1I + 32 KB L1D + 128 KB L2 cache
+- **Shared L3 cache:** 3 MB across both clusters
+- **ISA:** ARMv8-A with NEON Advanced SIMD, ARMv8 cryptography extensions, and TrustZone
+
+All eight cores implement full ARMv8-A, so the OS scheduler can migrate threads freely. Three isolated voltage domains — one for A76\_0/A76\_1, one for A76\_2/A76\_3, and one for the DSU plus little cluster — allow per-pair DVFS, which is important for industrial deployments where thermal budget is tightly constrained. Each of the eight power domains can be gated independently by software, letting firmware shut down unused cores entirely during idle periods.
+
+## Memory Subsystem
+
+The RK3588 features a quad-channel external memory interface compatible with **LPDDR4, LPDDR4X, and LPDDR5**, with each channel carrying 16-bit data width. The combined configuration supports up to **32 GB** of addressable RAM — enough to hold large neural network models in memory without swapping. High memory bandwidth is critical for the NPU and video pipeline to operate concurrently without starving each other.
+
+Boot media options include SPI NOR/NAND flash, eMMC, and SD/MMC, giving system integrators flexibility for rugged storage or field-update scenarios. The on-chip Boot ROM is 32 KB.
+
+## Neural Processing Unit — 6 TOPS
+
+The built-in NPU is the headline feature for AI workloads. Key characteristics:
+
+- **Three NPU cores** that can operate independently, in pairs, or together as a single 6 TOPS engine
+- **Mixed-precision arithmetic:** INT4, INT8, INT16, and FP16 in the same inference pass
+- **384 KB × 3 internal SRAM buffers**, one per core, minimising off-chip memory round-trips for small models
+- **Framework compatibility:** TensorFlow, Caffe, TFLite, PyTorch, ONNX, and Android NNAPI models can be converted to the Rockchip RKNN format
+
+For an industrial switch context, 6 TOPS is sufficient to run real-time network intrusion detection models, smart camera analytics on attached MIPI sensors, or predictive maintenance inference on connected industrial equipment — all without cloud round-trips.
+
+## GPU — Mali-G610 MP4
+
+The integrated **ARM Mali-G610 MP4** GPU supports:
+
+- OpenGL ES 1.1 / 2.0 / 3.2
+- OpenCL 2.2
+- Vulkan 1.2
+
+A dedicated 2D hardware engine with MMU handles compositing and scaling independently of the 3D pipeline, keeping display output smooth even under heavy 3D or compute load. The GPU operates in its own isolated voltage domain with DVFS support.
+
+## Video Codec Engine
+
+The hardware video pipeline is unusually capable for an embedded SoC:
+
+**Decoder** (real-time, with embedded MMU):
+- H.265/HEVC Main10 L6.1: **8K @ 60 fps**
+- VP9 Profile 0/2 L6.1: **8K @ 60 fps**
+- H.264 AVC/MVC Main10 L6.0: **8K @ 30 fps**
+- AVS2 Profile 0/2: **8K @ 60 fps**
+- AV1 Main Profile 8/10-bit L5.3: **4K @ 60 fps**
+- Multiple lower-resolution streams decoded in parallel
+
+**Encoder** (real-time H.264 and H.265):
+- Up to **8K @ 30 fps** single stream
+- Multiple parallel sub-4K streams
+
+**JPEG codec:**
+- Encoder: 96×96 to 8192×8192, up to 90 Mpixel/s
+- Decoder: 48×48 to 65536×65536, up to 560 Mpixel/s at 1080p @ 280 fps
+- Supports YUV400/411/420/422/440/444 and MJPEG
+
+This codec capacity means the switch can ingest, transcode, and re-stream multiple IP camera feeds simultaneously — a common requirement in video surveillance infrastructure where the switch doubles as an NVR or edge processing node.
+
+## Image Signal Processor (ISP)
+
+The fully hardware-based ISP supports up to **48-megapixel** dual-stream input and implements a comprehensive processing pipeline:
+
+- **3A:** AE histogram, AF, AWB statistics
+- **Noise reduction:** Bayer-2DNR (spatial), Bayer-3DNR (temporal), YUV-2DNR
+- **HDR:** 3-frame merge with DRC tone mapping
+- **Correction:** FPN, BLC, DPCC (static/dynamic defect pixel), CAC, GIC, LSC
+- **Enhancement:** dehaze, 3D LUT colour grading, gamma correction, sharpening, privacy mask
+- **PDAF** phase-detection autofocus support
+- **LDCH** horizontal-only lens distortion correction
+
+Multi-sensor ISP reuse is supported, allowing two camera pipelines to share the ISP resources for cost-efficient multi-camera designs.
+
+## Networking Interfaces
+
+The switch form factor is built around the RK3588's **dual GMAC Ethernet controllers**:
+
+- Each controller supports 10/100/1000 Mbps (Gigabit Ethernet)
+- RMII interface for 10/100 Mbps connections
+- Full-duplex and half-duplex operation
+
+The two on-chip GMACs provide the foundation; the "5-port" industrial switch configuration extends port count through an external switch IC hanging off PCIe or RGMII, a standard technique in embedded switch designs.
+
+## High-Speed Peripheral Fabric
+
+The RK3588's peripheral set is one of its strongest selling points for industrial designs:
+
+**PCIe:**
+- **PCIe 3.0:** RC and EP mode, up to 8 Gbps, configurable as 1×4, 2×2, 4×1, or 1×2 + 2×1 lanes
+- **PCIe 2.1 (×3):** via combo PHYs shared with SATA and USB 3.0, 5 Gbps each
+
+**USB:**
+- 2× USB 3.1 Gen1 (5 Gbps) via combo PHY
+- 2× USB 2.0 OTG (480 Mbps)
+- 2× USB 2.0 HOST
+
+**Storage:**
+- 3× SATA 3.1 / AHCI 1.3.1 at 6 Gbps (via combo PHYs, multiplexed with PCIe/USB 3.0)
+- SDIO 3.0 (4-bit)
+
+**Serial busses:**
+- 10× UART (up to 4 Mbps baud, hardware flow control on all)
+- 9× I2C (100 kbps standard, 400 kbps fast mode, 7- and 10-bit addressing)
+- 5× SPI (master/slave, dual chip-select)
+
+**GPIO:** All GPIOs support level and edge interrupts with configurable polarity, pull direction, and drive strength. An on-chip temperature sensor (TS-ADC) operates in user-defined or automatic mode with configurable high/low alarm and system-reset thresholds.
+
+## Display Output
+
+For HMI or management console use, the RK3588 supports a rich display output stack:
+
+- 2× HDMI TX 2.1
+- 2× eDP 1.3
+- 2× DP 1.4a (combo with USB 3.1)
+- MIPI DSI with DSC 1.1/1.2a compression
+- BT.1120 video output
+- GVI (8-lane, 4K @ 60 Hz, 3.75 Gbps/lane)
+
+Four independent Video Output Processors (VOP) allow simultaneous output to multiple displays at different resolutions: VOP0 at 7680×4320 @ 60 Hz, VOP1/2 at 4096×2304 @ 60 Hz, and VOP3 at 1920×1080 @ 60 Hz.
+
+## Camera / Video Input
+
+- 2× MIPI DCPHY (DPHY/CPHY combo): DPHY V2.0 at 2.5 Gbps/lane × 4; CPHY V1.1 at 2.5 Gsps/lane × 3
+- 4× MIPI CSI DPHY (V1.2, 2-lane, 2.5 Gbps/lane), combinable into 4-lane pairs
+- Supports up to 6 simultaneous camera inputs
+- 1× DVP (8/10/12/16-bit, up to 150 MHz)
+- BT.601 / BT.656 / BT.1120
+- HDMI RX 2.0 (up to 4K @ 60 fps, HDCP 2.3)
+
+## Audio
+
+- I2S0/I2S1: 8-channel TX + 8-channel RX, 16–32 bit, up to 192 kHz
+- I2S2/I2S3: 2-channel
+- SPDIF0/SPDIF1
+- PDM0/PDM1: up to 8 channels, 16–24 bit, up to 192 kHz
+- Voice Activity Detection (VAD) with multi-microphone array data storage
+
+## Power Management
+
+The PMU supports 10 independent voltage domains and **45 independent power domains**, all software-controllable. Twelve secure 64-bit timers and 18 non-secure 64-bit timers support fine-grained wake/sleep scheduling. A 32-bit watchdog counter provides hardware fault recovery for unattended deployments. Security is reinforced by a dual-core cryptographic engine embedded in the SoC.
+
+## Summary
+
+The RK3588-based 5-port industrial switch combines Gigabit networking with serious on-device compute: a 6 TOPS NPU for real-time AI inference, an octa-core CPU cluster for Linux-based control plane logic, hardware 8K video encode/decode for camera integration, and an extensive peripheral set (PCIe 3.0, triple SATA, ten UARTs, nine I2C, five SPI) that covers virtually every industrial connectivity requirement. The highly integrated SoC design keeps the BOM lean while delivering a platform capable of running network management, machine vision, and predictive analytics workloads in a single compact form factor.
