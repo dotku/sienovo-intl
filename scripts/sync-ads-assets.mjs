@@ -76,14 +76,17 @@ function magickBin() {
   catch { return "convert"; }
 }
 
-/** Crop+resize the input to exact width×height, center-anchored. */
+/** Crop+resize the input to exact width×height JPEG, center-anchored, white bg. */
 function fitCenterCrop(input, output, width, height) {
   if (haveMagick) {
-    sh(`${magickBin()} "${input}" -resize "${width}x${height}^" -gravity center -extent ${width}x${height} "${output}"`);
+    // -flatten composites alpha onto white; -quality 88 is a good size/quality balance
+    sh(`${magickBin()} "${input}" -resize "${width}x${height}^" -gravity center -extent ${width}x${height} -background white -flatten -quality 88 "${output}"`);
   } else if (haveSips) {
-    // sips can't do exact crop in one step. Resize fill then crop center.
-    sh(`sips -Z $(( ${width} > ${height} ? ${width * 2} : ${height * 2} )) "${input}" --out "${output}"`);
+    // sips: resize-fill, crop, then force JPEG format (drops alpha onto its own bg)
+    const bigger = Math.max(width, height) * 2;
+    sh(`sips -Z ${bigger} "${input}" --out "${output}"`);
     sh(`sips -c ${height} ${width} "${output}"`);
+    sh(`sips -s format jpeg "${output}" --out "${output}"`);
   } else {
     throw new Error("Neither ImageMagick nor sips available");
   }
