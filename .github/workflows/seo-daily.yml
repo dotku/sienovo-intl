@@ -1,8 +1,8 @@
-name: SEO daily snapshot
+name: SEO + Ads daily snapshot
 
-# Snapshots GSC indexing coverage + search analytics every day so we can
-# track Google's crawler performance over time. Sparse data is fine — the
-# point is the trend, not any single day's numbers.
+# Snapshots GSC indexing/analytics + Google Ads campaign performance every
+# day so we can track Google's crawler + paid traffic over time. Sparse data
+# is fine — the point is the trend, not any single day's numbers.
 
 on:
   schedule:
@@ -45,14 +45,25 @@ jobs:
           node scripts/seo-analyze.mjs
           node scripts/seo-trend.mjs
 
+      - name: Pull Google Ads campaign performance
+        env:
+          GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+          GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+          GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+          GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+          GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+          GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+        run: node scripts/google-ads-pull.mjs || echo "ads-pull skipped (creds may not be configured yet)"
+        continue-on-error: true
+
       - name: Commit if there are new reports
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/seo-reports/
+          git add data/seo-reports/ data/google-ads-reports/
           if git diff --staged --quiet; then
             echo "no changes — likely already snapshotted today"
           else
-            git commit -m "chore(seo): daily snapshot $(date -u +%Y-%m-%d)"
+            git commit -m "chore(reports): daily snapshot $(date -u +%Y-%m-%d)"
             git push
           fi
