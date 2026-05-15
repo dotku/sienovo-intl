@@ -5,28 +5,137 @@ slug: "130419213"
 tags: ["#FPGADev", "#DomesticVirtualInstrument"]
 source: "https://blog.csdn.net/yeyuangen/article/details/130419213"
 originalTitle: "【国产虚拟仪器】基于DSP+FPGA+ADS1282支持32Bit高精度数据采集方案（一）"
+expanded: true
+---
+## Introduction
+
+Designing a high-precision inertial navigation data acquisition platform requires balancing three competing demands: the raw throughput needed to digitize analog sensor signals at publication-grade resolution, the real-time compute horsepower to run navigation algorithms, and the rich I/O fabric to talk to GPS receivers, gyroscopes, barometers, and odometers simultaneously. This post walks through the system requirements, architecture decisions, and key component selections for a DSP+FPGA+ADS1282-based 32-bit acquisition platform aimed at inertial navigation applications — covering everything from power-supply rails through ADC figure-of-merit choices.
+
 ---
 
-**3.1 System Requirements Analysis**
+## System Requirements Analysis
 
-**3.1.1 System Functional Design Requirements**
+### Functional Design Requirements
 
-This hardware processing platform has three main types of tasks: First, data acquisition, including collecting output signals from inertial measurement units (IMUs) and receiving external system correction information, such as GPS data; Second, data processing and computation, including error compensation for inertial measurement units, initial alignment, navigation parameter solution, and online correction filtering; Third, navigation data output, including navigation parameter output and information exchange with the master control device.
+The hardware processing platform is responsible for three categories of work:
 
-The specific functions to be implemented by this hardware circuit system include:
+1. **Data acquisition** — collecting analog output signals from inertial measurement units (IMUs), digitising three axes of accelerometer current, and receiving external correction data such as GPS position and 1PPS timing.
+2. **Data processing and computation** — running IMU error compensation, initial alignment, navigation parameter solution (position/velocity/attitude), and online Kalman-filter correction.
+3. **Navigation data output** — packaging solved navigation parameters and broadcasting them over CAN, RS232, and RS422 to a master controller.
 
-(1) High-precision analog-to-digital conversion for three-channel accelerometer analog signals;
+The concrete signal acquisition list is:
 
-(2) Timed acquisition of digital signals from three-channel gyroscopes;
+- Three-channel accelerometer analog signals → high-precision ADC conversion
+- Three-channel gyroscope digital signals → timed acquisition
+- One-channel GPS NMEA stream + 1PPS time-base signal → timed acquisition
+- One-channel barometer digital signal → timed acquisition
+- Two-channel odometer pulse signals → hardware counter (forward and reverse)
+- Five temperature-sensor digital signals → periodic acquisition for on-board thermal compensation
 
-(3) Timed acquisition of one-channel GPS signal and its one-pulse-per-second (1PPS) time base signal;
+### Performance Design Requirements
 
-(4) Timed acquisition of one-channel barometer digital signal;
+**Power supply:** Single-rail DC input, 18 V–36 V, maximum 1 A.
 
-(5) Timed acquisition of two-channel odometer pulse signals;
+**ADC requirements:**
+- Input: three differential current signals from X/Y/Z accelerometers, ±8 mA range
+- Linearity: < 1.0 × 10⁻⁴
+- Symmetry: < 1.0 × 10⁻⁴
+- Resolution: ≥ 24 bits; effective number of bits (ENOB) in actual test: ≥ 18 bits
+- Bandwidth: ≥ 100 Hz
 
-(6) Timed acquisition of digital signals from 5 temperature sensors;
+**Temperature sensors:** Five channels, update rate 1 Hz.
 
-(7) Perform navigation solution processing on the acquired signals and package various data, then output them via one CAN interface, one RS232 interface, and one RS422 interface, respectively.
+**Input interface fabric:**
+- Three RS422 async serial ports (software-configurable baud rate, optocoupler isolation, ≥ 256-byte receive buffer) — receive-only, for sensor buses
+- Two RS232 async serial ports (optocoupler isolated, ≥ 256-byte buffer) — one for GPS, one for barometer
+- One full-duplex RS422 port (optocoupler isolated, ≥ 256-byte buffer) — bidirectional command/data link
+- One reserved full-duplex RS422 port for future expansion
 
-**3.1.2 System Performance Design Requirements
+**Odometer inputs:** Square-wave signals, low ≤ 1 V, high 4.5–12 V, frequency ≤ 10 kHz. One channel counts forward pulses (high level), the other counts reverse pulses (high level decrement). The processor accumulates the net displacement.
+
+**Output interface fabric:**
+- One full-duplex RS422 port, software-configurable baud rate, galvanically isolated
+- One RS232 port, galvanically isolated, software-configurable baud rate
+- One CAN port, standard CAN protocol, software-configurable baud rate, ≥ 64-byte FIFO
+
+---
+
+## System Architecture Overview
+
+### Module Decomposition
+
+The system is partitioned into five functional modules:
+
+1. **Power module** — steps down the 18–36 V input to the multiple regulated rails the board needs and provides power monitoring/management.
+2. **Peripheral communication module** — implements all the RS422/RS232/CAN/GPS interface circuits with the isolation and buffering described above.
+3. **Analog-to-digital conversion module** — accepts the three accelerometer current signals, performs high-precision conversion, and forwards digital data to the processor for further processing.
+4. **On-board temperature measurement module** — measures the PCB's own temperature so that thermal-drift compensation can be applied to navigation outputs.
+5. **Data processing module** — receives sensor data from all acquisition paths, executes navigation algorithms, and transmits results over the output buses. This module is itself split into two sub-modules: an **FPGA-based digital signal co-processor** and a **DSP core computation processor**.
+
+### DSP + FPGA Processor Architecture
+
+The motivation for the dual-processor topology is well-established in real-time signal processing literature. Low-level signal preprocessing — framing, decimation filtering, error compensation of raw ADC data — involves large data volumes but relatively simple, repetitive arithmetic, making it well-suited to FPGA hardware implementation. High-level navigation algorithms (Kalman filtering, coordinate-frame transformations, initial alignment) involve smaller data volumes but complex control flow and heavy floating-point arithmetic, favouring a flexible DSP with powerful addressing modes and communication peripherals.
+
+By combining DSP and FPGA in a single system the design achieves both speed and flexibility: the FPGA handles bottom-layer throughput-sensitive tasks in dedicated logic, while the DSP executes algorithmically complex top-layer computations. From the DSP's perspective the FPGA appears as a co-processor sitting on its external memory interface. Both devices carry their own on-chip RAM for intermediate data. A shared FLASH stores the DSP executable image and the FPGA bitstream; FIFO devices between the two support delay-line and sequential-storage operations common in signal processing pipelines.
+
+---
+
+## Key Component Selection
+
+### DSP: TMS320C6713GDPA
+
+The navigation workload demands both high throughput and IEEE 754 floating-point capability for the trigonometric and matrix operations in the navigation solution. The selected DSP is the **TI TMS320C6713GDPA**, a 32-bit floating-point device clocked at up to 300 MHz with a peak throughput of 2400 MIPS.
+
+The C6713 uses TI's VelociTI VLIW architecture: each 256-bit instruction packet contains eight 32-bit instructions that are dispatched simultaneously to eight parallel execution units, delivering eight operations per clock cycle. This makes it exceptionally efficient for the matrix and vector math at the heart of navigation algorithms.
+
+The on-chip memory hierarchy is a two-level cache architecture:
+- **L1P**: 4 KB direct-mapped instruction cache
+- **L1D**: 4 KB set-associative data cache
+- **L2**: 256 KB unified memory — 64 KB configurable as cache or mapped RAM, 192 KB as fixed internal SRAM
+
+Peripheral resources on-chip include two McASP multichannel audio serial ports, two McBSP multichannel buffered serial ports, two I²C buses, GPIO, two 32-bit general-purpose timers, a 16-bit host-port interface (HPI), and a 32-bit External Memory Interface (EMIF) divided into four chip-enable spaces (CE0–CE3), each with a 256 MB address range. The EMIF supports 8-, 16-, and 32-bit data widths and provides seamless interfaces to SDRAM, SBSRAM, Flash, and other asynchronous peripherals — the connection path the design uses to map the FPGA into the DSP's address space.
+
+### FPGA: Xilinx XC2V1000-5FG256I
+
+The system's FPGA handles logic control, glue logic, and co-processing tasks. The selected device is the **Xilinx Virtex-II XC2V1000-5FG256I**, a 256-pin BGA device with 172 user I/Os.
+
+Key specifications:
+- System gate density: 1M gates
+- Embedded block RAM: 720 Kbits, configurable as single-port RAM, dual-port RAM, or FIFO
+- Eight Digital Clock Manager (DCM) modules with output frequencies up to 420 MHz
+- Core voltage: 1.5 V; I/O voltage: 3.3 V
+- Industrial temperature range: −40°C to +100°C
+- Embedded dedicated hardware multipliers for DSP-oriented functions
+
+The Virtex-II was chosen from Xilinx's portfolio — ahead of the lower-cost Spartan family — because of its larger capacity, DCM count, and embedded multiplier resources, all of which provide headroom for future system-function upgrades. The FPGA's internal architecture comprises six main elements: programmable I/O blocks, configurable logic blocks (CLBs), complete clock management via DCMs, embedded BlockRAM, a rich interconnect fabric, and embedded hard IP (multipliers).
+
+### ADC: Texas Instruments ADS1282
+
+ADC selection is the single decision with the greatest impact on the system's overall measurement accuracy. The requirement of ≥ 24-bit resolution, ≥ 18-bit ENOB, ≤ 100 Hz bandwidth, and ±8 mA input range drives the design toward a delta-sigma topology rather than a successive-approximation (SAR) architecture.
+
+The selected device is the **TI ADS1282**, a 31-bit fourth-order Σ-Δ ADC designed specifically for demanding industrial applications including seismic detection, energy exploration, and high-precision instrumentation.
+
+**Key ADS1282 performance figures:**
+
+| Parameter | Value |
+|-----------|-------|
+| SNR (high-precision mode, 250 SPS) | 130 dB |
+| SNR (low-power mode, 250 SPS) | 127 dB |
+| Total Harmonic Distortion (THD) | −122 dB |
+| Integral Non-Linearity (INL) | 0.5 ppm |
+| Input-referred noise (PGA) | 5 nV/√Hz |
+| PGA gain range | 1–64× |
+| Output data rate | 250 SPS – 4 KSPS (selectable) |
+| Power (high-precision mode) | 25 mW |
+| Power (low-power mode) | 17 mW |
+| Power (standby) | 90 µW |
+| Power (power-down) | 10 µW |
+| Operating temperature | −40°C to +85°C |
+
+The ADS1282's inherently stable fourth-order Σ-Δ modulator output can be routed either through the on-chip digital filter chain or bypassed for use with an external filter. The on-chip filter is flexible: it supports selectable Sinc + FIR + IIR combination modes, where the FIR path can be configured for linear-phase or minimum-phase response. An on-chip MUX allows selection between external measurement inputs and internal self-calibration channels. The on-chip PGA, with its 5 nV/√Hz input-referred noise and 1–64× programmable gain, eliminates a discrete signal-conditioning stage in front of the converter. On-chip gain and offset calibration registers further simplify system-level calibration routines.
+
+The choice of ADS1282 over a SAR ADC of similar resolution is justified by the signal bandwidth requirement (≤ 100 Hz for accelerometer signals): Σ-Δ converters trade sample rate for resolution through oversampling and noise shaping, making them naturally suited to low-bandwidth, high-dynamic-range measurements. At 250 SPS the ADS1282 delivers 130 dB SNR — well above the 18-bit ENOB floor in the specification — while consuming only 25 mW, a critical constraint in an embedded navigation system running from a 1 A power budget.
+
+---
+
+*Part 2 of this series will cover the detailed circuit design: the current-to-voltage conversion front-end for the accelerometer inputs, the DSP–FPGA bus interface, serial port isolation circuitry, and the power-regulation topology.*

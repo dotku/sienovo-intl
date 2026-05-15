@@ -5,12 +5,102 @@ slug: "129954032"
 tags: ["#AM62X", "#FPGA", "#AD"]
 source: "https://blog.csdn.net/yeyuangen/article/details/129954032"
 originalTitle: "AM62X +FPGA+AD/DA 的TSN工业网关解决方案"
+expanded: true
 ---
+Texas Instruments' Sitara AM62x processor family represents a significant leap forward for edge-AI-enabled human-machine interfaces (HMI) in industrial settings. This article unpacks the AM62x's five key differentiators, walks through its eight headline upgrades over the widely deployed AM335x, and explains how the companion FPGA + AD/DA + TSN stack turns it into a capable industrial gateway SoC.
 
-Texas Instruments (TI) has launched its new highly integrated Sitara AM62 processor, designed to extend edge artificial intelligence (AI) processing to next-generation applications. The new processor's low-power design supports dual-screen displays and small human-machine interface (HMI) applications. Engineers can deploy these intelligently designed, energy-efficient processors anywhere, according to field requirements.
+## Why HMI Is Evolving from "Interface" to "Interaction"
 
-TI will unveil the new AM62 processor at Embedded World in Nuremberg, Germany, from June 21-23, 2022, and introduce system-level solutions for edge AI and electric vehicle charging HMI applications.
+The concept of HMI is undergoing a fundamental shift — from static physical panels, buttons, switches, and indicator lights toward richer interaction modalities: facial recognition, gesture control, voice commands, high-definition graphics, and predictive maintenance dashboards. This shift demands that the underlying MPU deliver AI inference, functional-safety support, advanced display pipelines, and broad connectivity, all within tight power and cost envelopes.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129954032/01_8743b0bc4d5a59c5371e8144bf30019a.jpeg)
+TI's Sitara General-Purpose MPU product line manager outlined four pressure points driving this transition:
 
-Next-generation human-machine interfaces will bring new ways to interact with machines, such as issuing commands via gesture recognition in noisy factory environments, or controlling machines via wirelessly connected mobile phones or tablets. Adding edge AI capabilities to HMI applications, including machine vision, analytics, and predictive maintenance, can bring new meaning to HMIs, moving beyond mere interfaces to enable human-machine interaction. The AM62 processor provides low-
+1. **AI and privacy requirements** — on-device inference for gesture/face recognition, combined with hardware-level IP protection.
+2. **Power scaling** — as performance grows, so does heat; lower supply voltage reduces both, enabling fanless or battery-powered deployments.
+3. **Open-source ecosystems** — industrial customers increasingly favor Mainline Linux and Android to reduce software development cost and improve long-term maintainability.
+4. **Platform flexibility** — a single scalable SoC family must serve entry-level and high-end HMI product lines simultaneously.
+
+## The Five Differentiators of AM62x
+
+![AM62x five differentiators](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129954032/04_69f360f48a9a6b8e30924c6d53653ba4.png)
+
+### 1. Ultra-Low Power
+
+The AM62x family targets sub-2 W active power even at the full 1.4 GHz Cortex-A53 clock rate. The primary lever is VDD core voltage reduction — from the conventional 1.0 V down to 0.75 V — yielding approximately 30% dynamic power savings. Four low-power states are supported, with the deepest suspend mode consuming as little as 7 mW. For battery-operated edge nodes, TI projects this is sufficient to extend AA-battery runtime beyond 1,000 hours, or battery-powered device lifespans of up to five years depending on duty cycle.
+
+A simplified power architecture underpins this: the AM62x requires only **two dedicated power rails**, compared to eight or more on competing devices. This allows designers to choose between TI's companion PMIC (the TPS65219, designed specifically for AM62x power sequencing) or a fully discrete regulator solution — both paths are straightforward.
+
+### 2. Integrated Hardware Security Module (HSM)
+
+AM62x embeds an HSM directly on-chip, eliminating the need for an external secure microcontroller or dedicated secure storage. The HSM supports secure boot, cryptographic acceleration, and IP protection. TI also ships security-related software libraries, reducing the total bill-of-materials and integration effort for customers who need IEC 62443 or functional-safety-adjacent designs.
+
+### 3. Entry-Level Edge AI via Cortex-A53
+
+For inference workloads such as face detection, object classification, or gesture recognition, the AM62x relies on its Cortex-A53 cores directly — there is no dedicated NPU in this family tier. The SoC includes MIPI CSI-2 and CSI camera interfaces for direct sensor connection, and TI has co-developed third-party AI reference designs covering vision analytics and HMI use cases. The intent is to lower the barrier for embedded teams without a deep AI background to add intelligent features to their HMI products.
+
+### 4. Advanced Dual-Display Support
+
+The AM62x steps up display output to 2K resolution (1080p60), with support for two fully independent, electrically isolated display outputs. Supported interfaces include RGB and LVDS — the latter is widely used in industrial panel displays. An integrated GPU (Arm Mali AXE1-16M) replaces the older IMG SGX530, delivering approximately 5× the graphics performance and adding Vulkan support for 3D UI development on Linux Qt or Android 12.
+
+### 5. High-Integration System Platform
+
+Beyond compute and display, the AM62x integrates a rich peripheral set tuned for industrial use:
+
+- **CAN-FD** — essential for automotive-adjacent and factory automation applications.
+- **Dual TSN-capable Ethernet** — enables time-sensitive networking for deterministic industrial communication without an external switch.
+- **GPMC (General-Purpose Memory Controller)** upgraded from 100 MHz to 133 MHz at 16-bit width — supports NAND, NOR flash, and direct connection to FPGAs or PLDs for custom I/O expansion.
+- **OSPI bus** for high-speed serial NOR flash.
+- **MIPI CSI-RX** for direct camera attachment.
+
+The entire AM62x product line is pin- and software-compatible across SKUs, protecting design investments when scaling up or down.
+
+## Eight Upgrades Over AM335x
+
+![AM62x vs AM335x comparison](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129954032/06_09a28107334dd15662863ac32d3a197e.png)
+
+The AM335x defined an era by moving the industrial market from MCU-class Arm9 cores to high-performance Cortex-A8. The AM62x represents the next generational jump:
+
+| Area | AM335x | AM62x |
+|---|---|---|
+| CPU core | Single Cortex-A8 | 1/2/4× Cortex-A53 up to 1.4 GHz |
+| Peak performance | ~2K DMIPS | up to 16.8K DMIPS |
+| DDR | DDR3, 800 MTS | DDR4, 1600 MTS (2× throughput) |
+| Real-time core | None | 400 MHz Cortex-M4F |
+| Display | 1080p30 | 2K (1080p60), dual independent outputs, LVDS |
+| GPU | IMG SGX530 | Arm Mali AXE1-16M (5× perf, Vulkan) |
+| Security | Limited | On-chip HSM, secure boot |
+| Camera | None | MIPI CSI-RX |
+| Ethernet | Single, no TSN | Dual, TSN-capable |
+| GPMC | 100 MHz, 16-bit | 133 MHz, 16-bit |
+
+The addition of the **400 MHz Cortex-M4F** co-processor deserves particular attention: it can run a real-time OS (FreeRTOS, RT-Linux) alongside the main Linux stack on the A53 cluster, handle peripheral I/O with deterministic latency, contribute to functional-safety partitioning, or operate as a standalone general-purpose MCU — all on the same die.
+
+## The AM62X + FPGA + AD/DA + TSN Gateway Architecture
+
+The AM62x's GPMC interface and dual TSN Ethernet make it a natural hub for an industrial gateway combining analog signal acquisition and real-time network forwarding.
+
+A typical implementation pairs the AM62x with:
+
+- **FPGA** (connected via GPMC or a high-speed parallel bus) — handles custom protocol bridging, glue logic, and offloads timing-critical tasks that need sub-microsecond determinism beyond what the Cortex-M4F alone provides.
+- **AD/DA converters** — routed through the FPGA for sample-synchronous acquisition and generation, enabling multi-channel industrial sensor interfaces (pressure, temperature, vibration) and analog output control.
+- **TSN Ethernet switch** — the AM62x's dual TSN-capable ports support IEEE 802.1Qbv (time-aware shaping), 802.1AS (gPTP), and 802.1Qbu (frame preemption), allowing the gateway to participate in deterministic Ethernet backbones alongside PLCs and motion controllers.
+
+The Cortex-M4F manages real-time data paths between the FPGA and the TSN stack, while the Cortex-A53 cluster runs the Linux application layer — data aggregation, cloud uplink, local HMI, and OTA update logic.
+
+## Pricing and Ecosystem
+
+The AM62x starts at under $5 USD, which TI positions as enabling cost-effective edge AI in product categories where dedicated AI accelerators have historically been unaffordable. Third-party evaluation modules (EVMs) are available from $25, providing a fast path to prototype bringup.
+
+TI's developer portal (`dev.ti.com`) consolidates:
+
+- **Design Gallery** — co-developed reference designs covering AI analytics, HMI, and industrial connectivity.
+- **Linux Academy** — a structured training resource for MCU-background engineers moving to embedded Linux and SoC development.
+- **Modeling and selection tools** — for power estimation and SKU selection across the AM62x family.
+
+Supported operating systems include Mainline Linux, Android 12, RT-Linux, and FreeRTOS on the M4F core.
+
+## Conclusion
+
+The AM62x family — combined with an FPGA for custom I/O, AD/DA front-ends for analog signal chains, and TSN Ethernet for deterministic industrial networking — provides a compelling, cost-optimised platform for the next generation of industrial gateways and HMI systems. Its 0.75 V core, 7 mW deep-sleep floor, integrated HSM, dual independent displays, and Cortex-M4F real-time co-processor directly address the four tension points (AI, power, openness, platform breadth) that define where industrial HMI is headed. For teams already on AM335x, the pin and software compatibility path removes a major migration barrier.
+
+![AM62x product block diagram](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129954032/05_6eea29fcfbdfaf1412e3235577ebbd80.png)

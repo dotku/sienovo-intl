@@ -5,48 +5,19 @@ slug: "130063985"
 tags: ["#RK3399"]
 source: "https://blog.csdn.net/yeyuangen/article/details/130063985"
 originalTitle: "RK3399+麒麟工业平板解决方案"
+expanded: true
 ---
+A few key properties are worth understanding:
 
-**1. RK3568 Linux Kylin System Gyroscope Driver Debugging**
+- **`compatible = "gs_mxc6655xa"`** — this string must match the `.compatible` entry in the kernel driver's `of_match_table`. If this string is wrong or the driver module is not loaded, the device will not bind.
+- **`reg = <0x15>`** — the I²C slave address. Confirm with `i2cdetect -y 5` at runtime; you should see a device acknowledged at address `0x15`.
+- **`irq-gpio = <&gpio3 RK_PC1 IRQ_TYPE_LEVEL_LOW>`** — the interrupt line is GPIO3_C1, configured as active-low. This matches the MXC6655xa's INT pin behavior when a motion threshold is exceeded.
+- **`irq_enable = <1>`** — enables interrupt-driven reporting rather than pure polling.
+- **`poll_delay_ms = <30>`** — when polling is active (or as a fallback), the driver samples the sensor every 30 ms (~33 Hz), which is a reasonable rate for UI rotation and industrial tilt sensing.
+- **`type = <SENSOR_TYPE_ACCEL>`** — maps the device into the Rockchip sensor subsystem as an accelerometer type, making it visible through the standard input event or IIO interface.
+- **`power-off-in-suspend = <1>`** — instructs the driver to cut power to the sensor during system suspend, reducing standby current.
+- **`layout = <1>`** — specifies the physical mounting orientation of the chip relative to the board's reference frame. Changing this value remaps the X/Y/Z axes to compensate for rotated or inverted placement.
 
-　　The gyroscope model MXC6655xa comes with the Ruixingwei development board. Hardware personnel stated that our board is the same as the development board, so we checked the device tree file to find the device description:
+## Pinctrl Configuration
 
-　　&i2c5 {
-
-　　status = “okay”;
-
-　　mxc6655xa： mxc6655xa@15 {
-
-　　status = “okay”;
-
-　　compatible = “gs\_mxc6655xa”;
-
-　　pinctrl-names = “default”;
-
-　　pinctrl-0 = 《&mxc6655xa\_irq\_gpio》;
-
-　　 reg \= 《0x15》;
-
-　　irq-gpio = 《&gpio3 RK\_PC1 IRQ\_TYPE\_LEVEL\_LOW》;
-
-　　irq\_enable = 《1》;
-
-　　poll\_delay\_ms = 《30》;
-
-　　type = 《SENSOR\_TYPE\_ACCEL》;
-
-　　power-off-in-suspend = 《1》;
-
-　　layout = 《1》;
-
-　　};
-
-　　};
-
-　　&pinctrl {
-
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/130063985/01_dccbdd61f7a5c1f0d60c53783ecaa3ea.jpeg)
-
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/130063985/02_9b5084112015ad06293330bcce096283.png)
-
- ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/130063985/03_bc917c6faef58aded74779cab01f0ceb.png)
+The `pinctrl-0` property references `mxc6655xa_irq_gpio`, which must be defined in the `&pinctrl` section of the DTS. This block configures the GPIO3_C1 pad as an input with the correct pull and drive settings so the interrupt line is reliably received by the SoC. Without this pinctrl entry, the kernel will fail to request the GPIO and the driver probe will return an error.
