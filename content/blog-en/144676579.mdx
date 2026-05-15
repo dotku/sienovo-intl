@@ -5,16 +5,64 @@ slug: "144676579"
 tags: ["#FPGADev", "#AI"]
 source: "https://blog.csdn.net/szxinmai/article/details/144676579"
 originalTitle: "【NI国产替代】基于国产FPGA+全志T3的全国产16振动+2转速（24bits）高精度终端采集板卡"
+expanded: true
+---
+## Fully Domestic High-Precision 16-Channel Vibration + 2-Channel Speed (24-bit) Terminal Acquisition Board Based on Domestic FPGA + Allwinner T3
+
+Industrial vibration monitoring and rotating machinery health assessment have long relied on high-channel-count data acquisition hardware from vendors such as National Instruments. This post introduces a fully domestically produced alternative: a 16-channel vibration plus 2-channel tachometer acquisition board built around the AG16KF256 domestic FPGA and the Allwinner T3 domestic ARM processor. The design targets predictive maintenance and condition monitoring applications where high channel density, precise phase alignment, and 24-bit amplitude resolution are non-negotiable requirements.
+
+![Board overview](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144676579/01_f326c16eeaf3458b9b4ca06037147220.png)
+
+![Core and baseboard assembly](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144676579/02_5a2412101e944e2296275204b5f96abf.png)
+
 ---
 
-High-precision 16-channel vibration + 2-channel speed (24-bit) terminal acquisition board
+## Why Domestic Components Matter for Industrial DAQ
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144676579/01_f326c16eeaf3458b9b4ca06037147250.png)
+Supply-chain independence has become a first-order design constraint for Chinese industrial infrastructure projects. Vibration acquisition systems sit at the heart of condition-monitoring platforms for turbines, compressors, pumps, and precision machining centers — equipment whose uptime directly affects production. Sourcing both the FPGA fabric and the application processor from domestic suppliers removes the exposure to export restrictions that has disrupted procurement of comparable Western parts in recent years. The design described here uses the AG16KF256 FPGA alongside the Allwinner T3 ARM SoC, both manufactured domestically, achieving full supply-chain localization without sacrificing the performance envelope demanded by 24-bit vibration acquisition.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144676579/02_5a2412101e944e2296275204b5f96abf.png)
+---
 
-Utilizing a fully domestically produced processor architecture featuring the AG16KF256 domestic FPGA and T3 domestic ARM. The design is divided into two boards: a baseboard and a core board. The baseboard is responsible for the acquisition of 16-channel signals and 2-channel speed data, signal filtering, phase alignment, and other tasks, transmitting the processed signals to the core board.
+## Two-Board Architecture
 
-The core board uses the T3 processor, which is responsible for subsequent algorithm computations, data communication, data storage, and other functions.
+The system is split into a **baseboard** and a **core board** that plugs into the baseboard via a board-to-board connector. Separating analog front-end from digital processing is a well-established practice in precision DAQ design: it confines noisy switching regulators and high-speed digital signals to one PCB while keeping the sensitive analog signal chain on another, making it easier to meet the isolation and grounding requirements that 24-bit dynamic range demands.
 
-The core board plugs into the baseboard via connectors.
+### Baseboard — Analog Front-End and Real-Time Signal Conditioning
+
+The baseboard is responsible for all analog acquisition and real-time signal preprocessing:
+
+- **16-channel vibration acquisition** — each channel accepts the output of a standard ICP/IEPE accelerometer or charge-mode sensor, depending on front-end configuration. At 24-bit resolution the ADC can resolve sub-microvolt signal changes, which is essential for detecting early-stage bearing defects or blade-pass harmonics buried in broadband noise.
+- **2-channel speed/tachometer acquisition** — tachometer channels accept pulse-train inputs (proximity probe, optical encoder, or keyphasor) and are used to compute shaft rotational speed and provide a once-per-revolution reference. This reference is critical for order-tracking analysis and synchronous averaging.
+- **Signal filtering** — anti-aliasing filters ahead of the ADC prevent spectral folding, while selectable high-pass filtering removes DC offset and low-frequency motion artifact that would otherwise consume dynamic range. The 24-bit word width preserves headroom for crest-factor peaks without clipping.
+- **Phase alignment** — all 16 vibration channels must be sampled simultaneously (or with a deterministic, compensated skew) so that cross-channel phase relationships are preserved. The FPGA orchestrates simultaneous conversion triggers across all ADC devices, ensuring that inter-channel phase error does not corrupt ODS (Operating Deflection Shape) or modal analysis results.
+
+The AG16KF256 FPGA acts as the real-time controller for the baseboard: it generates the ADC clock and convert-start signals, reads back parallel or serial ADC data, applies any FPGA-side digital filtering or decimation, and streams the cleaned, phase-aligned sample frames to the core board over a high-speed interface.
+
+### Core Board — Application Processing
+
+The core board is built around the **Allwinner T3**, a quad-core ARM Cortex-A7 SoC designed for industrial embedded use. Once the baseboard FPGA has pre-processed the raw sample streams, the T3 takes over for compute-intensive work:
+
+- **Algorithm execution** — FFT-based spectral analysis, envelope detection, order tracking, and statistical feature extraction (RMS, peak, kurtosis, crest factor) are handled in software on the ARM cores. The quad-core architecture allows different analysis algorithms to run concurrently across channels without head-of-line blocking.
+- **Data communication** — the T3's peripheral set supports standard industrial communication protocols. Processed results or raw waveform bursts can be transmitted to a host system or edge gateway over Ethernet, CAN, RS-485, or similar interfaces depending on board configuration.
+- **Data storage** — local storage of time-waveform records and derived features supports edge-buffering when the network link is intermittent, a common requirement in factory-floor deployments where connectivity to a cloud historian is not guaranteed.
+
+The core board connects to the baseboard through a compact connector arrangement, keeping the assembly mechanically rigid and the inter-board signal path short.
+
+---
+
+## Positioning as an NI Domestic Alternative
+
+National Instruments (now part of Emerson) has long supplied high-channel-count vibration DAQ hardware — the cDAQ and PXIe platforms with DSA (Dynamic Signal Acquisition) modules are reference designs in the industry. A 16-channel vibration + 2-channel tachometer combination at 24-bit resolution maps directly to multi-channel DSA configurations used in rotating machinery diagnostics. By replicating the core specifications (channel count, resolution, phase alignment, speed reference integration) on entirely domestic silicon, this board positions itself as a drop-in conceptual alternative for programs that must demonstrate supply-chain independence.
+
+The split baseboard/core-board architecture also mirrors the modular philosophy of cDAQ (carrier + module), except here both halves are custom-integrated into a single compact terminal form factor suited for embedded installation closer to the measurement point.
+
+---
+
+## Typical Application Scenarios
+
+- **Rotating machinery health monitoring** — turbines, gearboxes, centrifugal pumps, and compressors where simultaneous multi-channel vibration plus tachometer data is needed for bearing, shaft, and blade diagnostics.
+- **Structural health monitoring** — bridge or civil infrastructure monitoring where phase-coherent multi-point acceleration data is used for modal identification.
+- **Industrial automation quality inspection** — in-process vibration signature capture on machining centers or assembly lines.
+- **Edge condition monitoring nodes** — deployed near the asset, connected back to a SCADA or IIoT platform over Ethernet or industrial fieldbus, reducing cabling runs compared to centralizing raw sensor signals at a control room DAQ rack.
+
+The combination of an FPGA-managed analog front-end with a Linux-capable ARM SoC gives system integrators a familiar software environment for deploying signal-processing algorithms while retaining the hard-real-time guarantees that accurate phase alignment requires.

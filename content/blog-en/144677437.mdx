@@ -5,14 +5,73 @@ slug: "144677437"
 tags: ["#AI", "#ARMDev"]
 source: "https://blog.csdn.net/ARM_FPGA_AI/article/details/144677437"
 originalTitle: "【国产NI替代】基于ZYNQ7020的ARM+FPGA的30通道（24bits）高精度终端采集板卡，支持256k可调采样率"
+expanded: true
 ---
+High-density, high-precision data acquisition has long been dominated by commercial platforms such as National Instruments' CompactDAQ and CompactRIO families. This post introduces a domestically designed alternative built around Xilinx's ZYNQ7020CLG400 SoC — a 30-channel, 24-bit acquisition board that targets the same demanding industrial measurement applications at a significantly reduced BOM cost and with full source-level control over both the ARM processing pipeline and the FPGA fabric.
 
-30-Channel (24-bit) High-Precision Data Acquisition Board
+## Platform Choice: Why ZYNQ7020?
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144677437/01_d74199c5c6ce42abbba002764dcea496.png)
+The Xilinx Zynq-7000 series (XC7Z020 in the CLG400 package) combines a dual-core ARM Cortex-A9 hard processor system (PS) with a Artix-7 class programmable logic (PL) fabric on a single die. This tight PS-PL integration is critical for data acquisition work: the FPGA fabric handles deterministic, cycle-accurate sampling and digital filtering close to the ADC, while the ARM cores run the higher-level protocol stack, configuration management, and any signal processing algorithms that benefit from a rich software ecosystem (Linux, bare-metal RTOS, or a combination via AMP).
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144677437/02_4b559cbebb32486ea80225a2547722ad.png)
+The CLG400 package (400-ball BGA) keeps the footprint compact enough for a plug-in board form factor, which matches the design goal of high channel density in a small volume.
 
-Utilizing the ZYNQ7020CLG400 SOC as the primary controller, a total of 30 channels are designed (24 fast channels, 6 slow channels). This board is primarily intended for applications with stringent requirements for compactness, channel count, high precision, and low noise.
+## Channel Architecture: 24 Fast + 6 Slow
 
-It features a modular board design, with the boards categorized into two types: current acquisition boards and vibration acquisition boards. The current acquisition board is designed to collect 4-20mA current signals, while the vibration acquisition board collects standard 2-wire IEPE signals.
+The board implements 30 total acquisition channels split into two functional groups:
+
+- **24 fast channels** — intended for AC or dynamic signals where bandwidth and sample rate matter. At up to 256 kSPS (adjustable), these channels are well-suited for vibration, acoustic, or transient electrical measurements. 24-bit resolution at these rates requires careful anti-aliasing filter design and low-noise analog front-end layout.
+- **6 slow channels** — optimized for quasi-static or slowly varying process signals where absolute DC accuracy and noise floor matter more than bandwidth. Slow channels typically benefit from heavier oversampling and averaging, which the FPGA can perform in-fabric before handing decimated results to the ARM.
+
+The asymmetric split reflects a common real-world instrumentation scenario: a machine may have many vibration pick-up points but only a handful of process variable inputs (temperature-compensated load, pressure, or torque).
+
+## Two Board Types: Current and Vibration
+
+The system uses a modular card-based construction with two interchangeable daughter-board variants:
+
+### Current Acquisition Board (4–20 mA)
+
+The 4–20 mA current loop is the de facto standard for industrial process instrumentation. Transmitters are two-wire, loop-powered devices; the receiver (this board) must present a known burden resistance, convert the loop current to a voltage, and feed that voltage into the ADC front-end. Key design considerations at 24-bit resolution include:
+
+- Precise, low-tempco burden resistors to avoid gain drift with temperature
+- Protection against loop faults (open-circuit, reverse polarity, surges up to the IEC 61000-4 levels)
+- Common-mode rejection, since the loop may reference a different ground than the acquisition system
+
+At 24 bits, the LSB across a 16 mA span (4–20 mA) represents sub-microamp resolution, making calibration of offset and gain the dominant error source rather than quantization noise.
+
+### Vibration Acquisition Board (2-Wire IEPE)
+
+IEPE (Integrated Electronics Piezo-Electric) — sometimes called ICP® — is the standard interface for piezoelectric accelerometers, microphones, and force sensors used in vibration and acoustic testing. A 2-wire IEPE sensor requires a constant-current excitation (typically 2–10 mA) supplied through the same coaxial cable that carries the AC signal back. The acquisition board must:
+
+1. Provide the bias current to the sensor (usually from a regulated current source referenced to a DC bias of ~8–12 V)
+2. AC-couple the signal to remove the DC bias before the ADC input
+3. Maintain adequate input impedance and low noise to preserve the sensor's dynamic range
+
+The FPGA's deterministic clocking ensures that all 24 IEPE channels are sampled with a fixed, known phase relationship — essential for modal analysis and direction-of-arrival work where inter-channel phase error must be controlled to fractions of a degree.
+
+## Adjustable Sampling Rate Up to 256 kSPS
+
+A 256 kSPS maximum sample rate with 24-bit resolution places this board firmly in the territory of professional vibration analyzers. Nyquist bandwidth reaches 128 kHz, covering the full range of mechanical vibration (typically < 20 kHz) with ample margin for anti-aliasing filter roll-off. The adjustable rate — rather than a fixed rate — is valuable because:
+
+- Lower rates enable heavier decimation filtering and improved effective number of bits (ENOB) for slow-channel DC measurements
+- The FPGA fabric can implement CIC or FIR decimation filters whose coefficients can be updated at runtime, giving the system a single hardware platform that behaves like multiple instrument configurations
+
+## Positioning Against NI CompactDAQ
+
+NI's CompactDAQ chassis with C-Series modules offers a comparable feature set (24-bit, IEPE, 4–20 mA, high channel counts), but the closed hardware and proprietary software stack (LabVIEW / NI-DAQmx) create vendor lock-in and recurring licensing costs. A ZYNQ-based open platform allows engineers to:
+
+- Implement custom FPGA IP for specialized triggering, compression, or protocol bridging
+- Run standard Linux and open-source toolchains (Yocto, PetaLinux, libIIO, GNU Radio)
+- Integrate directly into industrial Ethernet (EtherCAT, PROFINET) or time-sensitive networking (TSN) stacks without licensing fees
+
+For applications in China's industrial automation and structural health monitoring markets — where domestic supply chain resilience is increasingly important — a ZYNQ-based design also avoids the procurement uncertainties that can affect imported NI hardware.
+
+## Typical Application Scenarios
+
+Given the combination of high channel count, 24-bit dynamic range, IEPE and 4–20 mA support, and compact modular packaging, this board is a natural fit for:
+
+- **Rotating machinery health monitoring** — simultaneous vibration acquisition on multiple bearing and shaft positions
+- **Structural health monitoring (SHM)** — dense accelerometer arrays on bridges, buildings, or aerospace structures
+- **Industrial process control** — mixed signal environments where some channels carry 4–20 mA transmitter outputs and others carry dynamic vibration or acoustic data
+- **Modal analysis and NVH testing** — automotive or industrial equipment characterization requiring phase-coherent multi-channel vibration data
+
+The 30-channel density in a single compact board reduces the cabling and chassis space that would otherwise be required by multiple single-card solutions, directly addressing the stated design goal of serving applications where volume and channel count are tightly constrained.

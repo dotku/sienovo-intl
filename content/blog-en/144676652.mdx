@@ -5,18 +5,58 @@ slug: "144676652"
 tags: ["#FPGADev"]
 source: "https://blog.csdn.net/szxinmai/article/details/144676652"
 originalTitle: "【国产NI替代】基于国产FPGA+兆易创新GD32F450的全国产16振动+2转速（24bits）高精度终端采集板卡"
+expanded: true
 ---
+Industrial vibration monitoring has long been dominated by National Instruments (NI) hardware — reliable, but expensive and dependent on foreign supply chains. This post introduces a fully domestic alternative: a 16-channel vibration + 2-channel rotational speed terminal acquisition board built around a Chinese AG16KF256 FPGA and a GigaDevice GD32F450 ARM microcontroller, delivering 24-bit precision at a significantly lower cost and with a fully maintainable domestic software stack.
 
-16-Channel Vibration + 2-Channel Rotational Speed (24-bit) High-Precision Terminal Acquisition Board
+![Board front view](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144676652/01_2cbbc7e0422547368a89ff3fe3707ac4.png)
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144676652/01_2cbbc7e0422547368a89ff3fe3707ac4.png)
+![Board rear view](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144676652/02_2b12afcd50934282b0ce9769d41ba22f.png)
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144676652/02_2b12afcd50934282b0ce9769d41ba22f.png)
+## Hardware Architecture Overview
 
-Features a domestic AG16KF256 FPGA + GigaDevice GD32F450.
+The board is a two-chip design that divides signal processing into a clear front-end / back-end split:
 
-The hardware architecture, based on a domestic ARM processor, while having weaker computational capabilities than a T3 processor, offers advantages such as lower cost and easier code maintenance.
+- **Front-end (FPGA — AG16KF256):** Real-time signal acquisition, anti-aliasing filtering, and decimation across all 16 vibration channels and 2 tachometer channels.
+- **Back-end (ARM — GigaDevice GD32F450):** Feature-value extraction, FFT computation, soft-core protocol handling, and upstream data transmission.
 
-Built-in algorithms can perform feature value calculations and FFT computation functions.
+This division of labour is the same architectural philosophy used in high-end NI DSA cards, where an FPGA handles deterministic, high-throughput front-end work that a general-purpose CPU cannot schedule reliably, while the processor handles computationally intensive but latency-tolerant analysis.
 
-The FPGA remains responsible for front-end signal acquisition, filtering, and sampling, while the ARM primarily handles back-end feature value calculation, FFT computation, and soft-core protocol interfacing and data upload.
+## Why AG16KF256 + GD32F450?
+
+The **AG16KF256** is a mid-range domestic FPGA with 256K lookup tables (LUTs) in the Anlogic AG series. It provides sufficient fabric resources to implement 16 parallel sigma-delta decimation filter chains simultaneously — a task that would saturate a small FPGA or require an expensive DSP chip. Its domestic origin means it falls outside US Export Administration Regulations (EAR) entity-list restrictions and qualifies for local government procurement programmes.
+
+The **GigaDevice GD32F450** is a high-performance ARM Cortex-M4F microcontroller running at up to 200 MHz, with hardware floating-point and a rich set of communication peripherals. It is GigaDevice's direct domestic equivalent to the STM32F4 series, sharing near-identical register maps and peripheral layouts — which is a key reason the post explicitly notes *easier code maintenance*. Engineers already familiar with STM32-based HAL or bare-metal code can migrate to GD32F450 with minimal friction.
+
+The trade-off acknowledged in the original design notes: the GD32F450 is weaker in raw compute than a T3-class processor (such as a multi-core application processor in the ARM Cortex-A family). For a terminal acquisition board whose analysis pipeline is bounded by 16-channel 24-bit FFT workloads at typical vibration bandwidths (up to ~20 kHz per channel), the Cortex-M4F at 200 MHz is sufficient. A T3-class device would add cost, thermal complexity, and a full embedded Linux software stack — unnecessary overhead for an edge acquisition node whose job is to compute features and forward packets, not run a full OS.
+
+## Signal Chain: Front-End FPGA Responsibilities
+
+Each vibration input passes through the FPGA's acquisition pipeline:
+
+1. **ADC interfacing** — The FPGA clocks the 24-bit ADCs (likely sigma-delta devices given the resolution and channel count) and receives serial bit-streams from all 16 channels in parallel.
+2. **Digital filtering** — A cascaded integrator-comb (CIC) or FIR decimation filter removes out-of-band noise and reduces the sample rate from the oversampled ADC rate down to the analysis bandwidth required by the application.
+3. **Decimation** — The filtered data stream is decimated to match the output data rate, reducing the data volume that needs to be handed off to the ARM.
+
+Because the FPGA handles all 16 channels simultaneously and deterministically, there is no channel-to-channel skew introduced by software scheduling — a critical requirement for phase-coherent multi-channel vibration analysis (e.g., cross-correlation between measurement points on a rotating machine).
+
+The 2 tachometer channels are handled separately; rotational speed signals are typically TTL pulse trains from proximity probes or encoders, and the FPGA can measure pulse period with sub-microsecond resolution to derive RPM and provide a phase reference for order-tracked analysis.
+
+## Back-End ARM Responsibilities
+
+Once the FPGA has decimated and filtered the data, it is transferred to the GD32F450 (likely over a parallel bus or high-speed SPI/QSPI interface). The ARM then performs:
+
+- **Feature-value calculation** — Time-domain statistical features such as RMS, peak, crest factor, and kurtosis. These are the primary health indicators used in condition monitoring and are relatively cheap to compute on a Cortex-M4F with hardware FPU.
+- **FFT computation** — Frequency-domain analysis for identifying fault frequencies (bearing defect frequencies, gear mesh frequencies, imbalance, misalignment). The GD32F450's M4F core can execute a CMSIS-DSP FFT efficiently; for 1024-point complex FFT at 200 MHz, throughput is well within the frame-rate budget for typical vibration analysis update rates.
+- **Protocol interfacing and data upload** — The ARM runs a soft protocol stack to format results and transmit them upstream. This could be Ethernet (the board's "terminal" form factor suggests it sits close to the machine), Modbus, or a proprietary industrial protocol. The GD32F450's MAC peripheral supports 10/100 Ethernet, enabling direct TCP/IP connectivity without an additional network controller.
+
+## Positioning as a Domestic NI Alternative
+
+NI's CompactDAQ and PXI DSA modules offer comparable channel counts and 24-bit resolution, but at a price point that makes large-scale machine fleet deployments expensive. This board targets the same measurement class — high-precision vibration and tachometer acquisition with onboard signal processing — using an entirely domestic component set:
+
+- No exposure to foreign chip supply-chain risk
+- Lower BOM cost due to domestic FPGA and MCU pricing
+- Simplified software maintenance: GD32F450 code is largely compatible with existing STM32F4 codebases, lowering the barrier for Chinese industrial software teams
+- Built-in feature extraction and FFT mean the host system receives processed results rather than raw waveforms, reducing network bandwidth and host CPU load
+
+For applications in predictive maintenance, rotating machinery health monitoring, and industrial condition monitoring systems — particularly in defence-adjacent or government-procurement contexts where domestic sourcing is mandatory — this architecture presents a credible, production-ready alternative to NI's incumbent hardware.

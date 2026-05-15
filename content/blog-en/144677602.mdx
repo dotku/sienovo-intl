@@ -5,12 +5,48 @@ slug: "144677602"
 tags: ["#AI", "#ARMDev", "#EdgeComputing"]
 source: "https://blog.csdn.net/ARM_FPGA_AI/article/details/144677602"
 originalTitle: "【国产虚拟仪器】基于DSP+FPGA的8振动/电压终端计算采集板卡"
+expanded: true
 ---
+## Overview
 
-8-channel Vibration/Voltage Edge Computing Acquisition Board
+This post introduces Sienovo's 8-channel Vibration/Voltage Edge Computing Acquisition Board — a compact, cost-aware data acquisition card built around a hybrid FPGA + DSP architecture. If you are designing an industrial monitoring node that needs high-precision analog acquisition, real-time signal conditioning, and on-board edge computation without the overhead of a full PC-class platform, this board represents a tightly integrated solution worth examining.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144677602/01_3e21b1de7b8a4c22bb23a59533164f8.png)
+## Core Architecture: EP4CE40F23I7 + TMS320C6748
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144677602/02_5242bf86eb1b430f8f2a17a77d6ff42b.png)
+The board pairs two well-proven silicon devices:
 
-It adopts an EP4CE40F23I7 + TMS320C6748 architecture. Key features include the addition of a DSP for data edge computing, enhanced analog channel conditioning (e.g., zero-point calibration, gain switching, analog filter control, modulation/demodulation), and the addition of a 1-channel DAC output. This board is primarily suited for applications that do not require a high number of channels but demand high sampling resolution and accuracy, are sensitive to noise and cost, and require certain edge computing capabilities.
+**Intel (Altera) Cyclone IV EP4CE40F23I7** — a mid-density FPGA with approximately 39,600 logic elements, available in an industrial-temperature variant (the "I7" speed grade is rated to −40 °C to +100 °C). On this board the FPGA handles the tasks it is best suited for: high-speed, deterministic sample capture, channel multiplexing, analog front-end control (gain switching, filter enable/disable lines, modulator clocking), and moving raw sample data to the DSP over a high-throughput internal bus.
+
+**Texas Instruments TMS320C6748** — a fixed/floating-point DSP from TI's C6000 family, clocked at up to 456 MHz. The C6748 carries a VLIW architecture capable of executing up to eight operations per cycle, making it well suited for FFT-based vibration analysis, RMS computation, envelope detection, and other signal-processing algorithms that would stall a general-purpose microcontroller. Unlike the higher-power C6678 multi-core parts, the C6748 is a single-core device with a power envelope appropriate for fan-less, embedded enclosures.
+
+The division of labour is deliberate: the FPGA manages I/O determinism and analog front-end orchestration, while the DSP executes the numerically intensive edge algorithms. Data passes between them over a shared-memory or parallel bus interface, keeping latency low and avoiding the USB/Ethernet round-trips that would be required if edge compute were offloaded to a host PC.
+
+## Analog Front-End Conditioning
+
+A distinguishing feature of this design is the attention paid to the analog signal chain — the part that most low-cost FPGA-only boards omit:
+
+- **Zero-point calibration** — offset errors introduced by the input amplifiers and ADC front-end can be measured and corrected in firmware at power-up or on demand, ensuring that a nominal 0 V input maps to a true mid-scale code rather than drifting with temperature.
+- **Gain switching** — programmable gain amplifier (PGA) stages allow the input range to be adjusted per channel, letting the board capture both low-amplitude vibration signatures (millivolt-level IEPE sensor outputs) and higher-voltage process signals without saturating the ADC.
+- **Analog filter control** — hardware anti-aliasing and band-selection filters can be engaged or bypassed under FPGA control, adapting the frequency response to the target signal bandwidth and suppressing out-of-band noise before the signal reaches the ADC.
+- **Modulation/demodulation support** — the front end includes circuitry for signal modulation and demodulation, useful when driving or decoding carrier-based sensors such as LVDTs (Linear Variable Differential Transformers) or eddy-current proximity probes commonly found in rotating-machinery applications.
+
+## DAC Output Channel
+
+The board adds a single-channel DAC output. While one channel may seem minimal, in practice a single analog output covers the most common embedded use cases: closed-loop reference signal generation, stimulus injection for sensor excitation, and analog status reporting to a legacy PLC or DCS that does not speak digital fieldbus. For applications that need only occasional analog output rather than multi-channel waveform playback, one DAC keeps cost and board area low.
+
+## Target Application Profile
+
+The design explicitly trades channel count for per-channel quality and on-board intelligence. It is well matched to:
+
+- **Condition monitoring nodes** on rotating machinery (motors, pumps, gearboxes, compressors) where 4–8 accelerometer or velocity channels are sufficient and the priority is accurate vibration spectrum extraction at the edge.
+- **Noise-sensitive instrumentation** where shielding, low-noise amplifier selection, and analog filtering matter more than raw channel density.
+- **Cost-constrained deployments** where a full PC/104 or NI CompactDAQ slot would be over-engineered, but a bare microcontroller lacks the DSP headroom for real-time FFT and feature extraction.
+- **Space- or power-limited enclosures** that cannot accommodate a multi-slot chassis but still need deterministic, high-resolution acquisition (the C6748 + Cyclone IV combination is significantly more power-efficient than an x86 industrial PC running equivalent software).
+
+## Why DSP + FPGA Rather Than CPU-Only?
+
+A common alternative is to pair an FPGA with an ARM Cortex-A application processor (as seen in Xilinx Zynq or Intel SoC FPGA families). The C6748 DSP choice reflects a different trade-off: the C6000 VLIW pipeline delivers higher sustained throughput on fixed-pattern DSP kernels (FFT, FIR, IIR, correlation) per milliwatt than a general-purpose ARM core of comparable cost, and TI's DSP/BIOS (SYS/BIOS) RTOS gives deterministic task scheduling without the jitter of a Linux scheduler. For applications where the compute workload is well-defined signal processing rather than general OS services or network stacks, a dedicated DSP remains a competitive choice.
+
+## Summary
+
+The EP4CE40F23I7 + TMS320C6748 acquisition board occupies a deliberate niche: fewer channels than a large chassis instrument, but far more analog conditioning quality and on-board compute than a simple microcontroller DAQ module. The combination of programmable gain, zero-calibration, analog filtering, modulation/demodulation, and DSP-driven edge processing makes it a practical building block for industrial vibration monitoring, precision voltage acquisition, and similar applications where data quality and local intelligence matter more than raw channel count.

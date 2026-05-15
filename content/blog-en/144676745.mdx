@@ -5,17 +5,48 @@ slug: "144676745"
 tags: ["#BigData", "#FPGADev", "#AI"]
 source: "https://blog.csdn.net/szxinmai/article/details/144676745"
 originalTitle: "【国产NI替代】基于全国产FPGA的16振动+2转速+8路IO口输入输出（24bits）256k采样率，高精度终端采集板卡"
+expanded: true
 ---
+Industrial vibration monitoring and condition-based maintenance systems demand data acquisition hardware that can faithfully capture high-frequency mechanical signatures across many channels simultaneously. This post introduces a domestically designed high-precision terminal acquisition board built around the AG16KF256 FPGA — a Chinese-made device — that targets exactly this use case: pure, high-throughput signal capture without the overhead of an embedded application processor.
 
-16 Vibration + 2 RPM Channels (24-bit ADC)
-8-Channel I/O (Input/Output)
+## Hardware Architecture Overview
 
-High-Precision Data Acquisition Terminal Board
+The board's core is the **AG16KF256**, a domestic (国产) FPGA. Rather than pairing the FPGA with an ARM core as many mixed-architecture boards do, this design uses a **pure FPGA architecture**, deliberately trading general-purpose edge compute capability for raw sampling bandwidth. An external **16 MB SDRAM** acts as a deep transmit buffer for the **Gigabit Ethernet** output path, decoupling the high-speed ADC front-end from the variable-latency network interface and preventing sample drops during burst transfers.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144676745/01_7d2cde0367284b6db549b0735d1c31b2.png)
+![Board front view](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144676745/01_7d2cde0367284b6db549b0735d1c31b2.png)
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144676745/02_39acf5858c7e4812a8455008a1c5.png)
+![Board rear / connector view](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144676745/02_39acf5858c7e4812a720a8455008a1c5.png)
 
-The hardware architecture utilizes a domestic AG16KF256 FPGA, externally expanded with 16MB of SDRAM to serve as a transmit buffer for the Gigabit Ethernet interface. Compared to similar hardware architectures featuring an ARM processor, while a pure FPGA architecture offers less edge computing capability than an ARM-based one, it boasts a maximum sampling rate of 256 kSps, making it highly suitable for high-sampling-rate, pure data acquisition applications.
+## Channel Configuration
 
-The product also features 4 digital input channels and 4 digital output channels, allowing for control of external devices.
+| Channel Type | Count | Resolution |
+|---|---|---|
+| Vibration (AC-coupled analog) | 16 | 24-bit ADC |
+| RPM / tachometer | 2 | 24-bit ADC |
+| Digital Input | 4 | — |
+| Digital Output | 4 | — |
+
+The **16 vibration input channels** are intended for ICP/IEPE-compatible accelerometers or similar vibration transducers commonly used in rotating machinery health monitoring — spindles, gearboxes, pump casings, and motor housings. The **2 RPM channels** allow simultaneous capture of shaft speed signals (typically from proximity probes or magnetic pickups), which is essential for order-tracking analysis: correlating vibration frequency content with rotational speed to identify gear-mesh frequencies, blade-pass frequencies, and other order-related fault signatures.
+
+The **4-in / 4-out digital I/O** channels extend the board beyond passive data collection. They can be wired to relay drivers, solenoid valves, alarm annunciators, or machine interlocks, enabling the acquisition board to participate in basic protective or supervisory logic without requiring a separate PLC or control module.
+
+## Why Pure FPGA Instead of FPGA + ARM?
+
+Many industrial DAQ boards combine an FPGA front-end with an ARM application processor (e.g. a TI Sitara or Xilinx Zynq SoC) so that on-board DSP, protocol handling, and even machine-learning inference can run locally. The trade-off is well known: the ARM adds latency paths, scheduling jitter, and firmware complexity that can limit the deterministic, maximum-throughput sampling the FPGA fabric itself is capable of.
+
+By removing the ARM entirely, this design achieves a **maximum sampling rate of 256 kSps** (kilo-samples per second) across its channels. At 256 kSps with 24-bit resolution, the Nyquist-limited measurement bandwidth extends to 128 kHz — sufficient to capture high-frequency bearing defect frequencies, ultrasonic structural resonances, and aerodynamic noise signatures that slower, general-purpose DAQ hardware would alias or miss entirely.
+
+The 16 MB SDRAM buffer is key to sustaining this rate over Gigabit Ethernet. At 256 kSps × 16 channels × 3 bytes per sample, the raw data rate is approximately 12.3 MB/s — well within GbE capacity but bursty enough that a deep hardware FIFO prevents host-side latency spikes from causing overruns.
+
+## Positioning vs. NI Hardware
+
+National Instruments (now NI, a part of Emerson) has long dominated high-channel-count vibration DAQ with product lines like the NI 9234 (4-channel, 24-bit, 51.2 kSps) and PXIe-4497 (16-channel, 24-bit, 204.8 kSps). This board targets a comparable specification tier — 16 channels, 24-bit, up to 256 kSps — while using an entirely domestic FPGA component, which addresses supply-chain independence requirements increasingly common in Chinese industrial deployments.
+
+## Typical Application Scenarios
+
+- **Rotating machinery condition monitoring**: simultaneous vibration capture on multiple bearing locations plus shaft RPM for order tracking
+- **Modal analysis test stands**: high-channel-count impact or shaker response measurement at bandwidths that capture structural resonances up to the ultrasonic range
+- **Quality inspection fixtures**: production-line vibration signature comparison against known-good baselines
+- **Turbomachinery test rigs**: compressor or turbine blade-pass monitoring where sampling rates below 100 kSps would miss the relevant harmonics
+
+The 4-channel digital I/O adds the ability to trigger captures from external events (e.g., a machine-cycle PLC output) or to assert a hardware alarm relay when the host application detects a fault threshold crossing, making integration into existing automation environments straightforward.

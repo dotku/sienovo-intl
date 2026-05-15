@@ -5,12 +5,61 @@ slug: "144676513"
 tags: ["#FPGADev", "#AI", "#DevOps"]
 source: "https://blog.csdn.net/szxinmai/article/details/144676513"
 originalTitle: "【国产NI替代】基于STM32+FPGA的8振动+4温度（24bits）高精度终端采集板卡解决方案，支持全国产"
+expanded: true
 ---
+## Overview
 
-8-Channel Vibration + 4-Channel Temperature (24-bit) High-Precision Terminal Data Acquisition Board
+Industrial vibration monitoring and thermal sensing demand precision hardware that can keep pace with high-frequency mechanical phenomena while maintaining signal fidelity across all channels. This article introduces a domestically-produced 12-channel terminal data acquisition board — 8 vibration channels plus 4 temperature channels — built around an Intel (Altera) Cyclone IV FPGA and an STM32H743 microcontroller. The design is a direct upgrade to an earlier 16-bit variant and positions itself as a cost-effective domestic alternative to National Instruments (NI) data acquisition hardware for industrial field deployments.
+
+## Hardware Architecture: EP4CE10F17I7 + STM32H743
+
+The board pairs two complementary processing engines to handle the distinct demands of real-time signal conditioning and host-side data management.
+
+The **EP4CE10F17I7** is an Intel Cyclone IV E FPGA with approximately 10,000 logic elements in an industrial-temperature-grade package (the `-I7` suffix indicates a junction temperature range of −40 °C to +100 °C, suitable for harsh factory floors). FPGAs are the natural choice for multi-channel simultaneous sampling pipelines: all input channels can be clocked in lockstep with deterministic latency, something a CPU-based approach cannot guarantee. The Cyclone IV family is mature, well-supported by the Quartus II toolchain, and widely used in Chinese industrial embedded designs — making it a practical anchor for a domestically-sourced solution.
+
+The **STM32H743** is an STMicroelectronics ARM Cortex-M7 microcontroller running at up to 480 MHz with a double-precision FPU, 1 MB of tightly-coupled SRAM, and a rich peripheral set including high-speed USB, Ethernet MAC, and multiple SPI/I²C/UART interfaces. In this architecture the STM32H743 acts as the system controller: it handles configuration of the ADC front-end, orchestrates DMA transfers from the FPGA, manages communication with a host PC or edge gateway, and can perform lightweight on-device signal processing before data is forwarded upstream.
+
+Together, the FPGA handles the timing-critical, parallel-channel sampling pipeline, while the STM32H743 manages everything above the raw sample stream.
+
+## Channel Configuration: 8 Vibration + 4 Temperature
+
+The 12-channel layout reflects a common requirement in rotating-machinery condition monitoring:
+
+- **8 vibration channels** — typically wired to IEPE (Integrated Electronics Piezo-Electric) accelerometers or velocity sensors mounted on bearing housings, motor end-bells, or gearbox casings. Vibration signatures in these locations carry early fault indicators such as bearing defect frequencies, imbalance sidebands, and gear mesh harmonics.
+- **4 temperature channels** — commonly connected to thermocouples or RTDs monitoring winding temperatures, coolant inlet/outlet, or ambient enclosure temperature. Thermal trends provide a secondary confirmation of developing faults and protect against thermal runaway.
+
+Having all 12 channels on a single compact board simplifies cabling, reduces installation time, and eliminates the synchronization problems that arise when mixing separate vibration and temperature acquisition modules from different manufacturers.
+
+## 24-Bit Resolution: The Upgrade from 16-Bit
+
+The previous generation of this board used 16-bit ADCs, which provide 96 dB of theoretical dynamic range. Moving to **24-bit** resolution raises the theoretical dynamic range to approximately 144 dB — a meaningful improvement when trying to detect low-amplitude early-stage bearing defects buried beneath high-amplitude running vibration. In practice, effective number of bits (ENOB) is always somewhat lower than the nominal figure due to thermal noise and layout parasitics, but the headroom gained from 24-bit converters makes it substantially easier to resolve small fault-related spectral peaks without range-switching or manual gain adjustment.
+
+## Sampling Rate: Up to 102.4 KHz
+
+The board supports a maximum sampling rate of **102.4 KHz per channel**. This figure is not arbitrary — 102.4 KHz is a standard rate in vibration analysis instrumentation because it yields a Nyquist limit of 51.2 KHz, which conveniently covers the high-frequency fault signatures produced by rolling-element bearings and high-speed spindles, while also being an even multiple of common base frequencies used in FFT block sizes (e.g., 1024, 2048, 4096 points at standard spectral line counts of 400, 800, 1600). The result is clean, alias-free spectra without fractional-bin leakage artifacts.
+
+Sustaining 102.4 KHz simultaneously across 8 vibration channels represents a raw throughput of over 800,000 24-bit samples per second from the vibration front-end alone — a workload that motivates the FPGA's role as the pipeline engine rather than leaving sample capture to the microcontroller.
+
+## Anti-Aliasing: 32-Order Digital Filter
+
+Anti-aliasing is one of the most frequently overlooked specifications in vibration acquisition hardware, yet it is critical for measurement integrity. Any signal energy above the Nyquist frequency must be attenuated before digitisation; if it is not, it folds back into the passband and corrupts the spectrum.
+
+This board incorporates an **internal 32-order digital filter** for anti-aliasing. A higher filter order means a steeper roll-off in the transition band, allowing the passband to extend closer to the Nyquist limit while still achieving deep attenuation of out-of-band energy. The designers claim the anti-aliasing performance exceeds that of some foreign commercial boards — a plausible assertion given that high-order delta-sigma ADCs with integrated sinc filters can achieve very steep digital anti-aliasing characteristics that outperform the analog low-pass filter stages found in older or more cost-constrained foreign hardware.
+
+## Industrial Design Considerations
+
+Beyond the core signal chain, the board is explicitly designed for **industrial field environments**, which typically implies:
+
+- Wide operating temperature range (consistent with the `-I7` FPGA package choice)
+- Robust power supply filtering to reject conducted noise from variable-frequency drives, contactors, and switching power supplies common in factory environments
+- Compact form factor suitable for mounting inside control cabinets or junction boxes close to the machinery being monitored
+
+## Domestic Sourcing and NI Replacement
+
+National Instruments (now part of Emerson) DAQ hardware has long been the reference standard for precision multi-channel acquisition in industrial and laboratory settings. However, NI hardware carries significant cost and, in recent years, supply-chain considerations have increased interest in domestically-manufactured alternatives in China. This board targets that gap: an EP4CE10F17I7 + STM32H743 combination uses components that are either domestically available or for which domestic equivalents exist, and the signal-chain architecture is designed to meet or exceed NI-class anti-aliasing and dynamic range specifications at industrial operating temperatures.
+
+For machine condition monitoring applications — particularly rotating equipment such as pumps, fans, compressors, and motors — this 8-vibration + 4-temperature, 24-bit, 102.4 KHz board represents a technically competitive option worth evaluating against imported alternatives.
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144676513/01_a2d3b25fe27743d6acc78d1815d498f6.png)
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144676513/02_31160491658e40bfaea504a8d1729e39.png)
-
-The core processing unit features an EP4CE10F17I7 + STM32H743 hardware combination. This represents an upgrade from the 8-channel vibration + 4-channel temperature (16-bit) version and is a 12-channel data acquisition device designed for industrial field environments. It is primarily aimed at applications with high sampling rate requirements (supporting a maximum sampling rate of 102.4KHz), 24-bit sampling resolution, and stringent anti-aliasing requirements (featuring an internal 32-order digital filter, with anti-aliasing performance even surpassing some foreign boards).

@@ -5,12 +5,67 @@ slug: "144677238"
 tags: ["#FPGADev", "#AI", "#BigData"]
 source: "https://blog.csdn.net/szxinmai/article/details/144677238"
 originalTitle: "【国产NI替代】16振动/电压+8转速+2模拟量输出多功能终端采集板卡，支持高精度，多通道动态信号采集"
+expanded: true
 ---
+## A Compact, High-Channel-Count Dynamic Signal Acquisition Card Built on Dual FPGAs
 
-16-Channel Vibration/Voltage + 8-Channel Tachometer + 2-Channel Analog Output Multifunctional Terminal Acquisition Card
+Industrial test and measurement engineers who have worked with National Instruments (NI) hardware know the trade-offs well: excellent software ecosystem, proven accuracy, but steep licensing costs and form factors that can feel oversized for embedded or field-deployed systems. This card is a domestic Chinese alternative aimed squarely at that gap — a 16-channel vibration/voltage + 8-channel tachometer + 2-channel analog output acquisition board that packs high-precision, multi-channel dynamic signal acquisition into a compact terminal form factor.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144677238/01_f254636e923443e7b8794d9534af3c09.png)
+## Dual-FPGA Architecture
 
-Featuring an architecture built around two FPGAs (EP4CE10F17I7 + XC7A35T-2fgg484), this is a high-precision, multi-channel dynamic signal acquisition device. It is primarily designed for applications with demanding measurement requirements where cost is not the primary concern, addressing the shortcomings of previous 32-channel versions, which were large and bulky. Not only does it incorporate the most commonly used Gigabit Ethernet and USB 3.0 interfaces, but while supporting 24-channel acquisition, it also provides two DA (Digital-to-Analog) outputs, offering possibilities for closed-loop control applications. For synchronization, it supports not only hardware clock synchronization but also GPS synchronization. For storage, it allows for external SD card expansion, and a built-in SATA hard drive is included to compensate for the speed limitations of SD cards.
+At the heart of the design sit two FPGAs working in tandem:
 
-The circuit design also incorporates specialized EMC (Electromagnetic Compatibility) considerations. With just a well-shielded enclosure, it can essentially meet the requirements for various electromagnetic interference environments.
+- **Intel (Altera) EP4CE10F17I7** — a Cyclone IV E device in a 256-pin FineLine BGA package, rated for the industrial temperature range (−40 °C to +100 °C, I-speed grade). The Cyclone IV E family is a well-proven choice for cost-sensitive I/O-heavy applications, offering sufficient logic elements and dedicated DSP blocks for multi-channel decimation filtering and real-time preprocessing.
+- **Xilinx XC7A35T-2FGG484** — an Artix-7 device in a 484-ball FGG package, speed grade −2. The Artix-7 series provides substantially more DSP48E1 slices and block RAM than a comparable Cyclone IV device, making it well-suited for the heavier floating-point or fixed-point signal processing tasks such as FFT-based order tracking on tachometer channels.
+
+Splitting responsibilities across two FPGAs is a common pattern in high-channel-count DAQ designs: one FPGA handles front-end sample collection, clock distribution, and synchronization, while the other handles data aggregation, packetization, and high-speed host interface logic. The result is that neither device becomes a bottleneck, and board layout can be partitioned cleanly between analog-heavy and digital-heavy regions.
+
+## Channel Configuration and Measurement Targets
+
+The board supports **24 acquisition channels in total**:
+
+| Channel Type | Count | Typical Use |
+|---|---|---|
+| Vibration / Voltage (AC/DC-coupled) | 16 | Accelerometers, microphones, strain gauges, general voltage |
+| Tachometer / Speed pulse | 8 | Optical encoders, eddy-current probes, keyphasor signals |
+
+This combination is specifically tailored for rotating machinery analysis — a domain where you need wideband vibration channels (for bearing and blade-pass frequencies) alongside precise shaft-speed references (tachometer channels) to perform synchronous averaging and order-spectrum analysis. Having eight tachometer channels means a single card can simultaneously track multiple shafts on a multi-stage gearbox or turbine without requiring an additional timing card.
+
+## Two-Channel Analog Output for Closed-Loop Control
+
+Beyond acquisition, the board provides **two DA (Digital-to-Analog) output channels**. In a pure data-logging system this would be unnecessary, but it opens the door to **closed-loop control** scenarios: the host or the on-board FPGA can compute a correction signal and drive an actuator (servo valve, active balancer, vibration isolator) in real time. This is particularly relevant for active vibration control applications where the feedback path must remain deterministic and low-latency — something easily achieved when the DAC is co-located with the ADC front end on the same FPGA fabric.
+
+## Connectivity: Gigabit Ethernet and USB 3.0
+
+The board exposes the two interfaces that dominate modern embedded DAQ deployments:
+
+- **Gigabit Ethernet** — enables streaming to a network-attached host or NAS, integration with industrial Ethernet protocols, and geographic separation between the acquisition card and the analysis workstation. At 1 Gbps raw bandwidth, it comfortably sustains streaming from all 24 channels even at high sample rates.
+- **USB 3.0** — provides a plug-and-play path for direct connection to a laptop or embedded PC, useful for field diagnostics where setting up a network is impractical. USB 3.0 SuperSpeed (5 Gbps) is more than sufficient for the aggregate channel bandwidth.
+
+Offering both interfaces simultaneously means the system integrator is not forced into a topology decision at procurement time.
+
+## Synchronization: Hardware Clock and GPS
+
+Accurate multi-card or multi-system synchronization is often the hardest problem in distributed DAQ. This board addresses it on two levels:
+
+- **Hardware clock synchronization** — a dedicated sync connector allows multiple cards to share a common sample clock and trigger line, guaranteeing phase-aligned samples across cards. This is the standard approach for expanding channel count beyond a single card.
+- **GPS synchronization** — for systems that are geographically distributed (pipeline monitoring, structural health monitoring on bridges or wind farms), GPS-disciplined timing allows absolute timestamps with sub-microsecond accuracy referenced to UTC. Few domestic cards at this price point include GPS sync as a standard feature.
+
+## Storage: SD Card Expansion + Built-in SATA Drive
+
+When a live Ethernet or USB connection to a host is not available or not desirable (autonomous logging, hazardous environments, moving platforms), the board can store data locally:
+
+- **External SD card slot** — convenient for configuration files, short burst captures, or firmware updates, but limited in sustained write bandwidth. SD cards typically top out at 20–40 MB/s in sequential writes, which can become a bottleneck for high-channel, high-sample-rate continuous recording.
+- **Built-in SATA hard drive interface** — directly addresses the SD card speed limitation. A SATA SSD can sustain 300–500 MB/s sequential writes, providing enough headroom for all 24 channels at high sample rates without dropped frames.
+
+Having both options on the same board lets the designer choose the appropriate storage medium per deployment without hardware redesign.
+
+## EMC Design Considerations
+
+The board incorporates dedicated EMC design measures at the circuit level — ground plane partitioning between analog and digital domains, appropriate bulk and bypass decoupling at power rails, and careful routing of high-speed digital signals away from sensitive analog traces. The design intent is that placing the board inside a properly shielded enclosure is sufficient to meet electromagnetic interference requirements across a broad range of industrial environments, including those with variable-frequency drives, switching power supplies, and high-current relay coils in proximity.
+
+## Positioning: When This Card Makes Sense
+
+This card is explicitly positioned for applications where **measurement quality takes priority over unit cost** — calibration labs, R&D test rigs, condition monitoring systems on critical rotating assets, or any scenario where missing a fault has consequences that dwarf the hardware budget. The compact terminal form factor (versus the large, rack-mount predecessors it replaces) makes it practical to deploy close to the measurement point, reducing cable lengths and the noise they pick up.
+
+For teams currently paying NI pricing for PXI or CompactDAQ hardware doing rotating-machinery analysis, a dual-FPGA domestic alternative with GPS sync, SATA storage, and integrated DA outputs represents a technically credible option worth evaluating — provided the software driver ecosystem and calibration documentation meet the same standard as the hardware design.

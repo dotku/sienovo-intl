@@ -5,12 +5,51 @@ slug: "144677176"
 tags: ["#FPGADev", "#AI", "#BigData"]
 source: "https://blog.csdn.net/szxinmai/article/details/144677176"
 originalTitle: "【国产NI替代】基于FPGA的32通道（24bits）高精度终端采集核心板卡"
+expanded: true
 ---
+High-precision data acquisition has long been dominated by commercial platforms like National Instruments (NI), but the cost and export-control realities of those systems have pushed Chinese industrial developers toward domestically designed alternatives. This post introduces a 32-channel, 24-bit dynamic signal acquisition core board built around an Intel Altera Cyclone IV E FPGA — a compact, two-card design targeting the same application space as NI's CompactDAQ and PXI acquisition modules, but integrated directly into a proprietary industrial chassis.
 
-32-Channel (24-bit) High-Precision Data Acquisition Core Board
+## Hardware Overview
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144677176/01_de4505a7daac4accab9f5cfac90e3f93.png)
+The acquisition core is split across two physically separate PCBs that work in tandem:
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144677176/02_1f3b23f7694b4cefa89da46665ee44a6.png)
+- **Acquisition board** — handles the analog front end: 32 channels of 24-bit sampling, anti-aliasing filtering, and ADC interfacing.
+- **Communication board** — handles data aggregation, buffering, and transmission to the host or downstream processing chain.
 
-Featuring an EP4CE115F29I7 model FPGA, this is a high-precision, multi-channel dynamic signal acquisition core board. The core board is primarily divided into two modules: a communication board and an acquisition board, both controlled by an FPGA. Its main application is for dynamic acquisition and data transmission within the company's internal chassis, with power supplied by the chassis.
+Both boards are controlled by an **EP4CE115F29I7** FPGA. This is an Intel (formerly Altera) Cyclone IV E device in the F29 (FBGA-780) package, with the I7 speed/temperature grade indicating industrial-range operation (−40 °C to 100 °C junction temperature). The Cyclone IV E family offers up to 114,480 logic elements, 3.9 Mb of embedded RAM, and 532 user I/Os in this package — more than sufficient to implement 32-channel parallel ADC control logic, a FIFO-based sample buffer, and a high-speed serial link simultaneously.
+
+## Why Two Boards?
+
+Separating the acquisition function from the communication function is a common design discipline in high-precision DAQ hardware, and it solves several practical problems:
+
+**Noise isolation.** Digital switching noise from high-speed serializers and bus transceivers on the communication board can couple into sensitive analog traces if everything is co-located. A board boundary with careful connector pinout and shielding breaks that coupling path.
+
+**Modular serviceability.** If a channel fails on the acquisition board, or a communication interface needs upgrading (say, from Ethernet to PCIe), only the affected card needs to be replaced rather than the entire assembly.
+
+**Thermal management.** The FPGA running the communication logic may operate at a higher switching rate and dissipate more heat than the acquisition-side FPGA. Separate boards allow independent heatsinking and airflow paths.
+
+## 24-Bit, 32-Channel — What That Means in Practice
+
+A 24-bit ADC provides a theoretical dynamic range of approximately 144 dB (20 × log₁₀(2²⁴)). In real-world systems, effective number of bits (ENOB) is always lower due to thermal noise, reference noise, and clock jitter, but well-designed 24-bit acquisition chains routinely achieve 110–120 dB SNR — enough to resolve microvolt-level signals alongside volt-level signals on the same channel without range switching.
+
+Running 32 such channels in parallel means the FPGA must service 32 simultaneous ADC data streams, synchronize their sample clocks (critical for multi-channel phase coherence in vibration and acoustic analysis), and pipeline the resulting data words into a contiguous frame buffer. With 24 bits per sample and, for example, a 51.2 kSa/s per-channel rate (common in structural health monitoring), the aggregate throughput is roughly **32 × 51,200 × 24 bits ≈ 39 Mbps** — well within what Cyclone IV's embedded SERDES and PLLs can handle.
+
+## Chassis Integration and Power Architecture
+
+Rather than carrying its own power regulation, the board is powered by the **chassis composite supply** — meaning the chassis backplane delivers multiple regulated rails (typically ±15 V for the analog section, 3.3 V and 1.2 V for FPGA core/IO) directly to the cards via a backplane connector. This is the same philosophy used in VXI, PXI, and VME standards: centralized, high-quality regulation at the chassis level keeps switching transients away from the ADC reference and reduces per-card BOM cost.
+
+## Application Context
+
+The stated application is **dynamic signal acquisition and data transmission inside the company's internal chassis** — phrasing that points toward structural monitoring, vibration analysis, acoustic testing, or industrial condition monitoring, all of which demand the simultaneous multi-channel, phase-coherent, high-dynamic-range capture that 32 × 24-bit architecture provides.
+
+As a domestically designed NI alternative, a system like this trades the breadth of NI's software ecosystem (LabVIEW, DAQmx driver stack) for full IP ownership, hardware customizability, and supply-chain independence — an increasingly important set of trade-offs for Chinese industrial and defense-adjacent applications.
+
+## Images
+
+![Front view of the acquisition core board](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144677176/01_de4505a7daac4accab9f5cfac90e3f93.png)
+
+![Rear or second-angle view](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144677176/02_1f3b23f7694b4cefa89da46665ee44a6.png)
+
+## Summary
+
+The EP4CE115F29I7-based 32-channel 24-bit acquisition core board demonstrates that a well-partitioned two-card FPGA architecture can meet the performance demands of high-precision dynamic signal acquisition without relying on commercial off-the-shelf DAQ platforms. The separation of acquisition and communication responsibilities, combined with chassis-level power delivery and industrial-grade FPGA selection, produces a design that is both performance-credible and maintainable in a production chassis environment.
