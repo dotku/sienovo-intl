@@ -5,17 +5,62 @@ slug: "134228032"
 tags: ["#AI", "#Scale"]
 source: "https://blog.csdn.net/yeyuangen/article/details/134228032"
 originalTitle: "行业安卓主板-基于RK3568/3288/3588的AI视觉秤/云相框/点餐机/明厨亮灶行业解决方案（一）"
+expanded: true
 ---
+Industrial Android motherboards built on Rockchip's RK3568, RK3288, and RK3588 SoCs have become a versatile platform for edge-AI applications across retail, hospitality, and food-safety industries. This post walks through four representative solution categories — AI vision scales, cloud digital photo frames, self-ordering kiosks, and transparent kitchen systems — and explains what the hardware enables in each case.
 
-**Title:** Industrial Android Motherboards - Industry Solutions for AI Vision Scales, Cloud Digital Photo Frames, Self-ordering Kiosks, and Transparent Kitchens Based on RK3568/3288/3588 (Part 1)
-
-**Content:**
 ## AI Vision Scale
-The single-screen AI scale integrates an independent NPU, offering up to 0.8 TOPS of computing power, which significantly boosts AI processing efficiency. This enables fast and accurate identification of fresh produce, quick weighing, and label printing, thereby reducing operating costs for fresh produce stores. It also alleviates congestion from weighing queues during peak hours, improves weighing efficiency, and upgrades the overall shopping experience.
+
+Fresh-produce retail has always faced a labour-intensive bottleneck at the weighing counter. Customers queue, staff must manually look up produce codes, and mis-identification leads to pricing errors. AI vision scales address all three pain points at once.
+
+The single-screen AI scale described here integrates an independent NPU directly on the SoC, delivering up to **0.8 TOPS** of dedicated neural-network compute. Because inference runs on-chip rather than round-tripping to a cloud server, recognition latency is kept low enough to match the speed of placing items on the platter. The workflow becomes: place produce → camera captures image → NPU runs the classification model → price and weight print on the label — all in a single fluid motion.
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/134228032/01_ea4951e40d0f71cc462c34fe9353e30f.png)
 
-## Cloud Digital Photo Frame Solution
-Cloud digital photo frames offer a new way to share photos. No matter where you are, you can use your phone and the cloud photo frame app to share photos and videos to the device. Simply connect to Wi-Fi, and family members can view them in real-time immediately. This also allows static photos to be displayed in a dynamic, aesthetic, and technologically advanced manner.
+Key operational benefits include:
 
-![](https://pub-048d
+- **Reduced staffing requirements** — self-service or minimally assisted weighing frees staff for other tasks.
+- **Peak-hour throughput** — eliminating manual look-up removes the primary bottleneck when store traffic is highest.
+- **Label accuracy** — model-based identification reduces the mis-keying errors that occur with manual code entry.
+
+RK3568 and RK3588 are particularly well-suited here because both include Rockchip's RKNN NPU and robust ISP pipelines for camera input, enabling the vision and inference subsystems to share a single compact board.
+
+## Cloud Digital Photo Frame Solution
+
+The cloud photo frame is a consumer-facing application that demonstrates how the same Android SBC platform transitions cleanly from industrial to lifestyle products. The concept replaces the traditional approach of copying files to an SD card with a persistent Wi-Fi-connected display that acts as a live endpoint for a mobile sharing app.
+
+Once the frame is connected to a home or office network, family members anywhere in the world can push photos and short videos to it directly from a smartphone app. The display updates in real time — no manual transfer, no physical media. Beyond simple slideshow playback, the platform supports dynamic presentation effects that add motion and visual interest to otherwise static images.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/134228032/02_7d7d827e2c92291ea7c9460fb371f378.png)
+
+From a hardware standpoint, RK3568 handles this workload comfortably: the Mali GPU covers smooth video decode and transition rendering, the Wi-Fi interface handles cloud sync, and the low idle power draw makes always-on operation practical. The Android runtime means existing media and cloud-sync app ecosystems are immediately available without custom firmware.
+
+## Self-Ordering Kiosk
+
+Restaurant labour costs and order accuracy are perennial challenges, particularly during lunch and dinner rushes when staff are simultaneously managing tables, the counter, and order handoff to the kitchen. Self-ordering kiosks compress the order-pay cycle into a customer-driven touchscreen interaction.
+
+The intelligent ordering terminal described here is designed specifically for smart restaurant environments. The system shortens the end-to-end flow — browsing the menu, placing the order, and completing payment — into a single unattended session. This removes customers from the waiting line for a human cashier and allows kitchen staff to receive orders as structured digital tickets rather than handwritten or verbally relayed requests.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/134228032/03_a52b07f6a6d50c89de42ca771e3d42dd.png)
+
+Beyond transaction efficiency, the platform also supports entertainment and promotional content — games, loyalty program information, upsell suggestions — that can be displayed during idle periods or while the customer is waiting for their order. This turns what would otherwise be dead wait time into a brand engagement opportunity.
+
+RK3288 and RK3568 both provide the GPU horsepower needed for fluid touch-UI rendering on large displays, while Android's mature payment and peripheral SDK ecosystem means integration with receipt printers, NFC payment readers, and kitchen display systems is straightforward.
+
+## Transparent Kitchen (明厨亮灶)
+
+Food safety regulation has intensified globally, and Chinese market rules in particular have pushed food-service operators toward verifiable, visible hygiene practices. The "transparent kitchen" (明厨亮灶, literally "bright kitchen, illuminated stove") concept addresses this by making food preparation visible to diners and regulators alike through real-time video monitoring.
+
+The solution builds a dual-purpose system: it simultaneously serves compliance monitoring and brand marketing. Multi-channel live streams are captured from cameras positioned at key preparation areas — cold food handling, raw ingredient storage, cooking stations — and displayed on screens visible to customers in the dining area or accessible via a public-facing stream.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/134228032/04_74631b68509b6a34af8b030157c078f4.png)
+
+From a regulatory standpoint, the system provides the visual documentation that food-safety authorities require. From a business standpoint, the same feed becomes a trust-building signal to diners: visible hygiene is a direct differentiator in a market where food-safety incidents receive significant media attention.
+
+RK3588's multi-core A55/A76 cluster and hardware video encode/decode blocks make it the natural choice for multi-stream capture and encoding at scale. The platform can handle multiple simultaneous camera inputs, encode to H.264/H.265 for streaming, and run the Android-based management UI concurrently — all on a single compact board without an external video-processing card.
+
+## Platform Commonality
+
+Across all four solutions, the underlying value proposition of an industrial Android SBC is consistent: a single certified hardware platform, a familiar Android development environment, and sufficient compute headroom (including dedicated NPU on RK3568/3588) to handle edge-AI workloads without cloud dependency. The RK3568 sits in the mid-tier as a power-efficient choice for always-on deployments; the RK3588 targets higher-throughput applications like multi-camera transparent kitchen rigs; and the RK3288 remains a cost-effective option for display-heavy but compute-lighter applications like the ordering kiosk.
+
+Part 2 of this series will explore additional solution categories and dive deeper into integration specifics for each platform variant.

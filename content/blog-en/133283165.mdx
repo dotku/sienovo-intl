@@ -5,6 +5,133 @@ slug: "133283165"
 tags: ["#FPGADev", "#ARMDev"]
 source: "https://blog.csdn.net/yeyuangen/article/details/133283165"
 originalTitle: "基于ARM+FPGA的ISA总线／MMи总线接口转换设计在轨道交通的应用"
+expanded: true
 ---
+Rail transit and defense test systems often inherit legacy hardware from multiple national standards — a combination that can make inter-system integration a serious engineering challenge. This article documents the design of an FPGA-based conversion circuit that bridges the American ISA bus and the Russian MMи (MMи) dedicated test bus, enabling a domestic industrial-control computer to communicate reliably with Russian-standard programmable unit modules in a missile test system. The design uses Altera's EPF10K30 FPGA as the core logic engine and has been validated in field deployment.
 
-Buses are widely used in computers, industrial production, and various [test equipment](http://www.eepw.com.cn/news/listbylabel/label/%E6%B5%8B%E8%AF%95%E8%AE%BE%E5%A4%87 "测试设备"). The ISA bus is an expansion bus standard for PC/AT microcomputers based on the 80286 CPU, introduced by IBM. The [MMи bus](http://www.eepw.com.cn/news/listbylabel/label/MM%D0%B8%E6%80%BB%E7%BA%BF "MMи总线") is a dedicated test bus designed in Russia, primarily used for exchanging data and control information between programmable unit modules and the [MMи bus](http://www.eepw.com.cn/news/listbylabel/label/MM%D0%B8%E6%80%BB%E7%BA%BF "MMи总线"). In a certain type of missile [test equipment](http://www.eepw.com.cn/news/listbylabel/label/%E6%B5%8B%E8%AF%95%E8%AE%BE%E5%A4%87 "测试设备"), the industrial control computer uses
+## Background: Two Incompatible Bus Standards
+
+### ISA Bus
+
+The ISA (Industrial Standard Architecture) bus was introduced by IBM in 1984 as an extension of the earlier XT bus standard. Its key electrical and logical characteristics include:
+
+- **24-bit address bus, 16-bit data bus**
+- **11 interrupt levels**: IRQ3–IRQ7, IRQ9–IRQ12, IRQ14–IRQ15
+- **7 DMA channels**: DRQ0–DRQ3, DRQ5–DRQ7
+- Support for master/slave control, I/O wait states, and I/O parity checking
+- Backward compatibility with XT bus achieved by adding a new 36-pin C/D connector alongside the original 62-pin A/B connector
+
+The relevant signal groups for this conversion design are:
+
+**(1) Data bus SD0–SD7** — 8-bit bidirectional tri-state bus carrying commands, data, and status. SD7 is the most significant bit.
+
+**(2) Register select pins SA4–SA9 with SW DIP-6** — A 6-position DIP switch sets the card's base I/O address (default 011001). When the host asserts a low chip-select and the address lines SA4–SA9 exactly match the DIP switch value, an internal chip-select activates and the converter responds to that I/O cycle.
+
+**(3) Address lines SA0–SA3** — During I/O read/write operations, these four lines act as register-select signals for the internal FPGA register file.
+
+**(4) Read/write strobes (IOR#, IOW#)** — On a write cycle the converter latches data on the rising edge of IOW#. On a read cycle, when IOR# is asserted the converter drives the 8-bit data bus directly.
+
+**(5) Interrupt line INTR** — Asserted whenever an enabled interrupt bit in the interrupt-status register is set. No minimum pulse width is required.
+
+**(6) I/O Channel Ready (IOCHRDY)** — Pulled low to signal that the current I/O cycle needs to be extended (wait-state insertion). It goes high when data is latched (write) or valid (read). The pin is driven by an open-collector gate with an internal pull-up to logic high.
+
+**(7) RESET** — A valid RESET signal triggers a hard reset of the FPGA, returning all registers and I/O pins to their initialized state.
+
+### MMи Bus
+
+The MMи bus is a Russian-designed proprietary test bus used primarily for exchanging digital data and control information between a bus controller and programmable unit (PU) modules. Its principal characteristics are:
+
+**(1) Transfer mode**: Asynchronous, byte-serial, bit-parallel, bidirectional.
+
+**(2) Negative logic** — with exceptions: Logic 1 = 0–0.6 V; Logic 0 = 2.4–4.5 V. The two exception signals — module service request (зОМ) and conversion-complete (КПр) — use positive logic (Logic 1 = 2.4–4.5 V, Logic 0 = 0–0.6 V).
+
+**(3) Up to 16 programmable unit modules** (including the controller) may be connected to the bus simultaneously.
+
+**(4) Up to 92 signal lines** in total; each PU module uses between 15 and 50 lines depending on its technical specification.
+
+**(5) Maximum cable length** between the controller and a PU module: 1 m.
+
+**(6) Maximum throughput**: 100 Kb/s, limited by the information-processing capability of the PU modules.
+
+**(7) Two topology options**: chain (all devices connected in parallel, signals may be unidirectional or bidirectional) and star (controller connected one-to-one to each PU module, signals unidirectional).
+
+**(8) Six signal line categories**:
+- **Data lines**: 1РиМ … 8РиМ (data bus)
+- **Level-1 address**: АДР.ЭМ (PU module address)
+- **Level-2 address**: A0–A15 (information register address within the module)
+- **Synchronization lines**: ГТ (Ready), Приём (Receive), Выд (Transmit), КНП (End of Transfer)
+- **Control lines**: ИАЭм (Initialize), ЗАпуск ЭМ (Trigger), ПОзм (Serial Poll), КОМ.1–КОМ.16 (Command)
+- **Interrupt lines**: зОМ (Service Request, high priority), КПр (Conversion Complete, low priority)
+
+All commands delivered to a PU module are addressed commands. The service-request line (зОМ) carries higher interrupt priority than the conversion-complete line (КПр).
+
+## Hardware Design
+
+### System Architecture
+
+The conversion board is built around five functional blocks:
+
+1. **FPGA core** — Altera EPF10K30-RI208-4
+2. **FPGA configuration device** — Altera EPC2LI20
+3. **Receive buffer circuit** — level-shifts and buffers incoming signals
+4. **Address comparison circuit** — matches ISA address lines against the DIP-switch-programmed PU module address
+5. **Bus receive circuit** — interfaces to the MMи bus lines
+
+At power-on the EPC2LI20 automatically pushes its stored bitstream into the EPF10K30 via the Passive Serial (PS) configuration mode. Once configured, the FPGA's internal registers and I/O pins are initialized and the converter begins normal operation.
+
+### Operation Flow
+
+**Module addressing**: When an ISA I/O cycle targets the card's base address, SA4–SA9 match the DIP switch, and a chip-select is generated internally. The ISA bus then writes a "module select address" value into the FPGA's address register. After decoding, a latched select signal addresses the specific PU module on the MMи bus.
+
+**Initialization**: After addressing, the ISA bus writes an "Initialize" command to the FPGA command register. The FPGA drives the ИАЭм (Initialize) line. When the MMи Ready (ГТ) signal is detected, initialization is confirmed, and the ISA bus issues a "Clear Module Address" command.
+
+**ISA → MMи data write**: Once the target PU module is addressed and has asserted Ready, the ISA bus writes output data into the FPGA's data-output register. The FPGA places this byte on the MMи data bus (1РиМ–8РиМ) and asserts the Приём (Receive) strobe. The PU module latches the data into the appropriate information register, then deasserts Receive and re-asserts Ready to signal readiness for the next byte.
+
+**MMи → ISA data read**: The ISA bus specifies a source register address via A0–A2 on the MMи Level-2 address lines and asserts the Выд (Transmit) strobe. The PU module drives the data byte onto the MMи data bus; the FPGA captures it into its data-input register, from which the ISA bus reads it.
+
+### FPGA and Configuration Device Circuit
+
+The EPF10K30-RI208-4 operates at 5 V and provides 1,728 logic cells with 12,288 bits of on-chip RAM — sufficient for the decoder, register file, and handshake state machines required by this design. The EPC2LI20 configuration EEPROM also operates at 5 V (or 3.3 V), supports in-system programming (ISP) and daisy-chain configuration, and retains its bitstream through power loss. A JTAG header (JP) allows the configuration device to be reprogrammed via Quartus II without removing the board.
+
+The PS configuration sequence:
+1. Power-on simultaneously resets both the EPC2LI20 and the EPF10K30.
+2. The FPGA asserts a download request to the configuration device.
+3. The EPC2LI20 clocks the stored bitstream into the FPGA.
+4. On completion, the FPGA's registers and I/O pins initialize, and the converter enters normal operation.
+
+### Address Comparison Circuit
+
+The address comparison circuit uses three standard logic ICs:
+
+- **74SL14** (Schmitt-trigger inverting buffer) — cleans up ISA address transitions to prevent glitch-induced false matches
+- **74SL85** (4-bit magnitude comparator) — compares the DIP-switch address against ISA address bits A22–A27 in two cascaded stages to cover the full 6-bit field
+- **74SL00** (NAND gate / inverting buffer) — combines the comparator output with IOR# and IOW# to produce the FPGA's read-enable and write-enable control signals
+
+The 6-position DIP switch encodes 2⁶ = 64 possible addresses, each corresponding to a different PU module slot on the MMи bus. With the switch set to 011001, the circuit activates only when ISA address bits A27–A22 equal 011001, generating the write-enable or read-enable that gates data into or out of the FPGA.
+
+## Software / Logic Design
+
+The FPGA firmware implements the following conversion flow:
+
+1. **Address decode**: Compare incoming ISA address against the DIP-switch value to identify which PU module is being targeted.
+2. **FPGA initialization**: Triggered via the configuration device on power-up; all internal registers are cleared.
+3. **Channel allocation**: The target PU module address is written into the FPGA; the logic automatically assigns the appropriate MMи signal lines.
+4. **Handshake loop**:
+   - The source bus (ISA or MMи) issues a data-transfer request.
+   - The destination bus asserts an acknowledgment (Ready) signal when it can accept data.
+   - Data transfer proceeds byte by byte until the complete payload is moved.
+5. **Buffer management**: Transmitted data is written into the receiver's data buffer. The destination bus controller reads from this buffer and forwards the payload to the appropriate PU module, completing the ISA ↔ MMи conversion.
+
+## Experimental Results
+
+The converter was tested with a serial data stream in both directions.
+
+**ISA → MMи transfer**: When the ISA control logic issued a poll pulse (first pulse on waveform 2), the MMи bus returned an acknowledge signal (first pulse on waveform 4). Upon receiving the acknowledge, the ISA bus transmitted the byte **11010101** (waveform 3). Because the MMи bus uses negative logic, the value observed on the MMи data lines was **00101010** (waveform 5) — the bitwise complement — confirming correct logic-level inversion.
+
+**MMи → ISA transfer**: When the MMи bus sent **00110011**, the ISA bus received **11001100**, again demonstrating proper negative-to-positive logic conversion in the reverse direction.
+
+Beyond bench testing, the domestic conversion board was installed in place of the original Russian-made interface card in a live missile test system. Standard qualification tests on the missile were conducted using this equipment, and all results met the specified test requirements. Field deployment confirmed that the converter reliably replaces the Russian OEM card.
+
+## Conclusion
+
+ISA and MMи represent two fundamentally incompatible bus standards — one American, one Russian — with differences in logic polarity, addressing schemes, handshake protocols, and physical signaling. In Russian-heritage missile test equipment, a conversion interface between the two is indispensable. The FPGA-centered design presented here — using the Altera EPF10K30 as the decode and state-machine core, the EPC2LI20 for non-volatile configuration, and standard 74-series logic for address comparison — fully replicates the function of the original Russian-manufactured interface card. Beyond the technical achievement, replacing a costly imported board with a domestically produced equivalent offers meaningful cost reduction and improved supply-chain independence for defense maintenance operations.

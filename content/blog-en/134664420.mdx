@@ -5,24 +5,44 @@ slug: "134664420"
 tags: ["#DAQCard"]
 source: "https://blog.csdn.net/yeyuangen/article/details/134664420"
 originalTitle: "【国产虚拟仪器】基于ARM+FPGA的24bit采集卡"
+expanded: true
 ---
+## A Domestically Developed 24-Bit DAQ Card Built on ARM + FPGA
 
-Data Acquisition Card Technical Specifications  
-Acquisition Mode: Synchronous acquisition, 24-bit Delta-Sigma ADC; hardware anti-aliasing filter  
-Sampling Rate: 1 kS/s – 52 kS/s  
-Accuracy: ±20 ppm (approximately 40 ppm, depending on final front-end selection)  
-Input Channels: 4  
-Software-selectable IEPE signal conditioning (0~5 mA adjustable); software-configurable gain settings: 1/2/4/8/16, dynamic range not less than 103 dB  
+For engineers working in vibration analysis, structural health monitoring, and acoustic measurement, the choice of data acquisition hardware directly determines how much confidence you can place in your results. This post introduces a domestically developed, portable 24-bit data acquisition card built around an ARM + FPGA architecture — covering its core technical specifications, design philosophy, and the software ecosystem that ships with it.
 
-Software-configurable AC/DC coupling  
-Lightweight and portable, dimensions no larger than 170 mm × 120 mm × 35 mm, weight no more than 500 g; convenient power supply options supporting both +5V DC input and USB power  
-Low power consumption: no more than 3.5 W when externally powered (normal operation at 5 W)  
-BNC connectors for easy connection to sensor cables  
-Robust and durable, operating temperature range from -40°C to +70°C  
-Data transmission to host computer via Ethernet  
-Basic software interfaces typically provided, supporting customer secondary development at application layer  
-Supports long-distance transmission  
-Includes test panel with basic measurement functions  
-Provides x86/x64 SDK for user-developed custom software  
-Custom programs available, including source code examples for vibration spectrum and audio quality measurement developed in LabVIEW  
-On-site technical consultation and technical support provided
+## Core Acquisition Specifications
+
+At the heart of the card is a **24-bit Delta-Sigma ADC** operating in synchronous acquisition mode. Delta-Sigma converters are the standard choice for precision low-frequency measurement: oversampling and noise shaping push quantization noise out of the band of interest, delivering the high dynamic range that vibration and acoustic applications demand. Hardware anti-aliasing filters sit ahead of the ADC, eliminating the need to rely solely on digital post-processing to remove aliasing artifacts.
+
+The sampling rate is configurable from **1 kS/s to 52 kS/s**, covering the frequency range relevant to most structural and acoustic work (up to roughly 20 kHz usable bandwidth at the upper end). Accuracy is rated at **±20 ppm** under typical conditions, with a note that the final figure — approximately 40 ppm — depends on the front-end analog circuitry selected for a given deployment.
+
+The card provides **four input channels**, all sampled synchronously. Synchronous multi-channel acquisition is critical for phase-coherent measurements such as transfer function estimation or operating deflection shape analysis, where timing skew between channels would corrupt the result.
+
+## IEPE Conditioning and Gain Flexibility
+
+Each channel offers software-selectable **IEPE (Integrated Electronics Piezo-Electric) signal conditioning**, with excitation current adjustable from 0 to 5 mA. IEPE — sometimes called ICP — is the dominant interface standard for industrial accelerometers and microphones: the sensor's built-in amplifier is powered over the same coaxial cable that carries the signal, simplifying cabling in the field. The ability to adjust excitation current in software lets the same card drive sensors with different power requirements without hardware modification.
+
+Gain is software-configurable in steps of **1 / 2 / 4 / 8 / 16**, enabling the input range to be matched to signal amplitude without sacrificing bits to headroom. Combined with the 24-bit converter, the card achieves a **dynamic range of not less than 103 dB** — sufficient to resolve low-amplitude structural resonances in the presence of strong drive signals, or to measure noise floors alongside peak transients in acoustic testing.
+
+Software-selectable **AC/DC coupling** per channel rounds out the front-end flexibility: DC coupling preserves low-frequency content and static offsets (useful for strain or slow-varying process measurements), while AC coupling removes DC bias and is the typical setting for vibration and audio work.
+
+## Physical Design and Power
+
+The enclosure measures no more than **170 mm × 120 mm × 35 mm** and weighs no more than **500 g** — genuinely pocket-sized for a four-channel 24-bit instrument. BNC connectors are used for sensor cable connections, consistent with laboratory and industrial cabling standards.
+
+Power options are deliberately flexible: the card accepts **+5 V DC input** or can be powered directly from **USB**, eliminating the need for a dedicated power supply in bench or field use. Power consumption is kept to **no more than 3.5 W** under external power (with a note that typical operating load is around 5 W), important for battery-backed deployments or installations where thermal management is constrained. The operating temperature range of **−40 °C to +70 °C** qualifies the card for harsh industrial and outdoor environments.
+
+## Connectivity and Long-Distance Transmission
+
+Data is transferred to the host computer over **Ethernet**, rather than USB alone. This is a meaningful design choice: Ethernet supports longer cable runs without signal degradation, can be routed through switches and managed networks, and decouples the acquisition hardware from physical proximity to the analysis workstation. For embedded structural monitoring installations — inside machinery, along bridge spans, or in remote enclosures — Ethernet connectivity is often a hard requirement.
+
+## Software Ecosystem and SDK
+
+The card ships with a **test panel** providing basic measurement functions out of the box, allowing immediate verification of hardware operation without custom development. For integration into larger systems, an **x86/x64 SDK** is provided, enabling engineers to build custom acquisition and analysis software on Windows without hardware-level driver work.
+
+Notably, **LabVIEW source-code examples** are included for two common measurement tasks: vibration line spectrum analysis and audio quality measurement. Providing source code rather than compiled binaries is significant — engineers can inspect the acquisition loop, understand how channels are configured programmatically, and adapt the examples directly to their own measurement campaigns rather than starting from a blank VI. On-site technical support is also offered, which matters when commissioning hardware in production environments where downtime is costly.
+
+## Summary
+
+This ARM + FPGA DAQ card represents a compact, capable platform for precision multi-channel measurement: 24-bit Delta-Sigma conversion, synchronous four-channel acquisition, hardware IEPE conditioning, and a 103 dB dynamic range, all in a sub-500 g enclosure with Ethernet connectivity and a full software development kit. The combination of LabVIEW examples with source code and an x86/x64 SDK lowers the barrier to integrating this hardware into both research workflows and production monitoring systems.

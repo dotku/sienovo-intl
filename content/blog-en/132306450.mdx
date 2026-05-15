@@ -5,16 +5,104 @@ slug: "132306450"
 tags: ["#EmbeddedHardware", "#FPGADev"]
 source: "https://blog.csdn.net/yeyuangen/article/details/132306450"
 originalTitle: "嵌入式电火花线切割控制系统总体设计"
+expanded: true
 ---
+Wire Cut Electrical Discharge Machining (Wire Cut EDM) is a precision non-contact machining process that cuts conductive materials using the erosive effect of controlled spark discharges. This article walks through the overall design of an embedded CNC control system for a high-speed reciprocating wire EDM machine, covering the working principle of the machine tool, the software architecture choices made during development, and the hardware modules selected to drive the worktable, wire transport system, and high-frequency pulse power supply.
 
-**Title: Overall Design of an Embedded Wire Cut EDM Control System**
+## How Wire Cut EDM Works
 
-**2.1 Characteristics and Structure of Wire Cut EDM Machine Tools**
+The fundamental operating principle of Wire Cut EDM is straightforward: a thin electrode wire — typically molybdenum or brass — is held under tension on a guide frame and moved continuously along a fixed track. A pulsed high-voltage source is applied between the wire and the conductive workpiece. When the gap between them is sufficiently small, the voltage breaks down the dielectric fluid, producing a spark that locally melts and vaporizes a tiny amount of workpiece material. Repeated millions of times per second, this erosion process cuts precise contours without any mechanical contact.
 
-Wire Cut Electrical Discharge Machining (Wire Cut EDM) is a type of electrical discharge machining within special machining processes, and is a processing method that directly utilizes electrical or thermal energy. The basic principle of machining is to use a continuously moving electrode wire (molybdenum wire/copper wire) as the electrode on a fixed track of a wire guide frame. While maintaining an appropriate gap between the electrode wire and the workpiece, sufficient pulsed voltage is applied, causing spark discharge between the electrode wire and the workpiece, eroding the workpiece material. Simultaneously, the movement of the machine tool's worktable is controlled to create relative motion with the electrode wire, thereby achieving the purpose of surface erosion and cutting to shape, producing products that meet user requirements. The principle of the Wire Cut EDM process is shown in Figure 2-1. The machining structure of a Wire Cut EDM machine tool is as follows \[25\]:
+The worktable holding the workpiece moves in the X–Y plane under CNC control, and the relative trajectory between the wire and the table determines the final cut profile. A dielectric working fluid — typically a water-based solution or deionized water — floods the cutting zone continuously. It serves as the discharge medium, flushes eroded debris away, and cools both the wire and the workpiece surface.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/132306450/01_01d94aee22edbb76f61af2c65305ab26.png)
+## Machine Tool Characteristics
 
-Wire Cut EDM machine tools have the following characteristics:
+Wire Cut EDM has a number of properties that distinguish it from conventional cutting:
 
-1) No need to manufacture electrodes of specific shapes. Using electrode wires
+1. **No shaped electrode required.** The wire itself is the electrode. Because wire diameter is small, pulse width and average current can be kept low, which directly improves discharge precision and reduces both cost and cycle time.
+2. **Planar profile cutting.** The process handles virtually any 2D profile, including complex internal cavities. The only geometric constraint is a minimum corner radius equal to the wire radius plus the discharge gap — sharp internal corners are physically impossible.
+3. **Minimal material removal from the stock.** Very little bulk material is wasted around the cut kerf, which is valuable when machining expensive alloys during prototype trials.
+4. **Environmentally benign dielectric.** Water-based working fluids are non-toxic, non-polluting, and can be filtered and reused.
+5. **Four-axis contouring.** Most machines support simultaneous upper/lower wire guide motion, enabling tapered cuts, twisted surfaces, and more complex 3D geometries such as helical and hyperboloidal surfaces.
+
+## Wire Transport Speed Categories
+
+Wire Cut EDM machines are classified by wire travel speed into three categories:
+
+- **High-speed reciprocating (fast wire, 快走丝):** A Chinese-developed design with wire speeds of roughly 8–12 m/s. Wire is recycled back and forth over the spool. The design is mechanically simple and cost-effective but wire vibration is significant, break risk is higher, and cumulative wire wear degrades surface finish.
+- **Medium-speed composite (中走丝):** A multi-pass strategy applied on a fast-wire machine. Rough passes run at 8–12 mm/s; finish passes run at 1–3 mm/s. Multiple cutting passes improve surface quality and dimensional accuracy without the capital cost of a slow-wire machine.
+- **Low-speed single-direction (slow wire, 慢走丝):** Wire moves in one direction only, below 0.2 m/s, and is never reused. Automatic threading, constant-tension devices, and electrolysis-free power supplies are standard. This class delivers the highest accuracy and surface quality.
+
+The research platform for this project is a **Foster DK77-series high-speed reciprocating machine**, a widely used Chinese fast-wire design.
+
+## Machine Structural Subsystems
+
+A high-speed reciprocating machine consists of four physical subsystems:
+
+- **Machine bed:** The cast-iron or granite base provides structural rigidity. The wire transport system — comprising the wire spool drum and the guide arms — is mounted here, along with the X–Y cross-slide worktable. Two stepper motors drive the worktable axes.
+- **Working fluid system:** Delivers, filters, and recirculates the dielectric coolant. The fluid suppresses arcing, flushes debris, protects the wire, and influences surface finish.
+- **High-frequency pulse power supply:** Generates the discharge voltage between wire (negative) and workpiece (positive). Pulse width and amplitude are the primary levers for controlling discharge current, material removal rate, and surface roughness. The power supply used here was a laboratory-built unit with an STM32 microcontroller managing the pulse parameters.
+- **Control system:** Translates a CNC part program into real-time motion commands and monitors discharge gap voltage to adaptively adjust feed rate.
+
+## Software System Architecture
+
+The software design implements a **CAD/CAM pipeline**:
+
+- **CAD module:** Provides 2D drawing primitives (rectangles, arcs, splines), editing operations (trim, mirror, chamfer), and productivity aids such as snap-to-key-point and file management.
+- **CAM module:** Processes the drawing through four stages — parameter configuration, toolpath generation, G-code output, and machining simulation. The CAM module performs entity sorting, wire-offset compensation, and converts geometry into incremental displacement data encoded in the output code. Simulation verifies the toolpath before any physical cutting begins.
+
+### Platform Evolution: PC → Windows CE → Android
+
+The research group developed three generations of the **CAWEP** (Computer Aided Wire-EDM CNC Programming System) software:
+
+1. **PC version:** The reference implementation — fully featured, used as the development baseline for the two embedded ports.
+2. **Windows CE version:** Ported from the PC codebase; retains full CAD and CAM capability. The development tool chain is Visual Studio 2005, with application logic written in C++ under the MFC (Microsoft Foundation Classes) framework. MFC encapsulates the Windows SDK, handling window registration, toolbar management, and message dispatch, allowing developers to focus on domain logic rather than boilerplate Win32 code.
+3. **Android version:** Written in a Java/C++ mixed-language approach using the NDK. Android's open ecosystem and broad hardware support are attractive for industrial CNC, and the platform aligns with China's "Made in China 2025" initiative. However, real-time performance and low-level driver stability remain open challenges; the Android port was still being refined at the time of writing.
+
+### Why Windows CE Was Chosen
+
+After evaluating both embedded platforms, the project standardised on **Windows CE 6.0** for the following reasons:
+
+- The real-time preemptive multitasking scheduler provides the deterministic response required for motion control loops.
+- The C/C++ development model maps well to low-level hardware I/O, and the Windows API reduces development complexity compared to bare-metal programming.
+- Windows Embedded Compact 7 and later support multi-core operation.
+- The market for motion control hardware that already ships Windows CE drivers is mature and well-stocked; sourcing compatible peripheral cards is straightforward.
+- The OS can be stripped down to a minimal feature set, reducing boot time and power consumption without sacrificing the APIs the application depends on.
+- Microsoft Message Queuing (MSMQ) provides robust inter-process communication suitable for integrating the motion, power, and fluid subsystems.
+
+Android's GUI richness is an advantage for operator interfaces, but at the time of this work, its real-time guarantees and kernel-level driver support were insufficient for the deterministic 100 µs-class timing the motion controller demands.
+
+## Hardware System Design
+
+The hardware design partitions control responsibility across three layers:
+
+### 1. Worktable Motion Controller
+
+The worktable — the mechanical heart of the system — is driven by two stepper motors, one per axis. Rather than designing a custom motion controller PCB from scratch, the project selected a commercial **Windows CE-compatible motion control card** based on an ARM-architecture industrial CPU paired with a dedicated motion ASIC. This architecture provides:
+
+- **4-axis coordinated motion** with simultaneous control of up to four stepper or servo axes.
+- **S-curve and trapezoidal (T-curve) acceleration profiles** to smooth acceleration transitions and reduce mechanical shock.
+- **Linear and circular interpolation** for any combination of 2–4 axes, which covers the X–Y cutting trajectory and optional taper axes.
+- **DLL library with partial source code**, so the CAWEP application calls high-level API functions (set velocity profile, command incremental move, query axis status, set backlash compensation, configure home/limit signal polarity) rather than manipulating hardware registers directly.
+
+Pulse output frequency and voltage levels are compatible with the stepper drivers on the DK77 machine. Backlash (gap) compensation values are configurable per axis.
+
+### 2. Wire Transport, Fluid, and Power Management via Inverter
+
+All three ancillary subsystems — the three-phase wire-spool motor, the dielectric fluid pump, and the high-frequency discharge power supply protection circuits — are consolidated under a single **SY-AX2 Xinshungyuan wire-EDM-dedicated frequency inverter**. Key features of this unit:
+
+1. **Configurable I/O polarity:** Left/right travel limit inputs, machining start/stop signals, and high-frequency power on/off signals are all polarity-selectable (normally open or normally closed), accommodating different machine builders' wiring conventions and host controller signal levels.
+2. **Integrated wire-break detection:** The inverter provides its own internal supply for the break-detection circuit; no external power source is needed. The detection pins connect directly to the wire circuit.
+3. **Debugging mode with signal mask:** In setup mode, motor speed is automatically reduced to wire-threading speed, simplifying the threading operation.
+4. **8-speed motor control via 3 signal lines:** Wide-range acceleration adjustment and 8 discrete speed steps allow the spool speed to be matched to the specific workpiece material and thickness.
+5. **All-in-one functional integration:** Unlike a general-purpose VFD, the SY-AX2 requires no complex parameter configuration; wiring the signal terminals is sufficient to achieve full control.
+
+### 3. High-Frequency Pulse Power Supply
+
+The pulse power supply was an in-house laboratory design using an **STM32 microcontroller** as the main control unit. Adjustable parameters include output voltage, discharge current (set via pulse width and amplitude), and pulse frequency. The STM32 handles protective shutdown and parameter updates; supervisory control over the supply during machining is routed through the SY-AX2 inverter's I/O interface.
+
+An alternative dual-chip design was under parallel development in the same laboratory — an ARM core running CAWEP to generate machining data, communicating over SPI to a DSP core that translates data into real-time drive pulses, both mounted on a single custom PCB. That design was not yet complete at the time of writing.
+
+## Summary
+
+The overall system architecture pairs a **Windows CE 6.0 runtime on an ARM-based motion controller** with the **CAWEP CAD/CAM application** developed in C++ under MFC. The motion controller handles X–Y worktable interpolation through a vendor DLL API; the SY-AX2 inverter consolidates wire-transport, fluid, and power-supply control behind a simple digital I/O interface; and the laboratory STM32 pulse supply provides tunable discharge parameters. This software–hardware co-design gives a clear separation of concerns — the CNC application focuses on toolpath generation and operator interface, the motion controller handles real-time pulse generation, and the inverter manages all ancillary electrical and mechanical functions — establishing a clean foundation for subsequent optimisation of the adaptive feed-rate and discharge gap control algorithms.

@@ -5,26 +5,72 @@ slug: "134727215"
 tags: ["#EdgeComputing", "#AI"]
 source: "https://blog.csdn.net/yeyuangen/article/details/134727215"
 originalTitle: "应用于智慧园区的AI边缘计算盒子+AI算法软硬一体化方案"
+expanded: true
 ---
+Industrial parks present some of the most demanding environments for physical security and operational management. Dense workforces, high contractor and migrant-worker populations, continuous vehicle movement, and sprawling perimeters all compound the challenge of keeping a facility safe, compliant, and efficient. This post walks through Yingma's (英码) hardware-software integrated AI edge computing solution for smart parks — what problems it solves, how its topology is structured, and what each AI module actually does on the ground.
 
-Industrial parks are predominantly composed of manufacturing and logistics enterprises, with a dense workforce, a large number of temporary and migrant workers, high personnel turnover, and heavy vehicle traffic. These factors often lead to traffic accidents, vandalism of public facilities, and damage to landscaping projects. Yingma's smart park solution enables 100% management of all personnel entering and exiting the park. It provides trajectory tracking for all people and vehicles within the园区, along with fire and smoke detection. Through optimized route planning, the solution improves operational efficiency. Additionally, the accuracy of intruder detection exceeds 95%, while smoke and flame detection accuracy exceeds 90%, ensuring the park operates safely, orderly, and efficiently.
+## Why Traditional Surveillance Falls Short in Industrial Parks
 
-**\- Solution Topology Diagram \-**
+Legacy CCTV deployments in industrial parks typically rely on human operators reviewing footage after an incident, or at best triggering motion-based alerts that flood security teams with false positives. Neither approach scales well when you have thousands of workers rotating across shifts, dozens of entry points, and mixed vehicle-pedestrian zones operating simultaneously.
 
-![Image](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/134727215/01_283e6e615c211503a31961dfd558851a.jpeg)
+The specific risk profile of a manufacturing or logistics park is worth spelling out:
 
-**Real-Name Access Management**
+- **High transient population.** Migrant and contract workers who may not be familiar with site layout are more likely to enter restricted zones inadvertently — or deliberately.
+- **Heavy mixed traffic.** Forklifts, delivery trucks, and pedestrians sharing the same corridors create collision risk that static cameras cannot preempt.
+- **Fire and combustion hazards.** Warehouses and production lines storing flammable materials need early-stage smoke and flame detection, well before a fire reaches the scale at which a conventional alarm triggers.
+- **Vandalism and landscaping damage.** With large numbers of temporary workers and visitors, damage to perimeter fencing, green spaces, and public infrastructure is a recurring operational cost.
 
-**Intrusion Detection for Unauthorized Personnel**
+## Solution Architecture and Topology
 
-**Security Surveillance Deployment**
+The Yingma smart park solution centers on an AI edge computing box deployed on-premises, connected to a network of IP cameras and access-control hardware. Processing is performed at the edge rather than in the cloud, which keeps latency low enough for real-time intervention and avoids the bandwidth cost of streaming full-resolution video off-site.
 
-**Person/Vehicle Trajectory Analysis**
+The topology (shown in the diagram below) ties together cameras at gates, perimeter fences, internal roads, and production areas into a unified platform that handles identity management, behavioral analysis, and hazard detection from a single management interface.
 
-**Fire/Smoke Detection**
+![Solution Topology Diagram](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/134727215/01_283e6e615c211503a31961dfd558851a.jpeg)
 
-**Electronic Fence**
+## Core AI Modules
 
-**Perimeter Intrusion Detection**
+### Real-Name Access Management
 
-**Smoking Detection**
+Every individual entering or exiting the park is verified against a registered identity — capturing face, ID document, or both depending on access tier. The system targets **100% coverage** of all entry/exit events, replacing manual guard checks that are inherently error-prone during peak shift changes. For contractors and one-time visitors, temporary credentials can be issued and automatically expired, ensuring no lingering access rights after a job ends.
+
+### Intrusion Detection for Unauthorized Personnel
+
+The system continuously monitors zones flagged as restricted — machinery areas, server rooms, chemical storage — and raises an alert when an unregistered or unauthorized person enters. Reported detection accuracy exceeds **95%**, meaning the algorithm distinguishes real intrusion events from shadows, lighting changes, and animals with high reliability, keeping operator alert fatigue manageable.
+
+### Security Surveillance Deployment (安防布控)
+
+Beyond reactive intrusion alerts, the platform supports proactive watch-list deployment. Faces of persons of interest — whether flagged contractors, banned individuals, or escalated security targets — can be loaded into the system so that any camera sighting triggers an immediate notification to the security control room.
+
+### Person and Vehicle Trajectory Analysis
+
+Every person and vehicle moving within the park is assigned a continuous trajectory. This serves two purposes: forensic reconstruction after an incident, and real-time routing optimization. By understanding where congestion builds up — at loading docks, intersections, or gate queues — operations managers can adjust traffic flow patterns and reduce dwell time, improving throughput across the whole facility.
+
+### Fire and Smoke Detection
+
+Cameras equipped with the AI smoke and flame model analyze video frames for early combustion signatures — the thin haze of pre-ignition smoke and the color/flicker signature of open flame. Detection accuracy is reported at **90%+** for both smoke and flame events. Early-stage detection is the critical advantage here: a kitchen fire or a smoldering conveyor belt can be caught in seconds rather than minutes, giving suppression teams time to respond before damage escalates.
+
+### Electronic Fence and Perimeter Intrusion Detection
+
+Virtual boundaries are drawn on the camera map, corresponding to physical perimeter lines, restricted zones, or safety exclusion areas around machinery. When any person or vehicle crosses a defined boundary, an alert fires immediately. Unlike physical barriers, electronic fences can be reconfigured instantly — expanding a restricted zone during a maintenance window requires a software update rather than physical rope barriers.
+
+### Smoking Detection
+
+Smoking in warehouses and near fuel or chemical storage is a serious fire risk and often a regulatory violation. The AI module identifies the visual signature of a person smoking — cigarette, lighter flame, exhaled smoke plume — and logs or alerts the event in real time, enabling enforcement without requiring a guard to be physically present in every corner of the facility.
+
+## Operational Impact
+
+Taken together, these modules address the core challenges of industrial park management:
+
+| Challenge | AI Module | Reported Performance |
+|---|---|---|
+| Uncontrolled access | Real-name entry/exit management | 100% personnel coverage |
+| Restricted zone violations | Intrusion detection | >95% accuracy |
+| Fire/combustion hazards | Smoke and flame detection | >90% accuracy |
+| Traffic inefficiency | Trajectory analysis + route optimization | Improved throughput |
+| Perimeter breaches | Electronic fence + perimeter intrusion | Real-time alerting |
+| Regulatory compliance | Smoking detection | Continuous automated monitoring |
+
+By running inference on an edge box co-located with the cameras, the system keeps response latency in the sub-second range — necessary for interventions like triggering a gate lock or issuing a PA alert before a situation escalates. The unified hardware-software integration also simplifies deployment: a single vendor handles both the compute hardware and the AI algorithm stack, reducing the integration complexity that typically plagues multi-vendor security deployments.
+
+For industrial parks looking to move beyond reactive surveillance toward a proactive, data-driven safety posture, this kind of edge-AI approach represents a practical path — combining computer vision accuracy with the low-latency, low-bandwidth advantages of on-premises inference.

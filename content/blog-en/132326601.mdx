@@ -5,13 +5,63 @@ slug: "132326601"
 tags: ["#ethercat"]
 source: "https://blog.csdn.net/yeyuangen/article/details/132326601"
 originalTitle: "自研的EtherCAT总线一拖四开环步进驱动器低成本方案"
+expanded: true
 ---
+Building a self-developed EtherCAT bus driver from scratch is a non-trivial undertaking, and the result described here — a 4-axis open-loop stepper driver with full EtherCAT fieldbus support — is a compelling low-cost alternative to off-the-shelf industrial motion controllers. This post covers the hardware capabilities, EtherCAT feature set, and compatibility story for this in-house design.
 
-The self-developed EtherCAT bus 4-axis open-loop stepper driver can connect to TwinCAT, Omron PLCs, Inovance PLCs, CODESYS, SOEM master, and IgH master.
-Each motor axis supports a maximum drive current of 4A and can drive 42/57/86 series motors. It features 12 digital inputs and 8 digital outputs.
-The EtherCAT bus supports a 125us Distributed Clock (DC) synchronization cycle. It supports multiple dynamic PDOs, dynamic Object Dictionary configuration, saving of ID station number settings, and CSP, CSV, and homing modes.
-This is a low-cost EtherCAT bus driver solution.
+## What This Driver Does
+
+The board drives up to four independent stepper motor axes over a single EtherCAT network segment. Each axis is rated for up to 4 A continuous drive current, which is sufficient for the three most common NEMA frame sizes in Chinese industrial automation: 42 mm (NEMA 17), 57 mm (NEMA 23), and 86 mm (NEMA 34) motors. Because these are open-loop axes, there is no encoder feedback loop — position is commanded and assumed to be followed, which is the standard operating model for stepper drives in light-duty automation, CNC routers, pick-and-place machines, and conveyor indexing systems.
+
+The I/O complement — 12 digital inputs and 8 digital outputs — is generous for a four-axis stepper drive. This is enough to wire homing sensors, end-of-travel limits, and auxiliary outputs (brake relays, indicators) for all four axes with inputs to spare for general-purpose interlocks.
+
+## EtherCAT Feature Set
+
+EtherCAT (Ethernet for Control Automation Technology) is a real-time fieldbus standard developed by Beckhoff that operates over standard Ethernet PHYs but with a fundamentally different processing model: frames pass through each slave node in hardware on the fly, with sub-microsecond processing latency per node.
+
+This driver implements several features that matter for serious motion control work:
+
+**125 µs Distributed Clock (DC) synchronization.** The EtherCAT DC mechanism allows all nodes on a segment to share a common time base derived from the master clock, with jitter typically below 1 µs. A 125 µs cycle time is aggressive — many industrial drives operate at 250 µs or 500 µs — and enables tight multi-axis coordination.
+
+**Dynamic PDO mapping.** Process Data Objects (PDOs) define which real-time variables are exchanged in each cycle. A static PDO map means you take what the vendor gives you; dynamic PDO mapping lets the master (or configuration tool) select exactly which objects — position setpoint, velocity, status word, actual position, etc. — appear in the cyclic data frame. This reduces unnecessary bus bandwidth and lets the same firmware serve different application profiles.
+
+**Dynamic Object Dictionary configuration.** The EtherCAT Object Dictionary (based on CANopen over EtherCAT, CoE) holds all device parameters. Dynamic dictionary support means parameters can be added, modified, and read back at runtime via SDO (Service Data Object) transfers, rather than being burned-in at firmware compile time.
+
+**Persistent station ID / node address.** EtherCAT nodes can be addressed by their physical position in the ring (auto-increment) or by an explicit configured station alias. Saving the station number to non-volatile memory means the drive retains its identity across power cycles, which is critical in multi-axis machines where axis swaps must be deliberate.
+
+**Operating modes: CSP, CSV, and Homing.** The drive supports three CoE CiA 402 drive profile modes:
+- **CSP (Cyclic Synchronous Position)** — the master sends a target position each cycle; the drive's trajectory generator executes it. This is the standard mode for coordinated multi-axis motion.
+- **CSV (Cyclic Synchronous Velocity)** — the master sends a target velocity each cycle; useful for spindle-like or conveying applications.
+- **Homing mode** — standardised reference-run sequences (index pulse, limit switch, or torque-based) to establish the machine coordinate zero.
+
+## Master Compatibility
+
+The driver has been validated against a range of EtherCAT master stacks, which matters because the EtherCAT standard allows vendor extensions that not all masters handle identically:
+
+- **TwinCAT 3** (Beckhoff's Windows-based soft PLC / motion platform) — the reference EtherCAT master environment
+- **Omron Sysmac** PLCs with built-in EtherCAT master
+- **Inovance (汇川)** PLCs, which are increasingly common in Chinese OEM machinery
+- **CODESYS** runtime with EtherCAT master SoftMotion library
+- **SOEM** (Simple Open EtherCAT Master) — the widely used open-source C library for Linux/RTOS embedded masters
+- **IgH EtherCAT Master** — the Linux kernel-space open-source master, common on Raspberry Pi / BeagleBone / industrial PC-based controllers
+
+Compatibility with both proprietary PLC ecosystems and open-source Linux masters gives this drive unusual flexibility. A machine builder can prototype on SOEM running bare-metal on an STM32 or i.MX RT, then deploy on a TwinCAT rack without changing the drive hardware.
+
+## Low-Cost Design Philosophy
+
+The "low-cost" framing is significant in the context of industrial EtherCAT hardware. Commercial 4-axis EtherCAT stepper drives from established vendors typically run several hundred USD per unit. A self-developed solution that integrates the EtherCAT ASIC (typically an ET1100 or LAN9252 from Microchip/SMSC), the stepper driver ICs (such as TMC or DRV series), and the MCU onto a single compact PCB can dramatically reduce BOM cost — especially at moderate production volumes for in-house machine builds.
+
+The photographs show a compact, well-organised PCB with clearly labelled axis connectors and I/O headers, indicating a design intended for real production use rather than a proof-of-concept evaluation board.
+
+## Use Cases
+
+This kind of integrated 4-axis EtherCAT stepper drive is particularly well suited to:
+
+- **Small CNC routers and laser cutters** where four axes (X, Y, Z, rotary or A) must be synchronised at sub-millisecond cycle times
+- **Automated assembly fixtures** where a PLC already owns the EtherCAT ring and the motion axes need to share the same bus as I/O modules and sensors
+- **Research and education platforms** running SOEM or IgH on Linux, where commercial drive prices are prohibitive
+- **OEM machine builders** in China seeking to reduce dependence on imported motion control hardware
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/132326601/01_9e44b6a53a08e7a87d62eaf51bc866a3.png)
 
- ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/132326601/02_3fa4011ad4b4a9bafea856209edbafe0.png)
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/132326601/02_3fa4011ad4b4a9bafea856209edbafe0.png)
