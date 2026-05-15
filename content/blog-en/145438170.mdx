@@ -5,12 +5,93 @@ slug: "145438170"
 tags: ["#FPGADev", "#AI", "#BigData", "#EdgeComputing"]
 source: "https://blog.csdn.net/szxinmai/article/details/145438170"
 originalTitle: "基于RK3588+算能BM1684X的云电脑/云手机系统设计与实现"
+expanded: true
+---
+## Cloud PC / Cloud Phone System Design and Implementation Based on RK3588 + Sophon BM1684X
+
+A cloud PC is a comprehensive service solution that bundles cloud-side compute resources, a lightweight transmission protocol, and a thin-client terminal into a single deployable unit. Rather than packaging a CPU, RAM, and storage inside the box itself, the hardware lives in the cloud and is shared elastically across users. The thin client's only job is to encode local input events, ship them upstream, and decode the resulting video stream back to the display. This article walks through the hardware architecture, PCB design constraints, and the dual-mode signal-processing pipeline that make such a system practical on Rockchip RK3588 silicon — then closes with a look at the follow-on RK3576-based AIOT platform that adds an integrated 6 TOPS NPU for on-device AI inference.
+
 ---
 
-A cloud PC is a comprehensive service solution that includes cloud resources, transmission protocols, and cloud terminals. It utilizes an open cloud terminal to deliver resources such as desktops, applications, and hardware to users in an on-demand, elastically allocated service model via a transmission protocol. Users do not need to consider building complex IT infrastructure and can achieve multi-user access from a single device.
+## 1  Overall System Architecture
 
-Compared to traditional computers, a cloud PC box (thin client) does not contain internal hardware such as a CPU, memory, or hard drive; these components reside in the cloud, enabling hardware resource sharing and on-demand allocation. The cloud PC system designed in this paper is exquisite and compact, portable, quick to deploy, and simple to operate. After connecting to a network, mouse, keyboard, and display, users can access their personal desktops, data, and various applications.
+The main controller is the **Rockchip RK3588**, paired with a **Realtek RTL8822CU** dual-band Wi-Fi + Bluetooth 5.0 combo module. Once power is applied and a mouse, keyboard, and HDMI display are connected, the device presents itself to the user as an ordinary desktop PC. The magic is entirely in the software stack and network layer: the local OS acts as a thin shell that tunnels all desktop rendering through the cloud protocol, so the user's actual workload runs on shared server-grade hardware in the data centre.
 
-**1 Overall System Solution**
+The RK3588 is Rockchip's 8K flagship SoC, built on an 8 nm process with an octa-core 64-bit ARM configuration (four Cortex-A76 performance cores + four Cortex-A55 efficiency cores), a Mali-G610 GPU, and an integrated NPU. It supports up to 32 GB of LPDDR5 and hardware-accelerated 8K video encode/decode, which gives it more than enough headroom to handle the H.264 stream decompression and local UI rendering required for a cloud desktop client.
 
-The overall system solution employs the Rockchip RK3588 as the main controller, with Realtek RTL8822CU for Wi-Fi. After the system is powered on and connected to a mouse, keyboard, and an HDMI display, it can be used as a regular computer. The overall system architecture of the cloud PC is shown below:![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog
+---
+
+## 2  Hardware System Design
+
+### 2.1  Wi-Fi Subsystem
+
+The **Realtek RTL8822CU** is a highly integrated 2T2R dual-band (2.4 GHz / 5 GHz) Wi-Fi module with Bluetooth 5.0. It supports 802.11n MIMO and 802.11ac Wave-2 MU-MIMO, is backward-compatible with 802.11a/b/g/n/ac, and delivers a peak PHY data rate of **867 Mbit/s**. The host interface follows SDIO 1.1/2.0/3.0 with a clock rate up to 208 MHz; the Bluetooth path uses an HS-UART interface and supports BT V2.1 / 3.0 / 4.1 / 4.2 / 5.0. The high PHY rate is important for cloud PC workloads: compressed H.264 desktop streams can spike to tens of megabits per second during rapid screen transitions, and any wireless bottleneck directly translates to visual lag.
+
+### 2.2  Hardware Subsystem Breakdown
+
+The board is partitioned into the following functional blocks:
+
+| Block | Purpose |
+|---|---|
+| Power module | Multi-rail PMIC supplying core, I/O, and peripheral voltages |
+| Clock / reset | 24 MHz crystal oscillator + nPOR reset circuit |
+| DDR | LPDDR4/5 for main memory |
+| eMMC | Boot and OS storage |
+| Wi-Fi circuit | RTL8822CU SDIO module + antenna matching |
+| USB | Mouse, keyboard, and peripheral HID input |
+| HDMI | Video output to display |
+| Ethernet | Wired LAN fallback |
+
+### 2.3  Critical PCB Design Rules
+
+Getting a high-speed SoC like the RK3588 to pass EMC and signal-integrity tests demands strict adherence to layout rules. The design notes from this implementation highlight several that deserve attention:
+
+**PLL power supplies.** The RK3588 has two dedicated PLL supply pins — `PLL_AVDD_1V8` and `PLL_AVDD_0V9`. Each must be decoupled with capacitors placed as close to the pin as physically possible, and both rails must be fed from an independent LDO rather than sharing a rail with digital logic. Any ripple on the PLL supply couples directly into the clock domain and manifests as jitter.
+
+**Logic and NPU LDO current capability.** The LDOs powering the CPU Logic domain and the NPU domain must each be rated above **2 A** continuous. Undersizing these regulators causes voltage droop under load and produces intermittent system instability that can be very difficult to diagnose.
+
+**Crystal oscillator placement and routing.** The 24 MHz crystal and its feedback network form the master clock source. On the PCB, the `XIN` and `XOUT` traces must be fully stitched with a ground pour on both sides, with a complete reference plane underneath. No power plane splits or high-speed signals may pass beneath the crystal footprint, and the via count from crystal to SoC must not exceed two. The crystal itself is placed immediately adjacent to the main controller.
+
+**DDR trace matching.** The DDR interface uses a 3W spacing rule between all groups and between adjacent inter-group signals. Differential clock pair `CLKP`/`CLKN` length mismatch must be kept below **5 mil**; `DQS`/`DM`/`DATA` length mismatch below **10 mil**; and each `DQSnP`/`DQSnM` differential pair must match within **5 mil**. Violating these tolerances causes setup/hold margin failures that show up as random memory errors under load.
+
+**eMMC routing.** All FLASH signals must stay within a continuous reference plane; traces must never cross a power-plane split boundary. The 3W spacing rule applies here as well.
+
+---
+
+## 3  Cloud Desktop Signal-Processing Pipeline
+
+Beyond driving local peripherals, the cloud PC's core responsibility is processing the remote desktop data stream efficiently. The system implements two distinct operating modes depending on how frequently the screen content changes:
+
+### 3.1  Bitmap / "Picture" Mode
+
+When the desktop image changes infrequently — for example, a static document or an idle screen — the system operates in **picture mode**. The entire cloud desktop is represented as one large bitmap. Whenever a region changes, only the delta pixels for that region are transmitted to the client in **RGBA format**. The client then composites the updated region into its local copy of the full framebuffer. This mode is bandwidth-efficient for low-motion content, since only dirty rectangles travel over the wire.
+
+### 3.2  Video / "Stream" Mode
+
+When screen content changes rapidly — video playback, animation, or scrolling — the system switches to **stream mode**. In this mode the entire desktop is encoded using the **H.264 protocol** on the server side and streamed as a continuous video to the client. The client decodes the stream using a hardware `MediaCodec` decoder and renders the result directly to the display surface. RK3588's dedicated VPU handles H.264 decode in hardware, keeping CPU load low and latency acceptable even at 1080p or 4K resolutions.
+
+The dual-mode design is a practical engineering trade-off: RGBA delta updates have near-zero compression overhead and sub-millisecond latency for static screens, while H.264 keeps bitrate manageable for high-motion content where per-frame RGBA deltas would saturate the link.
+
+---
+
+## 4  Next-Generation Platform: RK3576 + FPGA + AI
+
+Building on the RK3588 cloud-PC work, the next-generation variant moves to the **Rockchip RK3576** — an octa-core AIOT SoC in a big.LITTLE configuration (4× Cortex-A72 + 4× Cortex-A53) running at up to 2.2 GHz, fabricated on an advanced process node. Key specifications relevant to edge-AI and industrial deployments:
+
+- **GPU:** Mali-G52 MC3 — 145 GFLOPS, capable of heterogeneous compute workloads alongside the NPU
+- **NPU:** Integrated, **6 TOPS** peak throughput — sufficient for most edge inference tasks without an external accelerator
+- **Video:** 8K@30 fps / 4K@120 fps decode (H.265/HEVC, VP9, AVS2, AV1); 4K@60 fps decode (H.264/AVC); 4K@60 fps encode (H.265, H.264); HDMI 2.1 (4K@120 fps) and DisplayPort 1.4 (4K@120 fps)
+- **Networking:** 1× GbE, 1× 100 MbE, dual-band 2.4/5 GHz Wi-Fi, Bluetooth 5.0, 4G LTE
+- **Storage expansion:** M.2 slot supporting PCIe NVMe or SATA SSDs up to the 2242 form factor, enabling TB-class local storage
+
+The RK3576 also introduces several industrial-grade features absent from the previous generation: real-time Ethernet (TSN), MCU subsystem, DSMC (Display Serial Mode Controller), Flexbus, resource isolation partitioning, and opto-isolated digital I/O. The external interface set extends to RS-232, RS-485, CAN bus, optocoupler-isolated digital inputs, and relay outputs — making it suitable for PLC-adjacent or gateway roles in factory automation.
+
+### On-Device Large Model Deployment
+
+The 6 TOPS NPU supports the Transformer architecture and has been validated with several lightweight open-source LLMs in a privatised (air-gapped) deployment configuration, including Gemma-2B, Qwen1.5-1.8B, Llama2-7B, and ChatGLM3-6B. This positions the platform for scenarios where cloud connectivity cannot be assumed — manufacturing floors, vehicles, or secure government environments — and where inference latency requirements rule out a round-trip to a remote API.
+
+---
+
+## Summary
+
+The RK3588-based cloud PC demonstrates that a compact, fanless thin client can deliver a full desktop experience when the transmission stack correctly adapts between bitmap-delta and H.264-stream modes. Achieving hardware stability at this performance level hinges on disciplined PCB practice: independent LDOs for PLL and NPU rails, tight DDR and crystal routing, and adequate current headroom for the compute domains. The follow-on RK3576 platform extends the same form factor with an integrated 6 TOPS NPU and industrial bus interfaces, opening a path from pure cloud-terminal applications toward hybrid edge-AI deployments where some or all inference runs locally on the device itself.

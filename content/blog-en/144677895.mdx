@@ -5,16 +5,66 @@ slug: "144677895"
 tags: ["#EdgeComputing", "#AI"]
 source: "https://blog.csdn.net/ARM_FPGA_AI/article/details/144677895"
 originalTitle: "【国产NI替代】基于DSP+FPGA的8振动/电压+2转速 PTP1588网络同步边缘计算采集板卡"
+expanded: true
 ---
+## A Domestic Alternative to NI: DSP+FPGA-Based Synchronized Edge Computing Acquisition Board
 
-8-channel Vibration/Voltage + 2-channel Tachometer PTP1588 Network Synchronized Edge Computing Acquisition Board
+Industrial measurement in China has long relied on National Instruments (NI) hardware for high-channel-count, synchronized data acquisition. This post introduces a domestically developed alternative: an 8-channel vibration/voltage + 2-channel tachometer acquisition board built on a Xilinx FPGA + TI DSP architecture, with PTP IEEE 1588 network-level time synchronization and onboard edge computing capability. If your application demands precision, low noise, and real-time signal processing at the edge — but NI's price tag is a barrier — this class of board is worth understanding.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144677895/01_a228280ba5b045108456e028e4cdd2de.png)
+## Hardware Architecture: XC7A100T-2FGG484 + TMS320C6655
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144677895/02_7b0f4a981ee44b61a1a5939976b28870.png)
+The board pairs two purpose-built silicon devices:
 
-Utilizing an XC7A100T-2FGG484 + TMS320C6655 architecture,
+**Xilinx XC7A100T-2FGG484 (Artix-7 FPGA)**
+The Artix-7 100T is a mid-range FPGA in the 7-series family, offering approximately 101K logic cells, 4.9Mb of block RAM, and 240 DSP48E1 slices in a 484-ball fine-pitch BGA package. In this design, the FPGA handles front-end signal conditioning, ADC interfacing, high-speed parallel data capture, and timestamping of every sample — tasks that require deterministic, sub-microsecond timing that a CPU cannot guarantee.
 
-it is configured with 8 standard vibration acquisition channels, 2 tachometer acquisition channels, and a standard Gigabit Ethernet interface.
+**TI TMS320C6655 (KeyStone I DSP)**
+The C6655 is a fixed/floating-point DSP from TI's C66x CorePac line, running at up to 1.25 GHz. It provides roughly 20 GFLOPS of single-precision floating-point throughput, making it well suited to FFT computation, order tracking, envelope analysis, and other vibration signal processing algorithms that must run locally without offloading to a host PC. The C6655 also integrates a Gigabit Ethernet MAC, PCIe, and a range of high-speed peripherals — which is why it is the natural communications and compute hub in this architecture.
 
-For synchronization, this is the first application of PTP network synchronization technology. Due to the extensive edge computing requirements involved, the cost is relatively high. It is therefore more suitable for research and measurement fields that demand high-precision measurement, are sensitive to noise and electromagnetic environments, require significant edge computing, but where cost is not a primary concern.
+Together, the FPGA manages real-time data acquisition and hardware synchronization while the DSP runs signal processing algorithms and handles network communication. This division of labor is a well-established pattern in industrial DAQ design.
+
+## Channel Configuration
+
+**8 Vibration / Voltage Input Channels**
+The eight analog input channels are intended primarily for IEPE (Integrated Electronics Piezo-Electric) accelerometers and voltage-output sensors commonly used in vibration monitoring, structural health monitoring, and acoustic measurement. IEPE-compatible front ends require constant-current excitation (typically 2–4 mA at 18–24 V compliance) and AC coupling, both of which are handled in the analog signal chain before the ADC. The channel count of eight matches a common NI 9234/PXI-4472 form factor that many labs are already dimensioned around.
+
+**2 Tachometer / RPM Channels**
+The two tachometer inputs accept signals from optical encoders, magnetic pickups, or eddy-current probes used to measure shaft rotational speed. Tachometer data is essential for order-tracking analysis — converting vibration spectra from the frequency domain into the order domain relative to shaft rotation — which is the standard technique for diagnosing rotating machinery faults (imbalance, misalignment, bearing defects, gear mesh anomalies). Having dedicated tachometer channels with hardware timestamping ensures phase coherence between the RPM reference and the vibration channels.
+
+## PTP IEEE 1588 Network Synchronization
+
+The most technically significant feature of this board is its use of **PTP (Precision Time Protocol, IEEE 1588)** for cross-board time synchronization over standard Gigabit Ethernet.
+
+IEEE 1588v2 PTP enables a grandmaster clock to distribute time across a network with sub-microsecond accuracy, assuming hardware timestamping at the physical layer. In a multi-board vibration acquisition system — where you might have 4, 8, or 16 boards acquiring data in parallel across a machine or structure — all boards must share a common timebase so that samples from different boards can be correctly phase-aligned in post-processing or real-time fusion. PTP eliminates the need for a dedicated synchronization cable (such as the TRIG bus in PXI systems or the ref clock line in NI's CompactDAQ), replacing it with the same Ethernet cable used for data transport.
+
+This is described as the **first application of PTP synchronization** in this product line, representing a shift from hardware trigger-based synchronization to network-based synchronization. The practical implication is simpler cabling in distributed installations — a vibration monitoring system on a large rotating machine, a wind turbine drivetrain, or a test rig spread across a factory floor can be synchronized without running additional coax or trigger lines between chassis.
+
+Hardware timestamping is critical here: the FPGA captures the exact arrival time of each PTP message at the Ethernet PHY layer, not at the software layer, which is what makes sub-microsecond accuracy achievable on non-RTOS hosts.
+
+## Edge Computing and Onboard Signal Processing
+
+The inclusion of the C6655 DSP positions this as an **edge computing node**, not just a passive data logger. Rather than streaming raw ADC samples to a host PC for processing, the DSP can run:
+
+- Real-time FFT and power spectral density computation
+- RMS, peak, and crest factor calculation per channel
+- Envelope detection (demodulation) for bearing fault analysis
+- Order tracking and synchronous averaging
+- Threshold-based alarm logic
+
+This matters in industrial environments where network bandwidth is limited, latency to a central server is unacceptable, or where the measurement system must operate autonomously without a connected PC. Edge processing also reduces the data volume sent over the network from raw sample streams to computed features, which is the standard architecture for large-scale condition monitoring deployments.
+
+## Target Applications and Cost Positioning
+
+The board is explicitly positioned for **research and precision measurement** rather than high-volume production testing. The combination of a high-logic-count FPGA, a powerful DSP, hardware PTP synchronization, and a multi-channel analog front end places the bill-of-materials above a simple USB or PCIe DAQ card. However, compared to equivalent NI hardware (a PXIe chassis, a synchronization module, and NI-DAQmx-licensed cards), the total system cost for a multi-board distributed installation is substantially lower.
+
+Ideal application domains include:
+
+- **Rotating machinery diagnostics** — turbines, compressors, gearboxes, pumps requiring synchronized multi-point vibration and RPM data
+- **Structural health monitoring** — bridges, buildings, or aerospace structures where distributed sensor nodes must share a common timebase
+- **Electromagnetic compatibility (EMC) sensitive environments** — the FPGA+DSP architecture allows for careful board layout and shielding that an all-in-one SoC may not accommodate
+- **Acoustic and noise-sensitive measurements** — where the onboard analog conditioning and galvanic isolation from the host PC reduce interference
+- **Research labs** — where the edge computing capability enables novel real-time algorithms without the latency of a PCIe bus to a workstation
+
+## Summary
+
+This XC7A100T + TMS320C6655 acquisition board represents a practical domestic engineering response to the NI ecosystem: a purpose-built hardware design with eight vibration channels, dedicated tachometer inputs, IEEE 1588 PTP network synchronization, and sufficient onboard DSP horsepower for real-time signal processing at the edge. The trade-off is cost — it is not a budget solution — but for research institutions and industrial operators who need distributed, time-synchronized, computationally capable acquisition without depending on imported NI hardware, this architecture addresses a real gap in the market.

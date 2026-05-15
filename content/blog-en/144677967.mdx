@@ -5,14 +5,75 @@ slug: "144677967"
 tags: ["#FPGADev", "#AI", "#EdgeComputing", "#ARMDev"]
 source: "https://blog.csdn.net/ARM_FPGA_AI/article/details/144677967"
 originalTitle: "8振动/电压 5Msps高采样率终端采集板卡"
+expanded: true
 ---
+## Overview
 
-8-Channel Vibration/Voltage 5 Msps High-Speed Data Acquisition Board
+High-speed vibration and voltage monitoring is a cornerstone of predictive maintenance, structural health monitoring, and industrial condition monitoring. This post introduces an 8-channel dynamic signal acquisition board built around the Xilinx Artix-7 FPGA, capable of sampling at up to 5 Msps per channel — making it well-suited for applications where conventional 100 ksps DAQ cards simply cannot capture the full frequency content of the signals under test.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144677967/01_b70aec4b57604f7786661b58592e2eee.png)
+![8-Channel Vibration/Voltage 5 Msps High-Speed Data Acquisition Board — front](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144677967/01_b70aec4b57604f7786661b58592e2eee.png)
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144677967/02_3318ff6470cd4001bf9d2269d59ae9e6.png)
+![8-Channel Vibration/Voltage 5 Msps High-Speed Data Acquisition Board — rear](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/144677967/02_3318ff6470cd4001bf9d2469d59ae9e6.png)
 
-Utilizing an XC7A35T-2FGGI model FPGA, this is a multi-channel dynamic signal acquisition device with a maximum sampling rate of 5 Msps, primarily applied in scenarios requiring high sampling rates.
+## Core Hardware: XC7A35T-2FGGI FPGA
 
-It supports an external synchronization clock device, compatible with GPS synchronization, enabling synchronized data acquisition across multiple boards. Acquired data can be stored on an external SD card and a built-in SATA interface hard drive.
+The board's signal processing backbone is the **Xilinx XC7A35T-2FGGI**, a mid-range Artix-7 series FPGA in a fine-pitch BGA package. The Artix-7 family is optimized for cost-sensitive, power-efficient applications that still demand substantial logic throughput — exactly the profile needed for a multi-channel ADC front-end that must simultaneously:
+
+- Clock and control multiple high-speed ADC pipelines
+- Perform real-time decimation or anti-aliasing filtering in programmable logic
+- Move data across a high-bandwidth internal fabric to storage or a host interface
+- Manage synchronization logic without introducing inter-channel skew
+
+The `-2` speed grade provides enough timing margin to meet setup/hold requirements at 5 Msps across all eight channels. The FGGI package variant is a 484-ball BGA suited for compact board layouts where routing density is critical.
+
+## 5 Msps Multi-Channel Dynamic Signal Acquisition
+
+At **5 mega-samples per second**, each channel produces 10 MB/s of raw ADC data (assuming 16-bit samples). Across all eight channels simultaneously, the aggregate throughput can reach **80 MB/s** before any compression — a figure that drives the storage and bus architecture choices described below.
+
+This sampling rate supports accurate capture of signals up to roughly **2.5 MHz** per the Nyquist criterion. In practical vibration analysis this covers:
+
+- Bearing defect frequencies on high-speed spindles
+- Gear mesh harmonics in gearboxes running at thousands of RPM
+- High-frequency ultrasonic emissions from partial discharge or cavitation
+- Broadband voltage transients and power-quality events
+
+For voltage acquisition, the analog front end typically includes programmable-gain amplifiers (PGAs) and anti-aliasing low-pass filters whose cutoff is matched to the chosen decimated sample rate, allowing the user to trade bandwidth for noise floor dynamically.
+
+## Synchronized Multi-Board Acquisition
+
+One of the most demanding requirements in distributed monitoring is **phase-coherent acquisition across physically separated boards**. If timestamps are not aligned, cross-channel phase measurements (essential for modal analysis, beamforming, and torsional vibration analysis) become meaningless.
+
+This board addresses that challenge with an external synchronization clock input that is **GPS-compatible**. A GPS receiver outputs a pulse-per-second (1 PPS) signal with sub-microsecond absolute accuracy referenced to UTC. The FPGA uses this 1 PPS edge to discipline its internal sample clock, so every board in a networked installation shares a common time base regardless of cable length or local oscillator drift.
+
+Key benefits of the GPS synchronization scheme:
+
+- **Absolute timestamping**: each sample can be tagged with GPS time, enabling correlation with external events logged by other instruments.
+- **Scalability**: additional boards can be added to the acquisition network without degrading synchronization accuracy, because each board locks independently to the GPS reference rather than to a daisy-chained master.
+- **Cable-free distribution** (when using GPS antennas at each node): avoids the signal integrity issues of distributing a 5 MHz or 10 MHz reference over long cable runs in electrically noisy industrial environments.
+
+## Data Storage Architecture
+
+High-speed continuous acquisition is only useful if the recorded data can be reliably written before the FPGA's internal buffers overflow. The board provides two complementary storage paths:
+
+### External SD Card
+
+An SD card slot provides removable, portable storage for configuration files, short burst captures, and field deployment scenarios where quick data extraction is needed. Modern UHS-I SD cards sustain 50–100 MB/s sequential writes, which is sufficient for lower-channel-count or lower-rate captures. The removable format also simplifies data handoff to an analysis workstation without requiring a network connection.
+
+### Built-in SATA Interface Hard Drive
+
+For sustained full-rate, all-channel recording, the board includes a **SATA interface** that can connect to either a conventional 2.5" hard disk or an SSD. A SATA III link provides up to 600 MB/s theoretical throughput — well above the 80 MB/s worst-case aggregate ADC output — giving substantial headroom for filesystem overhead and burst absorption. An industrial-grade SSD on this interface can sustain truly continuous 8-channel 5 Msps recording for hours without data loss.
+
+The dual-storage design is pragmatic: use the SD card for configuration and short diagnostics in the field; rely on the SATA drive for long-duration monitoring campaigns where data integrity over time matters most.
+
+## Typical Application Scenarios
+
+Given its combination of high sample rate, multi-channel simultaneity, GPS sync, and onboard mass storage, this board targets several demanding use cases:
+
+- **Rotating machinery condition monitoring**: simultaneous vibration capture from multiple bearing positions on a turbine, compressor, or pump train, with phase relationships preserved for order-tracking and modal analysis.
+- **Power quality and transient capture**: voltage waveform recording at 5 Msps resolves fast transients, harmonics up to the 50th at 50 Hz fundamental, and switching artefacts invisible to lower-rate power analyzers.
+- **Structural health monitoring (SHM)**: synchronized sensor arrays on bridges, towers, or aircraft structures where the wave propagation time between sensors carries damage-location information.
+- **Edge AI inference pipelines**: raw high-rate ADC data is pre-processed in the FPGA (FFT, RMS, peak extraction) and fed to an edge compute module running anomaly detection or fault classification models, with the SATA drive providing local data logging for model retraining.
+
+## Summary
+
+This 8-channel, 5 Msps acquisition board pairs the Xilinx XC7A35T-2FGGI FPGA's programmable logic flexibility with GPS-grade synchronization and a dual-storage architecture. The result is a compact DAQ platform capable of phase-coherent, high-bandwidth signal capture across multiple channels — a combination that covers the most demanding edges of industrial vibration analysis, power quality monitoring, and edge-AI data pipelines where off-the-shelf lower-rate cards fall short.
