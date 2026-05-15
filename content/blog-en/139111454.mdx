@@ -5,10 +5,64 @@ slug: "139111454"
 tags: ["#SyncSamplingDAQ"]
 source: "https://blog.csdn.net/yeyuangen/article/details/139111454"
 originalTitle: "【NI国产替代】PCIe-6374 同步采样多功能DAQ设备，4路AI（16位，3.5 MS/s/ch），2路AO，24路DIO，多功能I/O设备"
+expanded: true
 ---
+## Overview
 
-In-vehicle communication buses support automotive Ethernet, CAN, LIN, and FlexRay frames and signals. These products can be used in hardware-in-the-loop simulation, bus monitoring, and automated control applications.
+The PCIe‑6374 is a synchronous sampling multifunction data acquisition (DAQ) device designed for high-speed, precision measurement applications. With 4 analog input channels running at 3.5 MS/s per channel simultaneously, 2 analog outputs, 24 digital I/O lines, and four 32-bit counters, it represents a capable PCIe-bus instrument targeting engineers who need simultaneous multi-channel acquisition without inter-channel skew. This post covers the device's architecture, key capabilities, and the range of industries where it sees deployment — along with context for evaluating domestic alternatives in the NI ecosystem.
 
-### 4 AI Channels (16-bit, 3.5 MS/s/ch), 2 AO, 24 DIO, Multifunction I/O Device
+## Hardware Architecture
 
-The PCIe‑6374 is a synchronous sampling multifunction DAQ device. This module provides analog I/O, digital I/O, four 32‑bit counters, and analog and digital triggering. Onboard NI‑STC3 timing and synchronization technology delivers advanced timing capabilities, including independent analog and digital timing engines and retriggerable measurement tasks. The PCIe‑6374 is suitable for a wide range of applications such as IF digitization, transient recording, manufacturing test for ISDN, ADSL, and POTS in the telecommunications industry, ultrasound and sonar testing, and high-energy physics. The included DAQExpress™ companion software provides basic measurement and analysis functions, while the NI‑DAQmx driver can be used to create custom automated measurement and control applications. ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/139111454/01_ef83eee99482723263c38db6e9bab0d5.png)
+The PCIe‑6374 sits in the PCIe x1 or x4 slot of a standard desktop or embedded PC, giving it direct, low-latency access to system memory through DMA transfers. The card's analog front end provides **4 simultaneously sampled AI channels at 16-bit resolution and up to 3.5 MS/s per channel** — a spec that distinguishes it from multiplexed ADC designs, where channels share a single converter and introduce inter-channel phase delay. Simultaneous sampling is critical in applications like ultrasound beamforming, phase-coherent radar, and multi-axis vibration analysis, where the time relationship between channels carries measurement meaning.
+
+The 2 analog output channels support waveform generation for stimulus-response testing. Combined with the digital I/O lines, the device can close a real-time control loop without requiring an additional instrument.
+
+## NI-STC3 Timing Engine
+
+A core differentiator of the PCIe‑6374 is its onboard **NI‑STC3** (System Timing Controller 3) ASIC. The STC3 provides:
+
+- **Independent analog and digital timing engines** — analog acquisition and digital I/O operations can run on separate clocks without interfering with each other.
+- **Retriggerable measurement tasks** — the device can automatically re-arm after each trigger event without host intervention, enabling burst acquisition modes useful in pulse or event-driven experiments.
+- **Hardware-timed analog and digital triggering** — both edge and level triggering are supported on analog and digital sources, and trigger signals can be routed internally between subsystems.
+
+This architecture allows engineers to build deterministic, multi-subsystem measurement sequences in software without relying on OS scheduling for timing accuracy.
+
+## Software Stack
+
+The device ships with two software layers:
+
+- **DAQExpress™** — a lightweight measurement environment suited for quick channel verification, waveform viewing, and basic signal analysis without writing code. Useful for bench characterization and system bring-up.
+- **NI‑DAQmx driver** — the full programmatic driver, exposing the device to LabVIEW, LabWindows/CVI, C/C++, Python (`nidaqmx` package), and .NET. NI‑DAQmx provides a task-based API where acquisition, generation, and counter operations are configured as tasks, then executed with hardware-timed precision.
+
+For production test or embedded system integration, NI‑DAQmx is the standard path. The retriggerable task feature in particular pairs well with automated test sequences where a product under test generates a trigger for each measurement event.
+
+## Target Applications
+
+The PCIe‑6374's bandwidth and simultaneous sampling make it applicable across several demanding domains:
+
+**IF Digitization and Communications Testing**
+At 3.5 MS/s per channel, the device can digitize intermediate-frequency (IF) signals in the range used by legacy telecommunications protocols. It has been applied to manufacturing test for **ISDN, ADSL, and POTS** equipment, where conformance testing requires capturing modulated waveforms and verifying spectral masks or impulse noise immunity.
+
+**Transient Recording**
+High-speed transient capture — power switching events, mechanical shock, explosive events in research — benefits from simultaneous sampling so that multiple sensor channels are time-aligned. The retriggerable task mode allows back-to-back burst captures without dropping events between acquisitions.
+
+**Ultrasound and Sonar**
+Ultrasonic NDT (non-destructive testing) and sonar signal processing require phase-coherent capture across multiple transducer channels. The 16-bit depth provides sufficient dynamic range to resolve weak echoes against background clutter, and simultaneous sampling preserves the phase relationships used in beamforming algorithms.
+
+**High-Energy Physics**
+Detector readout in particle physics experiments often requires synchronized, high-sample-rate digitization of pulse signals from photomultiplier tubes or scintillator arrays. The PCIe‑6374's combination of speed, bit depth, and hardware triggering fits this profile.
+
+**Hardware-in-the-Loop (HIL) and In-Vehicle Bus Testing**
+The device's digital I/O and trigger infrastructure also make it relevant in HIL simulation rigs for automotive systems. In these setups, real ECUs are connected to a real-time simulation platform; the DAQ device provides the high-speed analog measurement side while separate bus interfaces handle CAN, LIN, FlexRay, or automotive Ethernet traffic.
+
+## Domestic Alternative Context
+
+For engineers and organizations exploring alternatives to NI (National Instruments) hardware — whether for supply chain, cost, or geopolitical procurement reasons — the PCIe‑6374 represents a specific performance target: **simultaneous 16-bit, 3.5 MS/s/ch across 4 channels on a PCIe bus, with NI‑DAQmx software compatibility**. Domestic Chinese DAQ manufacturers have increasingly targeted this segment with cards offering comparable ADC specs, though software ecosystem maturity (driver stability, LabVIEW integration, Python bindings) remains the primary evaluation criterion alongside raw hardware performance.
+
+When evaluating any alternative, the retriggerable task capability and independent timing engine should be explicitly tested — these are often the features that separate an instrument-grade DAQ from a lower-tier digitizer, and they are the capabilities that production test code most commonly relies on.
+
+## Summary
+
+The PCIe‑6374 is a well-specified instrument-class DAQ device built around simultaneous sampling, hardware-timed triggering, and the NI‑STC3 timing architecture. Its 3.5 MS/s per-channel rate and 16-bit resolution position it for IF-band signal capture, ultrasound, sonar, transient recording, and telecom manufacturing test. Engineers evaluating domestic alternatives should benchmark against these specific capabilities — simultaneous sampling, retriggerable tasks, and independent analog/digital timing engines — rather than headline sample rate alone.
+
+![PCIe-6374 device](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/139111454/01_ef83eee99482723263c38db6e9bab0d5.png)

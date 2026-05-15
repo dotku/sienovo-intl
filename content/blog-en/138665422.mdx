@@ -5,19 +5,53 @@ slug: "138665422"
 tags: ["#LiveStreaming"]
 source: "https://blog.csdn.net/yeyuangen/article/details/138665422"
 originalTitle: "基于FPGA的音视频直播导播台-应用案例"
+expanded: true
 ---
+Live production at the edge demands deterministic, sub-frame latency that general-purpose CPUs and even GPU-based pipelines struggle to guarantee. This application case showcases an FPGA-based audio and video live production switcher developed by Sienovo, designed for broadcast studios, live-streaming setups, and professional AV integration where real-time signal switching and compositing must be hardware-reliable.
+
+## Why FPGA for Live Switching?
+
+FPGAs are uniquely suited to video switching because every pixel pipeline stage executes in fixed, predictable gate delays rather than competing for CPU scheduler slots. An FPGA fabric can clock video data through capture, format conversion, compositing, and output all within a single frame period—typically 16.7 ms at 60 fps—with no OS jitter. This makes FPGA the preferred architecture for broadcast-grade switchers, where a dropped frame or glitched transition is unacceptable on air.
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138665422/01_276b0219b4cf3cc03ce985dd87b466f5.png)
 
+## Input Stage: 4 × HDMI + 1 × SDI
+
+The switcher accepts **four HDMI inputs and one SDI input**, covering the two dominant professional signal types in a single unit.
+
+- **HDMI inputs** handle consumer and prosumer sources—cameras, laptops, game consoles, media players—without adapters.
+- **SDI (Serial Digital Interface)** is the standard for broadcast cameras, video routers, and long cable runs in studio infrastructure. SDI carries embedded audio and is inherently balanced and self-clocking, making it immune to the HDCP and hot-plug negotiation issues that can plague HDMI in live environments.
+
+Having both standards on the input side means a production team can mix broadcast cameras with a presenter's laptop or a gaming rig in a single switch event.
+
+## Output Stage: HDMI + USB 3.0
+
+On the output side, the unit provides **one HDMI output and one USB 3.0 output**, serving two independent downstream consumers simultaneously.
+
+The HDMI output drives a program monitor or a downstream video router. The USB 3.0 output appears to the host computer as a UVC (USB Video Class) capture device, making it plug-and-play with streaming software such as OBS Studio, vMix, or Zoom without requiring a dedicated capture card. This dual-output design effectively embeds the capture card function inside the switcher itself, reducing rack space and latency compared to external USB capture dongles.
+
+## Small-Screen Real-Time Preview
+
+The built-in **small-screen preview** renders all input sources simultaneously in a multiviewer layout. Operators can confirm that each source is live and frame-correct before cutting to it on program output. In FPGA implementations, the multiviewer is typically realized through line-buffered downscaling pipelines running in parallel with the program output pipeline—no CPU involvement, no frame drops under load.
+
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138665422/02_03b6055d9ef17a75720deb04f621e68d.png)
 
-① Supports 4 HDMI inputs + 1 SDI input  
-② Supports 1 HDMI output + 1 USB3 output  
-③ Supports small-screen preview of real-time video  
-④ Supports multiple transition effects  
-⑤ Supports chroma key (green screen) compositing  
-⑥ Pure RGB image processing for more accurate color reproduction
+## Transition Effects
+
+The switcher supports **multiple transition effects** between sources. In FPGA-based switchers, transitions are implemented as pixel-level blending operations across two source frame buffers: the outgoing source and the incoming source. Common effect types include hard cuts (zero-frame crossfade), dissolves (linear alpha blend ramped over N frames), wipes (geometric mask that advances across the frame), and dip-to-black. Because the FPGA executes the blend arithmetic on every pixel of every frame in parallel, even complex wipes introduce no latency penalty compared to a hard cut.
+
+## Chroma Key (Green Screen) Compositing
+
+The **chroma key engine** isolates a defined hue range—typically the green or blue backing used in virtual studios—and replaces those pixels with a background source in real time. FPGA chroma keying operates in the YCbCr or RGB color space on each incoming pixel clock, applying a configurable hue/saturation tolerance and edge-softness spill-suppression pass. The result is composited onto the background source before the program output stage, all within the same frame pipeline.
+
+## Pure RGB Processing for Color Accuracy
+
+A distinguishing specification of this design is **pure RGB image processing throughout the signal path**. Many lower-cost switchers convert inputs to YCbCr early in the pipeline and only convert back to RGB at output, introducing chroma subsampling artifacts (4:2:2 or 4:2:0 rounding) that accumulate through multiple generation passes. By keeping all internal processing in full RGB, this switcher avoids inter-format quantization loss—critical for applications where color grading accuracy, on-screen graphics fidelity, or chroma key edge quality must be preserved.
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138665422/03_c8a87c5e3fdc45e6e1eb6ec54ffc2043.png)
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138665422/04_fc4215b7945509c0afce3ca8bbc0a6e6.png)
+
+## Summary
+
+This FPGA-based live production switcher integrates source aggregation (4 × HDMI + SDI), dual-format output (HDMI + USB 3.0 UVC), multiviewer preview, hardware transition effects, real-time chroma keying, and a full-RGB internal pipeline into a single compact unit. The FPGA architecture provides the deterministic, frame-synchronous processing that broadcast and live-streaming applications require, while the USB 3.0 UVC output makes integration with PC-based streaming workflows straightforward and driverless.
