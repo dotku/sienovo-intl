@@ -5,122 +5,88 @@ slug: "131240288"
 tags: ["#AM62X", "#FPGADev"]
 source: "https://blog.csdn.net/yeyuangen/article/details/131240288"
 originalTitle: "AM62X+FPGA+AD+vxworks实时操作系统数据采集处理解决方案"
+expanded: true
 ---
+The AM62X processor family from Texas Instruments has become a compelling choice for industrial-grade embedded systems that demand real-time determinism, robust I/O, and long lifecycle support. This post walks through three hardware reference designs built around the AM6231 SoC and VxWorks RTOS — a PrPMC-form-factor compute module, an industrial environmental monitoring unit, and a heavy-machinery controller — each targeting a distinct segment of the industrial edge-computing market.
+
+## Why AM6231 + VxWorks?
+
+The AM6231 is part of TI's Sitara AM62x family, featuring an ARM Cortex-A53 application processor running at up to 1.0 GHz (dual-core 64-bit on higher-tier variants) and up to 1.2 GHz on the single-core AM6231. The AM62x line is designed specifically for industrial HMI, machine control, and data acquisition — offering a deterministic hardware architecture that pairs well with a hard real-time RTOS.
+
+VxWorks, developed by Wind River, is a certified hard real-time operating system widely used in aerospace, defense, and industrial automation. Its preemptive priority-based scheduler guarantees bounded interrupt latency and deterministic task switching, which is essential when sampling analog data from sensors, driving digital outputs in tight timing loops, or synchronizing with IRIG-B time codes.
+
+---
+
+## Design 1: PrPMC Compute Module
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131240288/01_9c42bdc779eebad5f12ee461344adc18.png)
 
-Specification
+| Specification | Description |
+|---|---|
+| Processor | AM6231 at up to 1.2 GHz |
+| Operating System | VxWorks |
+| Storage | DDR4, 8 GB eMMC |
+| Interfaces | PrPMC Interface · 1× USB 2.0 · 3× RMII · 1× RS485 · 1× IRIG-B · 1× RS232 |
+| Debug Interface | JTAG / COP debug port |
 
-Description
+This board follows the PrPMC (Processor PMC) mezzanine standard, making it slot-compatible with VMEbus and CompactPCI carrier cards already deployed in legacy industrial racks. The three RMII (Reduced Media-Independent Interface) ports allow direct connection to Ethernet PHYs for multi-network segmentation — useful when the module must bridge a control network, a data-acquisition network, and a management network simultaneously without a software switch introducing latency.
 
-Processor
+The IRIG-B interface is noteworthy: IRIG-B is an analog or digital time-code standard used in power utilities, defense, and precision test systems to distribute GPS-derived time across a facility. Having hardware IRIG-B decode on the module means the VxWorks clock can be disciplined to sub-millisecond accuracy, enabling time-stamped data acquisition that correlates cleanly with other instruments on the same IRIG backbone.
 
-AM6231 at up to 1.2GHz
+The 8 GB eMMC is generous for a mezzanine form factor, providing enough space for a VxWorks image, application binaries, on-board data logging, and an OTA update partition — all without requiring an external storage peripheral.
 
-Operating System
+---
 
-VXWORKS
-
-Storage
-
-DDR4, 8GB EMMC
-
-Interfaces
-
-•PrPMC Interface
-
-•1x USB2.0
-
-•3x RMII
-
-•1x RS485
-
-•1x IRIGB
-
-•1x RS232
-
-Debug Interface
-
-JTAG / COP debug port
-
-Industrial Environmental Monitoring Equipment:
+## Design 2: Industrial Environmental Monitoring Equipment
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131240288/02_7b9823944a765f2a4bd8be7ef87e35e9.png)
 
-Specification
+| Specification | Description |
+|---|---|
+| Processor | AM6231 at up to 1.2 GHz |
+| Operating System | VxWorks |
+| Storage | DDR4, 4 GB eMMC |
+| Interfaces | 1× 10/100M ETH · 1× USB 2.0 · 7× PT Resistors · 1× Thermocouple · 1× Gas Measurement · 1× Photoelectric Signal Input · 1× Optical Pulse Output · 12× Digital Outputs · 6× Digital Inputs · 4× RS485 · 1× IRIG-B · 1× RS232 |
+| Debug Interface | JTAG / COP debug port |
 
-Description
+This design is the most sensor-dense of the three. The combination of seven PT resistor channels (typically PT100 or PT1000 RTDs for precision temperature measurement), one thermocouple input, and a dedicated gas measurement channel covers the full range of environmental sensing required in industrial plants, data centers, or chemical facilities.
 
-Processor
+PT resistors and thermocouples serve complementary roles: PT100/PT1000 RTDs offer high accuracy and stability over a moderate temperature range, while thermocouples cover extreme temperatures (e.g., furnace monitoring) at the cost of lower base accuracy and the need for cold-junction compensation. Having both sensor types on the same board, under a single VxWorks task scheduler, means the software can correlate readings without clock-skew artifacts.
 
-AM6231 at up to 1.2GHz
+The photoelectric signal input and optical pulse output channels are designed for encoder feedback and optically isolated signaling — important in high-voltage environments where galvanic isolation protects the processor from transient damage. Optical pulse outputs can drive fiber-linked actuators or feed optical counters in metering applications.
 
-Operating System
+Four RS-485 ports allow daisy-chaining of Modbus RTU or PROFIBUS devices across long cable runs (up to several hundred meters), which is standard practice for distributed sensor networks on factory floors. The IRIG-B port again enables facility-wide time synchronization, ensuring that environmental alarm timestamps can be correlated with SCADA event logs.
 
-VXWORKS
+---
 
-Storage
+## Design 3: Construction Machinery Controller
 
-DDR4, 4GB EMMC
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131240288/03_d2dedc9f0b5478f03659fa88bd013412.png)
 
-Interfaces
+| Specification | Description |
+|---|---|
+| Processor | 1× Dual-core 64-bit Arm® Cortex-A53 at up to 1.0 GHz |
+| Operating System | Linux, VxWorks |
+| Storage | 512 MB DDR4 · 4 GB eMMC · QSPI |
+| Interfaces | 2× 100M-TX · 48× Digital Signal Outputs (BH, BL, PWM, up to 4 A) · 32× Signal Inputs (BH, BL, AI, PWM) · 4× PT Resistors · 4× 4–20 mA Current Sources · 1× USB · 4× Isolated CAN · Power: 8–32 V · 6× LEDs |
+| Debug Interface | JTAG / COP debug port |
 
-•1x 10/100M ETH, 1x USB2.0
+This controller targets mobile and stationary construction equipment — excavators, cranes, concrete pumps, and similar machinery. Several design decisions reflect the demands of that environment.
 
-•7x PT Resistors, 1x Thermocouple, 1x Gas Measurement
+The dual OS support (Linux and VxWorks) on a single dual-core Cortex-A53 suggests an AMP (Asymmetric Multi-Processing) configuration: one core runs a Linux application environment for HMI, data logging, or cloud connectivity, while the other runs VxWorks handling hard real-time I/O loops. TI's AM62x SDK supports this through its inter-core IPC framework, letting the two environments share memory regions and pass messages without going through an external bus.
 
-•1x Photoelectric Signal Input, 1x Optical Pulse Output
+The 48 digital outputs capable of sourcing or sinking up to 4 A each are sized for directly driving solenoid valves, relay coils, and high-power indicator lamps — loads that would damage a standard logic-level GPIO without a driver stage. BH/BL notation (high-side/low-side drive) indicates the outputs are implemented with power MOSFETs or dedicated valve-driver ICs that can withstand the inductive kickback typical of hydraulic solenoids.
 
-•12x Digital Outputs, 6x Digital Inputs
+Four isolated CAN interfaces are the backbone of machine communication. CAN bus is the standard in mobile machinery for connecting the engine ECU, transmission, hydraulic controllers, and operator interface — the J1939 protocol stack typically rides on top of CAN in heavy equipment. Hardware isolation on all four ports protects the AM6231 from the ground-shift transients common when long cable harnesses run through a chassis experiencing vibration and electrical noise from the engine and alternator.
 
-•4x RS485
+The 4–20 mA current-source outputs are the industrial standard for commanding proportional control valves and variable-speed drives over distances up to several hundred meters. Unlike voltage signals, the 4–20 mA loop is inherently immune to resistive voltage drop on long cable runs, which is critical in large equipment where sensor-to-controller distances can exceed 20 metres.
 
-•1x IRIGB
+The wide 8–32 V supply range accommodates both 12 V (common in lighter equipment) and 24 V (standard in heavy trucks and construction machines) electrical systems, as well as the significant voltage sag that can occur during engine cranking.
 
-•1x RS232
+The QSPI flash provides a fast-boot, wear-resistant storage option for the VxWorks bootloader and failsafe firmware image, independent of the eMMC — important when field reliability requires the system to recover from a corrupted eMMC without a technician on-site.
 
-Debug Interface
+---
 
-JTAG / COP debug port
+## Common Thread: FPGA and ADC Integration
 
-Construction Machinery Controller:
-
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131240288/03_d2dedc9f0b54768f03659fa88bd013412.png)
-
-Specification
-
-Description
-
-Processor
-
-1x Dual-core 64-bit Arm® Cortex®-A53 at up to 1.0GHz
-
-Operating System
-
-LINUX, VXWORKS
-
-Storage
-
-512MB DDR4, 4GB EMMC, QSPI
-
-Interfaces
-
-•2x 100M-TX
-
-•48x Digital Signal Outputs (BH, BL, PWM), current up to 4A
-
-•32x Signal Inputs, supporting BH, BL, AI, PWM
-
-•4x PT Resistors, 4x 4~20mA Current Sources
-
-•1x USB
-
-•4x Isolated CAN
-
-•Power supply supports 8~32V
-
-•6x LEDs
-
-Debug Interface
-
-JTAG / COP debug port
+The title references FPGA and ADC components alongside the AM6231 and VxWorks, which reflects the broader solution architecture these modules are designed to plug into. In high-channel-count data acquisition systems, an FPGA typically acts as a front-end aggregator: it clocks the ADCs, performs raw sample buffering and averaging, and presents processed data to the AM6231 over a high-bandwidth interface (PrPMC in Design 1, or a custom parallel/serial bus). This offloads the deterministic timing burden from the processor, letting VxWorks focus on control logic and communication rather than bit-banging ADC sample clocks. The result is a scalable, modular architecture where the FPGA absorbs analog front-end complexity and the AM6231 + VxWorks stack handles real-time processing, protocol conversion, and application logic.
