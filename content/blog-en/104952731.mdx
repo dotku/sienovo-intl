@@ -5,9 +5,51 @@ slug: "104952731"
 tags: ["#AM5728", "#IndustrialControl", "#IndustrialBus", "#RPOFIBUS", "#EHTERCAT"]
 source: "https://blog.csdn.net/yeyuangen/article/details/104952731"
 originalTitle: "AM5728 DSP+ARM EtherCAT/PROFIBUS/CAN/RS485工业数据总线使用简介"
+expanded: true
 ---
+The TI AM5728 is a high-integration SoC from Texas Instruments' Sitara family, built around dual ARM Cortex-A15 application cores paired with dual C66x floating-point DSP cores and a rich set of industrial-grade peripherals. This combination makes it a compelling platform for factory automation, motion control, and industrial gateway designs that need to bridge multiple field-bus ecosystems under a single compute substrate. This article walks through how the AM5728 addresses each major industrial communication protocol and explains why the DSP and FPGA extension capabilities matter for demanding real-time applications.
 
-The TI AM5728 platform supports various industrial communication protocols including EtherCAT, EtherNet/IP, PROFIBUS, CAN bus, RS485, and RS232, enabling products to easily implement bus control and industrial networking. With dual C66x DSP cores, it can run more complex and higher-precision motion control interpolation algorithms. Additionally, by connecting an FPGA via the GPMC bus interface, the platform can further extend its capabilities in industrial control and image processing.
+## Platform Overview
+
+The AM5728 integrates a Programmable Real-Time Unit and Industrial Communication Subsystem (PRU-ICSS), which is TI's dedicated coprocessor fabric for implementing time-critical industrial Ethernet and serial protocols in firmware without burdening the main ARM cores. Each PRU-ICSS instance contains two 32-bit RISC cores clocked at up to 200 MHz, along with dedicated memory, GPIO, and MII interfaces. This hardware isolation is what allows the AM5728 to support protocols like EtherCAT — which demands sub-microsecond jitter — on the same chip running a full Linux or RTOS workload on the Cortex-A15 cores.
+
+## Supported Industrial Communication Protocols
+
+### EtherCAT
+
+EtherCAT (Ethernet for Control Automation Technology) is a real-time industrial Ethernet standard developed by Beckhoff Automation. It processes Ethernet frames on the fly as they traverse the bus, achieving synchronization accuracies below 1 µs across hundreds of nodes. On the AM5728, EtherCAT slave functionality is typically implemented on the PRU-ICSS cores using TI's SDK-provided firmware, leaving the main ARM cores free for higher-level control logic or HMI tasks.
+
+### EtherNet/IP
+
+EtherNet/IP runs the Common Industrial Protocol (CIP) over standard IEEE 802.3 Ethernet using TCP/IP for messaging and UDP/IP for I/O. Because it relies on standard Ethernet MACs rather than a specialized protocol engine, the AM5728's two gigabit Ethernet MACs (GMAC) handle the physical layer, while the ARM cores or a dedicated real-time OS thread manage the CIP stack. This makes EtherNet/IP integration straightforward with commercially available stacks such as OpENer.
+
+### PROFIBUS
+
+PROFIBUS is a well-established serial fieldbus standard, with PROFIBUS DP (Decentralized Peripherals) remaining common in legacy and brown-field factory installations. The AM5728 supports PROFIBUS through either UART-based hardware with an external PROFIBUS ASIC (such as the VPC3+), or through the PRU-ICSS GPIO fabric for custom implementations. PROFIBUS DP operates at speeds up to 12 Mbit/s with a deterministic token-passing protocol.
+
+### CAN Bus
+
+Controller Area Network (CAN) is ubiquitous in industrial and automotive applications for robust, multi-master serial communication at up to 1 Mbit/s (classic CAN) or 8 Mbit/s with CAN FD. The AM5728 integrates dedicated D_CAN controller hardware, enabling standard SocketCAN driver support under Linux. This allows engineers to leverage the mature Linux CAN ecosystem — including `can-utils`, CANopen stacks, and J1939 libraries — with no external CAN controller required.
+
+### RS485 and RS232
+
+RS485 and RS232 remain essential in industrial environments for connecting legacy sensors, PLCs, barcode readers, and weighing scales. The AM5728 exposes multiple UARTs that can be configured for RS485 (with direction control via RTS hardware flow control) or RS232 with an external transceiver IC. RS485 supports multi-drop topologies at distances up to 1,200 meters, making it practical for distributed I/O and Modbus RTU implementations.
+
+## Dual C66x DSP for Motion Control Interpolation
+
+The two TMS320C66x DSP cores in the AM5728 each deliver up to 38.4 GFLOPS of single-precision floating-point throughput. For motion control applications, this compute budget is applied to interpolation algorithms — the mathematical process of subdividing a commanded trajectory (linear, circular, spline) into fine servo update intervals. Smoother interpolation at higher update rates directly translates to better surface finish in CNC machining, more accurate robotic path following, and reduced mechanical resonance in servo systems.
+
+Running interpolation on the DSP offloads the ARM cores entirely, allowing them to handle fieldbus communication, operator interfaces, and supervisory logic concurrently without introducing latency jitter into the servo loop. TI provides DSP/BIOS (SYS/BIOS RTOS) and inter-processor communication (IPC) libraries so the ARM and DSP subsystems can share data efficiently through shared L3 RAM or dedicated message queues.
+
+## FPGA Extension via GPMC
+
+The General-Purpose Memory Controller (GPMC) on the AM5728 provides a parallel bus interface originally designed for NOR Flash and NAND memory but capable of connecting to an FPGA. By mapping the FPGA into the AM5728's memory address space over GPMC, designers can implement custom I/O interfaces, additional fieldbus protocol engines, or vision preprocessing pipelines in programmable logic — all accessible from Linux user-space via a simple memory-mapped register interface.
+
+This architecture is particularly valuable for machine vision applications in industrial inspection lines, where an FPGA can perform pixel-level preprocessing (thresholding, edge detection, region-of-interest extraction) in real time before handing structured data to the DSP or ARM for higher-level inference. It also allows a single hardware platform to be reconfigured for different factory automation roles without changing the base PCB.
+
+## Summary
+
+The AM5728 consolidates what typically requires multiple discrete controllers — a real-time fieldbus interface card, a motion controller DSP board, and a separate application processor — onto a single SoC. Its PRU-ICSS subsystem handles time-critical protocols like EtherCAT, its integrated CAN and UART peripherals cover legacy bus requirements, and its dual C66x DSPs provide the floating-point headroom needed for precise multi-axis interpolation. The optional FPGA connection via GPMC then opens the platform to virtually unlimited peripheral expansion, making it a practical foundation for next-generation industrial edge controllers and protocol gateways.
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/104952731/01_22931819c9225b4733fd19964b55cce4.jpeg)
 

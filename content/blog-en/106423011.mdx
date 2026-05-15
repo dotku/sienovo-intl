@@ -5,8 +5,64 @@ slug: "106423011"
 tags: ["#AM5728", "#SmokeDetection", "#DSP", "#ARM"]
 source: "https://blog.csdn.net/yeyuangen/article/details/106423011"
 originalTitle: "基于AM5728 DSP+ARM的视频监控烟雾检测系统"
+expanded: true
 ---
+Embedded video analytics at the edge demands processors capable of running real-time computer-vision workloads without the overhead—or cost—of a cloud connection or an attached host PC. This post walks through a video surveillance and smoke detection system built around Texas Instruments' AM5728 SoC, explaining how its heterogeneous DSP+ARM architecture is exploited to split video capture, communication, and inference across cores, and how the smoke-detection algorithm is designed to be robust against the false triggers that defeat simpler motion-based approaches.
 
-A video surveillance and processing system with smoke detection capability is developed based on the high-performance AM5728 chip, which features a low-power floating-point DSP and dual-core ARM architecture. The system leverages SysLink—the foundational component of Davinci heterogeneous multi-core communication—to enable efficient communication and processing of video signals across heterogeneous multi-core processors. It features compact size, low power consumption, flexible and efficient algorithm implementation, and the ability to operate independently without a host computer. On the DSP side of the AM5728, a smoke detection algorithm based on image frequency characteristics is implemented. By comprehensively analyzing the correlation coefficients of frequency-domain images and grayscale images relative to a reference image, the system can detect both dense and thin smoke. Furthermore, by utilizing unique characteristics of smoke, it effectively avoids false alarms caused by moving objects or changes in illumination. 
+## Why AM5728?
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/106423011/01_9d666c300aecd21e9250733f3ba5276d.png)
+The AM5728 is a member of TI's Sitara family of application processors. Its defining feature for compute-intensive edge tasks is the pairing of dual ARM Cortex-A15 application cores with two TMS320C66x floating-point DSP cores on the same die. The C66x DSPs are capable of up to 40 GFLOPS per core and expose a SIMD instruction set optimised for fixed- and floating-point signal processing, making them a natural fit for image-frequency analysis that would saturate a general-purpose core. The whole package operates at low power and fits in an embedded form factor, so the resulting system is compact enough for deployment in cameras, junction boxes, or other unattended hardware—no host computer required.
+
+## Heterogeneous Multi-Core Communication with SysLink
+
+Splitting a workload across an ARM host and a DSP coprocessor introduces an inter-core communication problem. The AM5728 addresses this through the Davinci heterogeneous multi-core framework, and the foundational middleware component used here is **SysLink**.
+
+SysLink provides:
+
+- **MessageQ** — a message-passing API for sending control and metadata between the ARM A15 cores and the DSP C66x cores.
+- **SharedRegion / HeapMemMP** — shared-memory pools that allow large buffers (video frames) to be passed by reference rather than copied.
+- **Notify** — a lightweight interrupt-based signalling mechanism so the DSP can alert the ARM when a processed frame is ready.
+
+In the smoke-detection system, the ARM side handles video capture (ingest from the sensor), frame buffering, and system management. Frames are placed into a shared memory region and a MessageQ notification triggers the DSP to begin processing. Results—detection flags and confidence metadata—are returned via the same mechanism. This pipeline keeps the ARM free for I/O and system tasks while the DSP runs the computationally intensive algorithm back-to-back on each frame.
+
+## Smoke Detection Algorithm: Image Frequency Characteristics
+
+Smoke is notoriously difficult to detect with simple frame-differencing or pixel-intensity thresholds. It is translucent, its edges are diffuse, and it can appear or disappear gradually—behaviours that also describe fog, dust, and lens flare. The approach implemented on the DSP C66x cores uses **image frequency characteristics** combined with grayscale analysis to build a detection signal that is specific to smoke's physical properties.
+
+### Reference Frame and Correlation Coefficients
+
+The algorithm maintains a **reference (background) frame** captured under known clear conditions. For each incoming frame it computes two separate correlation coefficients against that reference:
+
+1. **Frequency-domain correlation** — both the reference and the current frame are transformed into the frequency domain (via DCT or FFT; the C66x hardware is well-suited to either). Smoke attenuates high-frequency content because it scatters light, reducing sharp edges and fine texture. The correlation of the frequency representations therefore drops characteristically as smoke accumulates—different from the flat-spectrum change caused by a sudden global illumination shift.
+
+2. **Grayscale correlation** — a spatial-domain correlation on the luminance channel captures the overall density change. Dense smoke produces a large grayscale decorrelation quickly; thin or wispy smoke produces a smaller but still measurable shift.
+
+The final detection decision fuses both coefficients. Because dense smoke strongly drives the grayscale metric while thin smoke is better revealed by the frequency metric, combining them allows the system to detect across the full range from heavy plumes down to early, diffuse haze.
+
+### Avoiding False Alarms
+
+A key design goal is suppressing the two most common nuisance triggers in video surveillance:
+
+**Moving objects** — a person or vehicle crossing the scene creates large frame differences that naive motion detectors would flag. However, moving solid objects produce sharp, high-frequency edges in the difference image, whereas smoke's diffuse scattering produces a broadband but low-magnitude frequency shift. The algorithm uses this spectral signature difference to distinguish smoke from hard-edged motion.
+
+**Illumination changes** — switching lights on or off, or headlights sweeping across a scene, produce a correlated global change in both grayscale and frequency domains—one that tracks the reference frame in a specific ratio. Smoke introduces a decorrelation that is spatially localised and asymmetric between the two metrics. By checking the ratio and spatial distribution of the two correlation coefficients, the system rejects illumination events that would otherwise trigger a false alarm.
+
+## System Architecture Summary
+
+| Layer | Processor | Responsibility |
+|---|---|---|
+| Video ingest & system management | ARM Cortex-A15 | Camera interface, frame queuing, SysLink IPC, output |
+| Smoke detection algorithm | TMS320C66x DSP | Frequency transform, correlation computation, decision logic |
+| Inter-core transport | SysLink (MessageQ + SharedRegion) | Zero-copy frame passing, result notification |
+
+## Practical Advantages of This Design
+
+Running the detection algorithm on the DSP rather than on the ARM frees the application cores for network streaming, user interface, and event logging without contention. The C66x's floating-point SIMD units process the correlation maths efficiently, enabling real-time throughput at typical surveillance resolutions. Because the entire pipeline runs on one chip, there is no dependency on an external GPU server, cloud API, or host workstation—the camera unit is self-contained and continues to function even if the network drops.
+
+The compact footprint and low power envelope of the AM5728 also mean the system can be integrated directly into a camera housing or a small DIN-rail enclosure, rather than requiring a rack-mounted industrial PC. This makes deployment in warehouses, tunnels, data centres, and other environments where early fire detection is critical both practical and cost-effective.
+
+![System block diagram](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/106423011/01_9d666c300aecd21e9250733f3ba5276d.png)
+
+## Conclusion
+
+The AM5728's DSP+ARM heterogeneous architecture, bridged by TI's SysLink middleware, provides a clean separation between video management (ARM) and compute-intensive image analysis (DSP). The frequency-characteristic smoke detection algorithm exploits the physical way smoke scatters light—attenuating high-frequency image content in a spatially localised pattern—to detect both dense and thin smoke while rejecting the moving-object and illumination-change false alarms that defeat simpler approaches. The result is an autonomous, low-power, edge-deployed smoke detection unit that requires no external compute infrastructure to operate.

@@ -6,25 +6,62 @@ tags: ["#AM5728", "#PTP", "#1588", "#ClockSync", "#Power"]
 source: "https://blog.csdn.net/yeyuangen/article/details/108718048"
 originalTitle: "AM5728时钟同步协议PTP 1588支持，主从实现及支持的精度"
 brandBackfilled: true
+expanded: true
 ---
 The development board used for the experiment is the Sienovo XM5728-IDK-V3.
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/108718048/01_1ce06d7a215e401f6e7247df957c200d.png)
 
-First, I looked up existing solutions online, which generally indicate that the TI AM5728 PRU-ICSS 100M Ethernet port supports PTP implementation in hardware, whereas the standard Gigabit Ethernet port does not.
+IEEE 1588 Precision Time Protocol (PTP) is the standard mechanism for synchronizing clocks across an Ethernet network to sub-microsecond accuracy. It is widely used in industrial automation, motion control, and time-sensitive networking (TSN) applications where coordinated timing across distributed nodes is critical. This post documents what we found when evaluating PTP 1588 support on the TI AM5728 SoC — specifically which Ethernet interfaces support hardware-assisted timestamping and which do not.
 
-## AM5728: PTP 1588 hardware implementation
+## AM5728 Architecture Overview
 
+The AM5728 is a TI Sitara SoC featuring dual ARM Cortex-A15 application cores, C66x DSP cores, and — critically for industrial networking — a dedicated **PRU-ICSS (Programmable Real-Time Unit and Industrial Communication SubSystem)**. The PRU-ICSS is a pair of small, deterministic 32-bit RISC cores running at 200 MHz alongside a set of industrial protocol accelerators. Because they run independently of the main ARM cores and operate with deterministic cycle-exact timing, they are well suited to implementing time-sensitive Ethernet protocols entirely in firmware.
+
+The AM5728 also has a standard Gigabit Ethernet MAC (GMAC/CPSW) connected to the main ARM subsystem, which is the interface most Linux developers reach for first.
+
+## Key Finding: PRU-ICSS 100M Port Supports Hardware PTP; Gigabit CPSW Does Not
+
+After surveying existing solutions and TI's own community forums, the conclusion is clear:
+
+> **The AM5728 PRU-ICSS 100 Mbps Ethernet ports support hardware-based PTP 1588 implementation. The standard Gigabit Ethernet (CPSW/GMAC) port does not.**
+
+This distinction matters enormously in practice. PTP accuracy depends heavily on how precisely Ethernet frames can be timestamped:
+
+- **Hardware timestamping** captures the exact moment a PTP event frame crosses the MAC/PHY boundary, before any OS scheduling jitter is introduced. This enables sub-microsecond synchronization accuracy.
+- **Software timestamping** (the only option on the CPSW/GMAC path) captures the timestamp in the driver interrupt handler or even in userspace. OS scheduling latency and interrupt coalescing introduce jitter typically in the range of tens to hundreds of microseconds, making tight synchronization impossible.
+
+If your application requires high-accuracy PTP — motion control, audio/video bridging (AVB), or TSN — you must route your PTP traffic through the PRU-ICSS ports, not the Gigabit CPSW port.
+
+## Relevant TI E2E Community Threads
+
+Two TI E2E forum threads are particularly useful for understanding the hardware support boundaries and driver-level implementation:
+
+**AM5728: PTP 1588 hardware implementation**
 [https://e2e.ti.com/support/processors/f/791/t/594496?AM5728-PTP-1588-hardware-implementation](https://e2e.ti.com/support/processors/f/791/t/594496?AM5728-PTP-1588-hardware-implementation)
 
-## RTOS/AM5728: PTP support in EMAC driver for TI RTOS
+This thread discusses which AM5728 interfaces have PTP hardware support and the constraints around the PRU-ICSS MAC.
 
+**RTOS/AM5728: PTP support in EMAC driver for TI RTOS**
 [https://e2e.ti.com/support/processors/f/791/t/622744?RTOS-AM5728-PTP-support-in-EMAC-driver-for-TI-RTOS](https://e2e.ti.com/support/processors/f/791/t/622744?RTOS-AM5728-PTP-support-in-EMAC-driver-for-TI-RTOS)
 
-For detailed information, refer to the guide:
+This thread covers PTP integration at the EMAC driver level under TI-RTOS (SYS/BIOS), which is relevant if you are running the PRU-ICSS firmware from a bare-metal or RTOS context rather than Linux.
+
+## Developer Guide
+
+TI maintains a comprehensive ICSS PTP 1588 Developer Guide that covers the firmware architecture, register-level timestamping mechanism, and the software stack needed to implement PTP master and slave roles using the PRU-ICSS:
 
 [https://processors.wiki.ti.com/index.php/ICSS_PTP_1588_Developer_Guide](https://processors.wiki.ti.com/index.php/ICSS_PTP_1588_Developer_Guide)
 
-For specific configurations of master and slave nodes and clock synchronization accuracy, please refer to
+The guide covers topics including the PRU firmware for the delay request–response mechanism (IEEE 1588 ordinary clock), the peer-to-peer delay mechanism (P2P), and the APIs exposed to the host ARM for clock servo integration.
 
-Technical consultation (WeChat ID): 13670212541
+## Practical Considerations for Master/Slave Configuration
+
+When setting up a PTP network with AM5728 nodes, a few points are worth keeping in mind:
+
+- **Clock role selection**: A typical deployment has one grandmaster clock (often GPS-disciplined) and multiple slave ordinary clocks. The AM5728 can function as either a master or a slave ordinary clock through the PRU-ICSS firmware.
+- **Port speed**: Because hardware PTP on AM5728 is tied to the PRU-ICSS, your PTP-enabled links are limited to 100 Mbps. Plan your network topology accordingly — PTP traffic is low bandwidth, so this is rarely a bottleneck for synchronization itself, but it constrains which switch ports can participate in the hardware-timestamped path.
+- **Linux integration**: Under Linux, the PRU-ICSS Ethernet appears as a standard network interface (`prueth`). The PTP Hardware Clock (PHC) subsystem exposes it via `/dev/ptp*`, and tools like `ptp4l` (from linuxptp) can be configured to use hardware timestamping on this interface. Ensure you specify `-H` (hardware timestamping) rather than `-S` (software) when invoking `ptp4l`.
+- **Servo tuning**: The PI servo parameters in `ptp4l` may need tuning for your specific network topology and oscillator characteristics. Start with the defaults and tighten from there once the clock has converged.
+
+The XM5728-IDK-V3 development board from Sienovo provides a convenient platform for evaluating this entire stack, with the PRU-ICSS ports accessible for direct PTP testing.
