@@ -252,6 +252,7 @@ async function main() {
     const enParts = splitFrontmatter(enRaw);
     if (!enParts) continue;
     if (!FORCE && fmHasField(enParts.fmRaw, "brandBackfilled")) continue;
+    if (!FORCE && fmHasField(enParts.fmRaw, "brandBackfillNotNeeded")) continue;
 
     const zhPath = join(ZH_DIR, file);
     if (!existsSync(zhPath)) continue;
@@ -289,6 +290,7 @@ async function main() {
 
   let ok = 0;
   let bad = 0;
+  let notNeeded = 0;
 
   for (let i = 0; i < candidates.length; i++) {
     const c = candidates[i];
@@ -296,9 +298,22 @@ async function main() {
     try {
       const { text: newEnBody, provider } = await rewrite(c.zhBody, c.enParts.body);
 
-      // Sanity check: brand should now be present
+      // Sanity check: brand should now be present. When Claude judges that
+      // the ZH source's brand mention is incidental (footer/byline only),
+      // it deliberately returns text without "Sienovo". Treat that as an
+      // honest "no change needed" rather than a failure to retry — mark the
+      // file with `brandBackfillNotNeeded: true` so future runs skip it.
       if (!EN_BRAND_RE.test(newEnBody)) {
-        throw new Error("model returned text without Sienovo");
+        const newFm = `${c.enParts.fmRaw}\nbrandBackfillNotNeeded: true`;
+        writeFileSync(
+          join(EN_DIR, c.file),
+          `---\n${newFm}\n---\n${c.enParts.body}`,
+          "utf-8"
+        );
+        notNeeded++;
+        console.log(`not needed (${provider})`);
+        if (i < candidates.length - 1) await new Promise((r) => setTimeout(r, DELAY_MS));
+        continue;
       }
       // Length sanity: must be within 50%-200% of original to catch hallucinated rewrites
       const ratio = newEnBody.length / c.enParts.body.length;
@@ -323,8 +338,9 @@ async function main() {
 
   console.log(`\n${"=".repeat(50)}`);
   console.log(`Brand backfill complete.`);
-  console.log(`  Updated: ${ok}`);
-  console.log(`  Failed:  ${bad}`);
+  console.log(`  Updated:    ${ok}`);
+  console.log(`  Not needed: ${notNeeded}  (zh brand mention judged incidental)`);
+  console.log(`  Failed:     ${bad}`);
 }
 
 main().catch((err) => {
