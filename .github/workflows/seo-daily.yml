@@ -11,7 +11,8 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write    # needed to commit data/seo-reports/
+  contents: write    # needed to commit data/seo-reports/ + content/blog-en/
+  models: read       # grants GITHUB_TOKEN the models:read scope for GitHub Models
 
 jobs:
   snapshot:
@@ -56,14 +57,40 @@ jobs:
         run: node scripts/google-ads-pull.mjs || echo "ads-pull skipped (creds may not be configured yet)"
         continue-on-error: true
 
-      - name: Commit if there are new reports
+      # ── Content-generation pipeline ──────────────────────────────────────
+      # Both scripts auto-select the best available provider from their chain
+      # (claude > github-models > gateway > openrouter > gemini). In Actions
+      # we always have GITHUB_TOKEN, often OPENROUTER_API_KEY too — claude
+      # CLI is absent, so github-models wins unless it errors, in which case
+      # we fall through to OpenRouter then Gemini Direct. Daily limits keep
+      # us inside free-tier rate budgets and produce a steady commit cadence.
+
+      - name: Expand thin posts (daily limit)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          EXPAND_DELAY_MS: "8000"
+        run: node scripts/expand-thin-posts.mjs --limit 30
+        continue-on-error: true
+
+      - name: Generate SEO title/description metadata
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SEO_DELAY_MS: "6500"
+        run: node scripts/gen-blog-seo.mjs --limit 80
+        continue-on-error: true
+
+      - name: Commit if there are new reports or content
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/seo-reports/ data/google-ads-reports/
+          git add data/seo-reports/ data/google-ads-reports/ content/blog-en/
           if git diff --staged --quiet; then
             echo "no changes — likely already snapshotted today"
           else
-            git commit -m "chore(reports): daily snapshot $(date -u +%Y-%m-%d)"
+            git commit -m "chore(seo): daily snapshot + content updates $(date -u +%Y-%m-%d)"
             git push
           fi

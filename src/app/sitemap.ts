@@ -8,7 +8,38 @@ import { SITE_URL } from "@/lib/site";
 export const dynamic = "force-dynamic";
 export const revalidate = 3600;
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+// ── Sitemap index strategy ──────────────────────────────────────────────────
+// We split the sitemap into a tiered index so Google can prioritise the
+// crawl budget on our strongest content while still discovering the long
+// tail.  Next.js's `generateSitemaps()` API auto-generates
+// `/sitemap.xml` as the index that lists each child sitemap below.
+//
+//   /sitemap/0.xml  — TOP TIER       (statics + products + top 100 per locale)
+//   /sitemap/1.xml  — EN long tail   (EN posts ranked 101+, non-low-quality)
+//   /sitemap/2.xml  — ZH long tail   (ZH posts ranked 101+, non-low-quality)
+//
+// Low-quality posts (content < LOW_QUALITY_THRESHOLD) are excluded from
+// every child sitemap and are also marked `noindex` on their detail page.
+
+const TOP_N = 100;
+
+export async function generateSitemaps() {
+  return [{ id: 0 }, { id: 1 }, { id: 2 }];
+}
+
+export default async function sitemap({
+  id,
+}: {
+  id: number;
+}): Promise<MetadataRoute.Sitemap> {
+  if (id === 0) return topTierSitemap();
+  if (id === 1) return enLongTailSitemap();
+  if (id === 2) return zhLongTailSitemap();
+  return [];
+}
+
+// ── ID 0: Top tier ──────────────────────────────────────────────────────────
+async function topTierSitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
   const heroImage = `${SITE_URL}/images/pptx/aibox-sg8.png`;
   const absUrl = (path: string) =>
@@ -42,38 +73,47 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error("[sitemap] prisma.product.findMany failed", err);
   }
 
-  // Blog posts — English at /blog (default), Chinese at /zh/blog.
-  // Strategy: cap each locale at TOP_N posts ranked by content length, so the
-  // sitemap stays small (~200 URLs total). New domain has very little crawl
-  // budget; better to surface the strongest 100 per locale than dilute with
-  // 1k+ thin/translated stubs that Google flags as "Discovered, not indexed".
-  // Detail pages for filtered-out posts still exist (just not in sitemap),
-  // and isLowQualityPost also drives `robots: noindex` on the page itself.
-  const TOP_N = 100;
-  const rankByLength = (a: { content?: string }, b: { content?: string }) =>
-    (b.content?.length ?? 0) - (a.content?.length ?? 0);
+  const enTop = topPostsByLocale("en", 0, TOP_N).map((post) => ({
+    url: `${SITE_URL}/blog/${post.slug}`,
+    lastModified: post.date ? new Date(post.date) : new Date(),
+    changeFrequency: "monthly" as const,
+    priority: 0.6,
+  }));
 
-  const enPosts = getAllPosts("en")
+  const zhTop = topPostsByLocale("zh", 0, TOP_N).map((post) => ({
+    url: `${SITE_URL}/zh/blog/${post.slug}`,
+    lastModified: post.date ? new Date(post.date) : new Date(),
+    changeFrequency: "monthly" as const,
+    priority: 0.5,
+  }));
+
+  return [...staticEntries, ...productEntries, ...enTop, ...zhTop];
+}
+
+// ── ID 1: EN long tail (ranked 101+) ────────────────────────────────────────
+function enLongTailSitemap(): MetadataRoute.Sitemap {
+  return topPostsByLocale("en", TOP_N, Number.MAX_SAFE_INTEGER).map((post) => ({
+    url: `${SITE_URL}/blog/${post.slug}`,
+    lastModified: post.date ? new Date(post.date) : new Date(),
+    changeFrequency: "monthly" as const,
+    priority: 0.4,
+  }));
+}
+
+// ── ID 2: ZH long tail (ranked 101+) ────────────────────────────────────────
+function zhLongTailSitemap(): MetadataRoute.Sitemap {
+  return topPostsByLocale("zh", TOP_N, Number.MAX_SAFE_INTEGER).map((post) => ({
+    url: `${SITE_URL}/zh/blog/${post.slug}`,
+    lastModified: post.date ? new Date(post.date) : new Date(),
+    changeFrequency: "monthly" as const,
+    priority: 0.4,
+  }));
+}
+
+// ── Shared ranking + slicing ────────────────────────────────────────────────
+function topPostsByLocale(locale: "en" | "zh", from: number, to: number) {
+  return getAllPosts(locale)
     .filter((post) => !isLowQualityPost(post))
-    .sort(rankByLength)
-    .slice(0, TOP_N)
-    .map((post) => ({
-      url: `${SITE_URL}/blog/${post.slug}`,
-      lastModified: post.date ? new Date(post.date) : now,
-      changeFrequency: "monthly" as const,
-      priority: 0.6,
-    }));
-
-  const zhPosts = getAllPosts("zh")
-    .filter((post) => !isLowQualityPost(post))
-    .sort(rankByLength)
-    .slice(0, TOP_N)
-    .map((post) => ({
-      url: `${SITE_URL}/zh/blog/${post.slug}`,
-      lastModified: post.date ? new Date(post.date) : now,
-      changeFrequency: "monthly" as const,
-      priority: 0.5,
-    }));
-
-  return [...staticEntries, ...productEntries, ...enPosts, ...zhPosts];
+    .sort((a, b) => (b.content?.length ?? 0) - (a.content?.length ?? 0))
+    .slice(from, to);
 }

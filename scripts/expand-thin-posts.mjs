@@ -68,6 +68,16 @@ const PROVIDERS = {
     model: process.env.CLAUDE_MODEL || "sonnet",
     available: hasClaudeCLI(),
   },
+  // GitHub Models — uses MODELS_TOKEN (or GITHUB_TOKEN in Actions) with
+  // `models:read` scope. OpenAI-compatible endpoint, generous free tier,
+  // ideal for GH Actions where Claude OAuth isn't available.
+  "github-models": {
+    name: "GitHub Models",
+    url: "https://models.github.ai/inference/chat/completions",
+    key: process.env.MODELS_TOKEN || process.env.GITHUB_TOKEN,
+    model: process.env.GITHUB_MODELS_MODEL || "openai/gpt-4o-mini",
+    format: "openai",
+  },
   gateway: {
     name: "Vercel AI Gateway",
     url: "https://ai-gateway.vercel.sh/v1/chat/completions",
