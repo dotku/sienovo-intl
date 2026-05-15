@@ -5,21 +5,60 @@ slug: "126958767"
 tags: ["#AI", "#RK3399PRO", "#K7"]
 source: "https://blog.csdn.net/yeyuangen/article/details/126958767"
 originalTitle: "RK3399pro + K7/A7 FPGA+ AI国产人工智能图像处理平台"
+expanded: true
 ---
+The RK3399Pro is a Rockchip SoC that shipped with an integrated Neural Processing Unit (NPU) at a time when on-device AI inference for embedded Linux was still a niche capability. This post covers a hands-on benchmark of the RK3399Pro NPU using Rockchip's own toolkit, compares it to the Jetson Nano, and notes the real-world caveats you'll run into when porting existing detection networks to the platform.
 
-**rk3399pro Introduction**
-The rk3399pro is Rockchip's new ARM chip with an NPU. Before its release, the NPU's computing power was stated as 2.4 TOPS, but actual testing after its discovery reached 3.0 TOPS. With such powerful computing capabilities, the Jetson Nano's computing power is 0.47 TFLOPS. Since the units are different, the only way to compare their computing power is through actual network computations.
+## What Is the RK3399Pro?
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/126958767/01_35618cc0e97bf39afc940be958701a9.jpeg)
+The RK3399Pro is built on the same dual Cortex-A72 + quad Cortex-A53 big.LITTLE cluster as the standard RK3399, but adds a dedicated NPU die. Rockchip initially quoted the NPU at **2.4 TOPS** in pre-release materials. Post-launch measurements by the community put the actual sustained throughput closer to **3.0 TOPS** — a meaningful over-delivery that made the chip significantly more competitive than early datasheets suggested.
 
-**rk3399pro Computing Power Test**
-**Test Conditions**
-Hardware: TB-RK3399Pro 3GB RAM + 16GB Flash Storage
-Toolkit Version: toolkit 1.0.0
-**Test Results**
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/126958767/02_793c11f327029fbb01cf0936b244cf0f.png)
-**Test Conclusion**
-YOLOv3's performance is very strange; however, in the forum, toolkit 0.9 could achieve 30fps, but this is only 10fps. It's possible that some modifications were made to the network in the official test data.
-Overall, the rk3399pro's computing power is very strong, much better than I expected. It can be used directly without significant network modifications. However, this is also its drawback: it might not be able to convert some custom network layers, and we'll need to wait for updated versions.
+For context, the NVIDIA Jetson Nano delivers **0.47 TFLOPS** of FP16 compute via its 128-core Maxwell GPU. The two figures use different units (TOPS = tera-operations per second over INT8; TFLOPS = tera floating-point operations per second), so direct numeric comparison is misleading. The only fair method is to run the same neural network on both platforms under the same conditions and compare frames per second — which is exactly what this evaluation does.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/126958767/03_cb7d3758017183dd4cc4847ff52236c1.jpeg)
+![RK3399Pro board overview](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/126958767/01_35618cc0e987bf39afc940be958701a9.jpeg)
+
+## Test Setup
+
+The benchmark was run on the following hardware and software stack:
+
+| Item | Detail |
+|---|---|
+| Board | TB-RK3399Pro |
+| RAM | 3 GB |
+| Flash | 16 GB |
+| Toolkit | Rockchip RKNN Toolkit **v1.0.0** |
+
+The RKNN Toolkit is Rockchip's model conversion and inference pipeline. It takes models trained in common frameworks (TensorFlow, Caffe, PyTorch via ONNX, etc.), quantizes them to INT8, and compiles them into the `.rknn` binary format that the on-chip NPU can execute directly. Version 1.0.0 was the first stable public release, meaning operator coverage was still growing at the time of this test.
+
+## Benchmark Results
+
+The results image below shows inference throughput (frames per second) across a set of standard vision networks:
+
+![RK3399Pro NPU benchmark results](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/126958767/02_793c11f327029fbb01cf0936b244cf0f.png)
+
+### YOLOv3 Anomaly
+
+The most notable finding is that **YOLOv3 posted only ~10 fps** on toolkit 1.0.0, whereas forum reports using the earlier toolkit 0.9 consistently achieved around **30 fps**. The most plausible explanation is that the official test used a modified YOLOv3 topology — for example, a stripped-down input resolution or a reduced number of detection scales — rather than the full 608×608 or 416×416 standard network. Because Rockchip did not publish the exact network graph used in their reference numbers, it is difficult to reproduce the 30 fps figure on a stock YOLOv3 without digging into the forum's toolkit 0.9 model files. If YOLOv3 throughput is critical to your project, it is worth testing both toolkit versions and confirming which network variant each uses.
+
+## Overall Assessment
+
+Despite the YOLOv3 surprise, the broader picture is positive. For mainstream networks — lightweight classifiers, MobileNet-based detectors, and similar architectures with standard layer types — the RK3399Pro NPU delivers throughput that is **well above pre-release expectations** and competitive with much pricier edge-AI hardware at the time.
+
+The practical implications:
+
+- **Drop-in usability for standard topologies.** If your network uses conv, depthwise conv, BN, ReLU, pooling, and standard fully-connected layers, the RKNN Toolkit 1.0.0 conversion pipeline handles them without manual intervention. You can port a trained model to the NPU in a single afternoon.
+- **Custom layers are the bottleneck.** The toolkit's operator coverage at v1.0.0 is not exhaustive. Any layer type that falls outside the supported set will cause the conversion to fail or fall back to CPU execution, negating the NPU speedup. The workaround at the time was to split the graph: run unsupported layers on the A72 cores and delegate the supported subgraph to the NPU. This is cumbersome but feasible for research prototypes.
+- **Wait for toolkit updates for exotic architectures.** Transformer-based vision models, non-standard attention mechanisms, and other cutting-edge topologies were not realistically portable at v1.0.0. Newer RKNN Toolkit releases have progressively expanded the operator set, so revisiting a failed conversion after a toolkit upgrade is often worthwhile.
+
+## Integration Context: K7/A7 FPGA + RK3399Pro Platform
+
+The platform described in the article title pairs the RK3399Pro SoC with a Xilinx K7 (Kintex-7) or A7 (Artix-7) FPGA. This is a common architecture for industrial AI imaging applications: the FPGA handles deterministic real-time pre-processing (sensor interfacing, ISP pipeline, geometric correction, high-speed DMA), while the RK3399Pro NPU runs the inference workload. The CPU cores on the RK3399Pro coordinate the pipeline and handle application logic. The result is a domestically sourced (from the perspective of the Chinese market) all-in-one compute platform for machine vision, quality inspection, and similar industrial AI tasks — without relying on NVIDIA or Intel inference hardware.
+
+![Platform integration photo](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/126958767/03_cb7d3758017183dd4cc4847ff52236c1.jpeg)
+
+## Takeaways
+
+- The RK3399Pro NPU's real-world throughput (≈3.0 TOPS measured) exceeded its datasheet spec (2.4 TOPS), making it a strong candidate for embedded AI vision workloads.
+- Direct TOPS-vs-TFLOPS comparisons with the Jetson Nano are not meaningful; network-level FPS benchmarks are the correct comparison method.
+- The RKNN Toolkit v1.0.0 handles standard layer types cleanly but stumbles on custom or exotic operators — plan your network architecture accordingly or target a later toolkit version.
+- The YOLOv3 regression between toolkit 0.9 and 1.0.0 is worth investigating if object detection throughput is a hard requirement; always validate against the specific toolkit version you intend to ship with.

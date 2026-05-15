@@ -5,23 +5,54 @@ slug: "127859438"
 tags: ["#Manufacturing"]
 source: "https://blog.csdn.net/yeyuangen/article/details/127859438"
 originalTitle: "运动控制机器视觉智能制造上位机定制方案"
+expanded: true
 ---
+Industrial production lines increasingly rely on automated optical inspection (AOI) to catch defects that the human eye misses at line speed. This post examines the AIISG fanless vision inspection system — an Advantech platform designed specifically for machine-vision workloads in manufacturing environments — covering its hardware architecture, key interface specifications, and the industrial applications it is built to serve.
 
-The Intelligent Vision Inspection System is a system solution provided for Automated Optical Inspection (AOI) applications. The vision system features excellent performance, low power consumption, intelligent control, and a long service life. Powered by the new Intel® Core™ processor, the AIISG vision inspection system can provide enhanced computing and graphics capabilities. Furthermore, the AIISG series features rich I/O interfaces, offering PoE and USB 3.0 camera controllers for vision inspection applications. Advantech's vision systems are primarily used for packaging inspection, label inspection, water quality inspection, calibration inspection, and other applications that rely on machine vision.
+## What Is the AIISG Vision Inspection System?
 
-Fanless Vision System, Intel Core™ i Processor, 4-Channel GigE PoE Camera Interface, and PCIe Slot
+The AIISG series is a purpose-built system solution for AOI applications. Rather than adapting a general-purpose industrial PC, Advantech engineered the AIISG around the specific demands of machine vision: deterministic camera synchronization, high-bandwidth image acquisition, and reliable 24/7 operation in factory environments that range from cold storage to hot shop floors.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/127859438/01_6f28ad25fdeaa70f6f5e870ba06b4fb1.jpeg)
+The platform is powered by an **Intel 6th Generation (Skylake) Core™ i7 or i5 processor in BGA1440 package**, a soldered-down design that eliminates the mechanical risk of a socketed CPU in vibration-heavy environments. Skylake brought a significant leap in integrated GPU performance over previous generations, which matters for on-device image preprocessing — operations like Bayer demosaicing, gamma correction, and blob analysis benefit from GPU-accelerated libraries and reduce the load on the CPU cores reserved for higher-level vision algorithms.
 
-*   Supports Intel® 6th Generation Core™ i7/5 BGA1440 Processors
-*   Four-channel Gigabit Ethernet Power over Ethernet (GbE PoE)
-*   Automatic detection and classification of Powered Devices (PDs)
-*   Compliant with IEEE 1588 and IEEE 802.3af specifications
-*   Compatible with Gigabit Ethernet (GigE) cameras
-*   Wide voltage input (9 ~ 36 V DC)
-*   Supports wide operating temperature -20 ~ 60 °C
-*   Supports isolated digital I/O
-*   Internal 1 USB with special locking design
-*   Desktop/Wall-mount installation kit
+The system is **fanless**, relying on conduction cooling through the chassis. This removes the single most common failure point in industrial computers — the fan — and eliminates particle ingestion that could contaminate sensitive optics or sensor assemblies nearby.
 
-To be continued.
+## Camera Interface Architecture
+
+The defining feature of the AIISG platform is its **four-channel Gigabit Ethernet Power over Ethernet (GbE PoE)** camera interface. Each channel simultaneously delivers data and power to a connected GigE Vision camera, which means:
+
+- **No separate power cabling** to camera heads — a single Cat5e/Cat6 cable per camera handles both power and 1 Gbps image data.
+- **Powered Device (PD) auto-detection and classification** — the system negotiates the correct power class with each camera automatically, in accordance with the **IEEE 802.3af** standard, protecting both the camera and the PoE circuitry.
+- **IEEE 1588 Precision Time Protocol (PTP)** compliance — this is critical in multi-camera setups where images from different viewpoints must be timestamped and correlated with sub-microsecond precision. Without hardware-assisted PTP, software timestamps introduce jitter that corrupts stereo or multi-angle inspection results.
+
+GigE Vision cameras are the dominant interface in industrial AOI because the protocol (built on GigE Vision and GenICam standards) is vendor-neutral, supports long cable runs up to 100 m without signal degradation, and offers deterministic latency suitable for trigger-synchronized acquisition.
+
+The platform also includes a **PCIe expansion slot**, allowing integrators to add frame grabbers for Camera Link or CoaXPress cameras, additional NIC cards for more camera channels, or FPGA-based image processing accelerators.
+
+## I/O and Integration
+
+Beyond camera connectivity, the AIISG provides the discrete signaling infrastructure that AOI systems require:
+
+- **Isolated digital I/O** — galvanic isolation protects the vision controller from ground loops and voltage spikes generated by actuators, conveyors, and PLCs on the same factory network. A typical AOI integration uses digital outputs to trigger a reject actuator when a defect is detected, and digital inputs to receive encoder pulses or line-trigger signals from the conveyor.
+- **Internal USB port with locking connector** — a standard USB port can be pulled loose by cable tension in a vibrating cabinet. The locking mechanism prevents accidental disconnection of a dongle (many machine-vision software packages use USB dongles for license enforcement) or a calibration device.
+- **Wide voltage input (9–36 V DC)** — this range accommodates both 12 V and 24 V industrial power rails without a separate DC-DC converter, simplifying cabinet wiring and improving efficiency.
+
+## Operating Environment
+
+The **-20 to 60 °C** operating temperature range allows the AIISG to be deployed across environments that would stress a standard office-grade PC: outdoor inspection booths, cold-chain packaging lines, and hot press areas near curing ovens. The fanless conduction-cooling design is what makes this range achievable without active thermal management.
+
+The system supports both **desktop and wall-mount installation**, giving system integrators flexibility in how they rack or panel-mount the unit inside a control cabinet or alongside a machine frame.
+
+## Typical Application Domains
+
+Advantech positions the AIISG for several recurrent AOI use cases in manufacturing:
+
+**Packaging inspection** — verifying label placement, seal integrity, fill level, and barcode readability at high throughput on FMCG and pharmaceutical lines.
+
+**Label inspection** — confirming print quality, expiry dates, and regulatory markings on products where a misprint constitutes a compliance failure.
+
+**Water quality inspection** — colorimetric or turbidity analysis in food, beverage, and water-treatment processes where optical sensing replaces periodic manual sampling.
+
+**Calibration verification** — using a reference target and the vision system to confirm that tooling, fixtures, or dispensing heads are within tolerance before a production run begins.
+
+In all of these scenarios, the combination of a high-performance soldered CPU, multi-channel synchronized PoE camera connectivity, hardware PTP, isolated I/O, and fanless long-life construction addresses the core engineering constraints of industrial AOI in a single integrated platform.

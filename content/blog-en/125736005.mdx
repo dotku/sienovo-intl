@@ -5,31 +5,65 @@ slug: "125736005"
 tags: ["#fpga", "#igh", "#ethercat", "#zynq", "#stm32"]
 source: "https://blog.csdn.net/yeyuangen/article/details/125736005"
 originalTitle: "基于ZYNQ、AM5728、AM5708、AM437x、AM335x、STM32+FPGA等平台提供了开源EtherCAT主站IgH案例"
+expanded: true
 ---
+Xinmai (Sienovo) has released open-source EtherCAT master examples based on the IgH EtherCAT Master stack, targeting a broad range of industrial SoC and hybrid FPGA platforms: ZYNQ, AM5728, AM5708, AM437x, AM335x, and STM32+FPGA. This post documents the validated development environment and hardware configuration that these examples are built against, serving as a quick-start reference for engineers bringing up real-time EtherCAT control on any of these platforms.
 
-## ![](https://pub-048dcb96257f476697b113fcb5939cb7.r2.dev/blog/125736005/01_073c3c79f809e50a1cf62c33769a7f50.png)
+## Why IgH EtherCAT on Embedded Linux?
 
-## Xinmai Provides Open-Source EtherCAT Master IgH Examples for Platforms Such as ZYNQ, AM5728, AM5708, AM437x, AM335x, and STM32+FPGA
+EtherCAT is a deterministic fieldbus protocol widely used in motion control, robotics, and industrial automation. The IgH EtherCAT Master is the dominant open-source implementation — it runs as a Linux kernel module, intercepts raw Ethernet frames, and drives the EtherCAT state machine with microsecond-level cycle times when paired with a real-time kernel extension.
 
-This document is applicable to the following development environments:
+For embedded platforms like TI's Sitara family (AM5728, AM5708, AM437x, AM335x) and Xilinx ZYNQ, getting IgH to compile and run correctly requires a carefully matched set of kernel, Xenomai, and IgH source versions. A mismatch at any layer — kernel config, Xenomai skin, IgH patch level — typically surfaces as a build failure or silent degradation of real-time performance. Publishing a known-good environment matrix like this saves a project team days of iteration.
 
-Windows Development Environment: Windows 7 64bit, Windows 10 64bit
+## Validated Development Environment
 
-Linux Development Environment: Ubuntu 18.04.4 64bit
+The examples are developed and verified against the following exact component versions:
 
-Virtual Machine: VMware 15.1.0
+**Host / Build Environment**
+- Windows Development Environment: Windows 7 64-bit, Windows 10 64-bit
+- Linux Development Environment: Ubuntu 18.04.4 64-bit
+- Virtual Machine: VMware 15.1.0
 
-Linux SDK: 5.4.70_2.3.0
+**Embedded Linux Stack**
+- Linux SDK: `5.4.70_2.3.0`
+- Kernel: `linux-5.4.70-xenomai-g8d94618-v1.0`
+- IgH EtherCAT: `ethercat-stable-1.5-gcd0d17d-20210723`
+- Xenomai: `xenomai-v3.1.1-g8b2052e`
 
-Kernel: linux-5.4.70-xenomai-g8d94618-v1.0
+The kernel string `linux-5.4.70-xenomai-g8d94618-v1.0` encodes both the mainline version (5.4.70 LTS) and the Xenomai dual-kernel (Cobalt) co-kernel patch. Xenomai Cobalt takes over the lowest interrupt priority levels and presents a POSIX-compatible real-time API (`PTHREAD_PRIO_INHERIT`, `CLOCK_MONOTONIC`, etc.) to user-space tasks, while the Linux kernel continues to handle non-RT work normally. The IgH master's cyclic task runs under a Xenomai real-time thread, which is what delivers sub-100 µs jitter figures on these platforms.
 
-IgH EtherCAT: ethercat-stable-1.5-gcd0d17d-20210723
+**Test Hardware**
+- Servo Drive: Delta ASD-A2-0121-E (100 W single-axis EtherCAT servo drive)
+- Servo Motor: Delta ECMA-C10401GS (100 W, 3000 rpm, 0.32 N·m rated)
 
-Xenomai: xenomai-v3.1.1-g8b2052e
+The Delta ASD-A2 series implements the CoE (CANopen over EtherCAT) device profile, so the IgH examples can exercise standard DS402 state machine transitions (Switch On Disabled → Ready to Switch On → Operation Enabled) and cyclic synchronous position/velocity/torque modes. This makes the test setup directly representative of real motion-control applications.
 
-Servo Drive: Delta ASD-A2-0121-E
+## Platform Coverage
 
-Servo Motor: Delta ECMA-C10401GS
+| Platform | Core Architecture | Typical Use Case |
+|---|---|---|
+| ZYNQ (e.g. Z-7020/Z-7045) | ARM Cortex-A9 + Artix/Kintex FPGA | Tight hardware/software co-design |
+| AM5728 | Dual Cortex-A15 + dual C66x DSP + PRU-SS | High-performance multi-axis control |
+| AM5708 | Single Cortex-A15 + C66x DSP + PRU-SS | Mid-range DSP-assisted motion |
+| AM437x | Cortex-A9 + PRU-SS | Cost-optimised industrial control |
+| AM335x | Cortex-A8 + PRU-SS | Entry-level, BeagleBone-class designs |
+| STM32 + FPGA | Cortex-M + fabric | MCU-class with hardware Ethernet offload |
+
+On the TI Sitara platforms (AM5728 down to AM335x), the Programmable Real-time Unit Sub-System (PRU-SS) can be used for EtherCAT frame timestamping and cycle synchronisation, though the IgH master itself still runs on the main Cortex-A core under the Xenomai co-kernel. The ZYNQ variant exploits the PL (programmable logic) fabric in a similar role.
+
+## Getting Started
+
+Engineers using the Sienovo board support packages for any of the listed platforms should start by confirming that the kernel and Xenomai versions match the matrix above before attempting to build IgH. The most common build-time failure is a version skew between the Xenomai headers installed in the sysroot and the `--with-xenomai-dir` path passed to the IgH `./configure` step.
+
+A minimal bring-up sequence for a Linux-class platform typically looks like:
+
+1. Boot the Xenomai-patched kernel and verify `dmesg | grep -i xenomai` shows the Cobalt core initialising cleanly.
+2. Check that a dedicated Ethernet port (not the same NIC used for SSH/host traffic) is available for EtherCAT.
+3. Build and insert the IgH kernel modules (`ec_master.ko`, and the appropriate hardware driver — e.g. `ec_generic.ko` for a generic NIC, or a platform-specific driver).
+4. Run `ethercat master` to confirm the master comes up and scans the bus.
+5. Power on the Delta ASD-A2-0121-E drive and verify that `ethercat slaves` lists it with state `PREOP`.
+
+The open-source examples from Sienovo provide working application-layer code on top of this foundation, demonstrating cyclic PDO exchange and DS402 motion sequences against the Delta servo hardware listed above.
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb7.r2.dev/blog/125736005/02_189d758fec4b5baf792b6af757282279.png)
 

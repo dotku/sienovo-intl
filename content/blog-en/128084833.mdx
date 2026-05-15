@@ -5,25 +5,66 @@ slug: "128084833"
 tags: ["#FPGADev", "#FPGAImageProcessing"]
 source: "https://blog.csdn.net/yeyuangen/article/details/128084833"
 originalTitle: "超低延时4K级可定制化专业视觉计算平台"
+expanded: true
 ---
+Industrial machine vision systems live and die by latency. A camera pipeline that introduces even a few milliseconds of delay can invalidate real-time defect detection, throw off robotic pick-and-place timing, or degrade surgical imaging feedback loops. This post walks through Sienovo's ultra-low latency 4K professional vision computing platform — a tightly integrated hardware and software solution built around the Xilinx Zynq UltraScale+ MPSoC — and explains why its architectural choices matter for demanding industrial, medical, and IoT imaging applications.
 
-> Built-in ultra-low latency 4K30 ISP IP, with ISP latency of 0.7 ms
+## Platform Foundation: Zynq UltraScale+ MPSoC
 
-> Built-in GigE Vision IP supporting GigE Vision 2.0 and GenICam V2.4.0 standards, with support for user-defined XML description files
+At the heart of the platform sits the Xilinx Zynq UltraScale+ MPSoC, a heterogeneous SoC that pairs a quad-core ARM Cortex-A53 application processor and dual-core ARM Cortex-R5 real-time processor with a substantial UltraScale+ FPGA fabric. This ARM + FPGA fusion architecture is what makes sub-millisecond ISP latency achievable: instead of routing raw sensor data through a CPU pipeline, the FPGA fabric performs image signal processing in dedicated hardware logic that runs in lockstep with the sensor's pixel clock. The ARM cores handle higher-level tasks — protocol stacks, application logic, metadata management — without adding jitter to the imaging datapath.
 
-> Built-in industry-standard U3 Vision IP for industrial machine vision
+## 0.7 ms ISP Latency: What It Means in Practice
 
-> FPGA-based, supporting Bayer, YCbCr, RGB, and other formats, meeting high frame rate/high resolution image acquisition demands
+The platform ships a built-in 4K30 ISP IP core with a measured end-to-end latency of **0.7 ms**. To put that in context: a conventional software ISP running on an embedded Linux CPU at 4K resolution typically introduces 10–30 ms of pipeline delay, and even dedicated hardware ISPs in consumer SoCs often land in the 2–5 ms range. At 0.7 ms, the ISP delay is smaller than a single 4K30 frame period (~33 ms), meaning the processing overhead is effectively invisible to downstream consumers of the image stream.
+
+This matters most in closed-loop control scenarios — vision-guided robotics, inline metrology, or real-time endoscopic imaging — where the control system must react to what the camera sees within a deterministic time budget.
+
+## Sensor Interface: SONY IMX334 and Beyond
+
+The reference design uses the **SONY IMX334**, a 1/1.8-inch stacked CMOS sensor capable of 4K (3840 × 2160) at 30 fps with high dynamic range and low-light sensitivity. The IMX334's back-illuminated pixel architecture and on-chip stacking make it a common choice for industrial and medical cameras where image quality under challenging lighting is non-negotiable.
+
+Critically, the FPGA-based sensor interface is not locked to the IMX334. The platform explicitly supports sensor customization, meaning integrators can swap in other MIPI CSI-2 or parallel-interface sensors — higher frame rate rolling-shutter sensors for high-speed inspection, global-shutter sensors for motion-artifact-free imaging, or multispectral sensors for specialized machine vision — without redesigning the downstream processing pipeline.
+
+## FPGA Image Processing: Bayer, YCbCr, and RGB Format Support
+
+Raw sensor output arrives in Bayer pattern format and must be debayered before it is useful for most vision algorithms. The platform's FPGA image processing pipeline natively supports **Bayer, YCbCr, and RGB** pixel formats, handling the full chain from raw sensor data to display- or algorithm-ready frames in hardware. This is significant because format conversion — especially at 4K resolution and high frame rates — is computationally expensive in software but trivially parallelizable in FPGA logic.
+
+Downstream systems receive pixels in whatever color space they require, with no CPU overhead and no added latency from software color conversion.
+
+## Machine Vision Standards: GigE Vision 2.0, GenICam V2.4.0, and USB3 Vision
+
+Industrial machine vision has two dominant transport standards, and the platform implements both:
+
+**GigE Vision 2.0** — The platform includes a built-in GigE Vision IP core that streams processed 4K imagery over standard Gigabit Ethernet. GigE Vision 2.0 adds features like multi-zone streaming and improved packet resend mechanisms over the original spec. A key capability here is support for **user-defined XML description files**: integrators can expose custom camera parameters and controls to GigE Vision-compatible host software without modifying the core IP.
+
+**USB3 Vision (U3V)** — The built-in U3 Vision IP implements the USB3 Vision standard used for high-bandwidth, short-cable industrial camera connections. U3V over USB 3.0 provides up to 380 MB/s of usable bandwidth, sufficient for uncompressed 4K streams at moderate frame rates.
+
+**GenICam V2.4.0** — Both transport layers expose their device features through the GenICam standard, specifically the Generic Interface for Cameras specification at version 2.4.0. GenICam decouples camera feature description from the transport protocol, so the same host-side SDK and vision application can control cameras over GigE or USB3 Vision interchangeably. The platform's support for custom XML description files within the GenICam framework means proprietary ISP controls, region-of-interest parameters, and FPGA-accelerated processing options can be surfaced as standard GenICam features.
+
+## Output Interfaces
+
+Processed imagery exits the platform through three parallel interfaces:
+
+- **GigE** — For integration with standard industrial vision systems, SCADA networks, or remote inspection stations
+- **HDMI** — For direct display output, enabling real-time monitoring without a separate frame grabber or capture card
+- **USB 3.0** — For high-bandwidth connection to a local host PC running vision algorithms or recording software
+
+Having all three simultaneously available means the platform can feed a live HDMI monitor for operator oversight, stream over GigE to a vision controller, and log raw frames over USB3 to a workstation — all from a single capture event, without any additional switching hardware.
+
+## Target Applications
+
+The combination of sub-millisecond latency, 4K resolution, standards compliance, and flexible sensor support positions this platform across several verticals:
+
+- **Industrial inspection** — High-speed defect detection on production lines where camera-to-decision latency directly affects throughput
+- **Machine vision robotics** — Vision-guided assembly and bin picking where the robot controller needs fresh frames with minimal delay
+- **Medical imaging** — Endoscopy, surgical microscopy, and diagnostic imaging where image quality and real-time feedback are safety-critical
+- **IoT and smart infrastructure** — Edge-deployed 4K analytics where processing must happen locally without cloud round-trips
+
+## Complete Integration Solution
+
+Beyond the hardware, Sienovo provides a complete software and hardware integration package including customizable image processing IP cores. This means teams working on specialized vision tasks — custom tone mapping, hardware-accelerated feature extraction, proprietary compression — can extend the FPGA pipeline with their own IP while keeping the certified GigE Vision and GenICam interfaces intact. The underlying Zynq UltraScale+ platform runs Embedded Linux on the ARM application cores, giving software teams a familiar development environment alongside the FPGA acceleration layer.
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128084833/01_cd8b92dc35d0a0ad0b12b844beeb82aa.png)
-
-*   Based on Xilinx Zynq UltraScale+ MPSoC ARM & FPGA heterogeneous processor
-*   Utilizes SONY IMX334 4K Sensor and supports customization for various other sensors
-*   Sub-millisecond ultra-low latency & 4K-level high-speed video processing
-*   Supports diverse output interfaces: GigE/HDMI/USB3.0
-*   Supports GenICam standard for machine vision applications
-*   Provides complete hardware and software integration solutions and customizable image processing IP cores
-*   Targeted at industrial, IoT, medical, machine vision, and other applications
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/128084833/02_951c2e81c5d2d1f3ef4b65c7621d754f.png)
 

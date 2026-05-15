@@ -5,44 +5,113 @@ slug: "127569249"
 tags: ["#C6678+K7+AD"]
 source: "https://blog.csdn.net/yeyuangen/article/details/127569249"
 originalTitle: "C6678+K7+AD9253/AD9783 8路AD高速信号处理板"
+expanded: true
+---
+## Overview
+
+The C6678+K7+AD9253/AD9783 8-channel signal processing board is a compact, high-density embedded computing module designed for demanding analog signal acquisition and real-time digital processing tasks. Combining a Texas Instruments TMS320C6678 multi-core DSP with a Xilinx Kintex-7 FPGA and a pair of high-speed ADCs, the board targets applications such as radar front-ends, software-defined radio (SDR), sonar, electronic warfare, and industrial non-destructive testing — anywhere that requires simultaneous multi-channel analog capture paired with heavy arithmetic throughput, all within a tight SWaP (Size, Weight, and Power) envelope.
+
+At just 105 mm × 180 mm and under 150 g, the module runs entirely from a single 5 V rail and draws no more than 35 W under full load. All active components are sourced from industrial-grade import channels, making the design suitable for extended temperature ranges and long-lifecycle deployments.
+
 ---
 
-C6678 +K7+AD9253/AD9783 8-Channel Signal Processing Board Introduction
+## Analog Front-End: Dual AD9253 ADCs (8 Channels)
 
-Power Consumption: ≤ 35W
+The analog acquisition path is built around two Analog Devices **AD9253** quad-channel ADCs. Each device samples at up to **125 MSPS** with a full 14-bit resolution in native mode, and the board specifies a **16-bit compatible** configuration through its AD9653 pin-compatibility note — the AD9653 is the 16-bit sibling in the same ADI family, sharing a nearly identical pinout, so the PCB layout accommodates either device without rework.
 
-Weight: ≤ 150g
+Two AD9253 devices together provide **8 simultaneous differential analog input channels**, each accessible through an SSMA coaxial connector. SSMA (Sub-Subminiature version A) connectors are chosen for their small footprint and solid RF performance up into the millimeter-wave range, keeping the front-end compact while preserving signal integrity at 125 MHz input bandwidths.
 
-Dimensions: 105mm*180mm
+Key design considerations for these ADCs:
+- **Clock distribution** is handled by a dedicated AD9512 clock management IC (see below), ensuring each ADC channel receives a low-jitter, phase-aligned sample clock.
+- **LVDS output** from the AD9253 feeds directly into the Kintex-7 FPGA's high-speed SerDes-capable I/O banks, minimising latency between capture and processing.
+- The 125 MSPS rate provides a Nyquist bandwidth of 62.5 MHz per channel — sufficient for IF (intermediate frequency) sampling in many narrowband radar or communications receivers.
 
-Supply Voltage: 5V
+---
 
-All selected components are imported industrial-grade.
+## Digital-to-Analog Output: AD9783 DAC
 
-Analog-to-Digital Converter (ADC): 2 x AD9253 (125MHz sampling, total 8 SSMA coaxial channels)
-(Compatible with AD9653, 16-bits)
+The output path uses a single **AD9783** from Analog Devices, a dual-channel, 14-bit DAC rated at **500 MSPS**. Operating the DAC at 500 MSPS gives an output Nyquist frequency of 250 MHz, enabling direct digital synthesis (DDS) of waveforms well into the UHF band before any analog upconversion stage. The DAC output is brought out on one SSMA coaxial channel.
 
-Digital-to-Analog Converter (DAC): 1 x AD9783 (500MHz, 14-bits, 1 SSMA coaxial channel)
+The AD9783 includes internal interpolation filters and a quadrature modulation path, making it well suited for generating modulated transmit waveforms directly from the DSP/FPGA chain. Its 14-bit depth provides approximately 86 dB of theoretical dynamic range — appropriate for waveform generation in instrumentation and communications transmitters.
 
-FPGA: 1 x XC7K325T-FFG900
+---
 
-Digital Signal Processor (DSP): 1 x TMS320C6678 (clock frequency 1GHz)
+## FPGA: Xilinx XC7K325T-FFG900
 
-DDR3: 4 x 256Mx16bit
+The signal processing backbone on the programmable side is a **Xilinx Kintex-7 XC7K325T** in the 900-ball FFG package. The K325T offers:
 
-UART: 1 x TL16C754 (4 transmit/receive channels)
+- ~326,000 logic cells
+- 840 DSP48E1 slices — well suited for FIR filter banks, FFT engines, and beamforming kernels running in parallel across 8 ADC channels
+- 16 GTX transceivers capable of up to 12.5 Gbps each, of which one link is dedicated to the 10 Gbps optical data acquisition port
+- High-performance I/O banks interfacing directly to both ADC LVDS outputs and the DAC parallel bus
 
-Clock Management Chip: AD9512 (receives external clock, 1 SSMA coaxial channel)
+The FPGA sits between the ADCs/DAC and the DSP, acting as a front-end signal conditioner and data router. Typical FPGA functions in this architecture include decimation filtering, DDC (digital down-conversion), FFT pre-processing, and DMA management into the DSP's memory subsystem.
 
-Gigabit Ethernet: Rectangular connector (J30J9) or RJ45 interface
+---
 
-Data Acquisition: Optical port (10Gbps)
+## DSP: TMS320C6678
 
-Interface I/O: 21 groups of RS422/485 (J30J31),
-2 transmit, 2 receive RS232 (J30J25),
-3 transmit, 3 receive isolated RS422 (ADM26815, J30J15),
-5 groups of TTL 3.3V (J30J25: 3 transmit, 2 receive, 3 SSMA channels)
+Texas Instruments' **TMS320C6678** is an 8-core fixed/floating-point DSP built on the C66x architecture, running at up to **1 GHz per core**. Each core delivers up to 32 GFLOPS (single-precision) in theory, giving the device a peak aggregate throughput of 256 GFLOPS — enough for demanding real-time tasks like pulse compression, CFAR detection, or wideband spectrum analysis across all 8 channels simultaneously.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb7.r2.dev/blog/127569249/01_dd8fe3ff42ffd8e4dcc1699c3f6f33a0.png)
+The C6678 communicates with the FPGA through a high-bandwidth interconnect (typically via the device's SRIO or HyperLink peripheral, or through shared DDR3 with the FPGA acting as a DMA master). Its on-chip multicore navigator and packet DMA allow zero-copy data movement between cores, minimising memory bottlenecks in pipelined processing chains.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb7.r2.dev/blog/127569249/02_c46a44c5fdc0edc455d4acf6edc31e3c.png)
+---
+
+## Memory: DDR3
+
+Four **256M×16-bit DDR3** devices are populated, yielding a total of 2 GB of DDR3 SDRAM at a 64-bit aggregate bus width. This is shared between the FPGA and DSP subsystems and provides deep capture buffers, large coefficient tables for matched filters, and working memory for DSP algorithms that require extended history windows.
+
+---
+
+## Clock Management: AD9512
+
+A single **AD9512** clock distribution IC from Analog Devices manages all timing on the board. The AD9512 accepts an external reference clock via one SSMA coaxial input and fans it out with low additive jitter to the ADCs, DAC, and FPGA. Centralised clock management is essential in multi-channel systems: any skew or jitter difference between the ADC sample clocks would introduce phase noise and degrade coherent processing across channels. The AD9512's sub-picosecond RMS jitter performance preserves the dynamic range of the AD9253 ADCs.
+
+---
+
+## Communication Interfaces
+
+Despite its compact form, the board exposes a rich set of I/O interfaces to integrate into larger system backplanes or host computers:
+
+**High-Speed Data**
+- **Optical port (10 Gbps):** The primary bulk-data path, driven by one of the K7's GTX transceivers, suitable for streaming raw or processed sample data to a host FPGA, GPU, or recording system.
+- **Gigabit Ethernet:** Available on either a rectangular J30J9 mil-spec connector or a standard RJ45 jack, supporting control-plane communication, configuration, and lower-bandwidth data transfer.
+
+**Serial I/O**
+- **21 groups of RS422/485** via J30J31 — rugged, differential signalling for industrial sensor buses, command links, or inter-module communication in noisy environments.
+- **2 TX / 2 RX RS232** via J30J25 — legacy serial for debug consoles or slow peripheral devices.
+- **3 TX / 3 RX isolated RS422** via ADM26815 on J30J15 — galvanically isolated differential lines for safety-critical or electrically noisy sensor connections.
+
+**UART Controller**
+A **TL16C754** quad-UART bridge (4 channels of independent transmit/receive) handles the RS232 and RS422/485 serial interfaces at the FPGA level, offloading the DSP from bit-banging duties and enabling concurrent multi-port communication.
+
+**TTL / SSMA**
+- **5 groups of 3.3 V TTL I/O** on J30J25 (3 transmit, 2 receive) with an additional **3 SSMA channels** for direct RF/IF signal injection or monitoring at board-level test points.
+
+---
+
+## Form Factor and Power
+
+| Parameter | Value |
+|---|---|
+| Dimensions | 105 mm × 180 mm |
+| Weight | ≤ 150 g |
+| Supply Voltage | 5 V single rail |
+| Power Consumption | ≤ 35 W |
+| Component Grade | Industrial-grade, imported |
+
+The 35 W power budget is notable given the computational density: a C6678 alone can approach 10–15 W under load, and the K325T another 5–10 W, leaving headroom for the analog front-end and interface logic. The single 5 V input simplifies integration into standard embedded chassis or custom power systems.
+
+---
+
+## Board Photos
+
+![Board top view](https://pub-048dcb96257f476697b113fcb5939cb7.r2.dev/blog/127569249/01_dd8fe3ff42ffd8e4dcc1699c3f6f33a0.png)
+
+![Board detail view](https://pub-048dcb96257f476697b113fcb5939cb7.r2.dev/blog/127569249/02_c46a44c5fdc0edc455d4acf6edc31e3c.png)
+
+---
+
+## Summary
+
+The C6678+K7+AD9253/AD9783 board packs a complete high-speed signal acquisition and processing chain — 8 simultaneous 125 MSPS ADC channels, a 500 MSPS DAC output, a 326 K-LUT Kintex-7 FPGA, and an 8-core 1 GHz DSP — into a sub-150 g, 35 W module. Its dense I/O roster (optical, Gigabit Ethernet, isolated RS422, RS232, TTL, and RF coaxial) makes it adaptable to a wide range of embedded signal intelligence, communications, and industrial sensing platforms. The use of exclusively industrial-grade imported components targets applications where component reliability over extended operating lifetimes is non-negotiable.
