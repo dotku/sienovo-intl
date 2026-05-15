@@ -5,12 +5,43 @@ slug: "142027216"
 tags: ["#AI"]
 source: "https://blog.csdn.net/szxinmai/article/details/142027216"
 originalTitle: "NI国产替代4通道功率测量调理器"
+expanded: true
 ---
+## The Case for a Domestic Power Measurement Signal Conditioner
 
-### 4-Channel Power Measurement Conditioner: A Domestic Alternative to NI
+In industrial test and measurement environments, accurate power analysis depends on far more than a capable DAQ card. The signal conditioning layer between the physical world and the acquisition hardware is where measurement quality is often won or lost — particularly when dealing with high-voltage, high-current systems that cannot be fed directly into standard I/O modules. National Instruments (NI) has long been the default choice for this class of hardware, but rising demand for supply-chain independence and lower total system cost has pushed Chinese manufacturers to develop credible domestic alternatives. The RM-26999 from Shenzhen Xinmai (Sienovo) is one such product: a rack-mount signal conditioning unit purpose-built for multi-channel power measurement, designed to slot into NI-compatible measurement architectures without sacrificing accuracy or channel synchronization.
 
-The RM-26999 is a rack-mount signal conditioning device that can be connected to multiple synchronous sampling multifunction I/O devices for power measurement. This device features four voltage input channels with a peak voltage of up to 2000 V, and four current sensor ports for current measurement. The current sensor ports are optimized for fluxgate sensors, providing the necessary power, communication, and signal lines for accurate measurement.
+## What the RM-26999 Does
 
-Shenzhen Xinmai offers customized domestic alternatives for NI products.
+The RM-26999 is a rack-mount signal conditioning device intended to sit between a power bus under test and a multifunction I/O DAQ backend. Its role is to scale, isolate, and condition raw electrical signals before they reach the digitizer — protecting expensive acquisition hardware and ensuring that the voltage and current waveforms delivered to the ADC inputs are within a safe, linear range.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142027216/01_0db11bfbe99141278433e211fcd452c7.png)
+The device supports four voltage input channels with a peak voltage rating of up to 2000 V. This range covers a wide span of industrial and EV powertrain test scenarios, including three-phase grid measurements and high-voltage battery pack characterization, where bus voltages can exceed 800 V in modern electric vehicle platforms.
+
+For current measurement, the RM-26999 provides four dedicated current sensor ports. Critically, these ports are optimized for **fluxgate sensors** rather than simpler Hall-effect or shunt-based solutions.
+
+## Why Fluxgate Sensor Optimization Matters
+
+Fluxgate current sensors operate on a fundamentally different principle than resistive shunts or open-loop Hall sensors. A fluxgate core is driven into saturation in alternating directions; the asymmetry introduced by an external DC or low-frequency AC field is detected and used to null the field via a feedback winding, yielding a closed-loop measurement. The result is exceptional DC accuracy, very low offset drift, and high bandwidth — properties that matter enormously when measuring the switching current waveforms produced by power inverters or the slowly varying charge/discharge currents of large battery cells.
+
+Supporting a fluxgate sensor correctly requires the conditioning hardware to supply a stable excitation current to the sensor drive coil, manage the bidirectional feedback loop, and present a clean signal line back to the acquisition system. The RM-26999 provides the dedicated **power, communication, and signal lines** that fluxgate sensors require — a detail that distinguishes it from generic sensor input modules that only passively accept a voltage or current output.
+
+## Integration with Synchronous Multifunction I/O
+
+A key design goal of the RM-26999 is its ability to connect to **multiple synchronous sampling multifunction I/O devices**. Power measurement accuracy over multiple phases requires that voltage and current channels be sampled at exactly the same instant; any skew between channels introduces phase error that directly corrupts power factor and reactive power calculations. By conditioning all four voltage and four current channels within a single rack-mount unit and routing synchronized outputs to a compatible DAQ backend, the RM-26999 keeps the timing architecture clean.
+
+This makes it suitable as a front-end for NI CompactDAQ or PXI-based acquisition systems — and by extension, for compatible domestic DAQ platforms that implement the same interface standards.
+
+## Positioning as a Domestic NI Alternative
+
+NI's equivalent signal conditioning products for high-voltage power measurement — such as modules in the NI-9200 series or dedicated power analysis front-ends — carry significant cost premiums and are subject to export control considerations that have become increasingly relevant for Chinese industrial customers. Shenzhen Xinmai positions the RM-26999 explicitly as a **domestically produced substitute**, offering the same measurement architecture at a price point and supply-chain profile better suited to volume industrial deployment within China.
+
+Sienovo provides NI-localization customization services, meaning the RM-26999 can be tailored to specific channel configurations, form factors, or interface requirements for customers who are migrating existing NI-based test systems to domestic hardware.
+
+## Typical Application Scenarios
+
+- **EV powertrain and battery testing**: High-voltage bus measurement up to 2000 V pk combined with fluxgate current sensing covers the full operating envelope of modern traction battery packs.
+- **Three-phase motor drive characterization**: Simultaneous four-channel voltage and current acquisition enables real-time calculation of per-phase and total power, power factor, and harmonic content.
+- **Grid-tie inverter validation**: Accurate measurement of both fundamental and switching-frequency components requires the bandwidth and low-offset performance that fluxgate-based current sensing provides.
+- **Industrial power quality monitoring**: Rack-mount form factor and synchronous multi-channel design fit naturally into 19-inch test rack infrastructure.
+
+For teams evaluating a transition away from NI hardware for power measurement applications, the RM-26999 represents a technically coherent starting point — preserving the core measurement architecture while reducing dependency on foreign supply chains.

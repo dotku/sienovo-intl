@@ -5,21 +5,90 @@ slug: "142027473"
 tags: ["#AI", "#EmbeddedHardware"]
 source: "https://blog.csdn.net/szxinmai/article/details/142027473"
 originalTitle: "【NI国产化】PXIe‑4303 24位，32通道，51.2 kS/s，±10 V PXI模拟输入模块"
+expanded: true
 ---
+The PXIe‑4303 is a high-resolution PXI analog input module from National Instruments designed for demanding data acquisition applications where simultaneous, multi-channel sampling at high dynamic range is essential. This post covers the module's key capabilities, architecture choices, and how Sienovo (Shenzhen Xinmai) provides localized, customized versions for industrial customers in China.
 
-### 24-Bit, 32-Channel, 51.2 kS/s, ±10 V PXI Analog Input Module
+## Overview
 
-The PXIe‑4303 is a filtered input module suitable for voltage, thermocouple, and current measurements. This module allows you to select the appropriate digital filter for each channel, thereby improving filtering performance. You can also simultaneously use four different sample rates and trigger configurations, ensuring that you can measure all required sensors. Each channel of the module is equipped with an analog-to-digital converter (ADC), enabling the highest simultaneous sampling rate within the input range. The included NI-DAQmx driver simplifies hardware configuration and measurements.
+The PXIe‑4303 slots into a PXI Express chassis and serves as a filtered front-end for acquiring voltage, thermocouple, and current signals across up to 32 differential channels simultaneously. At 24-bit resolution and a maximum throughput of 51.2 kS/s per channel, it targets applications such as acoustic and vibration analysis, structural health monitoring, power quality measurement, and sensor validation — anywhere you need both high dynamic range and true simultaneity across a large channel count.
 
-Shenzhen Xinmai provides customized NI localization solutions.
+## Architecture: Per-Channel ADC Design
 
-Product Specifications
-Maximum Sample Rate: 51.2 kS/s/channel
-Analog Input Voltage Range: -0.1 V to 0.1 V, -10 V to 10 V
-Analog Input Isolation: -
-Maximum Differential Analog Input Channels: 32
-Analog Input Resolution: 24 bits
-Independent Low-Pass Filters: 1 kHz, 2 Hz, 2 kHz, 20 Hz, 200 Hz
-Filtering: Anti-aliasing
+The most significant architectural feature of the PXIe‑4303 is that each channel has its own dedicated analog-to-digital converter. In many lower-cost DAQ modules, a single ADC is multiplexed across all channels through a sample-and-hold network, which introduces inter-channel skew (typically tens of microseconds). With a per-channel ADC design, all 32 channels are sampled simultaneously to within the module's timing specification, eliminating phase error between channels. This matters greatly in applications like:
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142027473/01_ff39ecaa8bdf4595a9bb7a2d41291791.png)
+- **Structural dynamics** — where phase relationships between accelerometers or strain gauges at different points on a structure are physically meaningful.
+- **Power quality analysis** — where voltage and current on multiple phases must be sampled at the same instant to calculate accurate power factor and harmonics.
+- **Sensor fusion** — where correlating signals from physically separated transducers requires a common time reference.
+
+## 24-Bit Resolution and Dynamic Range
+
+A 24-bit ADC provides 2²⁴ = 16,777,216 discrete levels over the selected input range. On the ±10 V range, this yields a theoretical resolution of approximately 1.2 µV per count. In practice, usable dynamic range is limited by noise floor and the anti-aliasing filter, but 24-bit sigma-delta converters in this class typically achieve effective number of bits (ENOB) well above 20, making them suitable for detecting weak signals riding on top of much larger common-mode or baseline signals — for example, a small vibration anomaly superimposed on a large structural preload signal.
+
+## Input Ranges
+
+The module supports two selectable analog input voltage ranges:
+
+- **±10 V** — the standard range for general-purpose voltage measurements, compatible with most industrial transducers and signal conditioners that output a ±10 V full-scale signal.
+- **±0.1 V** — a high-sensitivity range for low-level signals such as direct thermocouple output or bridge-based strain gauges before external amplification.
+
+Switching between ranges on a per-channel basis lets a single module serve mixed sensor types within the same chassis slot, reducing the number of modules required in a system.
+
+## Per-Channel Digital Filtering
+
+A key differentiator of the PXIe‑4303 is the ability to assign an independent low-pass filter cutoff to each individual channel. The available filter frequencies are:
+
+| Filter Setting | Typical Use Case |
+|---|---|
+| 2 Hz | Very low-frequency phenomena (thermal drift, slow structural creep) |
+| 20 Hz | Low-frequency vibration, quasi-static structural loads |
+| 200 Hz | General low-frequency sensor signals |
+| 1 kHz | Audio-range or moderate-speed mechanical signals |
+| 2 kHz | Near-Nyquist for 51.2 kS/s — widest bandwidth |
+
+All of these filters include anti-aliasing protection, meaning the hardware ensures that out-of-band energy is sufficiently attenuated before digitization so that aliased components do not fold into the signal band. This is handled automatically in hardware — you do not need to design or configure the anti-aliasing filter separately.
+
+The ability to mix filter settings across channels is particularly useful when one group of channels monitors slow thermal sensors (needing the 2 Hz filter to reject 50/60 Hz interference) while another group simultaneously captures mechanical vibration data (needing the 2 kHz filter for full bandwidth).
+
+## Multi-Rate and Multi-Trigger Configurations
+
+The PXIe‑4303 supports running up to four different sample rate and trigger configurations simultaneously across its 32 channels. This means a single module can, for example, acquire:
+
+- 8 channels at 51.2 kS/s triggered by an external digital edge
+- 8 channels at 1 kS/s on a software trigger for background monitoring
+- The remaining channels at intermediate rates driven by different clock sources
+
+This flexibility reduces system complexity in mixed-rate test systems, where previously an engineer might have needed multiple modules — and multiple slots in the chassis — to handle different acquisition scenarios.
+
+## NI-DAQmx Driver Integration
+
+The module ships with NI-DAQmx driver support. NI-DAQmx provides a unified API across all NI DAQ hardware that abstracts low-level register operations into task-based programming. Key benefits include:
+
+- **Channel virtualization** — physical channels are referenced by name rather than register address, making code portable across hardware generations.
+- **Timing and synchronization** — NI-DAQmx handles PXI backplane trigger routing and clock sharing between modules with a few function calls.
+- **Calibration management** — the driver stores and applies NIST-traceable calibration constants stored in the module's onboard EEPROM.
+- **Language support** — NI-DAQmx has bindings for LabVIEW, LabWindows/CVI, C/C++, Python (`nidaqmx` package), and .NET, making it accessible across a wide range of development environments.
+
+## Sienovo Localized Version
+
+Sienovo (深圳信迈科技) provides NI-localized and customized versions of the PXIe‑4303 tailored for customers in China who require domestic supply chain compliance, local regulatory certification, or application-specific integration support. The localized offering preserves the core electrical specifications and NI-DAQmx software compatibility while addressing procurement, documentation, and support requirements for industrial and defense-adjacent customers operating under local sourcing mandates.
+
+## Key Specifications Summary
+
+| Parameter | Value |
+|---|---|
+| Maximum sample rate | 51.2 kS/s per channel |
+| Analog input voltage ranges | ±0.1 V, ±10 V |
+| Differential input channels | 32 |
+| ADC resolution | 24 bits |
+| Per-channel low-pass filters | 2 Hz, 20 Hz, 200 Hz, 1 kHz, 2 kHz |
+| Filtering type | Anti-aliasing |
+| Analog input isolation | None (non-isolated) |
+| Bus interface | PXI Express |
+| Driver | NI-DAQmx |
+
+![PXIe-4303 Module](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142027473/01_ff39ecaa8bdf4595a9bb7a2d41291791.png)
+
+## When to Choose the PXIe‑4303
+
+The PXIe‑4303 is the right choice when your test system requires all of the following at once: high channel count (32 differential channels in a single slot), true simultaneous sampling (per-channel ADC), high dynamic range (24-bit), and flexible per-channel bandwidth control. If your application can tolerate channel skew or needs fewer than 32 channels, a multiplexed module at lower cost may suffice — but for structural test, NVH (noise, vibration, harshness) analysis, or any application where inter-channel phase fidelity is non-negotiable, the per-channel ADC architecture of the PXIe‑4303 is a technical necessity rather than a luxury.

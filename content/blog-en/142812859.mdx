@@ -5,27 +5,97 @@ slug: "142812859"
 tags: ["#FPGADev", "#stm32", "#ARMDev", "#EmbeddedHardware"]
 source: "https://blog.csdn.net/szxinmai/article/details/142812859"
 originalTitle: "基于STM32 ARM+FPGA+AD的电能质量分析仪方案设计(一）硬件设计"
+expanded: true
+---
+Designing a power quality analyzer that meets national instrument standards demands careful attention to both measurement accuracy and real-time data throughput. This article — Part 1 of a multi-part series — walks through the hardware architecture decisions, chip selections, signal acquisition front-end design, and the ARM–FPGA communication bus for an STM32 + Xilinx Spartan-6 + AD7609-based power quality analysis system.
+
+## Design Requirements
+
+Before selecting components, the team locked down the measurement accuracy targets mandated by Chinese national standards for power quality instrumentation:
+
+| Parameter | Target Accuracy |
+|---|---|
+| Voltage RMS | ±0.2% |
+| Current RMS | ±0.5% |
+| Frequency | ±0.01 Hz |
+| Harmonics (2nd–50th order) | ±3% |
+| Voltage three-phase unbalance | ±0.2% |
+| Current three-phase unbalance | ±1% |
+
+Beyond raw measurement accuracy, the system must provide real-time display of all power quality parameters, support data sharing and human-machine interaction, and persist measured data to storage.
+
+## Choosing a Processor Architecture
+
+A power quality analyzer processing three-phase voltage and current signals across six channels simultaneously generates significant data throughput. The processor must handle data-intensive FFT-based harmonic analysis, phase-locked loop synchronisation, and a user-facing display — all concurrently. Single-core microcontrollers are inadequate; the real design question is which multi-core combination strikes the right balance.
+
+Three dual-core architectures dominate the high-end power quality analyzer market:
+
+**ARM + DSP** combines general-purpose task management (ARM) with dedicated numeric computation (DSP). The ARM handles task scheduling and peripheral control while the DSP offloads signal processing. The weakness is poor expandability: adding new measurement algorithms or communication interfaces typically requires a chip swap rather than a logic update.
+
+**DSP + FPGA** assigns data acquisition and communication control to the FPGA while the DSP handles algorithmic computation. This works well for pure signal-processing workloads but offers weak task management, making it awkward when the feature set grows complex.
+
+**ARM + FPGA** provides both system control and high-speed data processing. Compared to DSP's inherently serial execution model, FPGA's parallel processing fabric is better suited to scenarios requiring data acceleration and strict real-time response — exactly what multi-channel power signal acquisition demands. The ARM retains full task management capabilities and can be extended in firmware without hardware changes.
+
+A three-way **ARM + DSP + FPGA** architecture exists and offers the most complete performance, but it significantly increases system complexity, development effort, inter-processor communication overhead, and overall cost. For the scope of this design it was ruled out.
+
+The selected architecture is **ARM + FPGA**: the ARM core manages six-channel (three-phase voltage + three-phase current) acquisition control, data transfer, display, and communication; the FPGA implements multi-channel parallel data processing, a fully-digital phase-locked loop (PLL), and ADC control — satisfying the real-time requirement without the serial bottleneck of a DSP.
+
+## Chip Selection
+
+**ARM side — STM32F407ZGT6**: After comparing mainstream MCUs, the STM32F407ZGT6 (Cortex-M4, 168 MHz, FPU) was selected as the ARM master controller. Its rich peripheral set — including FSMC, multiple UARTs, SPI, and USB OTG — along with a mature ecosystem of development tools and reference designs made it the practical choice for a system of this complexity.
+
+**FPGA side — Xilinx XC6SLX16 (Spartan-6)**: The XC6SLX16 from Xilinx's Spartan-6 family serves as the FPGA target device. Spartan-6 devices offer a good balance between logic resources and cost for mid-complexity designs. Xilinx ISE 14.7 is used as the design toolchain, and Mentor ModelSim handles simulation and functional verification.
+
+## Hardware System Architecture
+
+The overall system divides into three functional blocks:
+
+1. **Front-end signal acquisition and pre-processing module** — conditions raw grid signals into ADC-compatible inputs.
+2. **FPGA-based data processing module** — implements the digital PLL, ADC control, main controller, and signal-processing algorithms.
+3. **ARM-based HMI and display module** — manages user interaction, FPGA configuration, data storage, and upstream communication.
+
+The FPGA data processing module contains several key sub-modules: a fully digital phase-locked loop for synchronised sampling, a master control module that coordinates parameter configuration and data exchange, ADC control logic, and the harmonic/unbalance computation algorithms. The ARM module integrates an FSMC controller (the ARM–FPGA communication bus), a configuration controller that initialises the FPGA at startup, and communication/storage peripherals.
+
+## Data Acquisition Pre-Processing Circuit
+
+Grid signals are high-voltage, high-current waveforms that cannot be fed directly into an ADC. The pre-processing chain must step down signal levels safely, preserve waveform fidelity, reject out-of-band interference, and deliver a signal within the ADC's input range.
+
+The pre-processing chain for each voltage channel consists of:
+
+- **Acquisition circuit** — a voltage transformer (PT) steps the grid voltage down to a measurement-safe level while maintaining amplitude proportionality and phase accuracy.
+- **Anti-aliasing filter** — removes high-frequency interference above the Nyquist frequency of the ADC sample rate, improving the stability and accuracy of the sampled signal.
+- **Phase-locked frequency-multiplication circuit** — locks the ADC sampling frequency to an integer multiple of the fundamental signal frequency. This ensures that each acquisition window captures complete cycles, which is essential for accurate FFT-based harmonic analysis.
+- **Single-ended to differential converter** — converts the single-ended filter output to a differential signal before the ADC input, improving common-mode noise rejection in an industrial environment.
+- **AD7609 ADC circuit** — the AD7609 is an 8-channel, simultaneous-sampling, 18-bit successive-approximation ADC. It converts all six channels (three voltage + three current) synchronously, preserving inter-channel phase relationships that are critical for unbalance and power-factor calculations.
+
+### AC vs. DC Sampling
+
+Two fundamental approaches exist for sampling power signals:
+
+**DC sampling** rectifies and filters the AC signal into a DC representation that is linearly proportional to the original. It offers strong noise immunity but loses instantaneous waveform information and has poor real-time response.
+
+**AC sampling** uses instrument transformers (CTs and PTs) to produce a scaled replica of the original AC waveform, then samples it directly. The sampled signal shares the same frequency and waveform shape as the grid signal, enabling real-time observation of voltage/current waveforms, harmonic content, and phase angles with minimal distortion.
+
+This design uses **AC sampling**, preserving the full waveform — amplitude, frequency, and phase — which is necessary for harmonic analysis and three-phase unbalance measurement.
+
+## ARM Control System: FSMC Interface
+
+The ARM (STM32F407ZGT6) serves as the system's control brain, coordinating FPGA initialisation, data retrieval, storage, and user-facing output. Communication between ARM and FPGA uses the STM32's **FSMC (Flexible Static Memory Controller)** bus.
+
+FSMC is STM32's on-chip high-performance memory controller, capable of interfacing SRAM, NOR Flash, PSRAM, and — by treating the FPGA as a memory-mapped peripheral — custom logic devices. It supports configurable bus widths, multiple access modes, and fine-grained timing control, making it faster and more flexible than a bit-banged parallel bus. Compared to the older EMI controller, FSMC handles larger address spaces and more memory types; compared to FMC (found on higher-end STM32 families), FSMC trades some raw throughput for broader device compatibility.
+
+FSMC divides its external address space into four equal 64 MB banks. This design uses the **NOR Flash controller within Bank1**, mapping the FPGA's register and data space into the ARM's memory map. Key signals on the bus:
+
+- **FSMC_NE1** — chip-select for Bank1, used to qualify all ARM–FPGA transactions.
+- **FSMC_NOE / FSMC_NWE** — active-low output-enable and write-enable, controlling read and write direction.
+- **FSMC_NBL[0:1]** — byte-lane signals repurposed to carry interrupt requests from the FPGA to the STM32.
+
+This memory-mapped arrangement lets the ARM read FPGA measurement results and write configuration registers using ordinary memory-access instructions, simplifying firmware considerably.
+
+## Data Communication and Storage
+
+The STM32's built-in UART supports RS-232 and RS-485 protocols but cannot directly enumerate as a USB device for PC connectivity. To enable communication with a host PC (upper computer), the design includes a **USB-to-serial bridge circuit** that converts the STM32 UART signal to USB. This allows the host PC to receive measurement data and issue control commands over a standard USB connection without requiring a custom USB firmware stack on the STM32.
+
 ---
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142812859/01_64ccded8e20d449fb7545e6eb2f9b6d9.png)
-
-**Hardware Design of the Power Quality Analysis System**
-
-**3.1 Power Quality Analysis System Design Requirements**
-
-This system aims to achieve high-precision measurement of power quality. Based on national standards for power quality analysis instruments and an analysis of power quality analyzers on the market, the following design objectives have been set:
-
-(1) Power quality parameter measurement accuracy:
-1) RMS value: Voltage RMS ±0.2%, Current RMS ±0.5%;
-2) Frequency: ±0.01Hz;
-3) Harmonics: 2nd-50th order, accuracy: ±3%;
-4) Frequency: ±0.01Hz;
-5) Three-phase unbalance: Voltage unbalance ±0.2%, Current unbalance ±1%;
-
-(2) Real-time display of power quality parameters, enabling data sharing and good human-machine interaction.
-
-(3) Storage of power quality parameter data.
-
-**3.2 Power Quality Analysis System Hardware Solution Design**
-
-**
+Part 1 has covered the design requirements, architecture trade-off analysis, chip selection rationale, signal acquisition front-end, and the ARM–FPGA FSMC communication bus. Subsequent parts will detail the FPGA digital PLL implementation, the harmonic computation algorithm, and the display/HMI subsystem.

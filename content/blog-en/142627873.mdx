@@ -5,46 +5,84 @@ slug: "142627873"
 tags: ["#FPGADev"]
 source: "https://blog.csdn.net/szxinmai/article/details/142627873"
 originalTitle: "基于AM6254+FPGA的车载中控板，支持PC104，QNX, VXWORKS"
+expanded: true
 ---
+The Sienovo AM6254+FPGA in-vehicle central control board is a ruggedized embedded computing platform designed for demanding transportation and industrial automation applications. Built around Texas Instruments' AM625X processor family and paired with an FPGA co-processor, this PC104-form-factor board targets deployments where deterministic real-time performance, broad OS compatibility, and vehicle-grade I/O are non-negotiable requirements.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb3.r2.dev/blog/142627873/01_b67019141b0345938035943362c1c477.png)
+## Processor and Platform
 
-![](https://pub-048dcb96257f476697b113fcb5939cb3.r2.dev/blog/142627873/02_8a1a0f98796342668ea5b62d16ac77ee.png)
+At the heart of the board is the **TI AM625X**, clocked at up to 1.4 GHz. The AM625X (Sitara™ family) is a high-integration SoC that combines application-class ARM Cortex-A53 cores with integrated peripherals well-suited to industrial HMI and edge-control workloads. The 1.4 GHz ceiling delivers enough compute headroom for lightweight vision pipelines, protocol translation, and display management without the thermal penalties of higher-power embedded processors — a practical tradeoff for sealed enclosures with limited airflow.
 
-Specification
+The FPGA companion (referenced in the board title and the #FPGADev tag) extends the platform with hardware-programmable I/O logic, enabling custom protocol acceleration, hard real-time signal conditioning, or proprietary backplane interfaces that would otherwise require additional glue circuitry.
 
-Description
+## Operating System Support
 
-Processor
+The board supports **Linux** and **VxWorks** out of the box. This dual-OS story directly addresses a common in-vehicle and industrial design split:
 
-TI AM625X at up to 1.4GHz
+- **Linux** is the natural choice for application-layer work: networking stacks, file systems, rich middleware, and modern build toolchains. The AM625X has strong upstream Linux BSP support from TI.
+- **VxWorks** (Wind River) is the RTOS of choice when hard real-time guarantees, DO-178 / IEC 61508 certification paths, or legacy vehicle-system integration are required.
 
-Operating System
+The title also references **QNX** support. QNX is another POSIX-compatible RTOS commonly used in automotive-grade systems (AUTOSAR-adjacent deployments, ADAS subsystems, and railway control). While the current spec table lists Linux and VxWorks, the mention of QNX in the product title suggests the hardware has been validated or planned for QNX bring-up as well — worth confirming with Sienovo for production design-ins that require it.
 
-LINUX, VXWORKS
+## Memory and Storage
 
-Memory & Storage
+| Resource | Capacity |
+|---|---|
+| RAM | 2 GB DDR4 |
+| Primary Flash | 2 × 128 GB eMMC |
+| Removable | TF (microSD) card slot |
+| Boot / Config Flash | 128 Mb QSPI NOR |
 
-2GB DDR4, 2 x128GB EMMC, TF Card Slot, 128Mb QSPI
+The **2 GB DDR4** is sufficient for a full Linux userspace with application services running concurrently. Dual **128 GB eMMC** slots are notable: in vehicle-deployed systems this pattern typically supports redundant OS images or an A/B partition scheme, enabling field firmware updates without risking a bricked unit if a power cycle interrupts a flash operation.
 
-Interfaces
+**128 Mb QSPI NOR** flash serves as the primary boot device and is the standard choice for storing the first-stage bootloader, device tree blobs, and configuration data that must survive power loss reliably. The **TF card slot** adds removable storage for field data logging, map data, or operator-installable software packages.
 
-• Standard PC104 Interface
+## Interface Suite
 
-• 2x USB 2.0
+The I/O complement is clearly assembled for vehicle and transportation infrastructure contexts:
 
-• 1x VGA Display Output
+### Standard PC104 Interface
+PC104 is an embedded form-factor standard (ISA bus, stacked card architecture) that has been the backbone of rugged embedded systems for decades. Its mechanical robustness — no edge connectors, bolt-together stacking — makes it popular in rail, military, and vehicle-mounted applications where vibration tolerance is mandatory.
 
-• 2x 10/100/1000 Mbps Ethernet
+### Networking
+Three Ethernet ports are provided:
+- **2 × 10/100/1000 Mbps** — full Gigabit links for high-bandwidth data planes (video streams, diagnostics, OTA updates)
+- **1 × 10/100 Mbps** — a dedicated 100 Mbps port, commonly used for lower-bandwidth control networks or management interfaces separated from the data plane for security isolation
 
-• 1x 10/100 Mbps Ethernet
+### Vehicle Fieldbus: CAN and RS485
+- **2 × CAN** — Controller Area Network is the dominant in-vehicle serial bus for ECU-to-ECU communication in automotive and off-highway machinery. Two independent CAN ports allow the board to gateway between different CAN segments (e.g., powertrain CAN and body CAN) without external bridges.
+- **1 × RS485** — half-duplex differential serial, widely used in industrial sensor buses (Modbus RTU) and legacy control infrastructure. Its noise immunity suits electrically harsh vehicle environments.
 
-• 2x CAN
+### Display and USB
+- **1 × VGA** — provides a local display output for HMI panels, operator terminals, or diagnostic screens without requiring an external display controller
+- **2 × USB 2.0** — covers peripheral connectivity: barcode scanners, USB dongles, field service laptops connecting for diagnostics
 
-• 1x RS485
+### GPIO
+**28 GPIO lines** give system integrators direct digital I/O for custom signal interfaces — door sensors, relay control, indicator lights, or discrete digital inputs from external equipment that don't warrant a full serial bus.
 
-• 28x GPIO
+## Debug Interface
 
-Debug Interface
+A **JTAG / COP debug port** is exposed for low-level bring-up, bootloader development, and post-mortem fault analysis. The COP (Common On-chip Processor) debug port is standard TI terminology for the debug subsystem integrated into Sitara SoCs, compatible with standard JTAG probes (XDS110, XDS560) and the Code Composer Studio toolchain.
 
-JTAG / COP debug port
+## Target Applications
+
+This board is positioned for central controller roles in:
+
+- **Rail and mass transit** onboard computers (PC104 compatibility, VxWorks/QNX RTOS, multi-CAN)
+- **Industrial vehicles and AGVs** requiring real-time fieldbus I/O plus application-layer networking
+- **Traffic infrastructure edge nodes** where Linux networking, GPIO, and ruggedized storage are combined
+- **Defense and avionics ground support** leveraging the PC104 mechanical standard and deterministic RTOS options
+
+The combination of a modern applications processor (AM625X), a hardware-flexible FPGA fabric, deep storage redundancy, and a vehicle-native I/O set makes this board a strong candidate for platforms that need to outlast their first software generation — the hardware can be repurposed through FPGA reprogramming and OS image updates without a board respin.
+
+![](https://pub-048dcb96197b113fcb5939cb9.r2.dev/blog/142627873/01_b67019141b0345938035943362c1c477.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142627873/02_8a1a0f98796342668ea5b62d16ac77ee.png)
+
+| Specification | Details |
+|---|---|
+| Processor | TI AM625X at up to 1.4 GHz |
+| Operating System | Linux, VxWorks |
+| Memory & Storage | 2 GB DDR4, 2 × 128 GB eMMC, TF Card Slot, 128 Mb QSPI |
+| Interfaces | Standard PC104 Interface · 2× USB 2.0 · 1× VGA Display · 2× Gigabit Ethernet · 1× 10/100 Mbps Ethernet · 2× CAN · 1× RS485 · 28× GPIO |
+| Debug Interface | JTAG / COP debug port |

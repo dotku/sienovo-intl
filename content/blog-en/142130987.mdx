@@ -5,33 +5,61 @@ slug: "142130987"
 tags: ["#AI", "#Server"]
 source: "https://blog.csdn.net/szxinmai/article/details/142130987"
 originalTitle: "全国产飞腾+PCIE 4.0/5.0 SWITCH+GPU扩展卡解决方案"
+expanded: true
 ---
+As AI inference workloads push server interconnect bandwidth to its limits, system integrators face a familiar bottleneck: how do you fan out a single CPU's PCIe lanes to a full rack of GPUs without resorting to foreign silicon? Shenzhen Xinmai (深圳信迈) has developed a fully domestic solution built around Phytium-compatible infrastructure — a PCIe 4.0/5.0 Switch-based GPU expansion card paired with an NVMe hybrid backplane — that addresses this problem end-to-end while supporting OEM/ODM customization.
 
-• 1 direct-connect single-width slot;
-• 14* SFF-8654x4 PCIe 4.0/5.0 host interfaces;
-• 11* PCIe 4.0 x16 slots;
-• 4* CPU 8-pin power connectors;
-• 11* 4-pin fan headers;
+## The PCIe Switch GPU Expansion Card
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142130987/01_57ccfd787bf243fd9dac79bf782e9b27.png)
+The expansion card sits at the heart of the solution. Its role is to take high-bandwidth PCIe host links from the server CPU and distribute them across a dense array of GPU slots, effectively acting as a non-blocking PCIe fabric within a single chassis. The card's key specifications are:
 
-Shenzhen Xinmai provides AI server PCIe 4.0/5.0 Switch GPU expansion card solutions, supporting customization.
+- **1 direct-connect single-width slot** — allows a primary accelerator or NIC to connect to the host with minimal hop latency
+- **14× SFF-8654 x4 PCIe 4.0/5.0 host interfaces** — the SFF-8654 (SlimSAS) connector carries four PCIe lanes per port at Gen 4 (16 GT/s) or Gen 5 (32 GT/s) speeds; fourteen such ports provide up to 56 PCIe lanes of upstream bandwidth, sufficient to aggregate multiple CPU root complexes in a multi-socket or co-design topology
+- **11× PCIe 4.0 x16 downstream slots** — each slot can accept a full double-wide GPU, giving the card the capacity to host up to eleven discrete accelerators in a single expansion shelf
+- **4× CPU 8-pin power connectors** — auxiliary power inputs to the board's own power delivery network, separate from slot power, ensuring stable delivery to the switch ASICs and fan circuitry under heavy GPU load
+- **11× 4-pin fan headers** — one per GPU slot zone, enabling per-zone thermal management directly from the expansion card rather than delegating all fan control to the host BMC
+
+![PCIe Switch GPU Expansion Card](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142130987/01_57ccfd787bf243fd9dac79bf782e9b27.png)
+
+### Why SFF-8654 for Host Links?
+
+SFF-8654 (also marketed as SlimSAS or OCuLink-adjacent in some vendor literature) has become the preferred cable interconnect for high-density PCIe expansion because it packs four lanes into a compact, latching connector that can be routed over a cable run of up to one metre at Gen 4 speeds. Using 14 of these ports rather than a single fat x16 or CXL connector gives system designers flexibility: CPU root port lanes can be distributed across multiple cables, different lane-width CPUs can be accommodated, and failed cables can be isolated without taking down the full fabric. For Phytium-based platforms — which often expose PCIe root ports in groups of x4 or x8 — this granularity maps naturally to the CPU's internal topology.
+
+### Switch ASIC Role
+
+Although Xinmai does not name the specific PCIe switch ASIC in the published specifications, the combination of Gen 4/5 support, 14 upstream ports, and 11 downstream x16 slots implies a high-radix PCIe switch with non-transparent bridging (NTB) capability. PCIe switches in this class (from vendors such as Microchip/Microsemi PM9xxx or equivalent domestic alternatives) provide credit-based flow control and virtual channel arbitration so that multiple GPUs can simultaneously DMA to host memory without head-of-line blocking. The domestic emphasis in the product positioning suggests this is paired with a Phytium FT-2000+ or D2000 host, both of which expose PCIe Gen 4 root complexes.
 
 ## NVMe Hybrid Expansion Drive Backplane
 
-* Drive hot-swap functionality;
-* LED indicators for drive power, read/write activity, and error status;
-* SPGIO drive error reporting function;
-* Staggered drive spin-up;
-* Fan temperature control;
-* I2C (BMC);
+Alongside the GPU expansion card, Xinmai offers a companion NVMe hybrid backplane designed for storage-intensive AI server configurations. "Hybrid" in this context typically means the backplane supports both U.2 NVMe SSDs and traditional SAS/SATA drives through a common physical bay, allowing operators to mix hot storage tiers without separate enclosures.
 
-Technical Specifications
+The backplane's feature set is production-oriented rather than merely spec-compliant:
 
-* * *
+- **Hot-swap drive support** — drives can be inserted or removed under power without host reboot, a requirement for any storage system that must maintain uptime during drive replacement or capacity expansion
+- **Tri-state LED indicators (power / read-write / error)** — each bay has individual LED logic covering drive enumeration (power-on), I/O activity (read/write), and fault signaling (error), making it straightforward for a datacenter operator to visually locate a failed or degraded drive in a dense shelf without remote KVM access
+- **SPGIO drive error reporting** — SPGIO (Storage Plane General-Purpose I/O) is a standardized sideband interface used to route drive fault signals to the server's management controller independently of the data path; this ensures that a drive failure is reported to the BMC even if the PCIe data link is degraded
+- **Staggered drive spin-up** — inrush current during simultaneous drive power-on can trip PSU overcurrent protection in high-density backplanes; staggered spin-up sequences drive power-on events over a configurable time window, keeping aggregate inrush within PSU ratings
+- **Fan temperature control** — the backplane incorporates its own thermal zone management, adjusting fan speed based on drive and ambient temperature sensors; this reduces the need for the host BMC to directly manage every fan in the storage enclosure
+- **I2C (BMC) management interface** — a standard I2C bus connects the backplane controller to the server's Baseboard Management Controller, enabling out-of-band monitoring of backplane health, LED state, and fan RPM without a functioning host OS
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142130987/02_28d55284b3f9f00d304cb7ef07ef8356.jpg)
+![NVMe Hybrid Expansion Backplane Technical Specifications](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142130987/02_28d55284b3f9f00d304cb7ef07ef8356.jpg)
 
-* * *
+## Domestic Supply Chain and Customization
 
-☑ Supports OEM/ODM customization services
+The "fully domestic" positioning reflects China's broader push toward self-sufficient AI infrastructure. Phytium processors are domestically designed ARMv8-based CPUs produced by Tianjin Phytium Information Technology, used extensively in government and defense-adjacent server deployments where foreign silicon sourcing carries regulatory risk. Pairing a Phytium host with a domestic PCIe switch fabric and backplane closes the supply chain for the full accelerator shelf, reducing exposure to export control restrictions on components like GPU interconnect ASICs.
+
+Xinmai supports OEM and ODM customization on both the GPU expansion card and the NVMe backplane. For system integrators building Phytium-based AI training or inference racks, this means slot count, connector type, power budgets, and management interface protocols can be tailored to a specific chassis or rack unit form factor without requiring the integrator to design the PCIe fabric layer from scratch.
+
+## Deployment Considerations
+
+For teams evaluating this solution in an AI server context, several practical points are worth noting:
+
+1. **Lane budget planning**: 14 upstream SFF-8654 x4 ports at Gen 4 deliver a theoretical aggregate of 224 GT/s upstream bandwidth. Eleven x16 downstream GPU slots at Gen 4 consume up to 176 GT/s at full saturation. Ensuring the host CPU root complex can actually feed the upstream ports — rather than leaving links idle — requires careful PCIe topology mapping at the CPU level.
+
+2. **Power delivery**: With 11 high-TDP GPUs, the 4× 8-pin auxiliary connectors serve as supplemental board power, but per-GPU power is still delivered through the slot. Chassis PSU sizing must account for both slot power and the expansion card's own switch ASIC and fan overhead.
+
+3. **BMC integration**: The I2C backplane management interface needs to be mapped into the host BMC's device tree. On Phytium platforms running OpenBMC or a compatible firmware stack, this is typically a matter of adding the backplane's I2C address to the appropriate bus definition in the BMC device tree source.
+
+4. **Thermal zoning**: The 11 independent 4-pin fan headers allow per-GPU thermal zones, but the fan control algorithm must be tuned to the chassis airflow path. GPU workloads have highly variable thermal envelopes — an LLM inference GPU may run at 50% TDP while a training GPU next to it runs at 100% — and static fan curves will either thermally throttle or generate unnecessary noise.
+
+For procurement inquiries or customization discussions, Xinmai can be contacted directly through their official channels. ☑ OEM/ODM customization services are available for both the PCIe switch expansion card and the NVMe backplane.

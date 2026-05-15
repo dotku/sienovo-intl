@@ -5,14 +5,77 @@ slug: "142032215"
 tags: ["#ARMDev"]
 source: "https://blog.csdn.net/szxinmai/article/details/142032215"
 originalTitle: "ARM+Codesys+AGV运动控制器解决方案，可定制"
+expanded: true
 ---
+## ARM + CODESYS + AGV Motion Controller: A Customizable Edge-AI Motion Control Platform
 
-#### AGV Motion Controller
+Autonomous Guided Vehicles (AGVs) demand precise, real-time motion control combined with flexible I/O and industrial communication protocols. Sienovo's ARM-based AGV Motion Controller integrates the CODESYS runtime with a purpose-built hardware platform, giving engineers a production-ready foundation for differential-drive AGVs without starting from scratch. This post walks through the controller's hardware architecture, supported platforms, and the key capabilities that make it suitable for factory-floor and warehouse deployments.
 
-Introduction
+## What Problem This Solves
 
-Integrates basic function libraries for AGV differential drive operation, trajectory planning, etc. Supports 2 CAN bus master ports and 2 Ethernet ports. Supports 4 RS485 ports and 1 RS232 port. Integrates 24 digital input channels and 16 digital output channels. Features a built-in reserved slot for an expandable WiFi communication module. In addition to external connections for smart sensors such as RFID, speakers, and magnetic navigation, it can also achieve motion control based on PLCopen standard programming.
+Building an AGV motion controller from discrete components — an SBC, a CAN interface card, a PLCopen runtime license, and custom I/O boards — is time-consuming and introduces integration risk at every layer. A bundled ARM + CODESYS solution collapses that stack into a single validated board, letting teams focus on application logic (path planning, fleet management, sensor fusion) rather than low-level bring-up.
 
-Supported ARM Platforms: Allwinner T3 / RK3568 / RK3588 / TI AM64x / STM32, etc.
+## Core Hardware Architecture
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142032215/01_c92fc14b4cc24bcba5227be158d317ab.png)
+The controller is built around a compact embedded board with the following I/O and communication profile:
+
+**Industrial communication ports**
+- 2× CAN bus master ports — enabling direct connection to motor drives, servo amplifiers, and other CAN-based actuators using CANopen or custom protocols
+- 4× RS485 ports — suitable for daisy-chaining distance sensors, barcode readers, or motor drives over Modbus RTU
+- 1× RS232 port — typically used for legacy sensor integration or diagnostic terminals
+- 2× Ethernet ports — supporting EtherNet/IP, PROFINET, or standard TCP/IP communication with fleet management systems and upstream SCADA
+
+**Digital I/O**
+- 24 digital input channels — for limit switches, emergency-stop signals, bumper sensors, and zone-entry interlock signals
+- 16 digital output channels — for beacon lights, solenoids, relay-driven loads, and audible alarms
+
+**Wireless expansion**
+- A reserved on-board slot for a WiFi communication module allows wireless fleet coordination to be added without hardware redesign, keeping the baseline BOM lean for wired-only deployments
+
+## Integrated Function Libraries
+
+The controller ships with pre-built function libraries for the two computationally critical tasks in differential-drive AGV operation:
+
+**Differential drive kinematics** — the library handles the wheel-speed calculations that translate a desired linear velocity and angular velocity (v, ω) into left/right wheel RPM commands, accounting for wheel baseline geometry. This is the foundational math behind any two-wheel-independent-drive AGV and is notoriously tedious to tune correctly from scratch.
+
+**Trajectory planning** — built-in trajectory primitives allow the application layer to command smooth acceleration/deceleration profiles and curved-path segments, rather than issuing raw velocity steps that would cause wheel slip or cargo shift.
+
+## PLCopen Motion Control via CODESYS
+
+One of the distinguishing features is PLCopen-standard programming support through the CODESYS runtime. PLCopen motion control function blocks (MC_MoveAbsolute, MC_MoveRelative, MC_Stop, etc.) are the lingua franca of industrial motion engineering — an automation engineer already familiar with any PLCopen-compliant PLC can port logic to this platform with minimal retraining.
+
+CODESYS also brings its own protocol stack, including CANopen master functionality and optional EtherCAT master support, which aligns with the hardware's dual-CAN architecture.
+
+## External Sensor Integration
+
+The controller is designed to interface with the sensor suite typical of industrial AGVs:
+
+- **RFID readers** — for station identification, pallet tracking, or pick/drop location confirmation
+- **Magnetic navigation sensors** — for line-following AGVs using embedded magnetic tape guidance
+- **Speakers / buzzers** — for operator alerts, zone-entry warnings, and fault annunciation
+
+These connect through the RS485 or digital I/O banks depending on the sensor's output type, with no additional interface hardware required in most cases.
+
+## Supported ARM Platforms
+
+The motion controller firmware and CODESYS runtime are validated across a range of ARM SoCs, giving product teams flexibility in choosing a processor that matches their performance, cost, and thermal envelope requirements:
+
+| Platform | Architecture | Notes |
+|---|---|---|
+| Allwinner T3 | Quad-core Cortex-A7 | Cost-effective; common in mid-range AGVs |
+| Rockchip RK3568 | Quad-core Cortex-A55 | Integrated NPU for edge-AI inference |
+| Rockchip RK3588 | Octa-core (A76+A55) | High-performance; suits compute-heavy path planning |
+| TI AM64x | Dual Cortex-A53 + R5F MCU | Industrial-grade with integrated real-time cores |
+| STM32 | Cortex-M series | Ultra-low-power or cost-constrained applications |
+
+The RK3568 and RK3588 options are particularly relevant for AGVs that combine motion control with on-board computer vision (obstacle detection, pallet recognition), since both include NPU cores capable of running lightweight inference models at the edge without offloading to a cloud service.
+
+The TI AM64x brings a different advantage: its integrated Cortex-R5F real-time cores run a dedicated RTOS alongside the Linux application processor, providing hard real-time determinism for the motion control loop while the A53 cores handle fleet communication and sensor fusion.
+
+## Customization and Application Fit
+
+The "customizable" aspect of this platform means the hardware layout, I/O count, and communication options can be adjusted for volume production programs. Teams building specialized AGV variants — tugger trains, heavy-load carriers, clean-room mobile robots — can request board-level modifications without redesigning the entire control architecture.
+
+For integrators evaluating this platform, the combination of PLCopen programming, multi-protocol industrial I/O, and a choice of proven ARM SoCs makes it a practical starting point for both greenfield AGV designs and retrofits of older vehicles that need a modernized control layer.
+
+![AGV Motion Controller](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142032215/01_c92fc14b4cc24bcba5227be158d317ab.png)
