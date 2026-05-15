@@ -5,9 +5,9 @@ variable "aws_region" {
 }
 
 variable "postiz_instance_type" {
-  description = "EC2 size for Postiz. t3.medium = 4GB RAM, the minimum for the full Postiz+Temporal+ES stack."
+  description = "EC2 size for Postiz. t3.medium (4GB) is the Postiz-documented minimum but tends to OOM the backend during boot — Temporal + Elasticsearch + Postiz together eat ~3.2GB and there's no swap by default. t3.large (8GB) is the safe choice."
   type        = string
-  default     = "t3.medium"
+  default     = "t3.large"
 }
 
 variable "postiz_disk_gb" {

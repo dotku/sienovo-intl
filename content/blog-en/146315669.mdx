@@ -5,36 +5,79 @@ slug: "146315669"
 tags: ["#fpga开发", "#边缘计算", "#人工智能", "#大数据", "#嵌入式硬件"]
 source: "https://blog.csdn.net/szxinmai/article/details/146315669"
 originalTitle: "基于CPLD电力/轨道交通3U机箱开关量输出板（DO）"
+expanded: true
 ---
+This board is a **14-channel digital output (DO) card** designed for 3U chassis deployments in power and rail transit applications. It combines a Freescale MC9S08DZ60 microcontroller, an Altera EPM570T CPLD, and solid-state relays to deliver robust, optically isolated switching suitable for the demanding electrical environments found in traction power substations and train control cabinets. This post covers the board's architecture, key component choices, and the design rationale behind its specification.
 
-![01.jpg](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/146315669/01_b1dc886c44f40d8a3e8284ea38029e26.jpeg)
+## Application Context
 
-Board Overview:
+Power and rail transit systems impose strict requirements on digital output hardware: wide operating temperature ranges, immunity to high-voltage transients, galvanic isolation between control logic and field loads, and deterministic behavior under fault conditions. A 3U CompactPCI or similar backplane chassis provides the mechanical and electrical framework, while individual function boards — like this DO card — plug in to perform specific I/O tasks. The DO board's role is to convert low-voltage logic commands from the host CPU into switched high-voltage drive signals for contactors, solenoid valves, indicator lamps, and other field devices.
 
-This board is a digital output (DO) board, utilizing solid-state relays for level output or load driving. The typical high-level output is DC 110V, and the low-level output is 0V.
+## Key Components
 
-Performance Specifications:
+### MCU: MC9S08DZ60
 
-Power Supply: DC 5V, DC 3.3V, DC ±15V, DC ±24V
+The Freescale (now NXP) MC9S08DZ60 is an 8-bit HCS08-core microcontroller with 60 KB flash, 4 KB RAM, and an integrated CAN controller. In this design it handles:
 
-Self-test Function: Supported
+- **Backplane communication** — the MC9S08DZ60's dual CAN interfaces expose the board to the host system over two independent CAN buses, providing redundancy typical of safety-relevant transit applications.
+- **I2C management bus** — a single I2C link allows the board to report diagnostic data (temperature, relay status, supply rail voltages) to a chassis management controller.
+- **Self-test sequencing** — the MCU can exercise each output channel in a controlled manner and verify feedback paths without requiring the host CPU to intervene.
 
-MCU: MC9S08DZ60
+### CPLD: EPM570T-144I3
 
-Communication Interfaces (Backplane Side): 2x CAN, 1x I2C
+The Altera EPM570T-144I3 (MAX II family) sits between the MCU and the solid-state relay drive circuitry. With 570 logic elements and a 144-pin TQFP package, it provides:
 
-CPLD: EPM570T-144I3
+- **Channel demultiplexing** — translating the MCU's serial or parallel commands into 14 independent relay-drive signals.
+- **Glitch filtering and output latching** — ensuring that transient bus noise does not cause spurious switching of high-voltage loads.
+- **Interlocking logic** — enforcing mutual exclusion rules or sequencing constraints that would be difficult to guarantee purely in MCU firmware.
+- **Speed** — CPLD combinatorial paths are deterministic and sub-microsecond, which matters when relay timing is safety-critical.
 
-Number of Output Channels: 14 channels
+The "I3" speed-grade suffix and the industrial temperature rating of the EPM570T-144I3 are consistent with the board's -25 °C to +70 °C operating range.
 
-Maximum Output Current: Imax = 8A
+### Solid-State Relays and Output Stage
 
-Dimensions: 220mm x 100mm x 1.6mm
+Each of the 14 output channels uses a solid-state relay (SSR) rather than an electromechanical relay. SSRs offer several advantages in transit environments:
 
-Weight: 0.305kg
+- **No moving parts** — eliminates contact wear, making them suitable for high-cycle-rate applications.
+- **Optical isolation** — the control side (3.3 V / 5 V logic) is fully isolated from the field side, blocking ground loops and high-voltage spikes from propagating into control electronics.
+- **Fast switching** — typically microsecond-range turn-on/off, compared to milliseconds for mechanical relays.
 
-Operating Temperature: -25℃ to 70℃
+The nominal high-level output is **DC 110 V**, which is the standard auxiliary supply voltage in many railway and power substation environments (derived from station battery systems). The low level is 0 V. The maximum continuous output current of **8 A per channel** allows the board to directly drive medium-sized contactors or groups of indicator loads without an intermediate power stage.
 
-Functional Block Diagram:
+## Power Architecture
 
-![02.jpg](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/146315669/02_5260302529b329c6580b23fb5d8dc610.jpeg)
+The board draws from five supply rails provided by the backplane:
+
+| Rail | Typical Use |
+|------|-------------|
+| DC +5 V | MCU core, CPLD I/O, digital logic |
+| DC +3.3 V | MCU I/O, CPLD core |
+| DC +15 V | SSR control bias, analog front-end |
+| DC -15 V | Differential signal conditioning |
+| DC ±24 V | SSR drive stage or pre-drive power |
+
+The multi-rail approach allows each functional block to operate at its optimal voltage while keeping switching noise on the high-voltage output stage from coupling back into the sensitive MCU and CPLD supplies.
+
+## Self-Test Capability
+
+The self-test function is notable for a safety-critical board. Typically this involves:
+
+1. The MCU asserting each output channel in turn while monitoring a feedback signal (often a current-sense resistor or a secondary SSR status output).
+2. Comparing the measured response against expected thresholds.
+3. Reporting pass/fail status over the I2C management bus.
+
+This allows automated board-level health checks at system power-up or during scheduled maintenance windows — a requirement in many transit signaling standards.
+
+## Physical Characteristics
+
+At **220 mm × 100 mm × 1.6 mm** and **305 g**, the board conforms to a standard 3U Eurocard footprint. The 1.6 mm PCB thickness is the industry default, supporting robust backplane connector insertion forces. The -25 °C to +70 °C operating range covers typical indoor substation and trackside cabinet environments without requiring active cooling.
+
+## Functional Block Diagram
+
+![Functional Block Diagram](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/146315669/02_5260302529b329c6580b23fb5d8dc610.jpeg)
+
+The block diagram illustrates the signal path from the backplane CAN/I2C interfaces through the MCU, into the CPLD for logic processing and latching, and finally through the SSR drive stage to the 14 field output terminals. The isolation barrier at the SSR boundary is the critical architectural feature that protects the logic side from the 110 V field environment.
+
+## Summary
+
+This CPLD-based DO board is a well-structured design for harsh industrial and rail transit environments. The combination of the MC9S08DZ60's integrated dual-CAN connectivity, the EPM570T CPLD's deterministic output control, and solid-state relay isolation makes it a capable and reliable solution for high-voltage discrete output tasks in 3U chassis systems. The built-in self-test function and wide temperature rating further align it with the dependability expectations of power and transit infrastructure deployments.

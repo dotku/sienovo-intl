@@ -5,13 +5,103 @@ slug: "153558722"
 tags: ["#FPGADev", "#AI", "#AudioVideo"]
 source: "https://blog.csdn.net/ARM_FPGA_AI/article/details/153558722"
 originalTitle: "基于 JETSON+FPGA+GMSL+AI 车载视频采集与存储系统设计"
+expanded: true
 ---
+## Overview
 
-3.1 System Overall Architecture and Working Principle
-3.1.1 System Overall Architecture
-The overall block diagram of the GMSL-based in-vehicle video acquisition and storage system is shown in Figure 3.1. It mainly consists of four functional modules: the GMSL Video Acquisition and Conversion Unit, the DM8168 Embedded Digital Video Acquisition Unit, the GPS Timing Unit, and the Power Module. The system's core processing platform adopts an FPGA+DM8168 architecture. The entire hardware system is composed of an FPGA processor, a DM8168 heterogeneous multi-core SoC (System-on-Chip), peripheral interface circuits, and circuits for each functional module.
-Figure 3.1 System Overall Architecture Block Diagram
-The main functions of each functional module are as follows:
-(1) GMSL Video Acquisition and Transmission Link Unit
-The GMSL video acquisition and transmission link unit module mainly includes sub-modules such as a GMSL serializer, GMSL deserializer, FPGA controller, DDR3 cache unit, and an FPGA interface timing conversion module. Its main function is to transmit video data acquired by GMSL cameras via the GMSL link, where the FPGA overlays timestamps onto the video data, and then the FPGA interface timing conversion module performs video data interface conversion to facilitate acquisition and processing of video signals by the backend processor.
-(2) DM8168 Embedded
+Designing a reliable in-vehicle video acquisition and storage system demands careful orchestration of high-speed serial video links, real-time embedded processing, and precise timestamp synchronization. This post walks through the hardware architecture of a GMSL-based system built around a Xilinx Spartan-6 FPGA, the TI DM8168 heterogeneous SoC, Maxim GMSL serializer/deserializer pairs, and a Sony IMX490 image sensor — covering component selection rationale, signal flow, and circuit-level design decisions.
+
+## System Architecture
+
+The system is organized into four functional modules that together form a pipeline from raw camera capture to compressed network delivery and raw-data archival:
+
+1. **GMSL Video Acquisition and Conversion Unit** — serializer, deserializer, FPGA controller, DDR3 buffer, and interface timing conversion logic
+2. **DM8168 Embedded Digital Video Acquisition Unit** — the main processing SoC, SATA storage, DDR3 buffer, and Gigabit Ethernet output
+3. **GPS Timing Unit** — provides standard time-code to the FPGA for timestamp overlay
+4. **Power Module** — a three-rail supply architecture feeding each subsystem at its required voltage
+
+The core processing platform is an **FPGA + DM8168** combination. The FPGA handles all time-critical interface work — driving the GMSL cameras, deserializing the serial stream, overlaying GPS-derived timestamps, and translating interface timing to match the DM8168's GMPC input. The DM8168 sits downstream and handles computationally intensive tasks: image processing, H.264 encoding, SATA writes, and Gigabit Ethernet transmission.
+
+## Signal Flow
+
+The end-to-end data path works as follows:
+
+1. The **IMX490 camera** captures raw analog video and converts it to a digital signal that exits via the GMSL interface to the MAX9291 serializer.
+2. The **MAX9291 serializer** converts the parallel video bus into a high-speed serial stream and drives it over a shielded twisted-pair (STP) cable at a serial bit rate of up to **3.12 Gbps**.
+3. The **MAX9288 deserializer** at the receiving end recovers the parallel pixel data from the serial stream.
+4. Recovered data is staged in a **DDR3 cache** before entering the FPGA. This buffering step is intentional — it absorbs burst timing jitter from the deserializer and ensures the FPGA sees a clean, ordered data stream without pipeline collisions.
+5. Inside the FPGA, the **GPS time-code** received over UART from the timing unit is overlaid onto each video frame as a visible timestamp.
+6. The **FPGA interface timing conversion module** then re-formats the video signals to match the GMPC bus timing expected by the DM8168.
+7. The **DM8168** receives the timestamped video, performs image processing, and forks the data: one path writes raw video to a **SATA SSD**, the other encodes to **H.264** and streams to a host PC over Gigabit Ethernet.
+
+## FPGA Selection: Xilinx Spartan-6 XC6SLX75
+
+FPGA selection for video applications is driven by four factors: logic cell count, I/O speed, on-chip memory, and IP core compatibility. The system requires enough fabric to simultaneously run a GMSL deserializer interface, DDR3 controller, GPS UART receiver, timestamp overlay logic, and an interface timing converter — all in parallel.
+
+The chosen device is the **Xilinx Spartan-6 XC6SLX75**. Key attributes that made it the right fit:
+
+- **Large logic cell array** with abundant LUTs and flip-flops to accommodate multi-channel video pipeline logic
+- **Four I/O banks** with high-speed differential I/O, supporting LVDS and similar standards required for the GMSL interface
+- **Per-I/O maximum rate of 1080 Mbps**, sufficient for the deserializer parallel output at the target frame rate
+- **Integrated PLL blocks** used here to generate the pixel clock (XCLK) fed to the IMX490 camera
+- **48-bit adders and hardware multipliers** for any arithmetic-intensive processing stages in the video pipeline
+- **Compatible IP cores** for DDR3 memory controllers and standard bus interfaces, reducing design risk
+
+Xilinx's Spartan-6 sits between the cost-optimized Spartan family and the high-end Virtex/Kintex lines, which target aerospace and defense applications with far greater logic density. For an automotive embedded system where cost, power, and interface flexibility matter more than raw throughput, the XC6SLX75 is the right tier.
+
+## GMSL Link: MAX9291 Serializer and MAX9288 Deserializer
+
+Autonomous vehicle platforms routinely require five or more cameras. Each additional camera multiplies both the data bandwidth and the cable count if conventional parallel video buses are used. GMSL (Gigabit Multimedia Serial Link) solves this by serializing the full video stream — including audio and control signals — onto a single coaxial or twisted-pair cable per camera.
+
+### MAX9291 Serializer
+
+The MAX9291 is designed for high-resolution automotive camera systems. Key specifications relevant to this design:
+
+- Transmits video, audio, and control over **50 Ω coaxial** or **100 Ω STP** cable — this system uses STP for differential signal transmission
+- Programmable output amplitude: **100 mV to 400 mV differential** in STP mode
+- Supports **1920×720p/60 Hz at 24-bit color** in 104 MHz high-bandwidth mode
+- Serial bit rate up to **3.12 Gbps**
+- Pixel clock configurable from **25 MHz to 104 MHz**
+- Audio: up to **192 kHz sample rate, 32-bit depth**
+- Three programmable control channel modes: **UART**, mixed **UART/I²C**, or **I²C with clock stretching**
+- GMSL input plus **HDMI 1.4 input** with integrated input equalizer, DDC, and input termination
+- Backward compatible with any GMSL deserializer, providing flexibility for future hardware revisions
+
+### MAX9288 Deserializer
+
+The MAX9288 is the paired receiver for the MAX9291:
+
+- Recovers the serialized stream and outputs parallel pixel data matching the original camera format
+- Supports **1920×720p/60 Hz at 24-bit color** in 104 MHz high-bandwidth mode
+- Embedded control channel: **9.6 kbps to 1 Mbps** in UART-I²C mode; up to **1 Mbps** in I²C-to-I²C mode
+- The microcontroller can program serializer, deserializer, and peripheral registers at any time via the control channel, independent of video timing
+- Built-in **EMI reduction and shielding** features to meet stringent automotive electromagnetic compatibility requirements
+- Supports **HDCP** operation managed via the control channel
+
+Together, the MAX9291/MAX9288 pair forms a proven automotive-grade GMSL link that meets the bandwidth and EMC requirements of a multi-camera vehicle platform.
+
+## Camera Sensor Driver Circuit: IMX490
+
+The IMX490 is a Sony automotive image sensor used as the capture front-end. The FPGA generates and distributes its clocks and manages its control interface:
+
+- **XVCLK**: master input clock generated by the FPGA's internal PLL and provided to the camera via an external pin
+- **PCLK**: pixel clock output from the camera, derived from XCLK; used by the FPGA to latch incoming pixel data
+- **PWDN**: active-low power-down/enable pin; pulled low after system power-up to begin initialization
+- **RESETB**: active-low reset pin; asserting it returns the camera to a known initial state if the system hangs
+- **HREF**: horizontal reference signal indicating valid pixel data on the bus
+- **HSYNC / VSYNC**: horizontal and vertical sync outputs marking line and frame boundaries
+- **SDA / SCL**: I²C bus used by the FPGA to write initial register values into the IMX490, configuring it to output GMSL video
+
+The camera driver circuit operates across three supply rails, each derived by a dedicated LDO or DC-DC converter:
+
+| Rail | Voltage | Source | Powers |
+|------|---------|--------|--------|
+| Core logic | **1.5 V** | U1 steps down 2.8 V | Image acquisition core |
+| Analog / focus motor | **2.8 V** | U2 steps down 3.3 V | Autofocus module, analog circuits |
+| I/O and interface | **3.3 V** | U3 steps down 5 V | Camera I/O, FPGA interface |
+
+The cascaded power architecture allows each block to operate at its optimal voltage while the system input is a single 5 V supply — typical for automotive 12 V bus regulators with a 5 V intermediate rail.
+
+## Design Takeaways
+
+This architecture illustrates a well-structured approach to automotive video capture where work is divided by computational character: the FPGA handles all timing-sensitive, deterministic tasks (clock generation, serial link control, timestamp overlay, interface conversion), while the DM8168 SoC handles compute-heavy but latency-tolerant tasks (image processing, codec compression, file I/O, and network transmission). The DDR3 buffer between the deserializer and the FPGA is a small but important detail — without it, variable latency from the serial recovery circuit would cause data ordering issues in the FPGA pipeline. Inserting a FIFO-backed DDR3 stage absorbs that jitter and makes the downstream logic far simpler to verify and maintain.

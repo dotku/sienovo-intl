@@ -5,25 +5,103 @@ slug: "148667790"
 tags: ["#fpga开发"]
 source: "https://blog.csdn.net/szxinmai/article/details/148667790"
 originalTitle: "全国产超小体积RK3576核心板，支持RK3576+FPGA，支持AI与实时控制"
+expanded: true
+---
+## Fully Domestic Ultra-Compact RK3576 Core Board: RK3576 + FPGA for Industrial AI and Real-Time Control
+
+Rockchip's RK3576 has quickly established itself as one of the more capable mid-range SoCs for industrial edge computing, and a new fully domestic core board built around it pushes the form-factor and supply-chain story even further. This post walks through the hardware specifications, the heterogeneous RK3576+FPGA co-processing architecture, the real-time control figures you can expect from that combination, and the development resources available to engineers evaluating the platform.
+
 ---
 
-The following outlines the key technical features and solutions of the fully domestic, ultra-compact RK3576 core board and its supported **RK3576+FPGA collaborative scheme**:
+## Core Board Hardware and Domestic-Supply Credentials
 
-* * *
+The board ships in a 55 × 28 mm PCB form factor on a 12-layer, 1.6 mm stack with four mounting holes. A B2B connector with a 4.0 mm mating height keeps the assembled height under 5.4 mm, which is tight enough for embedded enclosures where a full SBC would never fit. An alternative stamp-hole package (IDO-SOM7609-S1) is available for even more compact carrier integrations.
 
-#### **I. Core Board Hardware Specifications and Domestic Production Characteristics**
+Beyond the processor, every component on the module — PMIC, LPDDR4/4X DRAM, eMMC or UFS flash, crystal oscillators, passives, and connectors — is sourced from domestic Chinese suppliers. The board carries a 100% domestic-component claim for the core module, with the companion evaluation carrier board reaching roughly 99% by component count. That matters for programs operating under supply-chain localization requirements. The design has been validated through standard industrial qualification: EMC testing and high/low temperature shock across −40 °C to +85 °C.
 
-1.  **Ultra-Compact Design**
-    
-    *   Dimensions are only **40×60mm** (B2B connector package), and the stamp-hole package (IDO-SOM7609-S1) offers even more compact dimensions, meeting high-density integration requirements.
-    *   Integrates RK3576J (industrial-grade) / RK3576 (commercial-grade) chip, PMIC power management, LPDDR4/4X memory, and eMMC/UFS storage, achieving full-function integration on a single board.
-2.  **100% Domestic Production**
-    
-    *   All components (chips, storage, power management, etc.) adopt domestic solutions and have passed industrial-grade reliability tests such as electromagnetic compatibility and high/low temperature shock (-40℃~85℃).
+---
 
-* * *
+## RK3576 Processor: Architecture and Key Numbers
 
-#### **II. RK3576 Processor Performance Highlights**
+The RK3576 (commercial) and RK3576J (industrial-rated) use a big.LITTLE arrangement of four Cortex-A72 cores running up to 2.2 GHz alongside four Cortex-A53 cores at up to 1.8–2.0 GHz, backed by an ARM Mali-G610 MP4 GPU with 58K DMIPS of graphics throughput. The GPU supports OpenGL ES, OpenCL, and Vulkan, so the same silicon handles both HMI rendering and GPGPU workloads without an external display controller.
 
-*   **Compute Architecture**:
-    *   Quad-core Cortex-A72@2.2GHz + Quad-core Cortex
+The integrated NPU is Rockchip's third-generation in-house design, rated at **6 TOPS**. It supports INT4, INT8, INT16, and FP16 mixed-precision inference in the same inference session, which is significant: INT4 doubles effective throughput for weight-dominated transformer layers while FP16 handles activations that need the dynamic range. That combination makes on-device deployment of compact language and vision models (the source cites Gemma-2B as a reference workload) practical at the edge without an external accelerator.
+
+### Multimedia Pipeline
+
+The video subsystem is unusually deep for this class of SoC:
+
+- **Decode**: 8K@30fps H.265/HEVC, VP9, AVS2, AV1; 4K@60fps H.264/AVC; 4K@120fps H.265
+- **Encode**: 4K@60fps H.265/HEVC and H.264/AVC
+- **Display**: three independent outputs (HDMI, DisplayPort, MIPI DSI) with simultaneous different content — tri-screen independent display at up to 4K@120fps + 2.5K@60fps + 2K@60fps
+
+### Industrial I/O on the Module
+
+The core board exposes a wide set of interfaces through its B2B connectors:
+
+- 4× Gigabit Ethernet
+- 3× USB 3.2
+- 2× CAN-FD
+- 2× RS-485
+- PCIe 2.1 (×4 lanes)
+- 5× MIPI CSI camera inputs
+- MIPI DSI, LVDS, HDMI, DP, BT656, RGB888
+- 12× UART, 16× PWM, Cortex-M0 real-time core for deterministic I/O tasks
+
+---
+
+## RK3576 + FPGA: Heterogeneous Architecture for Hard Real-Time Control
+
+A standalone application processor — even one with an integrated Cortex-M0 — cannot guarantee the sub-100 μs response times that precision motion control demands under Linux. The solution this board supports is pairing the RK3576 with an FPGA over two complementary buses.
+
+### Interconnect Options
+
+**PCIe 2.1 ×4** is the primary high-bandwidth link between the SoC and the FPGA. The four-lane PCIe 2.1 link delivers enough bandwidth for bulk data transfers (sensor streams, camera frames, control telemetry) and achieves end-to-end round-trip latency as low as **50 μs** — suitable for tight control loops that need to close faster than a Linux scheduler tick.
+
+**FlexBus / DSMC parallel bus** provides a lower-cost secondary path running at 100 MHz with 8-bit or 16-bit parallel data width. This is the practical interface for hanging AD/DA conversion modules off the FPGA without needing a PCIe endpoint on the analog front end, keeping BOM cost low on the signal-conditioning side.
+
+### Task Partitioning
+
+The intended division of labor is straightforward:
+
+| Subsystem | Responsibility |
+|-----------|---------------|
+| **RK3576 (Linux + RT-Preempt)** | Motion planning algorithms, AI vision inference via NPU, CODESYS IEC 61131-3 runtime, HMI |
+| **FPGA** | Hard real-time PID loops, pulse-train generation for stepper/servo drives, encoder counting, EtherCAT or CAN-FD frame handling |
+
+With the RT-Preempt patch applied, the Linux scheduler on the A72 cluster achieves jitter under **10 μs**, which is acceptable for supervisory control and trajectory generation. The FPGA handles the innermost control loop at a guaranteed response period of **≤50 μs** regardless of Linux load — critical for keeping following error within spec on a CNC axis.
+
+The combined system supports **32-axis synchronous interpolation** with a trajectory error specification of less than 0.1 mm. Inter-axis coordination uses CAN-FD at 5 Mbps to talk to servo drives, giving enough bandwidth for position, velocity, and torque commands across all axes in a single bus cycle.
+
+### Power and Performance vs. x86
+
+| Metric | RK3576 + FPGA | Typical x86 Industrial PC |
+|--------|---------------|--------------------------|
+| Real-time response latency | **< 10 μs** | ~500 μs |
+| Simultaneous axis count | **32** | ≤ 4 |
+| Typical full-load power | **≤ 8 W** | ≥ 25 W |
+
+The 3× power reduction matters in fan-less enclosures and in battery-backed automation equipment where thermal budget is fixed. The axis-count advantage comes directly from the FPGA's parallelism: each axis runs its own dedicated hardware PID and pulse generator, with no OS scheduling jitter to create inter-axis timing skew.
+
+---
+
+## Target Application Scenarios
+
+**Industrial motion control** — CNC machining centers and robot arms where the FPGA handles μs-level servo timing and the RK3576 runs CODESYS for the motion profile and G-code interpreter.
+
+**AI edge terminals** — service robots that need simultaneous 3D vision (FPGA-accelerated depth processing) and semantic scene understanding (RK3576 NPU). The 6 TOPS NPU handles object classification and navigation policy inference while the FPGA manages sensor fusion at hard real-time rates.
+
+**Fully domestic industrial controllers** — high-end PLCs and power-grid monitoring equipment that must run entirely on domestic hardware and software. The board supports OpenHarmony 5.0 (open-source HarmonyOS), completing a full-stack domestic software story alongside the domestic hardware.
+
+---
+
+## Development Support
+
+Engineers evaluating the platform have access to:
+
+- **Hardware design files**: pin-out documentation, 3D mechanical models, editable carrier-board schematics and PCB layout (for custom baseboard development)
+- **OS support**: Linux-RT, Ubuntu, Android, OpenHarmony — plus ROS 2 integration packages for robotics applications
+- **AI toolchain**: NPU SDK with TensorFlow and PyTorch model conversion pipelines, INT4/INT8 quantization tools, and pre-built OpenCV and multi-display demo images
+- **Multimedia examples**: triple-screen independent display demos, H.265 encode/decode test cases, MIPI CSI multi-camera capture
+
+The combination of a 55 × 28 mm fully-domestic module, a 6 TOPS NPU, and a PCIe-connected FPGA for hard real-time I/O gives embedded engineers a path to replace x86 industrial PCs in motion-control and AI-vision applications at a fraction of the power envelope — without compromising on supply-chain auditability.

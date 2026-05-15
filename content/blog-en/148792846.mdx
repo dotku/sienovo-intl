@@ -5,11 +5,65 @@ slug: "148792846"
 tags: ["#arm开发", "#fpga开发", "#人工智能"]
 source: "https://blog.csdn.net/szxinmai/article/details/148792846"
 originalTitle: "基于RISV-V的电力网关，支持电力鸿蒙，凝思等国产操作系统"
+expanded: true
 ---
+The Distribution Visualization Gateway is a purpose-built edge intelligent gateway developed on the NB2 RISC-V core board, designed to bring real-time AI inference and sensor fusion directly into the field for power-grid monitoring and other demanding industrial applications. This post walks through what the platform is, how it is architected, and why its combination of domestic OS compatibility, edge AI capability, and rugged form factor makes it well-suited for transmission-line infrastructure deployments.
 
-The Distribution Visualization Gateway is an edge intelligent gateway application developed based on NB2, suitable for various industrial-grade edge intelligent scenarios such as power grids.
+## Background: Why Edge AI at the Substation and Tower Level?
 
-The Transmission and Distribution Visualization Gateway primarily focuses on monitoring complex areas of transmission networks. It can locally perceive and identify transmission line environments, as well as special events such as wildfires, ice accretion, foreign objects, and tower cranes, and interact with the master station. The gateway is developed based on an NB2 stamp-hole core board, which, combined with an expansion backplane, forms a power edge intelligent platform. This platform can support requirements such as sensor data aggregation, processing, reporting, and interaction, particularly featuring functions like image acquisition, AI edge computing, and real-time backhaul. The gateway also meets IP67 protection standards and can adapt to harsh industrial-grade outdoor application environments.
+Modern high-voltage transmission networks span hundreds of kilometres of terrain that is difficult to inspect manually — mountain passes prone to wildfire, ridgelines subject to ice loading, and corridors shared with construction equipment. Traditional SCADA systems rely on periodic human patrol or simple threshold-based sensors. Neither approach can react quickly enough to a fast-moving wildfire front or a tower crane encroaching on a conductor clearance zone.
+
+Moving inference to the edge — directly on a gateway mounted at or near the tower or monitoring point — eliminates the round-trip latency to a central data centre and reduces backhaul bandwidth requirements dramatically: instead of streaming raw video continuously, the gateway sends an alert and a short clip only when an anomaly is confirmed locally.
+
+## The NB2 Core Board: RISC-V at the Heart of the Platform
+
+The gateway is built around the NB2 stamp-hole (邮票孔) core board. The stamp-hole form factor uses castellated half-vias around the module perimeter, allowing the core board to be soldered directly onto a carrier/backplane PCB. This gives product designers a compact, reliable mechanical and electrical connection without connectors, which is important in high-vibration or high-humidity outdoor enclosures.
+
+The NB2 module is a domestic RISC-V SoC platform — aligning with China's industrial policy push toward indigenous processor architectures. RISC-V's open ISA means SoC vendors can add custom extensions (vector processing, neural-network acceleration) without licensing constraints, which is increasingly relevant for AI-at-the-edge workloads.
+
+## Expansion Backplane: Sensor and Connectivity I/O
+
+Pairing the NB2 core board with a purpose-designed expansion backplane creates the full "power edge intelligent platform." The backplane typically breaks out:
+
+- **Image acquisition interfaces** — MIPI CSI or USB camera ports for connecting optical or infrared cameras aimed at the transmission corridor.
+- **Serial and fieldbus ports** — RS-485, CAN, or similar industrial buses to aggregate data from environmental sensors (temperature, humidity, vibration).
+- **Ethernet and cellular uplinks** — for master-station interaction; 4G/5G or private LTE links are common in remote grid deployments where fibre is unavailable.
+- **Power management** — wide-input DC-DC conversion to accept substation auxiliary power (typically 48 V DC or 220 V AC rectified), plus battery backup support for ride-through during supply interruptions.
+
+This modular stamp-hole + backplane approach means the same NB2 core board can be adapted to different field configurations simply by swapping or customising the backplane, reducing NRE costs for grid operators that need slightly different I/O mixes at different tower types.
+
+## Key Functional Capabilities
+
+### Local Perception and Event Classification
+
+The gateway runs AI inference locally to classify four primary event categories the source article identifies:
+
+- **Wildfire (山火)** — smoke and flame detection using camera feeds, critical in forested or scrubland corridors.
+- **Ice accretion (覆冰)** — ice accumulation on conductors, which increases mechanical load and can cause sag or galloping.
+- **Foreign objects (异物)** — kites, balloons, construction debris, or bird nests in the conductor clearance zone.
+- **Tower cranes (塔吊)** — construction equipment operating in proximity to live conductors, a leading cause of accidental contact incidents.
+
+Running these classifiers on-device means the gateway can issue a local alert within seconds of detecting an anomaly, independent of network availability.
+
+### Sensor Data Aggregation, Processing, and Reporting
+
+Beyond vision-based AI, the platform aggregates data from attached sensors, applies edge filtering and threshold logic, and packages structured telemetry for upload to the master station (主站). This includes environmental readings, equipment status, and event metadata. The bidirectional interaction capability allows the master station to push configuration updates or request on-demand snapshots without requiring a technician on site.
+
+### Real-Time Video Backhaul
+
+When an event is confirmed, the gateway can initiate real-time video streaming back to the operations centre — allowing dispatchers to visually verify the situation before committing a response crew. Outside of alert conditions, the system operates in a low-bandwidth telemetry mode to conserve cellular data costs.
+
+## Domestic OS Compatibility: Power HarmonyOS and NeoKylin
+
+A key differentiator highlighted in the product positioning is support for domestic operating systems, specifically **Power HarmonyOS (电力鸿蒙)** — Huawei's HarmonyOS adapted for power-industry applications — and **NeoKylin (中标麒麟)**, the Linux-based OS developed by China Standard Software and widely mandated in critical infrastructure procurement. Supporting these platforms is increasingly a requirement in Chinese state-grid tenders, where information security regulations require domestically controlled software stacks from OS upward.
+
+## IP67 Enclosure: Outdoor Survivability
+
+The complete gateway assembly meets **IP67** ingress protection, meaning it is fully dust-tight and can withstand immersion in water up to one metre for 30 minutes. In practice, this ensures the unit survives the driving rain, condensation, and occasional flooding that outdoor tower-mounted equipment routinely encounters. The rating also provides a baseline confidence level for high-humidity subtropical and monsoon-zone deployments common across southern China's grid infrastructure.
+
+## Deployment Context
+
+The Distribution Visualization Gateway is representative of a broader class of edge intelligent gateways being deployed as China's grid operators modernise transmission monitoring. By co-locating AI inference, sensor aggregation, and communications on a single ruggedised platform built from a domestically sourced RISC-V SoC, the NB2-based gateway addresses both the technical requirements (low latency, offline operation, multi-sensor fusion) and the policy requirements (domestic chip, domestic OS) that define current grid-edge procurement.
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/148792846/01_25a343018cff48c6aeb23523f4297e3f.png)
 

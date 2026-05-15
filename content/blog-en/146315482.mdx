@@ -5,46 +5,62 @@ slug: "146315482"
 tags: ["#单片机", "#嵌入式硬件"]
 source: "https://blog.csdn.net/szxinmai/article/details/146315482"
 originalTitle: "基于CPLD+MCU的3U机箱模拟量采样板（AIO-I），主要功能由模拟量采集，模拟量输出，PWM采集和输出"
+expanded: true
 ---
+The AIO-I is a 3U chassis analog acquisition board built around a CPLD+MCU architecture, designed for industrial control systems that need simultaneous analog I/O, current-loop signalling, and PWM measurement in a compact, ruggedized form factor. This post walks through the board's architecture, key components, and the design rationale behind its signal chain.
 
-![01.jpg](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/146315482/01_7a72e4467797a8cad97f22c0c84dac76.jpeg)
+## Overview and Target Application
 
-Board Introduction:
+Industrial control racks—particularly those built to 3U CompactPCI or proprietary backplane standards—frequently require a single board that can handle mixed-signal tasks: reading process variables from 4–20 mA current-loop sensors, driving actuators with analog current outputs, capturing PWM-encoded feedback signals, and generating PWM drive signals for motor controllers or valve actuators. The AIO-I consolidates all four functions onto a 220 mm × 100 mm PCB, keeping the assembly weight at 160 g and staying within a standard single-slot 3U profile.
 
-This board is an Analog Acquisition Board (AIO-I), primarily featuring analog input, analog output, PWM input, and PWM output.
+## Core Silicon: MC9S08DZ60 MCU and EPM570T-144I3 CPLD
 
-Performance Specifications:
+The processor heart of the board is Freescale's (now NXP) **MC9S08DZ60**, an HCS08-family 8-bit MCU. The DZ60 integrates a 12-bit ADC, multiple serial interfaces including CAN and I²C, and on-chip flash—making it well-suited for embedded data acquisition tasks where low power and deterministic real-time response matter more than raw compute throughput. Its built-in CAN controller directly drives the two CAN channels exposed on the backplane connector, avoiding the need for an external CAN controller IC.
 
-Power Supply: DC5V, DC3.3V, DC±15V, DC±24V
+Alongside the MCU sits an **Altera EPM570T-144I3** CPLD (Intel MAX II family, 570 logic elements, 144-pin TQFP, industrial temperature grade). In a mixed-signal board like this, the CPLD serves several roles simultaneously:
 
-Self-Test Function: Supported
+- **Glue logic and address decoding** between the MCU bus and the various analog front-end circuits.
+- **PWM capture and generation** — the CPLD's logic fabric implements high-resolution timers that are more deterministic than software-managed timers on the MCU, enabling the ±1% accuracy specification across the full 0–20 kHz input range.
+- **Backplane interface management** — handling handshake and bus arbitration signals that would otherwise consume MCU I/O pins.
 
-MCU: MC9S08DZ60
+The combination of a low-power 8-bit MCU for housekeeping and a CPLD for time-critical digital functions is a classic embedded industrial design pattern: it keeps firmware simple while offloading latency-sensitive logic into dedicated hardware.
 
-Communication Interfaces (Backplane Side): CAN x2, I2C x 1
+## Power Architecture
 
-CPLD: EPM570T-144I3
+The board accepts four supply rails from the chassis backplane: **DC 5 V** (digital logic), **DC 3.3 V** (CPLD core and low-voltage interfaces), and **DC ±15 V / DC ±24 V** (analog signal conditioning). The dual bipolar rails are essential for the analog front end—precision op-amps handling ±10 V voltage signals or ±25 mA current signals need headroom above the signal range, which the ±15 V and ±24 V rails provide.
 
-Current/Voltage Sampling Channels: 4 channels (Nominal -25mA~25mA or -10V~10V, accuracy ±5‰)
+The board also re-distributes power outward to field devices: **four channels of ±24 V** and **two channels of ±15 V** external outputs. This allows the chassis to power field-side sensors and transmitters directly from the board rather than requiring separate field power supplies, simplifying system wiring.
 
-Current Output Channels: 2 channels (Nominal -25mA~25mA, accuracy ±5‰)
+## Analog Input Channels
 
-PWM Input: 3 channels (0~20kHz, accuracy ±1%)
+Four differential analog input channels accept either **current signals (−25 mA to +25 mA)** or **voltage signals (−10 V to +10 V)**, selectable per channel. The specified accuracy of **±5‰ (0.5%)** over the full range is consistent with 12-bit ADC resolution after calibration and offset correction.
 
-PWM Output: 3 channels (Fixed frequency 1kHz, adjustable duty cycle, accuracy ±5‰)
+In industrial practice, the −25 mA to +25 mA range is a superset of the standard 4–20 mA current-loop convention, allowing both standard two-wire transmitters and bipolar current sources (common in valve position feedback) to connect directly. The ±10 V voltage range covers most process-variable transmitters that use voltage outputs.
 
-Logic Input: 2 channels
+The self-test function listed in the specifications typically implies an internal loopback path or a known reference injection that lets the MCU verify ADC integrity and wiring continuity at startup—a requirement in safety-relevant industrial deployments.
 
-Logic Output: 1 channel
+## Analog Output Channels
 
-External Power Output: 4 channels ±24V, 2 channels ±15V
+Two current output channels provide **−25 mA to +25 mA** with **±5‰ accuracy**. Bipolar current outputs are commonly used to drive proportional solenoid valves, electro-hydraulic servo valves, or process controllers that accept 4–20 mA set-point signals. The ability to source negative current (down to −25 mA) supports symmetric actuator control (e.g., bidirectional valve trim) without needing a separate polarity-reversal circuit.
 
-Dimensions: 220mm\*100mm\*1.6mm
+## PWM Input Capture
 
-Weight: 0.160kg
+Three PWM input channels cover **0 to 20 kHz** at **±1% accuracy**. This frequency range spans the typical output of rotary encoders, tachometers, and duty-cycle-modulated sensor outputs found on brushless motor controllers and HVAC systems. At 20 kHz the CPLD-based capture logic must resolve pulse widths to better than 500 ns to meet the 1% spec—well within the timing resolution achievable in an EPM570 clocked from a standard 25–50 MHz oscillator.
 
-Operating Temperature: -25℃~70℃
+## PWM Output Generation
 
-Functional Block Diagram:
+Three PWM output channels operate at a **fixed frequency of 1 kHz** with **adjustable duty cycle** and **±5‰ accuracy**. The fixed 1 kHz carrier is a common choice for industrial actuator drive: it is low enough for RC-filter smoothing to produce a clean analog-equivalent voltage while remaining high enough to avoid audible noise in electromechanical loads. The MCU writes duty-cycle values to the CPLD over the internal bus, and the CPLD generates the precise gate signals.
 
-![02.jpg](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/146315482/02_3c571357e1d1806facac42bc51cd509b.jpeg)
+## Logic I/O and Backplane Communication
+
+Two **logic input** channels and one **logic output** channel provide simple on/off signalling—typical uses include fault relay contacts, interlock signals, or panel indicator drives.
+
+On the backplane side, the board presents **two CAN interfaces** (handled directly by the MC9S08DZ60's on-chip CAN modules) and **one I²C interface**. CAN is the dominant field bus for industrial chassis communication, providing noise immunity and multi-master capability across the backplane. I²C is typically used for lower-speed housekeeping tasks such as reading on-board temperature sensors, EEPROMs storing calibration coefficients, or communicating with a chassis management controller.
+
+## Environmental and Mechanical Specifications
+
+The board is rated for an operating temperature range of **−25 °C to +70 °C**, consistent with industrial-grade component selection (the EPM570T-144**I3** suffix explicitly denotes the industrial temperature grade). The compact 220 mm × 100 mm × 1.6 mm footprint and 160 g weight are typical for a single-wide 3U board in a 19-inch rack chassis.
+
+## Summary
+
+The AIO-I board demonstrates a well-balanced architecture for industrial mixed-signal acquisition: a proven 8-bit MCU handles CAN/I²C communication and analog data processing, while a CPLD manages the timing-critical PWM capture and generation tasks. The wide bipolar signal ranges, multi-rail power architecture, and on-board field power outputs make it well-suited for deployment in 3U industrial chassis where sensor conditioning, actuator drive, and backplane communication must coexist on a single compact card.

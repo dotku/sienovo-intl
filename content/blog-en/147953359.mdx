@@ -5,26 +5,68 @@ slug: "147953359"
 tags: ["#数码相机"]
 source: "https://blog.csdn.net/szxinmai/article/details/147953359"
 originalTitle: "RK3588 串行解串板，支持8路GMSL相机"
+expanded: true
 ---
+Connecting multiple GMSL cameras to an RK3588-based platform is a common requirement in autonomous driving development kits, industrial inspection rigs, and multi-channel NVR appliances. This post breaks down how many GMSL cameras the RK3588 SoC can realistically support, which deserializer boards make it possible, and what the hardware and software integration looks like in practice.
 
-The number of GMSL cameras that can be connected to RK3588 depends on the deserializer board model and configuration scheme used:
+## Why a Deserializer Board Is Required
 
-1.  ‌**xcDeserializer3.0 Deserializer Board**‌  
-    Can connect up to ‌**8-channel 2M GMSL2 cameras**‌1.
-    
-2.  ‌**xcDeserializer4.0 Deserializer Board**‌  
-    Supports ‌**4-channel 2M GMSL2 cameras**‌1.
-    
-3.  ‌**Edge Computing Box Solution**‌  
-    Some commercial solutions can enable ‌**4 or 8 channels of GMSL camera input**‌, for example, NVR solutions adapted for RK3588 support multi-channel intelligent detection38.
-    
+GMSL (Gigabit Multimedia Serial Link) is a serialized coaxial camera interface developed by Maxim Integrated (now Analog Devices). It is designed for long-cable, noise-tolerant camera links—ideal for automotive and industrial environments—but the RK3588 SoC does not have a native GMSL receiver. Instead, the RK3588 exposes up to **6 MIPI interfaces** through its DCPHY and CSI modules. A deserializer board sits between the GMSL cameras and the SoC, converting the serialized GMSL2 signal on each coax cable into a MIPI CSI-2 stream that the RK3588 can ingest directly.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/147953359/01_1c56bf9cc8094c2b8e228de7d03248d9.jpeg)
+This two-stage architecture—GMSL camera → deserializer → MIPI → RK3588—is the foundation for every multi-camera configuration described below.
 
-‌**Hardware Connectivity Support:**‌
+## Deserializer Board Options and Channel Counts
 
-*   RK3588 itself supports ‌**6 MIPI interfaces**‌ (via DCPHY or CSI modules)46, requiring a deserializer board to convert GMSL signals to MIPI signals before connecting to the development board.
-*   In terms of software configuration, the Kernel needs to be upgraded to support the deserializer board, and the camera started via example programs (such as `xcCamera`)1.
+The number of cameras you can connect depends entirely on which deserializer board you pair with the RK3588.
 
-‌**Summary:**‌  
-Theoretically, RK3588 can achieve higher channel GMSL camera input through combinations of multiple deserializer boards, but in actual projects, a comprehensive design is required based on the deserializer board model, ISP allocation, and software compatibility.
+### xcDeserializer 3.0 — Up to 8 Channels
+
+The xcDeserializer 3.0 is the higher-density option. It supports up to **8 channels of 2 MP GMSL2 cameras** simultaneously. This board aggregates multiple GMSL2 inputs and presents them to the RK3588 over MIPI, distributing camera streams across the SoC's available CSI ports. An 8-channel configuration pushes the RK3588's MIPI bandwidth hard, so ISP pipeline allocation and lane assignment must be planned carefully during board bring-up.
+
+### xcDeserializer 4.0 — Up to 4 Channels
+
+The xcDeserializer 4.0 targets applications where 4 simultaneous 2 MP GMSL2 streams are sufficient. It trades channel density for potentially simpler integration and may be the right choice when fewer CSI ports are available or when the downstream processing pipeline does not need all 8 feeds at once.
+
+### Edge Computing Box / NVR Solutions
+
+Several commercial edge-box products built around the RK3588—particularly NVR-class appliances—ship with integrated deserializer hardware and support either 4 or 8 channels of GMSL camera input. These solutions typically bundle pre-validated kernel drivers and ISP tuning profiles, reducing the bring-up effort compared to building a custom carrier board from scratch. They commonly include multi-channel intelligent detection pipelines that feed decoded camera frames directly into the RK3588's NPU for real-time inference.
+
+![RK3588 GMSL deserializer board](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/147953359/01_1c56bf9cc8094c2b8e228de7d03248d9.jpeg)
+
+## Hardware Integration Considerations
+
+**MIPI interface budget.** The RK3588 provides 6 MIPI interfaces in total (a mix of DCPHY and CSI lanes). An 8-channel deserializer board must multiplex all 8 camera streams over these 6 physical MIPI connections, so the deserializer's internal aggregation logic and the lane mapping to the SoC matter. Verify the lane-speed and data-rate requirements for your chosen camera resolution and frame rate against the DCPHY specifications before finalizing hardware.
+
+**ISP allocation.** The RK3588 has a multi-pipeline ISP capable of handling several concurrent streams, but the number of simultaneously active ISP paths is limited. When running 8 cameras at 2 MP, you need to confirm how streams are routed through the ISP—some channels may share ISP resources in a time-multiplexed fashion, which can affect latency and synchronization between cameras.
+
+**Cable and power.** GMSL2 coaxial cables can carry both data and power (PoC—Power over Coax), which simplifies camera installation in field deployments. Ensure the deserializer board's PoC supply budget covers the per-camera power draw at the planned cable lengths.
+
+## Software Configuration
+
+Enabling deserializer-connected cameras on RK3588 requires kernel-level support that is not present in a vanilla upstream kernel:
+
+1. **Kernel upgrade.** Flash or build a kernel that includes the deserializer board's driver. The board vendor (in this case, the xcDeserializer series) provides kernel patches or a BSP fork. Without the correct kernel driver, the deserializer's I²C configuration registers cannot be programmed and the MIPI streams will not initialize.
+
+2. **Camera bring-up with `xcCamera`.** Once the kernel is running, the vendor-supplied example application `xcCamera` can be used to start individual camera channels, verify frame delivery, and confirm CSI link lock. This is typically the first sanity-check step before integrating with a higher-level capture framework (V4L2, GStreamer, etc.).
+
+3. **ISP and pipeline configuration.** After raw frames are flowing, ISP parameters (AWB, AE, noise reduction) need to be tuned per camera module. Vendor-provided IQ (Image Quality) tuning files are usually included with the BSP.
+
+## Scaling Beyond 8 Channels
+
+The source notes that theoretically, combining multiple deserializer boards could push the channel count higher than 8. In practice, this is constrained by:
+
+- The total number of MIPI interfaces the RK3588 can expose (6 physical ports)
+- ISP throughput and NPU bandwidth if inference is running simultaneously
+- Software complexity of managing multiple deserializer I²C buses and synchronizing frame timestamps across boards
+
+For most production deployments, the 8-channel xcDeserializer 3.0 configuration represents the practical ceiling on a single RK3588 board without significant custom engineering.
+
+## Summary
+
+| Deserializer Board | Max GMSL2 Camera Channels | Camera Resolution |
+|---|---|---|
+| xcDeserializer 3.0 | 8 | 2 MP |
+| xcDeserializer 4.0 | 4 | 2 MP |
+| Commercial Edge Box | 4 or 8 | Varies |
+
+The RK3588's 6 MIPI interfaces, combined with the right deserializer board, make it a capable hub for multi-camera GMSL2 systems. The xcDeserializer 3.0 reaches the highest channel count at 8 cameras, while the xcDeserializer 4.0 offers a simpler 4-channel integration. Any deployment requires a BSP-supported kernel and careful ISP/lane planning—but with those in place, the RK3588 is a solid choice for edge-AI platforms that need simultaneous high-resolution camera feeds over rugged coaxial links.

@@ -1,6 +1,6 @@
 # SEO trend (auto-generated, do not edit)
 
-_Latest update: 2026-05-15T02:22:18.016Z_
+_Latest update: 2026-05-15T03:01:36.662Z_
 
 ## Daily search analytics (28-day rolling window per row)
 

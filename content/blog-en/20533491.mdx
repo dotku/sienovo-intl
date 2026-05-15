@@ -5,8 +5,63 @@ slug: "20533491"
 tags: []
 source: "https://blog.csdn.net/yeyuangen/article/details/20533491"
 originalTitle: "QOS流量整形"
+expanded: true
 ---
+## What Is QoS Traffic Shaping?
 
-#### TS (Traffic Shaping) is a measure that actively adjusts the traffic output rate. A typical application is to control the output of local traffic based on the TP (Throughput) metric of downstream network nodes. The main difference between traffic shaping and traffic policing is that traffic shaping buffers packets that would be dropped by traffic policing — typically by placing them into a buffer or queue. When the token bucket has enough tokens, these buffered packets are then sent out uniformly. Another difference between traffic shaping and traffic policing is that shaping may increase latency, whereas policing introduces almost no additional latency.
+Quality of Service (QoS) encompasses a broad set of techniques that network equipment uses to manage bandwidth, delay, jitter, and packet loss. Among these techniques, **Traffic Shaping (TS)** occupies a specific and important role: it actively adjusts the rate at which traffic leaves an interface so that the outgoing flow conforms to a defined profile. This article explains how traffic shaping works, how it differs from the closely related mechanism of traffic policing, and why the distinction matters for real-world network design.
 
-![](https://img-blog.csdn.net/20140305111834546?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvWUVZVUFOR0VO/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/Center)
+## The Core Mechanism: Rate Control Through Buffering
+
+Traffic Shaping is a measure that actively adjusts the traffic output rate. A typical application is to control the output of local traffic based on the TP (Throughput) metric of downstream network nodes.
+
+In practice this means that when an upstream device — say, a core router or an edge gateway — knows that the next hop can only sustain a certain throughput, it uses shaping to ensure it never hands off traffic faster than that limit. Instead of simply discarding excess packets the moment they arrive, the shaper holds them in a buffer or queue and releases them in a smooth, metered fashion once capacity is available.
+
+The mechanism that governs release timing is the **token bucket**. The token bucket model works as follows:
+
+- Tokens accumulate in a bucket at a fixed rate (the configured shaping rate).
+- Each packet consumes a number of tokens equal to its size in bytes.
+- A packet can only be transmitted when enough tokens are available.
+- If tokens are insufficient, the packet waits in the queue until enough tokens have accumulated.
+
+Because tokens accumulate steadily and packets drain the bucket only when sent, the output stream is smoothed out over time — bursts are absorbed rather than forwarded all at once or dropped outright.
+
+## Traffic Shaping vs. Traffic Policing
+
+The main difference between traffic shaping and traffic policing is that traffic shaping buffers packets that would be dropped by traffic policing — typically by placing them into a buffer or queue. When the token bucket has enough tokens, these buffered packets are then sent out uniformly. Another difference between traffic shaping and traffic policing is that shaping may increase latency, whereas policing introduces almost no additional latency.
+
+It is worth unpacking why these two behaviors lead to such different outcomes:
+
+| Property | Traffic Policing | Traffic Shaping |
+|---|---|---|
+| Excess packet handling | Drop (or re-mark) immediately | Buffer and defer transmission |
+| Latency impact | Minimal — no queuing delay added | Can add queuing delay |
+| Packet loss under burst | High — bursts are cut off | Low — bursts are absorbed into queue |
+| Typical placement | Ingress enforcement, SLA checking | Egress rate adaptation |
+| Resource cost | Very low (no buffer needed) | Higher (queue memory required) |
+
+**Traffic policing** is a one-pass decision: if a packet exceeds the contracted rate at the moment it arrives, it is dropped or its DSCP marking is downgraded. This is computationally cheap and introduces no delay, but it can cause significant packet loss during legitimate traffic bursts — loss that TCP interprets as congestion, triggering retransmits and throughput collapse.
+
+**Traffic shaping** trades that packet loss for queue depth. A shaped flow can sustain short bursts because the shaper absorbs them into its buffer, then drains the buffer at the configured rate. The cost is added latency: every packet that waits in queue spends additional time before delivery. For delay-sensitive traffic such as VoIP or interactive video, this trade-off can be unacceptable, which is why shaping is typically combined with a prioritization mechanism (such as LLQ or CBWFQ) that keeps latency-sensitive flows out of the shaping queue entirely.
+
+## Where Traffic Shaping Fits in a QoS Architecture
+
+A common deployment pattern is **hierarchical shaping**:
+
+1. An aggregate shaper enforces the overall contracted bandwidth for a WAN link or a subscriber.
+2. Inside that aggregate, individual class queues (video, voice, data) are scheduled with appropriate priorities and weights.
+3. A separate policing action at the ingress discards or re-marks traffic that exceeds per-class limits before it even reaches the shaper.
+
+This layered approach lets network operators honor SLAs without flooding slow downstream links, while still giving applications enough headroom to handle natural traffic bursts without triggering TCP congestion avoidance unnecessarily.
+
+## Practical Considerations
+
+**Buffer sizing** is one of the most important tuning parameters for a shaper. An undersized buffer causes tail-drop under burst, effectively reverting to policing behavior. An oversized buffer introduces bufferbloat — chronic high latency that degrades interactive applications even when the link is not fully saturated. Modern implementations often apply AQM algorithms such as CoDel or FQ-CoDel inside the shaping queue to keep latency bounded while still absorbing bursts.
+
+**Token bucket parameters** — the sustained rate (CIR), the peak rate (PIR), and the burst size (Bc and Be in Cisco terminology) — must be tuned to match the downstream link's actual capacity and the application's burst tolerance. Setting Bc too small forces the shaper to smooth traffic too aggressively, which increases latency. Setting it too large allows bursts that overwhelm downstream queues.
+
+**Shaping on the correct interface direction** also matters: shaping is almost always applied on egress (outbound), because that is where the device controls the rate at which bits leave onto the wire. Applying shaping on ingress is possible on some platforms but is less common and involves additional complexity.
+
+## Summary
+
+Traffic shaping is a controlled, queue-based mechanism for rate-adapting outgoing traffic to match downstream capacity. By buffering excess packets rather than dropping them, shaping reduces packet loss at the cost of added latency. This makes it complementary to — rather than a replacement for — traffic policing: policing enforces hard ingress limits with minimal delay impact, while shaping provides smooth egress delivery that downstream nodes can reliably absorb. Understanding the trade-off between these two tools is fundamental to designing QoS policies that meet both throughput and latency objectives across a network.
