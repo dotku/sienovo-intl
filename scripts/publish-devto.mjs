@@ -113,7 +113,32 @@ for (const post of batch) {
     });
     console.log(`✓ ${post.slug}  →  ${r.url}`);
   } else {
-    console.error(`✗ ${post.slug}  →  ${r.error}`);
+    // Self-healing: when Dev.to says the canonical_url is already taken,
+    // that means this article was already published in a previous run that
+    // didn't make it into devto-published.jsonl (state drift, e.g. the bot
+    // commit was lost or the state file got reverted). Record the slug as
+    // "alreadyPublished" so future runs skip it — no point retrying.
+    const alreadyTaken =
+      /HTTP 422/.test(r.error || "") &&
+      /Canonical url has already been taken/i.test(r.error || "");
+    if (alreadyTaken) {
+      appendPublished({
+        slug: post.slug,
+        title: post.title,
+        canonical_url: payload.article.canonical_url,
+        published_at: new Date().toISOString(),
+        alreadyPublished: true,
+        recovered: true,
+      });
+      console.warn(
+        `↺ ${post.slug}  →  canonical already on dev.to; marked as published`,
+      );
+    } else {
+      console.error(`✗ ${post.slug}  →  ${r.error}`);
+    }
+    results.push({ slug: post.slug, ...r, recovered: alreadyTaken });
+    await sleep(2000);
+    continue;
   }
   results.push({ slug: post.slug, ...r });
 
@@ -121,8 +146,14 @@ for (const post of batch) {
   await sleep(2000);
 }
 
-const fails = results.filter((r) => !r.ok).length;
-console.log(`\nDone: ${results.length - fails} ok / ${fails} failed`);
+// "Recovered" 422-already-taken counts as success for exit status — the side
+// effect (slug marked as published) prevents the same article from being
+// picked tomorrow, which is exactly what we want.
+const fails = results.filter((r) => !r.ok && !r.recovered).length;
+const recovered = results.filter((r) => r.recovered).length;
+console.log(
+  `\nDone: ${results.length - fails - recovered} ok / ${recovered} recovered / ${fails} failed`,
+);
 process.exit(fails > 0 ? 1 : 0);
 
 // ---------- helpers ----------
