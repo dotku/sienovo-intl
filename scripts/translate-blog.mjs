@@ -47,6 +47,18 @@ const PROVIDERS = {
     model: process.env.CLAUDE_MODEL || "sonnet",
     available: hasClaudeCLI(),
   },
+  // GitHub Models — uses MODELS_TOKEN (or GITHUB_TOKEN in Actions) with the
+  // `models:read` scope. OpenAI-compatible endpoint, generous free tier,
+  // gpt-4o-mini is the sweet spot for technical CN→EN translation: solid
+  // quality, fast, low rate-limit pressure. Override via GITHUB_MODELS_MODEL
+  // (e.g. "openai/gpt-4o" for top quality, "openai/gpt-5-mini" once GA'd).
+  "github-models": {
+    name: "GitHub Models",
+    url: "https://models.github.ai/inference/chat/completions",
+    key: process.env.MODELS_TOKEN || process.env.GITHUB_TOKEN,
+    model: process.env.GITHUB_MODELS_MODEL || "openai/gpt-4o-mini",
+    format: "openai",
+  },
   // Daily sync: Gemini 2.5 Flash free tier — 10 RPM, 250 RPD (as of 2025)
   gemini: {
     name: "Gemini Direct",
@@ -73,7 +85,7 @@ const PROVIDERS = {
   },
 };
 
-// Build provider chain: prefer claude > gateway > openrouter > gemini.
+// Build provider chain: prefer claude > github-models > gateway > openrouter > gemini.
 // Claude has no env key — its `available` flag is set when the CLI is
 // installed; everything else gates on a key.
 const availableProviders = Object.entries(PROVIDERS)

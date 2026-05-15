@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: write
+  models: read     # enables the auto GITHUB_TOKEN to call models.github.ai
 
 jobs:
   translate:
@@ -31,9 +32,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Try Gemini free first, fallback to Vercel AI Gateway
-      # Automatically skips already-translated articles
-      - name: Translate articles (Gemini free)
+      # Primary: GitHub Models (gpt-4o-mini) — free tier, OpenAI-compat,
+      # auth via the auto-injected GITHUB_TOKEN with `models: read` scope.
+      # Skips already-translated articles automatically.
+      - name: Translate articles (GitHub Models)
+        run: node scripts/translate-blog.mjs --provider github-models
+        continue-on-error: true
+        env:
+          MODELS_TOKEN: ${{ secrets.MODELS_TOKEN || github.token }}
+
+      # Fallback if GitHub Models hits daily quota or is down
+      - name: Translate remaining (Gemini free)
         run: node scripts/translate-blog.mjs --provider gemini
         continue-on-error: true
         env:
