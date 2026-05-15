@@ -5,14 +5,58 @@ slug: "135763955"
 tags: ["#FPGADev", "#NIAlternative", "#DAQCard"]
 source: "https://blog.csdn.net/yeyuangen/article/details/135763955"
 originalTitle: "Intel Atom + Artix-7 100T FPGA，CompactRIO单板控制器"
+expanded: true
 ---
+## Intel Atom + Artix-7 100T FPGA: Inside the NI sbRIO-9628 CompactRIO Single-Board Controller
 
-### Analog and Digital I/O, RMC, DisplayPort, 1.33 GHz Dual-Core CPU, 1 GB DRAM, 4 GB Storage Capacity, Artix-7 100T FPGA, CompactRIO Single-Board Controller
+For engineers who need deterministic real-time control combined with the flexibility of user-programmable logic in a single compact form factor, National Instruments' CompactRIO single-board RIO (sbRIO) platform has long been a go-to solution. The **sbRIO-9628** sits at the capable end of that lineup, pairing an Intel Atom dual-core processor with a Xilinx Artix-7 100T FPGA — a combination that makes it well-suited for demanding industrial automation, embedded DAQ, and hardware-in-the-loop (HIL) test applications where both processing throughput and I/O timing precision matter.
 
-CompactRIO controllers are embedded controllers equipped with real-time processors and user-programmable FPGAs. Their product range covers various rugged systems and single-board RIO products, and they can be used as single-board computers (SBCs) and systems on module (SOMs).
+## Architecture: Real-Time Processor Meets User-Programmable FPGA
 
-The sbRIO-9628 is a CompactRIO single-board controller that runs the NI Linux Real-Time operating system and includes a user-programmable FPGA and I/O on a single board. The controller also features a RIO Mezzanine Card (RMC) connector, providing direct, high-speed, and high-bandwidth access to the processor. In addition to 16-channel 16-bit analog inputs, 4-channel 16-bit analog outputs, and 4-channel 5 V tolerant DIO ports, the sbRIO-9628 also features Gigabit Ethernet, CAN, USB, serial, and SDHC ports. The registered trademark Linux® is used under sublicense from LMI, the exclusive licensee of Linus Torvalds, who owns the trademark Linux® throughout the world.
+The sbRIO-9628 runs **NI Linux Real-Time**, NI's hardened Linux-based RTOS that provides deterministic execution for time-critical control loops while still giving developers access to familiar Linux tooling and networking stacks. Atop this sits the dual-core Intel Atom CPU running at **1.33 GHz**, backed by **1 GB of DRAM** and **4 GB of onboard storage** — enough headroom to host a full application stack, data logging buffers, and user-space services without external storage during routine operation.
+
+What distinguishes sbRIO products from standard embedded Linux boards is the tight coupling between the host CPU and a **user-programmable FPGA** — in this case, a Xilinx **Artix-7 100T**. The Artix-7 100T is a mid-range device from Xilinx's 28 nm 7-series family, offering approximately 101,440 logic cells, 240 DSP slices, and 4.86 Mb of block RAM. That resource budget is substantial enough to implement custom I/O timing engines, signal processing pipelines, custom communication protocols, or parallel data acquisition logic entirely in fabric — tasks the CPU either cannot perform with sufficient determinism or would consume too much latency doing in software.
+
+## I/O Complement
+
+On the analog side, the sbRIO-9628 provides:
+
+- **16 channels of 16-bit analog input** — suitable for sensor acquisition, voltage/current monitoring, and general-purpose signal measurement
+- **4 channels of 16-bit analog output** — enabling precision setpoint generation, waveform synthesis, or closed-loop actuation signals
+
+The digital side includes **4 channels of 5 V tolerant digital I/O (DIO)**, which simplifies interfacing with legacy 5 V industrial logic without external level shifters.
+
+## Connectivity Ports
+
+Beyond the on-board I/O, the sbRIO-9628 exposes a full complement of industrial communication interfaces:
+
+| Interface | Notes |
+|---|---|
+| Gigabit Ethernet | High-speed LAN for data offload, remote monitoring, EtherNet/IP |
+| CAN | Common in automotive and industrial fieldbus topologies |
+| USB | Peripheral attachment, storage, and programming |
+| Serial (RS-232/RS-485) | Legacy instrument and device communication |
+| SDHC | Removable storage for data logging or field firmware updates |
+| **DisplayPort** | Video output for operator HMI panels or embedded display applications |
+
+The inclusion of **DisplayPort** is worth calling out — it enables direct connection to a monitor or panel display, opening the door to embedded HMI applications running directly on the controller without a separate display PC.
+
+## RIO Mezzanine Card (RMC) Connector
+
+A key differentiator of the sbRIO-9628 versus other single-board computers is its **RIO Mezzanine Card (RMC) connector**. The RMC interface provides a direct, high-bandwidth path between the processor subsystem and expansion mezzanine cards, bypassing the latency and throughput limitations of USB or PCIe bridges that would be typical in off-the-shelf SBC expansion designs. This makes the RMC connector suitable for connecting custom I/O, high-speed data acquisition mezzanines, or proprietary interface hardware that requires tight timing coupling with the FPGA fabric or CPU.
+
+## Positioning: SBC and SOM Use Cases
+
+NI positions the sbRIO product line for use both as a **single-board computer (SBC)** — a standalone controller running a complete application — and as a **system-on-module (SOM)** that can be integrated into a custom carrier board designed around the sbRIO's connectors. The SOM deployment model is particularly valuable for OEMs building volume products: the sbRIO-9628 handles the complex high-speed board design (DRAM routing, FPGA power sequencing, clock distribution), while the custom carrier board focuses on application-specific I/O and mechanical integration.
+
+## Practical Considerations
+
+Engineers evaluating the sbRIO-9628 typically develop FPGA personality and real-time application code using **NI LabVIEW** with the LabVIEW FPGA Module and LabVIEW Real-Time Module. The FPGA target is programmed via a bitfile compiled from LabVIEW FPGA code and deployed over the network or USB. For teams preferring HDL-based design, NI also supports component-level FPGA integration, though the primary workflow remains LabVIEW-centric.
+
+The combination of a capable Artix-7 100T fabric, deterministic NI Linux Real-Time, analog and digital I/O on a single board, and the RMC expansion path makes the sbRIO-9628 a compact but capable platform for applications such as machine control, embedded test fixtures, motor drive control, power electronics monitoring, and rapid prototyping of real-time control algorithms.
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/135763955/01_fa4a6fcc2836a4d8d2b4829581f8a1bc.png)
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/135763955/02_d6e9362332c9beeb9b74cf458054875b.png)
+
+*Linux® is a registered trademark of Linus Torvalds, used on this page under sublicense from LMI, the exclusive licensee of Linus Torvalds worldwide.*

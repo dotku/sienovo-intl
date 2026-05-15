@@ -5,12 +5,58 @@ slug: "135620905"
 tags: ["#DAQCard", "#NIAlternative", "#NI‑9234"]
 source: "https://blog.csdn.net/yeyuangen/article/details/135620905"
 originalTitle: "【NI国产替代】NI‑9234，4通道，51.2 kS/s/ch，±5 V，C系列声音与振动输入模块"
+expanded: true
 ---
+## Overview: The NI‑9234 and Its Role in Industrial Vibration Measurement
 
-4-channel, 51.2 kS/s/ch, ±5 V, C Series Sound and Vibration Input Module
-The NI‑9234 can measure signals from Integrated Electronic Piezoelectric (IEPE) and non-IEPE sensors, such as accelerometers, tachometers, and proximity probes. The NI‑9234 is also compatible with smart TEDS sensors.
+The NI‑9234 is a 4-channel, C Series sound and vibration input module rated for 51.2 kS/s per channel with a ±5 V input range. It is purpose-built for acquiring data from piezoelectric sensors commonly used in rotating machinery diagnostics, structural health monitoring, and acoustic testing. As demand for domestic (Chinese-manufactured) alternatives to National Instruments hardware grows in industrial automation and research settings, understanding the full capability set of the NI‑9234 is essential for identifying a functionally equivalent replacement.
 
-The NI‑9234 offers a wide dynamic range and integrates software-selectable AC/DC coupling and IEPE signal conditioning. The input channels can synchronously measure signals. Each channel also features a built-in anti-aliasing filter that automatically adjusts to the sampling rate. When used with NI software, the module provides processing functions for condition monitoring, such as frequency analysis and order tracking.
+## Supported Sensor Types
+
+The NI‑9234 is designed to interface with two broad categories of sensors:
+
+**IEPE (Integrated Electronic Piezoelectric) sensors** — These are the most common type of vibration sensor in industrial use. An IEPE accelerometer embeds a charge amplifier directly inside the sensor housing, requiring the DAQ module to supply a constant-current excitation (typically 2–4 mA) over the signal cable. The NI‑9234 provides this built-in IEPE signal conditioning per channel, eliminating the need for an external signal conditioner or ICP power supply. This simplifies cabling and improves noise immunity in long-cable installations.
+
+**Non-IEPE sensors** — Charge-output accelerometers, tachometers (both optical and magnetic pickup types), and eddy-current proximity probes produce signals that do not require constant-current excitation. The NI‑9234 supports these sensors as well, giving engineers flexibility to mix sensor types depending on the measurement scenario.
+
+Beyond standard sensors, the module is also compatible with **smart TEDS (Transducer Electronic Data Sheet)** sensors as defined by IEEE 1451.4. TEDS-enabled sensors carry an embedded memory chip that stores calibration coefficients, sensitivity, serial number, and calibration date. When a TEDS sensor is connected, compatible software can automatically read this metadata and configure the measurement channel accordingly — reducing manual setup errors and improving calibration traceability in regulated environments.
+
+## Key Measurement Characteristics
+
+### Dynamic Range and Signal Fidelity
+
+A wide dynamic range is critical in sound and vibration applications where low-amplitude noise floors must be resolved alongside high-amplitude shock events. The NI‑9234's ±5 V input range, combined with a high-resolution delta-sigma ADC architecture (24-bit is typical for this class of C Series module), provides the dynamic range needed to capture both quiet structural resonances and heavy machine vibration without clipping or losing low-level detail.
+
+### Software-Selectable AC/DC Coupling
+
+Each channel supports software-selectable AC or DC coupling:
+
+- **AC coupling** blocks the DC offset component of the signal, which is useful when only the AC vibration content is of interest and the sensor's DC bias voltage (common with IEPE sensors) would otherwise consume input range.
+- **DC coupling** passes the full signal including any DC component, which is necessary for measuring slowly varying signals, static force, or certain proximity probe outputs where the DC level encodes position information.
+
+Being software-selectable means coupling can be changed programmatically per channel without hardware rewiring, enabling flexible test sequences where the same module handles multiple measurement types.
+
+### Synchronous Multi-Channel Sampling
+
+All four input channels are sampled synchronously — that is, their analog-to-digital conversions are triggered simultaneously rather than multiplexed in sequence. This is a fundamental requirement in vibration analysis. When measuring the response of a multi-degree-of-freedom structure or correlating vibration at different points on a machine, any phase offset introduced by time-multiplexed sampling corrupts frequency response functions (FRFs), coherence calculations, and cross-spectral analyses. Synchronous sampling ensures phase relationships between channels are preserved to within the timing resolution of the ADC clock.
+
+### Built-In Anti-Aliasing Filter
+
+The Nyquist theorem requires that any signal component above half the sampling rate be removed before digitization to prevent aliasing. The NI‑9234 includes a built-in anti-aliasing filter on each channel that **automatically adjusts its cutoff frequency to track the selected sample rate**. This is a significant practical advantage: when an engineer changes the sample rate in software, the analog filter bandwidth adjusts automatically, maintaining proper anti-aliasing protection without requiring the user to manually select or install different filter hardware.
+
+## Condition Monitoring Applications
+
+When used within NI software environments (such as LabVIEW with the Sound and Vibration Toolkit, or NI InsightCM), the NI‑9234 gains access to higher-level signal processing functions specifically designed for machinery health monitoring:
+
+**Frequency Analysis** — Fast Fourier Transform (FFT)-based spectral analysis converts time-domain vibration waveforms into frequency-domain spectra, allowing identification of specific fault frequencies associated with bearing defects, gear mesh, imbalance, or misalignment.
+
+**Order Tracking** — In rotating machinery, many vibration components are harmonically related to shaft speed rather than fixed in absolute frequency. Order tracking resamples vibration data as a function of shaft angle (using a tachometer reference signal) rather than time, producing order spectra where fault signatures remain at fixed order numbers regardless of speed variation. This is essential for run-up and coast-down analysis.
+
+These capabilities make the NI‑9234 not just a raw data acquisition module but a building block for complete condition monitoring systems in manufacturing, power generation, and transportation infrastructure.
+
+## Context: NI Domestic Alternatives
+
+The growing ecosystem of domestically produced DAQ hardware in China is targeting modules like the NI‑9234 as high-priority substitution candidates. Industrial customers requiring C Series-form-factor sound and vibration modules look for domestic alternatives that match on the critical axes: sample rate per channel (51.2 kS/s), input voltage range (±5 V), IEPE excitation current supply, synchronous sampling architecture, anti-aliasing filter behavior, and TEDS support. Software compatibility — particularly with LabVIEW drivers or standard interfaces such as NI-DAQmx — is an additional evaluation dimension when the surrounding test system software infrastructure is already NI-based.
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb8.r2.dev/blog/135620905/01_1b38423fd68939b8039ce906573f743a.png)
 

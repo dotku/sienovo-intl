@@ -5,9 +5,61 @@ slug: "135625771"
 tags: ["#NIAlternative", "#DAQCard", "#NI-9231"]
 source: "https://blog.csdn.net/yeyuangen/article/details/135625771"
 originalTitle: "【NI国产替代】NI-9231，8通道，51.2 kS/s/ch，-5至5 V，C系列声音和振动输入模块"
+expanded: true
 ---
+## Overview
 
-8-channel, 51.2 kS/s/ch, -5 to 5 V, C Series Sound and Vibration Input Module
-The NI-9231 is a high-density sound and vibration module capable of measuring signals from Integrated Electronic Piezoelectric (IEPE) and non-IEPE sensors such as accelerometers, tachometers, and proximity probes. The module can perform the high dynamic range measurements required by modern microphones and accelerometers and features simultaneous sampling capabilities. The NI-9231 integrates a TEDS input path and a 2 mA IEPE signal excitation source, both of which can be enabled and disabled, thus eliminating the need for external sensor power supplies and reducing the complexity of the data acquisition system.
+The NI-9231 is an 8-channel C Series sound and vibration input module designed for high-fidelity dynamic signal acquisition. It targets engineers working on noise, vibration, and harshness (NVH) testing, rotating machinery analysis, and structural health monitoring — applications where both measurement accuracy and sensor flexibility are critical. This post unpacks the module's key specifications and explains why each feature matters in a real industrial measurement context, and frames what to look for in a domestic Chinese-market equivalent.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/135625771/01_05f9a48407e7bf31669d75db79b6c364.png)
+## Key Specifications at a Glance
+
+| Parameter | Value |
+|---|---|
+| Channels | 8 simultaneous |
+| Sample rate | 51.2 kS/s per channel |
+| Input range | −5 V to +5 V |
+| IEPE excitation | 2 mA (switchable) |
+| TEDS support | Yes (IEEE 1451.4) |
+| Form factor | NI C Series |
+
+The 51.2 kS/s per-channel rate is not arbitrary. At that rate, the usable bandwidth reaches roughly 20 kHz — exactly the upper limit of human hearing and a common target for acoustic and vibration analysis per ISO 5348 and IEC 61260. Nyquist headroom is preserved by an onboard anti-aliasing filter.
+
+## IEPE and Non-IEPE Sensor Compatibility
+
+Integrated Electronic Piezoelectric (IEPE) sensors — sometimes marketed under ICP® (PCB Piezotronics) or similar trade names — embed a charge amplifier directly inside the sensor housing. They require a constant-current excitation source (typically 2–20 mA) delivered over the same coaxial cable that carries the signal. The NI-9231 supplies exactly 2 mA of IEPE excitation per channel, which covers the majority of commercially available IEPE accelerometers, microphones, and force sensors.
+
+Crucially, that excitation source is software-switchable on a per-channel basis. When you connect a non-IEPE sensor — a DC-biased proximity probe, a passive velocity transducer, or a voltage-output tachometer — you simply disable the excitation to avoid damaging the sensor or corrupting the signal. This single hardware capability eliminates the need for a separate signal conditioner chassis in mixed-sensor setups, which is a meaningful reduction in rack space and wiring complexity.
+
+## Simultaneous Sampling and Phase Coherence
+
+Many lower-cost DAQ modules multiplex a single ADC across all channels using a sample-and-hold approach. This introduces inter-channel skew — typically on the order of microseconds — which corrupts phase relationships between channels. For modal analysis, transfer function measurements, or any application that computes cross-spectra or coherence functions, even small phase errors produce significant systematic errors in the results.
+
+The NI-9231 uses one ADC per channel, sampling all eight channels at precisely the same instant. This simultaneous sampling architecture ensures that phase relationships measured between channels are the true physical relationships, not measurement artifacts. For rotating machinery diagnostics — where you might simultaneously measure vibration at the bearing, shaft speed via a tachometer, and acoustic noise near the housing — phase coherence is not optional.
+
+## TEDS: Plug-and-Play Sensor Identification
+
+Transducer Electronic Data Sheet (TEDS), defined by IEEE 1451.4, embeds a small EEPROM chip directly in a sensor or its connector. When the NI-9231 detects a TEDS-enabled sensor, it reads calibration coefficients, sensitivity, serial number, and physical units directly from the sensor — no manual entry required.
+
+This matters operationally. In a multi-channel test rig with dozens of accelerometers, manually entering sensitivity values introduces transcription errors and slows setup. TEDS eliminates both problems. The NI-9231 provides one TEDS communication path per channel integrated into the same signal line, requiring no additional wiring.
+
+## Dynamic Range Considerations
+
+High dynamic range (HDR) measurements are called out explicitly in the module description. In acoustic and vibration work, dynamic range determines the ratio between the largest signal the system can measure without saturating and the smallest signal it can resolve above the noise floor. Modern piezoelectric microphones and accelerometers can easily span 120 dB or more — from near-silent background noise to high-amplitude shock events. A module with insufficient dynamic range will either clip loud events or bury quiet signals in quantization noise. The NI-9231's ±5 V input range paired with a high-resolution sigma-delta ADC addresses this requirement.
+
+## Domestic Alternative Context
+
+The "[NI Domestic Alternative]" framing reflects a broader trend in Chinese industrial instrumentation — replacing NI CompactDAQ hardware with domestically manufactured equivalents that meet the same IEC/ISO measurement standards. When evaluating a domestic NI-9231 equivalent, the specifications above form the baseline checklist:
+
+- **Per-channel simultaneous sampling** — not multiplexed
+- **Switchable IEPE current excitation** (2 mA minimum, per-channel control)
+- **TEDS support** for sensor identification
+- **Anti-aliasing filter** matched to the sample rate
+- **Software API compatibility** — whether the module integrates with NI-DAQmx drivers, or provides an equivalent Python/C SDK
+
+Modules from vendors in the C Series compatible ecosystem, as well as standalone USB/PCIe DAQ cards from Chinese manufacturers, increasingly match these specifications. The key due-diligence step is verifying simultaneous sampling architecture and inter-channel phase specification in the datasheet — these are the parameters most likely to be quietly compromised in cost-reduced designs.
+
+![NI-9231 module](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/135625771/01_05f9a48407e7bf31669d75db79b6c364.png)
+
+## Summary
+
+The NI-9231 is a well-specified 8-channel simultaneous sound and vibration front-end built around IEPE compatibility, TEDS auto-identification, and a 51.2 kS/s per-channel rate that covers the full audio band. Its switchable excitation and TEDS path reduce external hardware requirements. For engineers evaluating domestic Chinese alternatives, these same features — simultaneous sampling, switchable per-channel IEPE excitation, and TEDS — are the right criteria to benchmark against.

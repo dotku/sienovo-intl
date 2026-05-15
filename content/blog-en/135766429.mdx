@@ -5,10 +5,59 @@ slug: "135766429"
 tags: ["#FPGADev", "#NIAlternative", "#DAQCard"]
 source: "https://blog.csdn.net/yeyuangen/article/details/135766429"
 originalTitle: "【进口控制器替代】基于Zynq-7020 FPGA的NI 8槽CompactRIO控制器"
+expanded: true
 ---
+The cRIO-9068 is a serious piece of industrial hardware, and for engineering teams looking to move away from fully proprietary Western automation platforms without sacrificing real-time determinism or FPGA flexibility, it deserves a careful look. This post breaks down the controller's architecture, connectivity, and the design philosophy behind combining a hardened real-time processor with reconfigurable FPGA logic on a single module.
 
-667 MHz dual-core CPU, 512 MB DRAM, 1 GB storage, Zynq-7020 FPGA, wider operating temperature range, 8-slot CompactRIO controller
-The cRIO-9068 is a rugged, fanless embedded controller for advanced control and monitoring applications. This software-designed controller features an FPGA, a real-time processor running NI Linux Real-Time OS, and embedded user interface capabilities. The cRIO-9068 has an SDHC slot and various connectivity ports, including two tri-speed RJ-45 Gigabit Ethernet ports, one USB host port, and three RS-232 serial ports. Additionally, the cRIO-9068 supports an extended operating temperature range. The registered trademark Linux® is used pursuant to a sublicense from LMI, the exclusive licensee of Linus Torvalds, who owns the trademark Linux® throughout the world.
+## What Is CompactRIO and Why Does It Matter
+
+National Instruments' CompactRIO (cRIO) platform is a modular, rugged measurement and control architecture widely used in industrial automation, aerospace testing, and machine condition monitoring. The chassis accepts I/O modules — analog input, digital output, CAN, serial, and more — that communicate directly with an on-board FPGA. This lets engineers implement deterministic, microsecond-level signal processing in hardware while offloading higher-level logic to the embedded real-time processor. The result is a single compact unit that replaces what would otherwise require a PLC, a DSP board, and a separate PC.
+
+The cRIO-9068 is the 8-slot variant of this platform built around the Xilinx Zynq-7020 SoC.
+
+## The Zynq-7020: CPU and FPGA on One Die
+
+The Zynq-7020 is part of Xilinx's (now AMD's) Zynq-7000 All Programmable SoC family. It integrates a dual-core ARM Cortex-A9 processing system (PS) tightly coupled with 28 nm programmable logic (PL) fabric on the same silicon die. This is architecturally significant: unlike traditional FPGA-plus-CPU board designs where the processor talks to the FPGA over an external bus (PCIe, SPI, etc.), the Zynq's PS and PL share on-chip AXI interconnects with cache-coherent memory paths, dramatically reducing round-trip latency for control loops that need the CPU and FPGA to exchange data at high rates.
+
+On the cRIO-9068, NI exposes this architecture to the programmer via LabVIEW FPGA: the FPGA VI runs on the programmable logic fabric and handles raw I/O with deterministic timing, while the real-time VI runs on the processor under NI Linux Real-Time, handling communication, logging, and supervisory control.
+
+## Hardware Specifications
+
+| Parameter | Value |
+|---|---|
+| Processor | Dual-core ARM Cortex-A9 @ 667 MHz |
+| DRAM | 512 MB |
+| Non-volatile storage | 1 GB |
+| FPGA | Xilinx Zynq-7020 |
+| I/O slots | 8 (C Series modules) |
+| Ethernet | 2 × tri-speed RJ-45 (10/100/1000) |
+| Serial | 3 × RS-232 |
+| USB | 1 × USB 2.0 host |
+| Storage expansion | SDHC slot |
+| Cooling | Fanless (convection) |
+| OS | NI Linux Real-Time |
+
+The dual Gigabit Ethernet ports are particularly useful in industrial deployments: one port can be dedicated to a control network (EtherNet/IP, Modbus TCP, or a custom UDP protocol), while the second handles configuration, monitoring, and data offload to an enterprise historian or SCADA system — without the two traffic types competing on the same wire.
+
+## Real-Time OS and Software Architecture
+
+The cRIO-9068 runs NI Linux Real-Time, a hardened Linux distribution with a PREEMPT_RT kernel patch and NI's LabVIEW Real-Time execution engine on top. This gives the processor core genuine real-time scheduling guarantees — loop jitter in the tens-of-microseconds range for pure CPU tasks — while remaining compatible with standard Linux networking stacks, file I/O, and third-party shared libraries compiled for ARM.
+
+The software-designed controller model means the FPGA bitfile is compiled from LabVIEW FPGA source (or, with more effort, from HDL) and deployed at runtime rather than burned into a fixed gate array. This is the core of NI's value proposition: the same physical chassis can implement a PID controller today and a vibration analysis front-end tomorrow simply by redeploying a different bitfile.
+
+## Fanless Design and Extended Temperature Operation
+
+Industrial environments — factory floors, outdoor enclosures, vehicle bays — often cannot tolerate fan-cooled electronics. Fans introduce bearing wear, draw in particulate contamination, and create noise. The cRIO-9068's fanless, sealed aluminum chassis relies on conductive and convective cooling through the chassis walls. NI rates the unit for an extended operating temperature range beyond the standard 0–55 °C commercial band, making it suitable for applications where ambient temperature swings significantly during operation or seasonal variation.
+
+## Connectivity for System Integration
+
+The three RS-232 serial ports give the controller direct, hardware-level access to legacy instrumentation — weigh scales, barcode scanners, motor drives, and PLCs that predate modern fieldbus standards but are still very much present in brownfield installations. Combined with the USB host port (useful for USB-to-serial adapters, USB drives for firmware updates, or USB dongles), the cRIO-9068 covers a wide range of integration scenarios without requiring additional gateway hardware.
+
+The SDHC slot provides removable non-volatile storage for data logging applications where the 1 GB internal flash would be exhausted quickly — a common requirement in continuous waveform logging or high-rate event capture scenarios.
+
+## Why Consider This as an Imported Controller Alternative
+
+For engineering teams in markets where procurement of U.S.-origin industrial controllers is constrained by cost, lead time, or import logistics, the architectural template the cRIO-9068 represents — Zynq SoC + real-time Linux + modular I/O chassis — is increasingly being replicated by domestic suppliers. Understanding the reference design at this level of detail (processor speed, DRAM, FPGA family, I/O slot count, connectivity ports) gives procurement and engineering teams a concrete specification baseline against which to evaluate alternatives and ensure functional equivalence before committing to a platform migration.
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/135766429/01_c5dc10c1f26d74325a56a27ef2c16c20.png)
 

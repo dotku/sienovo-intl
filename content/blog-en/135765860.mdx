@@ -5,11 +5,46 @@ slug: "135765860"
 tags: ["#FPGADev"]
 source: "https://blog.csdn.net/yeyuangen/article/details/135765860"
 originalTitle: "【进口控制器国产替代】Intel Atom + Artix-7 75T FPGA，CompactRIO单板控制器"
+expanded: true
 ---
+The NI sbRIO-9603 is a compact, high-integration single-board controller from National Instruments' CompactRIO family, designed to bring real-time processing and reconfigurable FPGA logic onto a single PCB for demanding OEM applications. This post examines the hardware architecture, key I/O capabilities, and why this platform—and its domestic-market equivalents—has become a reference point for engineers evaluating embedded industrial controllers that balance processing power with deterministic hardware control.
 
-Digital I/O, RMC, 1.33 GHz Dual-Core CPU, 1 GB DRAM, 4 GB Storage, Artix-7 75T FPGA, CompactRIO Single-Board Controller
-The sbRIO-9603 is an embedded controller that integrates a real-time processor, user-reconfigurable FPGA, and digital I/O on a single printed circuit board (PCB). The sbRIO-9603 can be embedded in high-volume OEM applications that require flexibility, reliability, and high performance. The controller features two Ethernet connectors, an RS232 serial port, a CAN port, and an RMC connector for connecting two C Series I/O modules and 96 3.3 V digital I/O lines.
+## What Is the sbRIO-9603?
+
+The sbRIO-9603 belongs to NI's Single-Board RIO (sbRIO) product line, which is aimed at volume OEM deployments where integrating a full CompactRIO chassis is impractical. Unlike a standard cRIO system that separates the controller and chassis, an sbRIO consolidates the real-time processor, FPGA fabric, and digital I/O onto one board—reducing BOM complexity, board-to-board latency, and physical footprint.
+
+The processor at the heart of the sbRIO-9603 is a 1.33 GHz dual-core Intel Atom, a processor family well-regarded in embedded industrial computing for its balance of x86 compatibility, low power draw, and thermal manageability without active cooling in many enclosure designs. Paired with 1 GB of DRAM and 4 GB of on-board non-volatile storage, the real-time processor side is sufficient for running NI Linux Real-Time OS, LabVIEW Real-Time applications, and on-board data logging simultaneously.
+
+## FPGA Fabric: Artix-7 75T
+
+The reconfigurable logic on the sbRIO-9603 is provided by a Xilinx Artix-7 75T FPGA. The Artix-7 family is a 28 nm generation device from AMD/Xilinx optimized for cost-sensitive applications that still require significant logic density and DSP capability. The 75T variant provides approximately 75,000 logic cells, 105 DSP48E1 slices, and block RAM resources that make it suitable for custom signal processing pipelines, hardware-timed I/O sequencing, sensor fusion loops, and custom communication protocol implementations—tasks where a CPU's operating system jitter would be unacceptable.
+
+In the CompactRIO programming model, the FPGA runs code compiled from LabVIEW FPGA or, in newer toolchains, other HDL-compatible flows. The tight coupling between the real-time processor and the FPGA over an internal high-bandwidth bus allows the host processor to stream data to and from the FPGA with low latency, enabling hybrid architectures where the FPGA handles microsecond-level control loops while the processor manages higher-level logic, networking, and user interfaces.
+
+## Connectivity and I/O
+
+The sbRIO-9603's I/O complement is well-suited to industrial automation, motion control, and data acquisition roles:
+
+- **Two Gigabit Ethernet ports** — supports deterministic communication protocols (EtherCAT, Modbus TCP, OPC UA) as well as standard TCP/IP networking for HMI or SCADA connectivity.
+- **RS-232 serial port** — for legacy device integration, barcode scanners, PLCs, or sensor modules with UART-based protocols.
+- **CAN port** — enables integration into CAN bus networks common in automotive test, industrial machinery, and robotics applications.
+- **RMC connector** — the Reconfigurable Mezzanine Card interface allows two NI C Series I/O modules to be attached directly, extending the board's measurement and control capabilities with NI's broad catalog of signal conditioning modules (thermocouples, strain gauges, analog I/O, counter/timers, etc.).
+- **96 × 3.3 V digital I/O lines** — a large bank of general-purpose digital I/O routed directly to the FPGA, enabling custom parallel communication buses, encoder interfaces, relay driving (through appropriate buffering), or custom protocol bit-banging at hardware-timed rates.
+
+## OEM Integration Considerations
+
+Because the sbRIO-9603 is designed for volume OEM embedding rather than benchtop use, it omits a chassis and relies on the integrator to provide power conditioning, mechanical mounting, and thermal management. The 3.3 V digital I/O lines operate at standard LVTTL logic levels, which means level shifting may be required when interfacing with 5 V industrial equipment. The CAN port follows standard CAN 2.0 electrical specifications and requires a CAN transceiver in the signal path if connecting to an ISO 11898-2 physical layer bus.
+
+The dual Ethernet ports also support network redundancy configurations, which is a common requirement in safety-critical OEM machine designs where a broken cable to one network segment must not halt operation.
+
+## The Domestic Replacement Context
+
+The article title frames the sbRIO-9603 as a benchmark for domestic substitution efforts in China's industrial computing sector. NI's CompactRIO and sbRIO platforms have been widely adopted in Chinese manufacturing, aerospace test, and energy sectors over the past two decades, but the combination of import costs, export control exposure, and national policy incentives around domestic semiconductor and industrial control content has pushed Chinese OEMs to evaluate alternatives that replicate the core architectural pattern: a real-time x86 or Arm processor tightly coupled to a mid-range FPGA with a standard suite of industrial I/O.
+
+The sbRIO-9603's specification sheet—1.33 GHz dual-core processor, Artix-7 75T FPGA, 96 DIO lines, dual GbE, CAN, RS-232, and C Series expansion—serves as a concrete feature target for domestic equivalent designs. Matching this architecture requires sourcing or designing a real-time processor board, integrating an FPGA with equivalent logic density, and replicating the software ecosystem that makes the NI platform productive (deterministic OS, FPGA toolchain, driver libraries). That software layer is typically where domestic alternatives face the steepest engineering challenge, even when the hardware BOM can be matched component-by-component.
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/135765860/01_53ef6765b8f2b5438c1683e47a7eb89e.png)
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/135765860/02_caf80c485df2987e6b418d1da9925273.png)
+
+For engineers evaluating whether the sbRIO-9603 or a comparable domestic platform fits a given OEM application, the key questions are FPGA logic utilization headroom for the intended control algorithm, whether the software toolchain supports the existing engineering team's workflow, and how the vendor's long-term supply and support commitments compare—factors that have become as important as raw hardware specifications in the current industrial supply chain environment.

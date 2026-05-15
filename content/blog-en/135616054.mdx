@@ -5,10 +5,73 @@ slug: "135616054"
 tags: ["#DAQCard", "#NIAlternative"]
 source: "https://blog.csdn.net/yeyuangen/article/details/135616054"
 originalTitle: "【NI国产替代】PXIe-4480，1.25 MS/s , 3.4 Hz AC/DC耦合，6输入PXI声音与振动模块"
+expanded: true
 ---
+## Overview
 
-### 1.25 MS/s, 3.4 Hz AC/DC Coupled, 6-Input PXI Sound and Vibration Module
+The PXIe-4480 is a high-performance sound and vibration measurement module for the PXI Express platform, targeting engineers who need precise dynamic signal acquisition across audio, acoustic, and structural vibration domains. This article covers the module's key specifications, signal-conditioning capabilities, and typical deployment scenarios — and examines why it has become a reference point for domestic (Chinese-made) DAQ card alternatives in the PXI ecosystem.
 
-The PXIe-4480 is designed for high-bandwidth audio, acoustic, and vibration measurements. It provides six channels of dynamic signal acquisition, and you can configure the input range using four gain settings. The PXIe-4480 also offers software-configurable AC/DC coupling, charge measurement, voltage excitation, IEPE excitation, and TEDS support, making it ideal for measuring acoustic sensors, pressure sensors, and hydrophones. Common applications include audio testing; noise, vibration, and harshness (NVH) analysis; and underwater acoustic measurements. To measure transient changes, such as high-speed explosions and pressure events, the PXIe-4480 can sample at up to 20 MS/s in time-domain mode on each channel.
+## Key Specifications at a Glance
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/135616054/01_6e49635fd5bf25823c25aa7819939bdf.png)
+| Parameter | Value |
+|---|---|
+| Channels | 6 simultaneous analog inputs |
+| Standard sample rate | 1.25 MS/s per channel |
+| Burst / time-domain sample rate | Up to 20 MS/s per channel |
+| Low-frequency AC cutoff | 3.4 Hz |
+| Coupling modes | AC and DC (software-selectable) |
+| Input range | 4 gain settings (software-configurable) |
+| Sensor excitation | IEPE current, voltage excitation, charge measurement |
+| Sensor ID | TEDS (IEEE 1451.4) |
+
+The 3.4 Hz lower cutoff in AC-coupled mode is worth noting: most general-purpose DAQ cards begin rolling off at 10 Hz or higher, making the PXIe-4480's extended low-frequency response essential for infrasound characterisation and low-frequency structural resonance studies.
+
+## Signal Conditioning Features
+
+### AC/DC Coupling
+
+Software-selectable coupling lets a single module serve both sensor types without hardware changes. AC coupling blocks DC bias and low-frequency drift, which is appropriate for microphones and IEPE accelerometers during steady-state NVH measurements. DC coupling is required when the measurand itself contains a DC component — static pressure offsets, for example — or when the sensor output must not be high-pass filtered.
+
+### IEPE Excitation
+
+IEPE (Integrated Electronics Piezo-Electric) is the industry-standard constant-current excitation scheme used by the majority of accelerometers and microphone preamplifiers on the market. The PXIe-4480 supplies the required current directly from each input channel, eliminating the need for an external signal conditioner and simplifying cable runs in multi-channel setups.
+
+### Charge Measurement Mode
+
+Some high-temperature or miniature piezoelectric sensors output charge rather than voltage. The PXIe-4480 supports direct charge measurement, acting as an integrated charge amplifier. This is especially useful in combustion testing or engine test-cell environments where conventional IEPE sensors cannot tolerate the thermal environment.
+
+### Voltage Excitation
+
+Certain resistive bridge sensors and specialty transducers require a stable DC voltage supply from the measurement system. The module provides software-configurable voltage excitation on each channel, keeping the signal chain compact within a single PXI slot.
+
+### TEDS Support
+
+TEDS (Transducer Electronic Data Sheet, IEEE 1451.4) embeds calibration and identification data in a small memory chip inside the sensor connector. When the PXIe-4480 reads TEDS, the measurement software can automatically populate sensitivity, serial number, and calibration date — reducing manual setup errors during large multi-sensor campaigns.
+
+## Burst Sampling at 20 MS/s
+
+The 1.25 MS/s standard rate comfortably covers the full audio band and most vibration analysis up to 500 kHz. For transient events — explosive pressure pulses, shock wave arrivals, or fast valve closure events — the module switches to a time-domain burst mode that increases the per-channel rate to 20 MS/s. This mode captures the full waveform shape of events that would be aliased or missed at the standard rate, making the PXIe-4480 viable for shock-response spectrum (SRS) analysis and ballistic testing in addition to routine NVH work.
+
+## Typical Application Areas
+
+**Audio and Electroacoustics Testing**
+End-of-line speaker and microphone qualification, THD+N, frequency response, and weighted noise measurements across the full audible band.
+
+**Noise, Vibration, and Harshness (NVH) Analysis**
+Automotive powertrain and chassis NVH is one of the primary markets. Engineers mount IEPE accelerometers on engine blocks, suspension members, and body panels, then capture simultaneous six-channel data while the vehicle runs on a dynamometer or road simulator. The 3.4 Hz low-frequency capability captures whole-body vibration modes that would otherwise fall below the measurement floor.
+
+**Underwater Acoustics and Hydrophone Arrays**
+Hydrophones are charge-output or voltage-output devices optimised for pressure measurement in water. The PXIe-4480's combination of DC coupling, charge measurement, low-frequency response, and wide dynamic range suits sonar calibration, underwater target detection research, and environmental noise monitoring.
+
+**High-Speed Transient Pressure**
+Explosion overpressure, pyrotechnic shock, and hydraulic hammer events require both high sample rates and sufficient low-frequency extension to capture the quasi-static pressure rise following the initial blast. The 20 MS/s burst mode addresses the high-frequency requirement; the 3.4 Hz AC cutoff and DC coupling address the quasi-static component.
+
+## Domestic Alternative Context
+
+As import restrictions and supply-chain considerations have pushed Chinese industrial and defence customers toward domestically produced instrumentation, the PXIe-4480 has become a benchmark specification that domestic DAQ card manufacturers target. A compliant domestic alternative must match the six-channel simultaneous architecture, the dual-rate sampling capability (1.25 MS/s standard, 20 MS/s burst), software-selectable AC/DC coupling, IEPE/charge/voltage excitation, and TEDS reading — all within a single PXI Express slot. The combination of these features in one module is non-trivial, and the PXIe-4480 remains a useful yardstick when evaluating whether a domestic substitute is a true functional replacement or a partial implementation.
+
+![PXIe-4480 module](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/135616054/01_6e49635fd5bf25823c25aa7819939bdf.png)
+
+## Summary
+
+The PXIe-4480 packs six fully-featured dynamic signal acquisition channels into a single PXIe slot, with a signal-conditioning suite — IEPE, charge, voltage excitation, TEDS, and software-selectable AC/DC coupling — that covers virtually every sensor type used in acoustics and vibration work. Its 3.4 Hz low-frequency cutoff and 20 MS/s burst mode extend its reach from infrasound structural monitoring to high-speed shock capture, making it one of the more versatile reference points against which domestic PXI sound-and-vibration modules are measured.
