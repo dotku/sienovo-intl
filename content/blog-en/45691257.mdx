@@ -1,0 +1,67 @@
+---
+title: "How to Configure HTTPS for Tomcat on Ubuntu"
+date: "2015-05-13"
+slug: "45691257"
+tags: ["#UbuntuTomcatHTTPS"]
+source: "https://blog.csdn.net/yeyuangen/article/details/45691257"
+originalTitle: "Ubuntu tomcat配置https的方法"
+---
+
+**References:**
+
+http://www.cnblogs.com/xwdreamer/p/3466661.html (The latter half needs correction)
+
+[http://tomcat.apache.org/tomcat-7.0-doc/ssl-howto.html](http://tomcat.apache.org/tomcat-7.0-doc/ssl-howto.html)
+
+[http://blog.sina.com.cn/s/blog\_682b5aa1010113uu.html](http://blog.sina.com.cn/s/blog_682b5aa1010113uu.html) (Chinese, quite practical)
+
+[https://help.ubuntu.com/community/TomcatSSL](https://help.ubuntu.com/community/TomcatSSL)
+
+[http://blog.csdn.net/fjssharpsword/article/details/6851969](http://blog.csdn.net/fjssharpsword/article/details/6851969) (Server and client certificates)
+
+**Background**
+
+This article uses an Ubuntu environment as an example; the specific environment is as follows:
+
+OS: ubuntu-server\_12.04
+
+TOMCAT\_HOME:/usr/local/tomcat7, For installation instructions, refer to: [Registering Tomcat as a Service on Windows and Linux](http://www.cnblogs.com/xwdreamer/p/3411986.html)
+
+JAVA\_HOME:/usr/lib/jvm/jdk1.7.0\_45, For installation instructions, refer to: [Installing JDK and Configuring Java Environment on Ubuntu](http://www.cnblogs.com/xwdreamer/archive/2010/12/05/2297062.html)
+
+**Overall Approach**
+
+**Server-Side**
+
+1.  Generate a keystore file using the JDK's Keytool.
+    1) Open a terminal console, navigate to the Tomcat home directory, and execute the command to generate the keystore file. This command creates a `server.keystore` file in the Tomcat home directory. The password set for `server.keystore` here is `Envisi0n`, which will be used later.
+
+    keytool -genkey -alias tomcat -keyalg RSA -keypass Envisi0n -storepass Envisi0n -keystore server.keystore -validity 3600
+
+    2) Generate a certificate from the keystore file. This command creates a `server.cer` certificate file in the Tomcat home directory.
+
+    keytool -export -trustcacerts -alias tomcat -file server.cer -keystore server.keystore -storepass Envisi0n
+
+3) In `%TOMCAT_HOME%\\conf\\server.xml`, locate the following section and uncomment it:
+
+<Connector port="8443" protocol="HTTP/1.1" SSLEnabled="true" maxThreads="150" scheme="https" secure="true" clientAuth="false" sslProtocol="TLS" />
+
+Then add `keystoreFile` and `keystorePass`, as shown below:
+
+  <Connector port="8443" protocol="HTTP/1.1" SSLEnabled="true"
+
+               maxThreads="150" scheme="https" secure="true"
+
+               clientAuth="false" sslProtocol="TLS"
+
+               keystoreFile="/usr/local/tomcat7/server.keystore"
+
+               keystorePass="Envisi0n"  />
+
+**4)** After obtaining the certificate from step 2, import it into the JDK's `cacerts` store by executing the following command:
+
+sudo /usr/lib/ jvm /java-7-openjdk-amd64/bin/keytool -import -trustcacerts -alias tomcat -file server.cer -keystore /usr/lib/jvm/java-7-openjdk-amd64/jre/lib/security/cacerts -storepass changeit
+
+**Client-Side:**
+
+Using one-way authentication does not require importing a user certificate. You can simply trust the website in Firefox. If you want to know how to generate and import client certificates for two-way authentication, you can refer to [http://blog.csdn.net/fjssharpsword/article/details/6851969](http://blog.csdn.net/fjssharpsword/article/details/6851969).

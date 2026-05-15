@@ -1,0 +1,75 @@
+---
+title: "Linux Soft Links and Hard Links"
+date: "2014-07-02"
+slug: "36419727"
+tags: ["#Linux", "#SoftLink", "#HardLink"]
+source: "https://blog.csdn.net/yeyuangen/article/details/36419727"
+originalTitle: "linux软连接和硬连接"
+---
+
+1. Linux Link Concepts
+Linux links are divided into two types: hard links and symbolic links. By default, the `ln` command creates hard links.
+
+### Hard Links
+Hard links connect files via their inode numbers. In the Linux file system, every file stored on a disk partition, regardless of its type, is assigned a unique number called an inode number (Inode Index). In Linux, it is possible for multiple filenames to point to the same inode. This type of connection is generally a hard link. The purpose of hard links is to allow a single file to have multiple valid pathnames, enabling users to create hard links to important files to prevent accidental deletion. As mentioned, this is because the inode corresponding to the directory has more than one link. Deleting just one link does not affect the inode itself or other links. Only when the last link is removed are the file's data blocks and directory entries released. In other words, a file is truly deleted only when all associated hard link files are removed.
+
+### Soft Links
+Another type of link is called a symbolic link, also known as a soft link. Soft link files are similar to Windows shortcuts. They are actually special files. In a symbolic link, the file is essentially a text file that contains the location information of another file.
+
+2. Deeper Understanding Through Experimentation
+```bash
+[oracle@Linux]touch f1       # Create a test file f1
+[oracle@Linux] ln f1 f2      # Create a hard link f2 to f1
+[oracle@Linux]ln -s f1 f3    # Create a symbolic link f3 to f1
+[oracle@Linux] ls -li        # -i parameter displays inode information
+```
+```
+total 0
+9797648 -rw-r--r--  2 oracle oinstall 0 Apr 21 08:11 f1
+9797648 -rw-r--r--  2 oracle oinstall 0 Apr 21 08:11 f2
+9797649 lrwxrwxrwx  1 oracle oinstall 2 Apr 21 08:11 f3 -> f1
+```
+From the results above, it can be seen that the hard link file `f2` shares the same inode number (9797648) as the original file `f1`, whereas the symbolic link file `f3` has a different inode number.
+
+```bash
+[oracle@Linux]echo"Iamf1file">>f1
+[oracle@Linux] cat f1
+```
+```
+I am f1 file
+```
+```bash
+[oracle@Linux]cat f2
+```
+```
+I am f1 file
+```
+```bash
+[oracle@Linux] cat f3
+```
+```
+I am f1 file
+```
+```bash
+[oracle@Linux]rm -f f1
+[oracle@Linux] cat f2
+```
+```
+I am f1 file
+```
+```bash
+[oracle@Linux]$ cat f3
+```
+```
+cat: f3: No such file or directory
+```
+From the tests above, it can be seen that after deleting the original file `f1`, the hard link `f2` remains unaffected, but the symbolic link `f3` becomes invalid.
+
+3. Summary
+Based on this, you can perform some related tests and arrive at the following conclusions:
+1). Deleting the symbolic link `f3` has no effect on `f1` or `f2`.
+2). Deleting the hard link `f2` has no effect on `f1` or `f3`.
+3). Deleting the original file `f1` has no effect on the hard link `f2`, but causes the symbolic link `f3` to become invalid.
+4). If both the original file `f1` and the hard link `f2` are deleted, the entire file will be truly removed.
+
+End.

@@ -1,0 +1,78 @@
+---
+title: "Completely Uninstall MySQL on Ubuntu"
+date: "2014-05-20"
+slug: "26371817"
+tags: ["#Ubuntu", "#MySQL"]
+source: "https://blog.csdn.net/yeyuangen/article/details/26371817"
+originalTitle: "Ubuntu下彻底卸载mysql"
+---
+
+[Completely Uninstall MySQL on Ubuntu](http://www.blogjava.net/yjhmily/articles/336926.html)
+
+1. Remove MySQL
+
+```
+1  sudo apt \- get autoremove  \-- purge mysql \- server \- 5.0
+2  sudo apt \- get remove mysql \- server
+3  sudo apt \- get autoremove mysql \- server
+4  sudo apt \- get remove mysql \- common (非常重要)
+```
+
+Some of the above steps might be redundant, but it's recommended to execute them in order.
+
+Clean up residual data
+
+```
+dpkg  \- l  | grep  ^ rc | awk  ' {print $2} '   | sudo xargs dpkg  \- P
+```
+
+Note:
+
+```
+dpkg: warning: while removing mysql-common, directory '/etc/mysql' not empty so not removed.
+```
+
+Manually rename debian.cnf to disable it:
+
+```
+yeyuangen@ubuntu:/$ cd /etc/mysql/
+yeyuangen@ubuntu:/etc/mysql$ ls
+debian.cnf
+yeyuangen@ubuntu:/etc/mysql$ mv debian.cnf debian.cnf1
+```
+
+2. Install MySQL
+
+```
+1  sudo apt \- get install mysql \- server
+2  sudo apt \- get install mysql \- client
+3  sudo apt \- get install php5 \- mysql (安装php5-mysql 是将php和mysql连接起来  )
+```
+
+Once the installation is complete, the MySQL server should start automatically. You can run the following command at the terminal prompt to check if the MySQL server is running:
+
+```
+1  sudo netstat  \- tap  |  grep mysql
+```
+
+When you run the command, you should see a line similar to this:
+
+```
+tcp 0 0 localhost.localdomain:mysql *:* LISTEN -
+```
+
+If the server is not running correctly, you can start it with the following command:
+
+```
+1  sudo / etc / init.d / mysql restart
+```
+
+3. Access MySQL
+
+```
+$mysql -u root -p 管理员密码
+```
+
+```
+1  sudo mysql  \- u root -p
+```

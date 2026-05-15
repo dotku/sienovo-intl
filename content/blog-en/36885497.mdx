@@ -1,0 +1,98 @@
+---
+title: "Linux Boot Process and a Brief Understanding of the /etc/rc.d/init.d/ Directory"
+date: "2014-07-04"
+slug: "36885497"
+tags: ["#LinuxBoot", "#InitD", "#Runlevels"]
+source: "https://blog.csdn.net/yeyuangen/article/details/36885497"
+originalTitle: "linux 启动过程以及 /etc/rc.d/init.d/目录的一点理解"
+---
+
+### 
+
+The contents of rc.d are as follows:
+init.d/: Directory for binary files of various servers and programs.
+rcx.d/: Directory for executable program links for each runlevel. The contents are all symbolic links pointing to files in init.d/. Details will be described later.
+There are also three scripts: rc.sysinit, rc, rc.local
+
+The Red Hat boot method and execution order are:
+Load kernel
+Execute init program
+/etc/rc.d/rc.sysinit # The first script executed by init
+/etc/rc.d/rc RUNLEVEL # RUNLEVEL is the default runlevel
+/etc/rc.d/rc.local
+/sbin/mingetty # Wait for user login
+
+In Red Hat, /etc/rc.d/rc.sysinit primarily performs initialization tasks common to all runlevels, including:
+Load keymap and system fonts
+Start swapping
+Set hostname
+Set NIS domain
+Check (fsck) and mount file systems
+Enable quotas
+Load sound card modules
+Set system clock
+And so on.
+
+/etc/rc.d/rc then executes scripts in the corresponding directory based on the runlevel specified by its parameter (which you can set in the inittab file). Any script starting with Kxx is called with 'stop' as an argument; any script starting with Sxx is called with 'start' as an argument. The execution order is determined by xx, from smallest to largest. For example, if the default runlevel is 3, /etc/rc.d/rc will call the scripts under /etc/rc.d/rc3.d/ in the manner described above.
+It's worth noting that runlevels 2, 3, and 5 in Red Hat all treat /etc/rc.d/rc.local as the last initialization script. Therefore, users can add commands to this file that need to be executed after other initialization tasks but before login.
+
+After init waits for /etc/rc.d/rc to complete execution (because the action for /etc/rc.d/rc in /etc/inittab is 'wait'), it will run /sbin/mingetty on the specified virtual terminals, waiting for user login. At this point, the LINUX boot process concludes.
+
+Source: http://blog.csdn.net/gxj022/archive/2009/05/05/4150793.aspx
+
+Unless otherwise specified in this article, init.d refers to the /etc/rc.d/init.d directory.
+
+This article includes 3 parts:
+1. Linux Boot Process
+2. Runlevels
+3. The Relationship Between /etc/rc.d/ and /etc/rc.d/init.d
+These are based solely on my understanding; please point out any errors or omissions and provide corrections or additions! Let's learn and improve together.
+
+“The scripts under the /etc/rc.d/init.d/ directory are similar to the Windows registry; certain specified scripts are executed when the system starts.” Before we begin, let me quote an understanding shared by Manager Li Shanming yesterday evening, to give everyone a general impression of the init.d directory. Before delving into init.d, let's cover two preparatory topics: the Linux boot process and the concept of runlevels.
+
+I. Linux Boot Process
+After the system starts, and before entering init.d, let's first look at what the system does. Here's a diagram (this diagram is from the internet):
+
+![image](https://img-blog.csdn.net/20140723145455328?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvc2hhb3hpYW94aWFuZzIwMTQ=/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/Center)
+
+From this diagram, we can see the entire boot process from a high-level perspective, which is quite clear. After the system powers on, it first performs hardware self-checks, followed by the bootloader initializing the system and loading the kernel.
+Once the kernel is loaded into memory, it begins execution. As soon as the kernel starts running, hardware detection determines which device drivers need to be initialized. From this point, the kernel can mount the root file system (this process is similar to Windows identifying and accessing the C: drive). After the kernel has mounted the root file system and initialized all device drivers and data structures, it completes the boot process by launching a user-level program called init.
+
+II. Runlevels
+The init process is the first user process after the system starts, so its PID (Process ID) is always 1. The first thing the init process does is read the initdefault ID value from the inittab file in the /etc/ directory. This value is called the runlevel. It determines the level at which the system will operate after startup. Runlevels dictate most of the system's startup behavior and purpose. These levels range from 0 to 6, each with different functions. The definitions of different runlevels are as follows:
+# 0 - Halt (never set initdefault to 0, otherwise the system will never boot)
+# 1 - Single-user mode
+# 2 - Multi-user, without NFS
+# 3 - Full multi-user mode (standard runlevel)
+# 4 - System reserved
+# 5 - X11 (X Window System)
+# 6 - Reboot (never set initdefault to 6, otherwise the system will continuously reboot)
+
+![image](https://img-blog.csdn.net/20140723150244671?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvc2hhb3hpYW94aWFuZzIwMTQ=/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/Center)
+
+These are two commonly used runlevels. The left image shows Red Hat 9 booting into a text interface at runlevel 3, while the right image shows FC7 booting into a graphical interface at runlevel 5.
+
+III. The Relationship Between /etc/rc.d/ and /etc/rc.d/init.d
+At this point, we should be getting into init.d, but I feel that discussing /etc/rc.d/init.d alone might not be clear enough. It might be more appropriate to discuss it alongside its parent directory, /etc/rc.d/, as they have intricate connections.
+Let's first explain what's stored in init.d. This directory contains scripts, typically startup scripts for services configured when Linux is installed via RPM packages. When the system is installed with many RPM packages, there are many corresponding scripts here. Executing these scripts can start, stop, or restart these services.
+As mentioned earlier, the scripts in the /etc/rc.d/init.d directory are similar to the Windows registry, executed during system startup. With the program execution reaching this point (the init process has read the runlevel), I believe from the naming convention, everyone can guess that the scripts in /etc/rc.d/init.d should be run. Otherwise, why would it also be called init(.d), right? Indeed, it's time to run the scripts in init.d, but not directly; they are selectively run because the system doesn't need to start all services.
+So, how does the system choose which services to start and which not to? This is where the runlevels we just discussed come into play.
+After the system's runlevel is determined, the /etc/rc.d/rc script is executed first. In the source code for both RH9 and FC7, it immediately calls `check_runlevel()` (though the implementation code may differ, the concept is similar). Once the runlevel is known, for each runlevel, there is a subdirectory under rc.d, namely rc0.d, rc1.d, ..., rc6.d. Each of these directories contains links to a subset of the scripts in the init.d directory. The services to be executed for each runlevel are placed in their corresponding directory, for example, services to be started for runlevel 5 are all in rc5.d. However, the files in rc5.d are symbolic links, pointing to the corresponding files in init.d, and the actual work is done by the scripts in init.d.
+
+Red Hat 9 ls
+
+![image](https://img-blog.csdn.net/20140723150821937?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvc2hhb3hpYW94aWFuZzIwMTQ=/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/Center)
+
+FC7 ls -l
+
+![image](https://img-blog.csdn.net/20140723150912171?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvc2hhb3hpYW94aWFuZzIwMTQ=/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/Center)
+
+This makes it very clear.
+
+By now, I assume everyone might have a clearer understanding. I initially thought it was straightforward too. However, after carefully examining and comparing the filenames of these link files and the actual scripts executed in init.d, I had a few lingering questions. Taking this opportunity to write this article, I did some research and finally managed to roughly resolve those doubts.
+1. Why do these link files start with Kxx or Sxx?
+It's like this: K indicates stopping (Kill) a service, and S indicates starting (Start) a service.
+2. What about the numbers after K and S? What are they for?
+Initially, I thought they were just for aesthetic arrangement or counting (wasn't that naive?). But I later found out that's not the case. Their purpose is for sorting, to determine the execution order of these scripts. Scripts with smaller numbers are executed first, and those with larger numbers are executed later. Often, this execution order is crucial. For example, to start the Apache service, network interfaces must be configured first; otherwise, it would be quite absurd to start an HTTP service on a machine without an IP address...
+3. Incidentally, I noticed that for the same service, both the S-prefixed and K-prefixed links point to the same script in init.d. I was puzzled: why would they execute the same script?
+This is where the cleverness of S and K comes in! It turns out S and K aren't just for visual distinction. S and K also pass 'start' and 'stop' arguments, respectively, to the scripts in init.d. Oh, I see! (A moment of realization, haha!) This made me recall the `/etc/rc.d/init.d/network restart` command I've used countless times. So, passing S is equivalent to executing `/etc/rc.d/init.d/xxx start`, and K is equivalent to `/etc/rc.d/init.d/xxx stop`.

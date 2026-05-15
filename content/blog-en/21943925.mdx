@@ -1,0 +1,22 @@
+---
+title: "SO_TIMESTAMP - A Socket Option Not Covered in 'Unix Network Programming'"
+date: "2014-03-24"
+slug: "21943925"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/21943925"
+originalTitle: "SO_TIMESTAMP - 《Unix网络编程》中未提及的Socket选项"
+---
+
+In the setsockopt function, commonly used socket options are employed to make necessary settings for a socket, allowing it to operate with the desired characteristics.
+
+SO_TIMESTAMP, a socket option, is not mentioned in the authoritative work 'Unix Network Programming,' and even on Google, it's hard to find a detailed explanation and usage for it. However, this socket option is used in the open-source code ptpv2d-rc1. So, what exactly is it used for?
+
+After analyzing the Linux 2.6.32 kernel source code, it was found that by setting this option, we can make the kernel protocol stack timestamp a network frame upon reception, and deliver this timestamp as ancillary data along with the network frame data to the upper layer protocol.
+
+netif_receive_skb(), a critical function in the Linux kernel protocol stack, is typically called as the last step in the network card driver's poll function (the RX interrupt handler schedules the poll function; for details, refer to the latest kernel mechanism NAPI). It is used to process network frames and deliver them to the upper layer protocol. The first thing the netif_receive_skb function does is call net_timestamp to timestamp the currently received network frame (the net_timestamp function checks if the network timestamping feature, i.e., netstamp_need, has been enabled), and insert this timestamp as SCM_TIMESTAMP type ancillary data into the sk_buff (i.e., cmsg).
+
+If upper-layer code wants to obtain the timestamp applied by the kernel protocol stack to a network frame, it needs to retrieve the ancillary data. Evidently, we are interested in SCM_TIMESTAMP type ancillary data.
+
+To iterate through the ancillary data in a received message (there might be multiple pieces of ancillary data), one can use the CMSG_FIRSTHDR() and CMSG_NXTHDR() macros to traverse the ancillary data objects. Once the condition if(cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_TIMESTAMP) is met, it indicates that the SCM_TIMESTAMP type ancillary data has been found. This is the timestamp previously applied by the kernel protocol stack to this network packet frame, which represents the time this network packet was received.
+
+This feature is very useful in the PTP protocol. To perform network time synchronization, it is essential to know the time a network packet was received. If hardware timestamping (e.g., precise PHY) is not available, upper-layer applications need to use this feature to obtain the timestamp when a network frame is received, or write kernel module code to hook into the lower-layer protocol stack and apply software timestamps.

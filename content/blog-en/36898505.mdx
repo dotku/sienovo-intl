@@ -1,0 +1,140 @@
+---
+title: "Makefile $@ $^ $< .c.o Variable Practice"
+date: "2014-07-04"
+slug: "36898505"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/36898505"
+originalTitle: "makefile $@ $^ $< .c.o变量练习"
+---
+
+Let's assume we have a program like the following, with source code as shown:
+
+```c
+/* main.c */
+
+#include "mytool1.h"
+#include "mytool2.h"
+
+int main(int argc, char **argv)
+{
+    mytool1_print("hello");
+    mytool2_print("hello");
+}
+
+/* mytool1.h */
+#ifndef _MYTOOL_1_H
+#define _MYTOOL_1_H
+
+void mytool1_print(char *print_str);
+
+#endif
+
+/* mytool1.c */
+#include "mytool1.h"
+
+void mytool1_print(char *print_str)
+{
+    printf("This is mytool1 print %s ", print_str);
+}
+
+/* mytool2.h */
+#ifndef _MYTOOL_2_H
+#define _MYTOOL_2_H
+
+void mytool2_print(char *print_str);
+
+#endif
+
+/* mytool2.c */
+#include "mytool2.h"
+
+void mytool2_print(char *print_str)
+{
+    printf("This is mytool2 print %s ", print_str);
+}
+```
+
+Of course, since this program is very short, we can compile it like this:
+
+```bash
+gcc -c main.c
+gcc -c mytool1.c
+gcc -c mytool2.c
+gcc -o main main.o mytool1.o mytool2.o
+```
+
+This way, we can also generate the `main` program, and it's not too much trouble. However, what if we consider a scenario where one day we modify one of the files (e.g., `mytool1.c`)? Would we have to re-enter the commands above? You might say, that's easy to solve, I'll just write a SHELL script to do it for me. Yes, for this program, that would work. But let's think about it in a more complex way: if our program has hundreds of source files, would the compiler still have to recompile them one by one?
+
+To address this, clever programmers devised an excellent tool: `make`. By simply executing `make`, we can solve the aforementioned problem. Before running `make`, we must first write a very important file – a Makefile. For the program above, a possible Makefile would be:
+
+```makefile
+# This is the Makefile for the program above:
+main: main.o mytool1.o mytool2.o
+	gcc -o main main.o mytool1.o mytool2.o
+
+main.o: main.c mytool1.h mytool2.h
+	gcc -c main.c
+
+mytool1.o: mytool1.c mytool1.h
+	gcc -c mytool1.c
+
+mytool2.o: mytool2.c mytool2.h
+	gcc -c mytool2.c
+```
+
+With this Makefile, no matter when we modify any file in the source code, we just need to execute the `make` command. Our compiler will only compile the files related to our modifications, ignoring all other files.
+
+Next, let's learn how to write a Makefile.
+
+In a Makefile, lines starting with `#` are comment lines. The most important part of a Makefile is the description of file dependencies. The general format is:
+
+```
+target: components
+	rule
+```
+
+The first line describes the dependencies. The second line is the rule.
+
+For example, consider the second line of our Makefile above: `main: main.o mytool1.o mytool2.o`. This indicates that our target `main` depends on `main.o`, `mytool1.o`, and `mytool2.o`. If any of the dependencies are modified after the target, the command specified in the rule line will be executed. Just like the third line of our Makefile above, it will execute `gcc -o main main.o mytool1.o mytool2.o`. Note that `TAB` in the rule line signifies a TAB character.
+
+Makefiles have three very useful automatic variables: `$@`, `$^`, and `$<`. Their meanings are as follows:
+- `$@`: the target file
+- `$^`: all prerequisite files
+- `$<`: the first prerequisite file
+
+If we use these three variables, we can simplify our Makefile to:
+
+```makefile
+# This is the simplified Makefile
+main: main.o mytool1.o mytool2.o
+	gcc -o $@ $^
+
+main.o: main.c mytool1.h mytool2.h
+	gcc -c $<
+
+mytool1.o: mytool1.c mytool1.h
+	gcc -c $<
+
+mytool2.o: mytool2.c mytool2.h
+	gcc -c $<
+```
+
+After simplification, our Makefile is a bit simpler, but sometimes people want it even simpler. Here we learn about a default Makefile rule:
+
+```makefile
+.c.o:
+	gcc -c $<
+```
+
+This rule indicates that all `.o` files depend on their corresponding `.c` files. For example, `mytool.o` depends on `mytool.c`. With this, the Makefile can be further transformed into:
+
+```makefile
+# This is the further simplified Makefile
+main: main.o mytool1.o mytool2.o
+	gcc -o $@ $^
+
+.c.o:
+	gcc -c $<
+```
+
+Alright, our Makefile is almost complete. If you want to know more about Makefile rules, you can refer to the relevant documentation.

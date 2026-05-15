@@ -1,0 +1,122 @@
+---
+title: "[Interview] 3. How to Detect a Cycle in a Linked List? How to Calculate the Cycle's Length?"
+date: "2014-02-24"
+slug: "19831737"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/19831737"
+originalTitle: "【面试】3.如何判断链表是否有环？如何计算环的长度？"
+---
+
+1. How to detect a cycle? If you have two pointers, one moving fast and one moving slow, after a certain number of steps, the fast pointer will eventually overtake the slow pointer by one full cycle.
+
+2. How to calculate the length of the cycle? Start counting when they meet for the first time (after the fast pointer has completed one cycle), and stop counting when they meet for the second time.
+
+3. How to find the entry point of the cycle: The distance from the collision point (p) to the cycle's entry point is equal to the distance from the head pointer to the cycle's entry point. Therefore, if you start one pointer from the collision point and another from the head pointer, and both move one step at a time, the point where they meet will be the cycle's entry point.
+
+Why? Here's a simple derivation:
+(1) When fast and slow pointers meet, the slow pointer has definitely not traversed the entire linked list, while the fast pointer has completed n (n >= 1) cycles within the loop. Assume the slow pointer has moved `s` steps, then the fast pointer has moved `2s` steps. The fast pointer's steps are also equal to the slow pointer's steps plus `n` full cycles within the loop, so we have:
+2s = s + nr. Therefore, s = nr.
+(2) Let the total length of the linked list be L, the distance from the entry point to the meeting point be X, and the distance from the start to the entry point be `a`. Since the slow pointer has not completed a full cycle:
+a + x = s. Substituting the result from the first step, we get: a + x = nr = (n-1)r + r = (n-1)r + L - a; that is:
+a = (n-1)r + L - a - x;
+This shows that the distance from the head node to the entry point is equal to the distance from the meeting point to the entry point after (n-1) cycles. Therefore, we can place one pointer at the head of the list and another at the meeting point. By moving both pointers one step at a time, they are guaranteed to meet, and their first meeting point will be the entry point of the cycle.
+
+Perhaps some of you might have a question: why is it that "when fast and slow pointers meet, the slow pointer has definitely not traversed the entire linked list"? This question is a bit tricky, and I haven't found a perfect proof for it. However, if you try drawing a few examples yourself, you'll find that it is indeed the case.
+
+4. How to determine if two (non-cyclic) linked lists intersect? Connect the tail of one linked list to its head, and then check if the other linked list contains a cycle. This is relatively simple, so the code is omitted.
+
+**[cpp]**  [view plain](http://blog.csdn.net/thefutureisour/article/details/8174313# "view plain") [copy](http://blog.csdn.net/thefutureisour/article/details/8174313# "copy")
+
+1.  #include <stdio.h>  
+
+3.  typedef struct Node  
+4.  {  
+5.      int val;  
+6.      Node \*next;  
+7.  }Node,\*pNode;  
+
+11.  //判断是否有环  
+12.  bool isLoop(pNode pHead)  
+13.  {  
+14.      pNode fast = pHead;  
+15.      pNode slow = pHead;  
+16.      //如果无环，则fast先走到终点  
+17.      //当链表长度为奇数时，fast->Next为空  
+18.      //当链表长度为偶数时，fast为空  
+19.      while( fast != NULL && fast->next != NULL)  
+20.      {  
+
+22.          fast = fast->next->next;  
+23.          slow = slow->next;  
+24.          //如果有环，则fast会超过slow一圈  
+25.          if(fast == slow)  
+26.          {  
+27.              break;  
+28.          }  
+29.      }  
+
+31.      if(fast == NULL || fast->next == NULL  )  
+32.          return false;  
+33.      else  
+34.          return true;  
+35.  }  
+
+37.  //计算环的长度  
+38.  int loopLength(pNode pHead)  
+39.  {  
+40.      if(isLoop(pHead) == false)  
+41.          return 0;  
+42.      pNode fast = pHead;  
+43.      pNode slow = pHead;  
+44.      int length = 0;  
+45.      bool begin = false;  
+46.      bool agian = false;  
+47.      while( fast != NULL && fast->next != NULL)  
+48.      {  
+49.          fast = fast->next->next;  
+50.          slow = slow->next;  
+51.          //超两圈后停止计数，挑出循环  
+52.          if(fast == slow && agian == true)  
+53.              break;  
+54.          //超一圈后开始计数  
+55.          if(fast == slow && agian == false)  
+56.          {             
+57.              begin = true;  
+58.              agian = true;  
+59.          }  
+
+61.          //计数  
+62.          if(begin == true)  
+63.              ++length;  
+
+65.      }  
+66.      return length;  
+67.  }  
+
+70.  //求出环的入口点  
+71.  Node\* findLoopEntrance(pNode pHead)  
+72.  {  
+73.      pNode fast = pHead;  
+74.      pNode slow = pHead;  
+75.      while( fast != NULL && fast->next != NULL)  
+76.      {  
+
+78.          fast = fast->next->next;  
+79.          slow = slow->next;  
+80.          //如果有环，则fast会超过slow一圈  
+81.          if(fast == slow)  
+82.          {  
+83.              break;  
+84.          }  
+85.      }  
+86.      if(fast == NULL || fast->next == NULL)  
+87.          return NULL;  
+88.      slow = pHead;  
+89.      while(slow != fast)  
+90.      {  
+91.          slow = slow->next;  
+92.          fast = fast->next;  
+93.      }  
+
+95.      return slow;  
+96.  }

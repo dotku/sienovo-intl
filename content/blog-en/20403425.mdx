@@ -1,0 +1,28 @@
+---
+title: "Interview: Union Memory Representation"
+date: "2014-03-03"
+slug: "20403425"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/20403425"
+originalTitle: "【面试】联合体内存表示"
+---
+
+All members of a union share the same memory space (in contrast, different members of a struct are stored at different memory addresses).
+
+(1)
+
+```cpp
+＃include<stdio.h>union{int i;char x[2];}a; void main(){a.x[0] = 10;a.x[1] = 1;printf("%d",a.i);}
+```
+
+Answer: 266 (Assuming little-endian, the low byte is at the low address, so a.x[0]=10=0x0A. The high byte is at the high address, so a.x[1]=0x01. The memory layout is 0x010A.)
+
+(2)
+
+```cpp
+main(){union{ /*定义一个联合*/int i;struct{ /*在联合中定义一个结构*/char first;char second;}half;}number;number.i=0x4241; /*联合成员赋值*/printf("%c%c\n",number.half.first, mumber.half.second);number.half.first='a'; /*联合中结构成员赋值*/number.half.second='b';printf("%x\n", number.i);getch();}
+```
+
+Answer: AB (0x41 corresponds to 'A', which is the low byte; 0x42 corresponds to 'B', which is the high byte.)
+
+a=0x61, b=0x62. Following the principle of low byte at low address and high byte at high address (little-endian), the result is 0x6261 (number.i and number.half share the same memory space).

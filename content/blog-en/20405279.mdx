@@ -1,0 +1,64 @@
+---
+title: "Interview: String Class Constructor and Destructor Implementation"
+date: "2014-03-03"
+slug: "20405279"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/20405279"
+originalTitle: "【面试】String类构造和析构函数实现"
+---
+
+Given the String class definition:
+
+```cpp
+class String
+{
+public:
+String( const char *str = NULL); // General constructor
+String(const String &another); // Copy constructor
+~ String(); // Destructor
+String & operater =(const String&rhs); // Assignment operator
+private:
+char *m_data; // Used to store the string
+};
+```
+
+Attempt to implement the member functions of the class.
+
+Answer:
+
+```cpp
+// General constructor
+String::String(const char *str){
+    if ( str == NULL ) // This check is necessary because strlen throws an exception if the parameter is NULL.
+    {
+        m_data = new char[1] ;
+        m_data[0] = '\0' ;
+    }
+    else
+    {
+        m_data = new char[strlen(str) + 1];
+        strcpy(m_data,str);
+    }
+}
+
+// Copy constructor
+String::String(const String &another){
+    m_data = new char[strlen(another.m_data) +1];
+    strcpy(m_data,another.m_data);
+} 
+
+// Assignment operator
+String& String::operator =(const String&rhs){
+    if ( this == &rhs)
+        return *this ;
+    delete []m_data; // Delete original data, allocate new memory
+    m_data = new char[strlen(rhs.m_data) + 1];
+    strcpy(m_data,rhs.m_data);
+    return *this ;
+} 
+
+// Destructor
+String::~String(){
+    delete []m_data ;
+}
+```

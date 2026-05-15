@@ -1,0 +1,79 @@
+---
+title: "The Clever Use of Function Pointer Arrays"
+date: "2011-09-09"
+slug: "6764138"
+tags: ["#function", "#buffer", "#fun", "#Work", "#Task", "#Language"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6764138"
+originalTitle: "函数指针数组的妙用"
+---
+
+While developing a certain software, I encountered the following problem: an upstream module passes binary data to me, with input parameters `char* buffer` and `int length`. `buffer` is the starting address of the data, and `length` indicates the size of this batch of data. The data's characteristics are: variable length, variable type, with the first byte (`buffer[0]`) identifying the data type. There are 256 (2^8) possible types. My task is to process every possible data type, and my module contains several functions, each requiring similar processing. If following the usual approach, the code would look like this:
+
+```c
+void MyFuntion( char* buffer, int length )
+{
+　　　　__int8 nStreamType = buffer[0];
+
+
+　　　　switch( nStreamType )
+　　　　{
+　　　　　　　case 0:
+　　　　　　　　　　　function1();
+　　　　　　　　　　　break;
+　　　　　　　case 1:
+　　　　　　　......
+　　　　　　　case 255:
+　　　　　　　　　　　function255();
+　　　　　　　　　　　break;
+　　　　　}
+}
+```
+If I were to continue with this method, every one of my functions would have to perform so many checks, resulting in very long code. Furthermore, each processing step would involve numerous conditional checks before finding the correct handler function, leading to low code execution efficiency. To address the aforementioned problem, I thought of using a function pointer array.
+
+The concept of function pointers was mentioned in Mr. Tan Haoqiang's classic textbook 'C Language Programming'. In most cases, we don't use it and tend to overlook its existence. A function name is actually a type of pointer, pointing to the function's entry address. However, it differs from ordinary pointers like `int*` or `double*`. Let's look at the following example to understand the concept of function pointers:
+```c
+int funtion( int x, int y );
+void main ( void ) 
+{
+ 　　　int (*fun) ( int x, int y );
+ 　　　int a = 10, b = 20;
+ 　　　function( a, b );
+ 　　　fun = function;
+ 　　　(*fun)( a, b );
+ 　　　　……
+}
+```
+Statement 1 defines a function `function` that takes two integers as input and returns an integer (input parameters and return value can be any other data type); Statement 3 defines a function pointer. Unlike defining `int*` or `double*` pointers, a function pointer definition must also specify its input parameters to indicate that it is a function pointer, and `*fun` must be enclosed in a pair of parentheses; Statement 6 assigns the function pointer `fun` to `function`. The prerequisite is that the input parameters and return value of `*fun` and `function` must be consistent. Statement 5 directly calls the function `function()`, and Statement 7 calls the function via the function pointer. Both are equivalent.
+
+Of course, the advantages of function pointers are not apparent from the above example; the main purpose is to introduce the concept of function pointer arrays. From the example above, we can infer that since function names can be stored via function pointers, we can certainly define an array to store multiple function names. This is a function pointer array. The prerequisite for correctly using a function pointer array is that the functions to be stored in it must have identical input and output values. 
+
+Thus, the problem I faced in my work can be solved as follows:
+
+First, define 256 handler functions (and their implementations).
+
+```c
+void funtion0( void );
+……..
+void funtion255(void );
+```
+
+Next, define the function pointer array and assign values to it.
+```c
+void (*fun[256])(void);
+
+
+fun[0] = function0;
+…….
+fun[255] = function();
+```
+Finally, the `MyFunction()` function can be modified as follows:
+
+```c
+void MyFuntion( char* buffer, int length )
+{
+　　　　__int8 nStreamType = buffer[0];
+　　　　(*fun[nStreamType])();
+}
+```
+
+With just 2 lines of code, the task of 256 `case` statements is accomplished, reducing the workload during coding. By using `nStreamType` as an array index to directly call the function pointer, the code execution efficiency is also higher than with `case` statements. If similar processing is required in multiple functions, the advantages of function pointer arrays become even more apparent.

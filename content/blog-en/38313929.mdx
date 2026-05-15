@@ -1,0 +1,68 @@
+---
+title: "Difference between Buffer and Cache"
+date: "2014-07-31"
+slug: "38313929"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/38313929"
+originalTitle: "buffer 与cache 的区别"
+---
+
+### I. `free` command
+```bash
+[root@xen_202_12 /]# free -m
+              total        used        free      shared  buffers     cached
+Mem:           3072        2459         612           0      207       1803
+-/+ buffers/cache:          447        2624
+Swap:          1913           0        1913
+```
+
+Line 2:
+total memory: 3072
+used memory: 2459
+free memory: 612
+shared: currently unused, always 0
+buffers: Buffer Cache memory: 207
+cached: Page Cache memory: 1803
+
+Relationship: total = used + free
+
+Line 3:
+Meaning of -/+ buffers/cache:
+-buffers/cache memory: 447 (equals used - buffers - cached from line 1)
++buffers/cache memory: 2624 (equals free + buffers + cached from line 1)
+Note: The memory values calculated using the above formulas show slight discrepancies (reason unknown).
+
+It can be seen that -buffers/cache reflects the memory actually consumed by applications, while +buffers/cache reflects the total available memory that can be repurposed.
+
+Line 4 specifically addresses the swap partition.
+
+To improve disk access efficiency, Linux employs some sophisticated designs. Besides caching dentry (used by VFS to accelerate the conversion of file pathnames to inodes), it also adopts two main caching mechanisms: Buffer Cache and Page Cache. The former is for reading and writing disk blocks, while the latter is for reading and writing file inodes. These caches effectively shorten the time for I/O system calls (such as read, write, getdents).
+
+Difference between used/free in line 2 (Mem) and used/free in line 3 (-/+ buffers/cache):
+The difference between these two lies in the perspective of usage. Line 2 is from the OS's perspective. For the OS, buffers/cached are considered used, so its available memory is 612MB, and used memory is 2059MB, which includes memory used by the kernel (OS) + applications (X, Oracle, etc.) + buffers + cached.
+Line 3 refers to the application's perspective. From an application's point of view, buffers/cached are available because buffer/cached are designed to improve file read performance. When an application needs memory, buffer/cached will be quickly reclaimed. Therefore, from an application's perspective, available memory = system free memory + buffers + cached.
+
+As in the example above:
+2624 = 612 + 207 + 1803
+
+### II. Difference between buffers and cached:
+
+Buffers are used for buffering block devices; they only record file system metadata and track in-flight pages.
+Cached is used for file buffering.
+In other words: buffers store directory contents, permissions, etc., while cached remembers files we have opened.
+
+A buffer is something that has yet to be "written" to disk. A cache is something that has been "read" from the disk and stored for later use.
+
+You can also use the `top` command to observe and understand the difference between buffer and cache:
+
+Line 4: Memory status
+8306544k total Total physical memory (8GB)
+7775876k used Total used memory (7.7GB)
+530668k free Total free memory (530M)
+79236k buffers Buffered memory (79M)
+
+Line 5: Swap partition
+2031608k total Total swap space (2GB)
+2556k used Total used swap space (2.5M)
+2029052k free Total free swap space (2GB)
+4231276k cached Total cached swap space (4GB)

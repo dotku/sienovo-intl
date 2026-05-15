@@ -1,0 +1,44 @@
+---
+title: "Linux Initial RAM Disk (initrd) Overview"
+date: "2014-07-17"
+slug: "37901337"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/37901337"
+originalTitle: "Linux 初始 RAM 磁盘（initrd）概述"
+---
+
+## [Original Link](http://www.ibm.com/developerworks/cn/linux/l-initrd.html)
+
+### Using the Initial RAM Disk to Boot the System
+
+Now that we understand how to build and use a custom initial RAM disk, this section will explore how the kernel identifies initrd and mounts it as the root file system. We will introduce several key functions in the boot chain and explain what operations are performed.
+
+Bootloaders, such as GRUB, define the kernel to be loaded and copy the kernel image along with the associated initrd into memory. Much of this functionality can be found in the `./init` subdirectory of the Linux kernel source directory.
+
+After the kernel and initrd images are decompressed and copied into memory, the kernel is invoked. It performs various initialization operations, eventually leading to the `init/main.c:init()` (subdir/file:function) function. This function performs a large number of subsystem initialization operations. Here, a call to `init/do_mounts.c:prepare_namespace()` is executed, which prepares the namespace (mounting the dev file system, RAID or md, devices, and finally the initrd). Loading the initrd is achieved by calling `init/do_mounts_initrd.c:initrd_load()`.
+
+The `initrd_load()` function calls `init/do_mounts_rd.c:rd_load_image()`, which determines which RAM disk to load by calling `init/do_mounts_rd.c:identify_ramdisk_image()`. This function checks the image file's magic number to determine if it is in minux, ext2, romfs, cramfs, or gzip format. Before returning to `initrd_load_image`, it also calls `init/do_mounts_rd:crd_load()`. This function is responsible for allocating space for the RAM disk, calculating the Cyclic Redundancy Check (CRC), then decompressing the RAM disk image and loading it into memory. Now, we have the initrd image in a block device suitable for mounting.
+
+Now, this block device is mounted as the root file system using an `init/do_mounts.c:mount_root()` call. It creates the root device and calls `init/do_mounts.c:mount_block_root()`. Here, `init/do_mounts.c:do_mount_root()` is called, which in turn calls `fs/namespace.c:sys_mount()` to actually mount the root file system, and then `chdir` into it. This is where we see the familiar message `VFS: Mounted root (ext2 file system).` as shown in Listing 6.
+
+Finally, control returns to the `init` function, and `init/main.c:run_init_process` is called. This leads to a call to `execve` to start the init process (which is `/linuxrc` in this example). `linuxrc` can be an executable program or a script (provided a script interpreter is available).
+
+The call hierarchy of these functions is shown in Listing 7. Although not all functions involved in copying and mounting the initial RAM disk are listed here, this is sufficient to provide a rough framework of the overall process.
+
+###### Listing 7. Hierarchy of Key Functions Used During initrd Loading and Mounting
+
+```
+init/main.c:init
+  init/do_mounts.c:prepare_namespace
+    init/do_mounts_initrd.c:initrd_load
+      init/do_mounts_rd.c:rd_load_image
+        init/do_mounts_rd.c:identify_ramdisk_image
+        init/do_mounts_rd.c:crd_load
+          lib/inflate.c:gunzip
+    init/do_mounts.c:mount_root
+      init/do_mounts.c:mount_block_root
+         init/do_mounts.c:do_mount_root
+           fs/namespace.c:sys_mount
+  init/main.c:run_init_process
+    execve
+```

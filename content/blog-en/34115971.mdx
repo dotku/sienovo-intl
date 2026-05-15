@@ -1,0 +1,298 @@
+---
+title: "Segmentation Fault and Coredump Debugging"
+date: "2014-06-24"
+slug: "34115971"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/34115971"
+originalTitle: "段错误与coredump调试"
+---
+
+## 
+
+Segmentation Fault
+
+A [segmentation fault](http://baike.baidu.com/view/120927.htm) refers to accessing [memory](http://baike.baidu.com/view/1082.htm) beyond the memory space allocated to a program by the system. This value is typically stored in the GDTR (Global Descriptor Table Register), which is a 48-bit register. The 32 bits of the GDTR store the base address of the [GDT](http://baike.baidu.com/view/1082.htm) it points to, the next 13 bits store the index corresponding to the GDT, and the last 3 bits include information such as whether the program is in memory, and its privilege level in the [CPU](http://baike.baidu.com/view/2089.htm). The GDT pointed to by the GDTR is a table where each entry is 64 bits. This table stores information such as the starting addresses of the program's [code segment](http://baike.baidu.com/view/1315853.htm) and [data segment](http://baike.baidu.com/view/1005328.htm), along with corresponding segment limits, paging information, program privilege levels, memory granularity, and more.
+
+### Table of Contents
+
+1[Examples](http://baike.baidu.com/link?url=q5BY4s6WdLTvMnqZA8yCK-Nel1D8sQhpmfveGuS2ILvgP3cw739Rk5ylvhHDEHkqeGxpQM1kQqwyIAT3Vs8ZjK#1)
+
+▪  [English Introduction](http://baike.baidu.com/link?url=q5BY4s6WdLTvMnqZA8yCK-Nel1D8sQhpmfveGuS2ILvgP3cw739Rk5ylvhHDEHkqeGxpQM1kQqwyIAT3Vs8ZjK#1_1)
+
+▪  [Quote:](http://baike.baidu.com/link?url=q5BY4s6WdLTvMnqZA8yCK-Nel1D8sQhpmfveGuS2ILvgP3cw739Rk5ylvhHDEHkqeGxpQM1kQqwyIAT3Vs8ZjK#1_2)
+
+2[Common Forms of Segmentation Faults](http://baike.baidu.com/link?url=q5BY4s6WdLTvMnqZA8yCK-Nel1D8sQhpmfveGuS2ILvgP3cw739Rk5ylvhHDEHkqeGxpQM1kQqwyIAT3Vs8ZjK#2)
+
+▪  [Step-by-Step Debugging Segmentation Faults with GDB](http://baike.baidu.com/link?url=q5BY4s6WdLTvMnqZA8yCK-Nel1D8sQhpmfveGuS2ILvgP3cw739Rk5ylvhHDEHkqeGxpQM1kQqwyIAT3Vs8ZjK#2_1)
+
+▪  [Analyzing Core Files](http://baike.baidu.com/link?url=q5BY4s6WdLTvMnqZA8yCK-Nel1D8sQhpmfveGuS2ILvgP3cw739Rk5ylvhHDEHkqeGxpQM1kQqwyIAT3Vs8ZjK#2_2)
+
+▪  [Analyzing with backtrace and objdump](http://baike.baidu.com/link?url=q5BY4s6WdLTvMnqZA8yCK-Nel1D8sQhpmfveGuS2ILvgP3cw739Rk5ylvhHDEHkqeGxpQM1kQqwyIAT3Vs8ZjK#2_3)
+
+3[Several Typical Segmentation Faults](http://baike.baidu.com/link?url=q5BY4s6WdLTvMnqZA8yCK-Nel1D8sQhpmfveGuS2ILvgP3cw739Rk5ylvhHDEHkqeGxpQM1kQqwyIAT3Vs8ZjK#3)
+
+### 1 Examples[Edit](http://baike.baidu.com/link?url=q5BY4s6WdLTvMnqZA8yCK-Nel1D8sQhpmfveGuS2ILvgP3cw739Rk5ylvhHDEHkqeGxpQM1kQqwyIAT3Vs8ZjK# "Edit this section")
+
+#### English Introduction
+
+A segmentation fault (often shortened to segfault) is a particular error condition that can occur during the operation of computer software. In short, a segmentation fault occurs when a program attempts to access a memory location that it is not allowed to access, or attempts to access a memory location in a way that is not allowed (e.g., attempts to write to a read-only location, or to overwrite part of the operating system). Systems based on processors like the Motorola 68000 tend to refer to these events as Address or Bus errors.
+
+Segmentation is one approach to memory management and protection in the operating system. It has been superseded by paging for most purposes, but much of the terminology of segmentation is still used, "segmentation fault" being an example. Some operating systems still have segmentation at some logical level although paging is used as the main memory management policy.
+
+On Unix-like operating systems, a process that accesses invalid memory receives the SIGSEGV signal. On Microsoft Windows, a process that accesses invalid memory receives the STATUS\_ACCESS\_VIOLATION exception.
+
+Additionally, here is a largely corresponding Chinese explanation, from extended reading 1:
+
+#### Quote:
+
+Once a program performs an [out-of-bounds](http://baike.baidu.com/view/392942.htm) access, the [CPU](http://baike.baidu.com/view/2089.htm) will generate corresponding protection, and thus a segmentation fault occurs.
+
+From the above explanation, a [segmentation fault](http://baike.baidu.com/view/120927.htm) should mean accessing inaccessible [memory](http://baike.baidu.com/view/1082.htm). This [memory](http://baike.baidu.com/view/1082.htm) region is either non-existent, or protected by the system, or possibly due to missing or corrupted files.
+
+### 2 Common Forms of Segmentation Faults[Edit](http://baike.baidu.com/link?url=q5BY4s6WdLTvMnqZA8yCK-Nel1D8sQhpmfveGuS2ILvgP3cw739Rk5ylvhHDEHkqeGxpQM1kQqwyIAT3Vs8ZjK# "Edit this section")
+
+In [programming](http://baike.baidu.com/view/3281.htm), the following types of practices are prone to causing segmentation [faults](http://baike.baidu.com/view/120927.htm), primarily due to incorrect use of [pointers](http://baike.baidu.com/view/159417.htm).
+
+1) **Accessing system data areas**, especially writing [data](http://baike.baidu.com/view/38752.htm) to system-protected [memory addresses](http://baike.baidu.com/view/404417.htm). The most common case is assigning a [pointer](http://baike.baidu.com/view/159417.htm) to address 0.
+
+2) **Memory out-of-bounds** ([array](http://baike.baidu.com/view/209670.htm) out-of-bounds, inconsistent [variable](http://baike.baidu.com/view/296689.htm) types, etc.): Accessing a memory region that does not belong to your program.
+
+Solution: When writing programs in C/ [C++](http://baike.baidu.com/view/824.htm), most of the [memory management](http://baike.baidu.com/view/4541016.htm) work needs to be done by us. In reality, [memory management](http://baike.baidu.com/view/4541016.htm) is a relatively tedious task, and no matter how skilled or experienced you are, it's inevitable to make small [errors](http://baike.baidu.com/view/120927.htm) here. These errors are often simple and easy to fix. However, manual debugging is often inefficient and annoying. This article will discuss how to quickly locate statements causing "segmentation faults" (memory access [out-of-bounds](http://baike.baidu.com/view/392942.htm) errors).
+
+Below, we will introduce several debugging methods for a program with a segmentation [fault](http://baike.baidu.com/view/120927.htm):
+
+1 dummy\_function (void)
+
+2 {
+
+3 unsigned char \*ptr = 0x00;
+
+4 \*ptr = 0x00;
+
+5 }
+
+6
+
+7 int main (void)
+
+8 {
+
+9 dummy\_function ();
+
+10
+
+11 return 0;
+
+12 }
+
+As a proficient [C/C++](http://baike.baidu.com/view/1107274.htm) programmer, the bug in the above code should be clear: it attempts to operate on the [memory](http://baike.baidu.com/view/1082.htm) region at address 0, which is usually an inaccessible forbidden zone, thus leading to an error. Let's try compiling and running it:
+
+xiaosuo@gentux test $ ./a.out
+
+Segmentation fault
+
+Error and exit.
+
+#### Step-by-Step Debugging Segmentation Faults with GDB
+
+This method is also well-known and widely adopted. First, we need an executable program with debugging information, so we compile it with the "-g -rdynamic" parameters. Then, we use [GDB](http://baike.baidu.com/view/639266.htm) to debug the newly compiled program. The specific steps are as follows:
+
+xiaosuo@gentux test $ gcc -g -rdynamic d.c
+
+xiaosuo@gentux test $ gdb ./a.out
+
+GNU gdb 6.5
+
+Copyright (C) 2006 Free Software Foundation, Inc.
+
+GDB is free software, covered by the GNU General Public License, and you are
+
+welcome to change it and/or distribute copies of it under certain conditions.
+
+Type "show copying" to see the conditions.
+
+There is absolutely no warranty for GDB. Type "show warranty" for details.
+
+This GDB was configured as "i686-pc-linux-gnu"...Using host libthread\_db library "/lib/libthread
+
+(gdb) r
+
+Starting program: /home/xiaosuo/test/a.out
+
+Program received signal SIGSEGV, Segmentation fault.
+
+0x08048524 in dummy\_function () at d.c:4
+
+4 \*ptr = 0x00;
+
+(gdb)
+
+Without step-by-step debugging, we found the error location at line 4 of d.c, it's that simple.
+
+From this, we also found that the process terminated because it received the SIGSEGV signal. By further consulting the documentation (man 7 signal), we know that the default handler for SIGSEGV prints a "Segmentation fault" error message and generates a core file, which leads us to method two.
+
+#### Analyzing Core Files
+
+The default action of certain signals is to cause a process to terminate and produce a core dump file, a disk file containing an image of the process's memory at the time of termination. A list of the signals which cause a process to dump core can be found in signal(7).
+
+The above information is excerpted from the man page (man 5 core). However, strangely, I couldn't find a core file on my system. Later, I recalled that to reduce the number of junk files on the system, I had disabled core file generation. After checking, it was indeed the case. I set the system's core file size limit to 512K and tried again:
+
+xiaosuo@gentux test $ ulimit -c
+
+0
+
+xiaosuo@gentux test $ ulimit -c 1000
+
+xiaosuo@gentux test $ ulimit -c
+
+1000
+
+xiaosuo@gentux test $ ./a.out
+
+Segmentation fault (core dumped)
+
+xiaosuo@gentux test $ ls
+
+a.out core d.c f.c g.c pango.c test\_iconv.c test\_regex.c
+
+The core file was finally generated. Let's debug it with [GDB](http://baike.baidu.com/view/639266.htm):
+
+xiaosuo@gentux test $ gdb ./a.out core
+
+GNU gdb 6.5
+
+Copyright (C) 2006 Free Software Foundation, Inc.
+
+GDB is free software, covered by the GNU General Public License, and you are
+
+welcome to change it and/or distribute copies of it under certain conditions.
+
+Type "show copying" to see the conditions.
+
+There is absolutely no warranty for GDB. Type "show warranty" for details.
+
+This GDB was configured as "i686-pc-linux-gnu"...Using host libthread\_db library "/lib/libthread.
+
+warning: Can't read pathname for load map: Input/output error.
+
+Reading symbols from /lib/lib6...done.
+
+Loaded symbols for /lib/li6
+
+Reading symbols from /lib/ld-.2...done.
+
+Loaded symbols for /lib/ld-linux.s2
+
+Core was generated by \`./a.out'.
+
+Program terminated with signal 11, Segmentation fault.
+
+#0 0x08048524 in dummy\_function () at d.c:4
+
+4 \*ptr = 0x00;dfg
+
+#### Analyzing with backtrace and objdump
+
+#include <execinfo.h>
+
+#include <stdio.h>
+
+#include <stdlib.h>
+
+#include <signal.h>
+
+/\* A dummy function to make the backtrace more interesting. \*/
+
+void
+
+dummy\_function (void)
+
+{
+
+unsigned char \*ptr = 0x00;
+
+\*ptr = 0x00;
+
+}
+
+void dump(int signo)
+
+{
+
+void \*array\[10\];
+
+size\_t size;
+
+char \*\*strings;
+
+size\_t i;
+
+size = backtrace (array, 10);
+
+strings = backtrace\_symbols (array, size);
+
+printf ("Obtained %zd stack frames.\\n", size);
+
+for (i = 0; i < size; i++)
+
+printf ("%s\\n", strings\[i\]);
+
+free (strings);
+
+exit(0);
+
+}
+
+int
+
+main (void)
+
+{
+
+signal(SIGSEGV, &dump);
+
+dummy\_function ();
+
+return 0;
+
+}
+
+Execution result: xiaosuo@gentux test $ gcc -g -rdynamic g.c
+
+xiaosuo@gentux test $ ./a.out
+
+Obtained 5 stack frames.
+
+./a.out(dump+0x19) \[0x80486c2\]
+
+\[0xffffe420\]
+
+./a.out(main+0x35) \[0x804876f\]
+
+### 3 Several Typical Segmentation Faults[Edit](http://baike.baidu.com/link?url=q5BY4s6WdLTvMnqZA8yCK-Nel1D8sQhpmfveGuS2ILvgP3cw739Rk5ylvhHDEHkqeGxpQM1kQqwyIAT3Vs8ZjK# "Edit this section")
+
+1.  int main(void){ \[1\]  
+
+    char\*s ="hello world";
+
+    \*s ='H';
+
+    }
+
+    When loaded, the system places "hello world" along with other strings and const data into a read-only memory section. During execution, a variable `s` is set to point to the location of this string. When an attempt is made to write to this location, a segmentation fault occurs.
+
+2.  int\*ptr = NULL;
+
+    \*ptr =1;
+
+    This code only creates a null pointer and does not point to a specific memory space. When an assignment is attempted, a segmentation fault occurs.
+
+3.  int main(void){
+
+    main();
+
+    return0;
+
+    }
+
+    Infinite recursion, which leads to a stack overflow, also causes a segmentation fault.

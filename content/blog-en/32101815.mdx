@@ -1,0 +1,51 @@
+---
+title: "Understanding Condition Variables"
+date: "2014-06-18"
+slug: "32101815"
+tags: ["#TechnicalArticle"]
+source: "https://blog.csdn.net/yeyuangen/article/details/32101815"
+originalTitle: "条件变量的理解"
+---
+
+### Understanding the role of `pthread_cond_wait()` is crucial – it's the core, and often the most challenging part, of the POSIX thread signaling system.
+
+First, let's consider the following scenario: a thread has locked a mutex to inspect a linked list, but the list happens to be empty. This particular thread can't do anything – its design intent is to remove nodes from the list, but there are no nodes currently. Therefore, it can only:
+
+While holding the mutex, the thread will call `pthread_cond_wait(&mycond, &mymutex)`. The `pthread_cond_wait()` call is quite complex, so we'll go through its operations one at a time.
+
+The **first thing** `pthread_cond_wait()` does is simultaneously unlock the mutex (allowing other threads to modify the linked list) and wait for the condition `mycond` to occur (so that when `pthread_cond_wait()` receives a "signal" from another thread, it will wake up). Now that the mutex is unlocked, other threads can access and modify the linked list, potentially adding items. [**The requirement to unlock and block is an atomic operation**]
+
+At this point, the `pthread_cond_wait()` call has not yet returned. Unlocking the mutex happens immediately, but waiting for condition `mycond` is typically a blocking operation, meaning the thread will sleep and consume no CPU cycles until it wakes up. This is exactly what we want to happen. The thread will **sleep until a specific condition occurs**, during which no CPU time is wasted on busy-polling. From the thread's perspective, it's simply waiting for the `pthread_cond_wait()` call to return.
+
+Now, let's continue by assuming another thread (let's call it "Thread 2") locks `mymutex` and adds an item to the linked list. After unlocking the mutex, Thread 2 immediately calls the function `pthread_cond_broadcast(&mycond)`. Following this operation, Thread 2 will cause all threads waiting on the `mycond` condition variable to wake up immediately. This means the first thread (still within the `pthread_cond_wait()` call) will now **wake up**.
+
+Now, let's look at what happens to the first thread. You might think that `pthread_cond_wait()` in Thread 1 would return immediately after Thread 2 calls `pthread_cond_broadcast(&mycond)`. Not so! In fact, `pthread_cond_wait()` will perform one last operation: **re-lock `mymutex`**. Once `pthread_cond_wait()` has locked the mutex, it will then return and allow Thread 1 to continue execution. At that point, it can immediately check the list for the changes it's interested in.
+
+**Stop and Review!**
+That process was quite complex, so let's review. The first thread first calls:
+
+```c
+pthread_mutex_lock(&mymutex);
+```
+
+Then, it checked the list. Finding nothing of interest, it called:
+
+```c
+pthread_cond_wait(&mycond, &mymutex);
+```
+
+Then, the `pthread_cond_wait()` call performs several operations before returning:
+
+```c
+pthread_mutex_unlock(&mymutex);
+```
+
+It unlocks `mymutex` and then goes to sleep, waiting on `mycond` to receive a POSIX thread "signal." Once it receives a "signal" (in quotes because we're not talking about traditional UNIX signals, but rather signals from `pthread_cond_signal()` or `pthread_cond_broadcast()` calls), it wakes up. But `pthread_cond_wait()` doesn't return immediately – it has one more thing to do: re-lock the mutex:
+
+```c
+pthread_mutex_lock(&mymutex);
+```
+
+`pthread_cond_wait()` knows we're looking for changes "behind" `mymutex`, so it proceeds to lock the mutex for us before returning.
+
+[#TechnicalArticle](http://hi.baidu.com/tag/%E6%8A%80%E6%9C%AF%E6%96%87%E7%AB%A0/feeds)
