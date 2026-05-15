@@ -160,6 +160,14 @@ export default function RootLayout({
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
             gtag('config', 'G-S6MJ5ZRH0E');
+            // Google Ads conversion tracking — feeds the MAXIMIZE_CONVERSIONS
+            // PMax campaign so it has data to optimize against.
+            gtag('config', 'AW-1003516092');
+            gtag('event', 'conversion', {
+              send_to: 'AW-1003516092/AkvcCLu2tK0cELzhwd4D',
+              value: 1.0,
+              currency: 'USD',
+            });
           `}
         </Script>
       </head>
