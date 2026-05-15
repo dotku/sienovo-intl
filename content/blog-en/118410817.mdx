@@ -6,17 +6,51 @@ tags: ["#AM5728", "#DSP", "#ARM", "#MedicalAnalyzer", "#MedicalTester"]
 source: "https://blog.csdn.net/yeyuangen/article/details/118410817"
 originalTitle: "基于AM5728的高性能高稳定医疗测试分析仪系统"
 brandBackfilled: true
+expanded: true
 ---
-**Application Highlights:**
+## Deploying the AM5728 as the Control Core of a Clinical Chemistry Analyzer
 
-This application features an intuitive design that is easy to use, with a unified interface for cross-instrument integration, enabling all laboratory personnel to quickly learn and operate it. It allows any test to be run at any time, and users can replace reagents through the application without stopping the instrument, significantly improving laboratory productivity. The application is flexible and scalable, allowing laboratories to add modules at any time as testing volume increases, without needing to replace the entire system.
+Medical test analyzers — hematology counters, immunoassay platforms, clinical chemistry analyzers — sit at the intersection of two demanding worlds: the real-time determinism required to orchestrate dozens of synchronized mechanical axes, and the high-level software sophistication needed to present results clearly to clinical staff. Getting both right on a single platform is the central hardware challenge. This case study describes how Sienovo's AM5728 compute module was selected as the core engine for a high-throughput laboratory analyzer, and why that choice addresses the three customer pain points of fast sample delivery, responsive technical support, and uncompromising long-term stability.
 
-The Sienovo AM5728 module serves as the core engine connecting all servo motors and sensors, delivering reliable and trustworthy performance for the entire system.
+## Why the AM5728 Fits Medical Analyzer Architecture
 
-**Customer Pain Points:**
+The TI Sitara AM5728 is a heterogeneous SoC that combines dual ARM Cortex-A15 application cores running at up to 1.5 GHz with dual TMS320C66x DSP cores, an integrated PowerVR SGX544 GPU, and multiple PRU-ICSS (Programmable Real-Time Unit) subsystems. For a medical analyzer this heterogeneity is not a luxury — it is a functional requirement.
 
-1. Fast sample delivery  
-2. Timely software and technical support  
-3. High performance and high stability
+- The **Cortex-A15 cores** run the Linux application stack: the user-facing GUI, instrument scheduling logic, network connectivity, and data logging to LIS/LIMS systems.
+- The **C66x DSPs** handle signal processing — optical absorbance curve fitting, photometric calculations, and any real-time waveform analysis from detector arrays — without burdening the application processor.
+- The **PRU-ICSS subsystems** provide deterministic microsecond-level I/O suitable for stepper and servo motor commutation, encoder feedback, and sensor polling on tight timing loops.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118410817/01_bc138af7978275c7213f305fc01fdb54.jpeg)
+This architecture means the analyzer can simultaneously drive multiple servo axes for sample-carrier transport, monitor fluid-level sensors and pressure transducers, and render a smooth operator GUI — without any single subsystem starving another for CPU time.
+
+## Application Design: Unified Interface and Continuous Operation
+
+The software layer built on top of this platform is deliberately instrument-agnostic. A unified interface covers all modules in the analyzer family, so a technician trained on one instrument model can operate a different throughput tier without re-learning navigation flows. This matters in busy clinical laboratories where staff rotate between benches and instrument downtime for retraining is counted in lost billable tests.
+
+Critically, the system allows **reagent replacement without halting the instrument run**. In a traditional analyzer architecture, pausing the carousel to swap a reagent cartridge breaks the continuous sample queue and requires a recalibration cycle before results can resume. The hot-swap capability here — made possible by the precise servo positioning and sensor feedback the AM5728 orchestrates — lets the operator load a fresh reagent pack into the active slot while the instrument continues processing other channels. For a high-volume core laboratory running STAT samples alongside routine batches, this directly translates to faster turnaround times and higher instrument utilization.
+
+The modular scalability of the platform addresses a common procurement objection in clinical purchasing: laboratories often cannot predict future test-volume growth at budget time. Because the AM5728 module serves as a standardized control core across a range of instrument configurations, an existing installation can be expanded by adding a processing module rather than replacing the entire capital asset. The control software discovers the new module, updates the scheduling graph, and the expanded capacity is available immediately.
+
+## Connecting Servo Motors and Sensors
+
+The AM5728 module acts as the central interconnect fabric for all electromechanical subsystems in the analyzer. Typical axis count in a high-performance analyzer of this class includes:
+
+- **Sample-probe Z/R axes** — vertical descent into tubes and rotational indexing across the sample carousel
+- **Reagent-probe axes** — independent from sample probes to prevent cross-contamination
+- **Wash-station and mixing axes** — cuvette agitation, reagent mixing by aspiration/dispense
+- **Transport belt or carousel drive** — continuous-loop or indexed sample routing
+
+Each axis requires closed-loop position control with encoder feedback, limit-switch homing, and collision detection. The PRU subsystems handle the low-level commutation and encoder counting in deterministic real time, while the DSP or A15 cores run the higher-level trajectory planning and fault-state machines. Sensors — fluid level, bubble detection, clot detection on the probe, barcode readers on tubes — feed back through GPIO and SPI/I²C buses managed through the SoC's peripheral fabric.
+
+The Sienovo AM5728 module packages this SoC with power management, DDR memory, eMMC storage, Ethernet PHY, and all necessary passives in a system-on-module (SOM) form factor. The medical analyzer OEM connects the module to their custom carrier board, which breaks out motor-drive interfaces, analog front ends for photodetectors, and panel-display connectors. This division of responsibility shortens the OEM's design cycle considerably — the RF-sensitive, high-density SoC routing is already certified on the module, and the OEM focuses engineering effort on the application-specific analog and power circuitry.
+
+## Addressing the Three Customer Pain Points
+
+**1. Fast sample delivery.** Throughput in clinical chemistry is measured in tests per hour. Every millisecond lost to axis settle time, reagent-swap pauses, or scheduling inefficiency reduces that number. The real-time subsystems on the AM5728 keep axis control loops tight and deterministic, while the scheduling software on the A15 maximizes pipeline parallelism — overlapping probe descent, detector reading, and carousel advance so that no subsystem waits idle for another.
+
+**2. Timely software and technical support.** Because the AM5728 runs mainstream Linux and the TI Processor SDK, the software stack is based on widely documented, long-supported tools. Field engineers can connect remotely over Ethernet to pull logs, push firmware updates, and diagnose faults without dispatching a hardware technician. The Sienovo module also benefits from the same production-grade support infrastructure used across Sienovo's industrial and embedded product lines.
+
+**3. High performance and high stability.** Medical analyzers are expected to run continuously for years. The AM5728's industrial-grade temperature rating, mature silicon revision, and long-term supply commitment from TI make it suitable for a capital medical device that will be in clinical service for a decade. On the software side, the heterogeneous architecture ensures that a computationally intensive calibration run on the DSP does not introduce jitter into the servo loops, preserving both throughput and result accuracy simultaneously.
+
+![Medical analyzer system block diagram](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/118410817/01_bc138af7978275c7213f305fc01fdb54.jpeg)
+
+The combination of a heterogeneous, real-time-capable SoC, a production-ready SOM form factor, and a software architecture designed for continuous unattended operation makes the Sienovo AM5728 module a well-matched foundation for high-throughput clinical analyzers where reliability and sample turnaround time are non-negotiable requirements.

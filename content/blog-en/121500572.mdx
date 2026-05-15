@@ -5,22 +5,137 @@ slug: "121500572"
 tags: ["#OMPAL138", "#FPGA", "#CollisionAvoidanceRadar"]
 source: "https://blog.csdn.net/yeyuangen/article/details/121500572"
 originalTitle: "omapl138 fpga三核高速数据采集处理核心平台方案"
+expanded: true
+---
+## OMAP-L138 + FPGA Triple-Core High-Speed Data Acquisition Platform: XM138F-IDK-V3 Deep Dive
+
+The XM138F-IDK-V3 from Shenzhen Xinmai (Sienovo) is a DSP+ARM+FPGA triple-core development board built around TI's OMAP-L138 SoC and a Xilinx Spartan-6 FPGA. This article walks through the board's architecture, the rationale behind each chip selection, the inter-processor communication buses, and how the three cores divide signal-processing responsibilities — making it a useful reference for engineers evaluating the platform for power, communications, industrial control, medical instrumentation, or audio/video data acquisition work.
+
 ---
 
-Supports 32-channel AD acquisition, 32-channel DA output.
+## Why Triple-Core? The Architectural Rationale
 
-Supports multiple RS485, RS232 serial ports;
+Modern high-speed data acquisition systems face a three-way tension: raw signal throughput, deterministic real-time processing, and flexible application hosting. A single general-purpose CPU cannot serve all three well simultaneously.
 
-Supports real-time systems, control latency;
+The XM138F-IDK-V3 resolves this by assigning each concern to a dedicated processor:
 
-Supports multi-core communication between DSP and ARM, provides rich sampling demos;
+- **Xilinx Spartan-6 FPGA** — front-end signal capture and deterministic I/O control at hardware speed
+- **TI DSP C674x (inside OMAP-L138)** — fixed/floating-point signal processing (FFT, FIR, frequency-domain transforms) at up to 3648 MIPS / 2746 MFLOPS
+- **ARM9 (inside OMAP-L138)** — application hosting, display, network forwarding, and SATA storage under Linux
 
-Supports graphical interface programming, touch control!
+Because the DSP and ARM cores are integrated on the same OMAP-L138 die, on-chip shared memory and TI's DSPLINK/SYSLINK middleware keep inter-core latency low while eliminating discrete chip-to-chip signaling overhead.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/121500572/01_92d173128da9979aaf171817c8b2ca0e.jpeg)
+---
 
-#### 1. OMAP-L138+FPGA Development Board Introduction
+## Core 1 — Xilinx Spartan-6 FPGA: High-Speed Front End
 
-Designed by Shenzhen Xinmai, the XM138F-IDK-V3 is a DSP+ARM+FPGA triple-core high-speed data acquisition and processing development board, suitable for data acquisition and processing applications in power, communication, industrial control, medical, audio, and video fields.
+The board supports four pin-compatible Spartan-6 devices — XC6SLX9, XC6SLX16, XC6SLX25, and XC6SLX45 — all in the same 324-pin package. This graduated family lets designers start with the smaller, cheaper LX9 and scale up to the LX45 for more complex logic without a PCB respin:
 
-This design adopts the OMAP-L138+Spartan-6 platform, where OMAP-L138 is a low-power, high-performance floating-point DSP C6748+ARM9 dual-core processor from Texas Instruments (TI), and Spartan-6 is a highly cost
+| Device | Capability tier |
+|---|---|
+| XC6SLX9 | Interface-level: clocking and I/O management |
+| XC6SLX16 | Algorithm-level: simple DSP operations |
+| XC6SLX25 | Algorithm-level: mid-complexity signal processing |
+| XC6SLX45 | System-level: complex algorithm and control logic |
+
+### ADC Front End — AD9238
+
+The FPGA interfaces directly to an Analog Devices AD9238, a 12-bit dual-channel ADC. Three speed grades are available (20 MSPS, 40 MSPS, 65 MSPS), and all three are pin-compatible, so the same PCB supports the full speed range. Key characteristics:
+
+- Dual-channel simultaneous sampling up to **65 MSPS**
+- Voltage input range selectable: 1 Vp-p or 2 Vp-p
+- Power consumption: 180 mW (20 MSPS), 330 mW (40 MSPS), 600 mW (65 MSPS) — roughly half the power of comparable single-channel ADCs
+- 64-pin LQFP package (9 mm × 9 mm), well-suited for space-constrained designs
+- Better crosstalk rejection than two discrete single-channel ADCs
+
+The FPGA performs pre-filter processing on the raw ADC samples before forwarding them to the DSP, offloading anti-aliasing and decimation work from the processor.
+
+### DAC Output — AD9706
+
+On the output side, the FPGA drives an AD9706 12-bit DAC at up to **175 MSPS**, with a current output range of 1 mA–5 mA. The AD9706 belongs to a four-member pin-compatible family (AD9748/AD9740/AD9742/AD9744 in LFCSP_VQ, and the AD9706 series) covering 8-, 10-, 12-, and 14-bit resolutions, all at the same 175 MSPS update rate. Power can drop as low as 15 mW by reducing full-scale output current, and standby power reaches 2.2 mW — important for battery-powered or thermally constrained deployments.
+
+---
+
+## Core 2 — TI OMAP-L138: DSP Signal Processing
+
+The OMAP-L138 integrates a **C674x fixed/floating-point DSP** (compatible with the C6748 instruction set) alongside an ARM926EJ-S (ARM9) core, both running at **456 MHz**. The DSP side delivers up to 3648 MIPS and 2746 MFLOPS, giving it ample headroom for real-time FFT, FIR filtering, and other frequency- or time-domain transforms on the incoming ADC streams.
+
+### FPGA ↔ DSP Communication — uPP and EMIF
+
+Two buses carry data between the Spartan-6 and the OMAP-L138:
+
+**uPP (Universal Parallel Port)** is OMAP-L138's high-speed parallel interface designed specifically for FPGA and parallel-bus peripherals. It provides two independent 16-bit channels (Channel A and Channel B, totalling 32 data lines), can send and receive simultaneously, and clocks at up to half the processor frequency. At 456 MHz processor clock, a single uPP channel achieves a theoretical throughput of **228 MB/s** — sufficient to absorb the 65 MSPS × 12-bit × 2-channel ADC stream (≈195 MB/s) with margin to spare.
+
+**EMIF (External Memory Interface)** supplements uPP for medium-throughput data exchange and parallel logic control. While uPP is optimised for bulk streaming, EMIF gives the DSP direct read/write access to FPGA registers and memory-mapped control surfaces — useful for configuration, mode switching, and lower-bandwidth bidirectional data.
+
+**SPI and I2C** are used by the ARM side for FPGA initialisation and parameter configuration, keeping the higher-speed buses free for data traffic.
+
+---
+
+## Core 3 — ARM9: Application Hosting and System Management
+
+Once the DSP has processed incoming signal data, it forwards results to the ARM9 via shared on-chip memory. The ARM runs Linux (HLOS) and handles:
+
+- **Real-time waveform display** — time-domain and frequency-domain plots of ADC/DAC data on a touchscreen LCD
+- **Network forwarding** — 10/100 Mbit Ethernet (RJ45) for remote monitoring and data relay
+- **Mass storage** — SATA hard-disk interface for high-volume data logging
+- **USB connectivity** — Micro USB 2.0 OTG and USB 1.1 HOST
+
+The ARM also controls FPGA initialisation over SPI/I2C before the data pipeline starts.
+
+---
+
+## DSP ↔ ARM Dual-Core Communication — DSPLINK / SYSLINK
+
+TI provides two generations of dual-core middleware for OMAP-L138:
+
+- **DSPLINK** — the original framework, pairing Linux on ARM with DSP/BIOS on the DSP
+- **SYSLINK** — the successor, pairing Linux on ARM with SYS/BIOS on the DSP; preferred for new designs
+
+Both present a unified API that abstracts the physical shared-memory interconnect, so application code does not deal with cache coherence or mailbox registers directly. Data exchange uses a shared-memory model: the DSP writes processed buffers to a shared region, signals the ARM via an interrupt or message queue, and the ARM consumes them without a copy through the interconnect fabric.
+
+Advantages of the on-chip approach over discrete DSP + application processor designs:
+
+1. No PCB traces between processors — eliminates SI, EMI, and latency concerns on the data path
+2. DSPLINK/SYSLINK reduce dual-core bringup time significantly versus rolling a custom IPC layer
+3. Shared power domain reduces overall BOM cost and PCB area
+
+---
+
+## Hardware Specifications Summary
+
+| Resource | Detail |
+|---|---|
+| CPU | TI OMAP-L138 (DSP C674x + ARM9), 456 MHz |
+| FPGA | Xilinx Spartan-6 XC6SLX9/16/25/45 (pin-compatible) |
+| Flash (OMAP-L138) | 128 / 256 / 512 MB NAND |
+| Flash (FPGA) | 64 Mbit SPI Flash |
+| DRAM | 128 / 256 MB DDR2 |
+| ADC | AD9238, dual-channel 12-bit, up to 65 MSPS |
+| DAC | AD9706, 12-bit, 175 MSPS |
+| Ethernet | 10/100 Mbit RJ45 |
+| Storage | SATA (7-pin) |
+| USB | Micro USB 2.0 OTG + USB 1.1 HOST |
+| Serial | 2× RS232 (DB9 + Micro USB), RS485, TTL UART breakout |
+| Expansion I/O | EMIFA 25-pin IDC × 2, FPGA GPIO 25-pin IDC × 2 |
+| JTAG | TI Rev B 14-pin + Xilinx 14-pin (separate headers) |
+| Display | LCD touchscreen connector |
+| Storage medium | Micro SD slot |
+| Core module size | 66 mm × 38.6 mm, industrial B2B connector |
+| Environmental | Validated through high/low temperature testing |
+| OS support | Bare metal, SYS/BIOS, Linux |
+
+---
+
+## Typical Application Domains
+
+The combination of 65 MSPS dual-channel ADC capture, 175 MSPS DAC output, real-time DSP processing, and Linux-based application hosting makes the XM138F-IDK-V3 a natural fit for:
+
+- **Smart grid / power electronics** — harmonic analysis, power quality monitoring
+- **Software-defined radio / communications** — baseband processing, waveform generation
+- **Medical instrumentation** — ultrasound front ends, ECG/EEG signal chains
+- **Industrial control** — high-precision CNC, motion control with real-time feedback
+- **Audio/video processing** — codec acceleration, media capture pipelines
+- **Radar and collision-avoidance systems** — front-end ADC capture paired with FFT-based range/Doppler processing on the DSP
+
+The platform's industrial-grade B2B connectors, validated temperature range, and graduated FPGA upgrade path (LX9 → LX45 without board respin) lower the risk of bringing a design from prototype to production deployment.

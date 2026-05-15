@@ -6,13 +6,116 @@ tags: ["#FPGADev", "#C665x"]
 source: "https://blog.csdn.net/yeyuangen/article/details/123141480"
 originalTitle: "TI TMS320C665x + Xilinx Artix-7 DSP+ARM核间通讯方案"
 brandBackfillNotNeeded: true
+expanded: true
 ---
+## Overview
 
-### **1 Evaluation Board Introduction**
+The Sienovo XM-C665xF-EVM is a high-performance DSP+FPGA evaluation board designed for applications that demand real-time, high-throughput data acquisition and signal processing. Built around TI's TMS320C665x KeyStone C66x DSP and a Xilinx Artix-7 XC7A100T FPGA, the platform targets demanding workloads including radar signal processing, remote radio unit (RRU) front-ends, high-end machine vision, and broadband audio/video analysis. This post walks through the board's architecture, interconnect topology, hardware specifications, software ecosystem, and typical use cases.
 
-(1) Based on TI KeyStone C66x multi-core fixed-point/floating-point DSP TMS320C665x + Xilinx Artix-7 FPGA processors;
-(2) The TMS320C665x has a clock frequency of 1.0G/1.25GHz, with a single-core computing capability of up to 40G MACS and 20G FLOPS. The FPGA XC7A100T features 101K logic cells and 240 DSP Slices;
-(3) The TMS320C665x connects with the FPGA via communication interfaces such as uPP, EMIF, I2C, PCIe, and SRIO, with PCIe and SRIO each supporting a maximum transmission speed of 5 GBaud per lane;
-(4) The FPGA acquisition card supports dual-channel 250MSPS\*12Bit high-speed, high-precision ADC, and one channel 175MSPS\*12Bit high-speed, high-precision DAC, meeting diverse data acquisition needs;
-(5) Supports Gigabit Ethernet port for connecting industrial network cameras, and also supports common interfaces such as I2C, SPI, UART, and McBSP;
-(6) Supports expansion modules such as CameraLink input/
+## Processor Architecture
+
+The TMS320C665x belongs to TI's KeyStone I architecture family. Depending on variant, it is available as a single-core C6655 (1.0/1.25 GHz) or dual-core C6657. Each C66x core is a fixed- and floating-point DSP capable of 40 GMAC/s and 20 GFLOP/s, making it well suited for FFT-heavy algorithms, FIR/IIR filter banks, and matrix operations typical in communications and imaging pipelines. The KeyStone multicore navigator and packet DMA (PKTDMA) allow the DSP subsystem to move data between cores and peripherals with minimal CPU intervention.
+
+On the FPGA side, the Xilinx XC7A100T is a mid-range Artix-7 device with 101,000 logic cells and 240 DSP48E1 slices. The DSP slices accelerate fixed-point multiply-accumulate operations directly in fabric, complementing the C665x's software DSP capability and allowing pre-processing (filtering, decimation, framing) to happen before data ever reaches the DSP cores.
+
+## DSP–FPGA Interconnect Topology
+
+One of the most important design decisions on any DSP+FPGA board is choosing the right interconnect for each data path. The XM-C665xF-EVM exposes five distinct buses between the C665x and the XC7A100T:
+
+**PCIe (Gen2, ×4):** Two lanes each capable of 5 GBaud, implemented as a PCIe ×4 slot. PCIe is best suited for large, bursty DMA transfers — moving a full ADC capture buffer from FPGA DDR into DSP memory, for instance.
+
+**SRIO 2.1 (4-lane):** Serial RapidIO at up to 5 GBaud per lane. SRIO is a deterministic, low-latency fabric well understood in telecom and defense signal processing. It is the preferred path when latency jitter matters more than raw bandwidth, such as synchronised multi-board data aggregation.
+
+**EMIF (16-bit):** The External Memory Interface on the C665x provides a parallel bus suitable for medium-throughput, register-mapped control of FPGA logic — reading status registers, writing coefficient tables, or exchanging modest-sized data structures without the overhead of a PCIe transaction layer.
+
+**I2C:** Slow but universal. On this board I2C is used for FPGA initialisation at boot time and runtime parameter configuration — changing ADC gain settings, switching clock sources, or reading the onboard TMP102 temperature sensor.
+
+**uPP (Universal Parallel Port):** TI's uPP is a synchronous parallel interface designed specifically for interfacing DSPs to ADCs and FPGAs. It supports up to 16-bit wide data at high clock rates, and on this board provides an alternative lower-latency path for streaming ADC samples into the C665x when PCIe or SRIO overhead is undesirable.
+
+The combination means you can assign each data class to the most appropriate bus: slow control over I2C, medium-rate status/coefficient exchange over EMIF, and high-speed sample streams over uPP, PCIe, or SRIO depending on latency vs. throughput requirements.
+
+## Data Acquisition Front-End
+
+The FPGA acquisition sub-board (XM-A7HSAD) provides:
+
+- **Dual-channel 12-bit ADC** at up to 250 MSPS with 1.8 Vp-p full-scale and LVDS output — sufficient to digitise signals up to ~125 MHz without aliasing under Nyquist.
+- **One 12-bit DAC** at 175 MSPS with up to 5 mA maximum output current, allowing arbitrary waveform generation or closed-loop analog feedback at update rates suitable for IF synthesis.
+- **Xilinx XADC** (dual-channel, 12-bit, 1 MHz, 1.25 Vp-p) for housekeeping measurements such as supply voltages and die temperature.
+
+The data flow is: analog input → ADC → FPGA fabric (pre-filter / pack / DMA) → DSP over SRIO or PCIe → C665x cores run FFT/FIR → results dispatched to network, storage, or back to FPGA → DAC output.
+
+The FPGA can apply pre-filtering or decimation before forwarding samples to the DSP, reducing the effective data rate on the interconnect and freeing DSP MIPS for higher-level processing.
+
+## Hardware Specifications at a Glance
+
+**DSP Core Module (SOM-XM665x)**
+
+| Parameter | Value |
+|-----------|-------|
+| CPU | TMS320C6655 (single-core) / C6657 (dual-core), 1.0–1.25 GHz |
+| DDR3 RAM | 512 MB or 1 GB |
+| NAND Flash | 128 MB or 256 MB |
+| SPI NOR Flash | 32 MB or 64 MB |
+| EEPROM | 1 Mbit |
+| Ethernet | 2× GbE (10/100/1000M auto-negotiation) |
+| HyperLink | Up to 40 GBaud (KeyStone-to-KeyStone interconnect) |
+| PCIe | ×4 Gen2, 2 lanes, 5 GBaud/lane |
+| SRIO | 2.1, 4 lanes, 5 GBaud/lane |
+| JTAG | 14-pin TI Rev B, 2.54 mm pitch |
+| Operating temp | −40 °C to +85 °C |
+| Supply voltage | 5.0 V nominal |
+| Typical power | ~3.5 W at 9 V, 390 mA |
+| PCB size | 80 mm × 58 mm |
+
+The SOM-XM6655 and SOM-XM6657 core modules are pin-to-pin hardware compatible, simplifying carrier board design across the single- and dual-core variants.
+
+**FPGA Acquisition Board (XM-A7HSAD)**
+
+| Parameter | Value |
+|-----------|-------|
+| FPGA | Xilinx XC7A100T (101K LCs, 240 DSP slices) |
+| DDR3 RAM | 2× 128 MB or 256 MB |
+| NOR Flash | 256 Mbit |
+| ADC | 2-ch, 12-bit, 250 MSPS max, LVDS, 1.8 Vp-p |
+| DAC | 12-bit, 175 MSPS, max 5 mA output |
+| Ethernet | 1× GbE |
+| PCIe | ×4 Gen2 |
+| SRIO | 4-lane, 5 GBaud/lane |
+| JTAG | 14-pin, 2.00 mm pitch |
+| Supply | 12 V, 2 A |
+| PCB size | 200 mm × 106.5 mm (eval baseboard) |
+
+## Software Environment
+
+The platform supports two software execution models:
+
+- **Bare-metal**: Direct register access, no OS overhead. Best for latency-critical interrupt service routines and deterministic control loops.
+- **SYS/BIOS (TI-RTOS)**: A real-time operating system with task scheduling, semaphores, and hardware abstraction. Enables structured multi-core software design without the complexity of a full Linux kernel.
+
+The recommended toolchain is **Code Composer Studio (CCS) 5.5** with **MCSDK** (Multicore Software Development Kit), which bundles the C66x optimised compiler, navigator drivers, and reference firmware for the on-chip peripherals. FPGA development uses **Vivado 2015.2**.
+
+Sienovo ships the board with a full set of demo projects covering:
+
+- Bare-metal peripheral bring-up examples
+- SYS/BIOS task and inter-core messaging examples
+- **Multi-core communication tutorials** — a commonly cited bottleneck for teams new to KeyStone; the demos demonstrate the QMSS (Queue Manager Sub-System) and PKTDMA for zero-copy data passing between C66x cores
+- DSP–FPGA communication examples over PCIe, SRIO, and I2C
+- FPGA development reference designs
+
+## Typical Application Domains
+
+The combination of a high-throughput ADC front-end, multi-gigabit DSP–FPGA links, and a floating-point DSP back-end makes this platform suitable for:
+
+- **Remote Radio Units (RRU)**: High-speed ADC capture of IF signals, digital down-conversion in FPGA fabric, baseband processing on C665x cores, and network forwarding over GbE.
+- **High-speed data acquisition systems**: Dual-channel 250 MSPS capture with real-time FFT, spectrum analysis, or waveform recording to SATA storage.
+- **High-end image processing**: CameraLink and GbE camera input, FPGA-accelerated pre-processing, DSP-based classification or compression.
+- **Audio/video processing**: Multi-channel high-rate audio, compressed video encode/decode pipelines where FPGA handles entropy coding and DSP handles transform stages.
+- **Communications systems**: Modem front-ends, software-defined radio prototyping.
+
+## Development and Support
+
+The SOM-XM665xF core module exposes all C665x I/O signals through a 200-pin B2B connector array (2× 50-pin male, 2× 50-pin female at 0.8 mm pitch) plus an 80-pin high-speed B2B connector (0.5 mm pitch, signal rates to 10 GBaud). This architecture allows teams to design a custom carrier board that fits their mechanical and I/O constraints while reusing the validated DSP+FPGA core.
+
+Sienovo provides editable carrier board schematics and PCB files, chip datasheets, and reference firmware to shorten hardware bring-up. Beyond documentation, they offer hands-on engineering support including carrier board design review, fault diagnosis, second-source code compilation assistance, and custom development services (board-level customisation, core module variants, embedded software development, and training).
+
+For teams evaluating the XM-C665xF-EVM as a prototyping vehicle before committing to a production design, the combination of well-documented multi-core communication demos and the DSP+FPGA interconnect variety (uPP, EMIF, PCIe, SRIO) makes it straightforward to benchmark the exact data paths your application will use before finalising the carrier board layout.

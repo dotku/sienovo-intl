@@ -6,11 +6,147 @@ tags: ["#DSP+FPGA", "#ZYNQ", "#LTE"]
 source: "https://blog.csdn.net/yeyuangen/article/details/122848687"
 originalTitle: "Zynq LTE基站设计与实现"
 brandBackfillNotNeeded: true
+expanded: true
 ---
+Xilinx Zynq-7000 All Programmable SoC enables femtocell, picocell, microcell, and metrocell base station designs to reach new levels of integration, flexibility, and low power consumption. This article walks through why the Zynq-7000 architecture is well-suited to LTE small cell deployments, and uses the XM-ZYNQ7045-EVM evaluation board from Xinmai Technology (深圳信迈科技) as a concrete hardware reference to illustrate how the SoC maps onto a real product platform.
 
-[Xilinx](http://www.elecfans.com/tags/%E8%B5%9B%E7%81%B5%E6%80%9D/ "赛灵思") Zynq-7000 All Programmable SoC enables femto, pico, and other small cell base station designs to reach new levels of integration, flexibility, and low power consumption.
+## Why Small Cells Demand a Different Silicon Strategy
 
-Small cells are low-power wireless base stations that operate within licensed spectrum and are managed by mobile network operators. Small cell base station types include femtocells, picocells, microcells, and metrocells, with coverage ranging from tens to hundreds of meters. Currently, the core [electronic](http://www.elecfans.com/soft/special/ "电子") components of small cell systems include [FPGA](http://www.elecfans.com/tags/fpga/ "FPGA")s, [DSP](http://www.elecfans.com/tags/dsp/ "DSP") devices, and network and host processors, all of which must meet the requirements of evolving wireless standards. However, new-generation small cell systems are rapidly becoming highly integrated, combining these components into a single System-on-Chip (SoC).
+Small cells are low-power wireless base stations that operate within licensed spectrum under mobile network operator management. Coverage ranges from roughly 10 meters (femtocell, indoor residential) up to a few hundred meters (metrocell, urban outdoor). Because these nodes are often deployed at scale — mounted on lamp posts, inside offices, or on building facades — the design constraints are fundamentally different from a macro base station:
 
-**ZYNQ SoC is the Ideal Choice for LTE Small Cell Base Stations**
-Zynq SoC's high-performance programmable logic and [ARM](http://www.elecfans.com/tags
+- **No active cooling.** Most small cell enclosures cannot accommodate a cooling fan, so the thermal envelope is fixed and component power budgets are tight.
+- **BOM cost sensitivity.** A single macro site might justify expensive multi-chip solutions; a dense small cell deployment cannot.
+- **Multi-standard flexibility.** Heterogeneous networks (HetNet) mix LTE, LTE-A, and eventually 5G NR nodes. A device that can be reconfigured in the field to support new bands or air-interface revisions reduces hardware inventory risk.
+
+Historically, small cell designs used three separate chips: a multi-core SoC for the protocol stack, an ASSP for the digital front end, and a small FPGA to handle residual logic and memory interfaces. The chip-to-chip latency, the power overhead of multiple power domains, and the board area this requires all work against the small cell's goals.
+
+## Zynq-7000 Architecture Fit
+
+The Zynq-7000 family combines a dual-core ARM Cortex-A9 Processing System (PS) and a Kintex-7-class Programmable Logic (PL) fabric in a single 28 nm device. For an LTE small cell, the work divides naturally across the two domains:
+
+**Processing System (PS) — dual ARM Cortex-A9 at 800 MHz**
+- One core runs a real-time OS and handles L1 control timing.
+- The second core runs L2/L3 protocol stack, backhaul transport management, and IPSec/RoHC offload coordination.
+
+**Programmable Logic (PL) — Kintex-7 fabric**
+- Radio + L1 baseband (PDSCH/PUSCH encoding/decoding, HARQ, OFDM FFT/IFFT).
+- Digital Front End (DFE): Digital Up/Down Conversion (DUC/DDC), optional Crest Factor Reduction (CFR), and Digital Pre-Distortion (DPD) for power amplifier linearisation.
+- Hardware acceleration for L2 user-plane functions (encryption, RoHC), relieving the ARM cores for higher-layer work.
+
+Xilinx's Vivado HLS toolchain allows protocol stack code initially prototyped in C/C++ on the ARM to be synthesised into Verilog or VHDL and moved into the PL fabric when the ARM proves too slow. Xilinx states this can accelerate certain functions by up to 700× while freeing the processor to execute other tasks faster — though the actual gain is workload-dependent and those figures represent a ceiling, not a guaranteed result for every function.
+
+## Single-Chip vs. Multi-Chip: Concrete Trade-offs
+
+A typical 2×2 (2T2R) LTE small cell BOM previously contained three chips: multi-core SoC + DFE ASSP + small FPGA. Consolidating onto a single Zynq-7000 device (for example, the XC7Z045) delivers measurable system-level benefits according to Xilinx's reference design data:
+
+| Metric | Multi-chip baseline | Single Zynq SoC |
+|---|---|---|
+| BOM cost | Baseline | ~25% reduction |
+| System performance | Baseline | ~2× improvement |
+| Total power | Baseline | ~35% reduction |
+
+The reduction in chip-to-chip latency from this consolidation also directly addresses the end-to-end latency budget, which is a critical constraint in LTE radio timing.
+
+For **high-capacity** small cells that exceed what a single Zynq SoC's PS can handle at L2/L3, Xilinx recommends keeping radio + L1 in the PL, handling timing and control in the PS, and offloading the upper protocol stack and backhaul management to an auxiliary host processor.
+
+## LTE Baseband and Software IP
+
+Xilinx provides a Zynq SoC-based LTE small cell reference design paired with its LTE baseband IP, with an option for customers to integrate their own third-party baseband. The software solution stack covers:
+
+- LTE protocol stack (L1 through L3)
+- RAN security
+- Backhaul IPSec
+- Timing and synchronisation
+- Robust Header Compression (RoHC)
+
+This means a design team can start from a validated reference platform and focus engineering effort on differentiation rather than re-implementing standard protocol machinery.
+
+## XM-ZYNQ7045-EVM Evaluation Board
+
+To accelerate prototyping, Xinmai Technology's **XM-ZYNQ7045-EVM** provides a high-end heterogeneous SoC evaluation platform built around the XC7Z045 or XC7Z100. The board consists of a core module and an evaluation carrier board.
+
+### Processor and Memory
+
+| Resource | Specification |
+|---|---|
+| CPU | Xilinx XC7Z045/XC7Z100-2FFG900I |
+| ARM cores | 2× Cortex-A9 @ 800 MHz, 2.5 DMIPS/MHz per core |
+| PL fabric | Kintex-7 architecture, 28 nm |
+| Logic cells | XC7Z045: 350K / XC7Z100: 444K |
+| PS DDR3 | 1 GByte, single-channel 32-bit bus |
+| PL DDR3 | 1 or 2 GByte, single-channel 32-bit bus |
+| eMMC | 8 GByte (PS) |
+| SPI NOR Flash | 128 or 256 Mbit (PS) |
+
+### I/O and Connectivity
+
+The carrier board exposes a broad set of interfaces relevant to wireless and signal-processing applications:
+
+- **Networking:** 1× PS RGMII GbE (PHY on core module) + 1× PL RGMII GbE, both RJ45 10/100/1000 M adaptive
+- **High-speed optical:** 4× SFP+ ports (10G capable, via GTX transceivers)
+- **PCIe:** 1× PCIe (2-lane, x4 gold-finger, via GTX, PL side)
+- **FPGA Mezzanine:** 1× 400-pin FMC HPC connector (1.27 mm pitch)
+- **Video:** 1× HDMI IN + 1× HDMI OUT (PL); 1× CameraLink (2× Base, Full mode capable, PL); 1× LCD resistive touch (40-pin FFC, 0.5 mm pitch); 1× LVDS display header (2×15 pin, 2.00 mm pitch)
+- **Camera:** 2× camera interfaces (10-pin header, 2.54 mm pitch, PL)
+- **Serial:** 1× Debug UART (Micro USB, PS), 1× RS-232 (DB9, PL), 1× RS-485 (3.81 mm terminal, PL), 2× CAN (3.81 mm terminal, PL)
+- **USB:** 4× USB 2.0 HOST (via HUB, PHY on core module)
+- **Storage:** 1× Micro SD (PS)
+- **Analog:** 1× XADC differential input header (1 MSPS), 1× SMA GTX clock/RX/TX
+- **Misc:** JTAG (14-pin, 2.0 mm), 6-bit boot mode DIP switch, watchdog header, RTC socket (ML2032/CR2032), 12V fan header
+
+The core module uses a 14-layer PCB (62 mm × 100 mm, 1.6 mm thick) connecting to the carrier via four 140-pin high-speed B2B connectors (0.5 mm pitch, 7.0 mm stack height, 560 pins total). The carrier board is 8-layer, 142.75 mm × 260 mm.
+
+### Software Environment
+
+| Item | Version / Detail |
+|---|---|
+| ARM bare-metal | Supported |
+| RTOS | FreeRTOS |
+| Linux kernel | 4.9.0 |
+| Vivado | 2017.4 |
+| PetaLinux | 2017.4 |
+| Xilinx SDK | 2017.4 |
+| HLS toolchain | Xilinx HLS 2017.4 |
+
+Driver coverage includes DDR3, SPI NOR Flash, USB 2.0, eMMC, Ethernet, CAN, RS-485, RS-232, SD/MMC, XADC, I2C, 7-inch resistive touch LCD, USB 4G, and USB Wi-Fi.
+
+### Electrical Characteristics and Power Budget
+
+The board is specified for industrial temperature range (−40 °C to +85 °C core module operating temperature) and accepts 12 V / 6 A DC input on the carrier.
+
+Representative power measurements on an XC7Z045-based system (without external modules attached):
+
+| State | Domain | Voltage | Current | Power |
+|---|---|---|---|---|
+| Idle (LED test on PL, PS booted, no workload) | Core module | 5.0 V | 0.40 A | 2.00 W |
+| Idle | Evaluation board | 12.0 V | 0.43 A | 5.16 W |
+| Full load (DDR stress + dual A9 ~100% utilised + PL IFD test) | Core module | 5.0 V | 1.85 A | 9.25 W |
+| Full load | Evaluation board | 12.0 V | 1.19 A | 14.28 W |
+
+These figures confirm that even at full CPU and PL utilisation, the platform stays within a thermal envelope compatible with fanless industrial enclosures, consistent with the small cell deployment requirements discussed above.
+
+## Typical Application Domains
+
+Beyond LTE small cell base stations, the XM-ZYNQ7045-EVM targets a range of signal-processing-intensive applications where the PS+PL architecture provides an advantage over pure-CPU or pure-FPGA solutions:
+
+- Software-defined radio (including AD9361-based SDR examples)
+- Radar detection and electronic warfare
+- Electro-optical detection and tracking
+- Video tracking and image processing (CameraLink, HDMI, SDI pipelines)
+- Underwater acoustic detection
+- Positioning and navigation
+- Deep learning inference at the edge (leveraging HLS-accelerated inference kernels in PL)
+
+## Development Resources and Support
+
+Xinmai provides a complete development package covering:
+
+1. Core module pin definitions, editable carrier schematic and PCB files, and chip datasheets.
+2. Pre-built system images, kernel driver source, filesystem source, and demo applications.
+3. Full platform SDK, getting-started guides, and PS+PL heterogeneous multi-core communication tutorials (including OpenAMP-based Linux + FreeRTOS dual-core ARM communication examples).
+
+Reference design categories include Linux-based, bare-metal, FreeRTOS, PS+PL heterogeneous multi-core, HLS-accelerated PL examples, Qt UI applications, high-speed ADC (AD9613) capture and DAC (AD9706) output, 10G UDP optical communication, Aurora optical link, and PCIe communication.
+
+## Summary
+
+The Zynq-7000's combination of dual ARM Cortex-A9 processing and Kintex-7 programmable logic in a single 28 nm package is a strong fit for LTE small cell design because it directly addresses the three hardest constraints: fanless thermal operation (low PL and PS power), aggressive BOM targets (one chip replaces three), and multi-standard HetNet flexibility (PL reconfigurability). The XM-ZYNQ7045-EVM evaluation board provides an immediately usable hardware platform with the full interface set needed to prototype radio, video, and industrial applications on top of this architecture, backed by a toolchain (Vivado 2017.4 / PetaLinux / HLS) and driver library that spans bare-metal through full Linux deployments.

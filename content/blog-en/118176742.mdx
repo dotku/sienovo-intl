@@ -5,11 +5,82 @@ slug: "118176742"
 tags: ["#OMAPL138", "#DiagnosticInstrument", "#OnlineMonitoring", "#DataAcquisition", "#DSP"]
 source: "https://blog.csdn.net/yeyuangen/article/details/118176742"
 originalTitle: "基于OMAP-L138的便携式设备状态监测与诊断仪设计"
+expanded: true
 ---
+The OMAP-L138 processor combines the strengths of both DSP and ARM cores — the DSP handles real-time signal processing while the ARM manages the operating system, graphical interface, waveform display, and peripheral control. Inter-core communication is handled through the DSP/BIOS bridge (DSP/Link), making it an attractive platform for industrial instruments that must simultaneously perform complex signal analysis and present results through a responsive UI. This article walks through the hardware and software design of a portable, dual-channel equipment condition monitoring and diagnostic instrument built around this processor, targeting the predictive-maintenance needs of petrochemical facilities.
 
-**Abstract:** This paper proposes a design scheme for a portable equipment condition monitoring and diagnostic instrument based on OMAP-L138. Its hardware and software architecture design are introduced, with a detailed focus on the hardware design of the data acquisition section and the software design of the data acquisition module. By leveraging the control processing advantages of the ARM core and the digital processing capabilities of the DSP core, the benefits of low power consumption and high performance are achieved.
+## Why OMAP-L138 for Industrial Diagnostics
 
-**Keywords:** OMAP; [Fault Diagnostic Instrument](http://www.chinaaet.com/tags/%E6%95%85%E9%9A%9C%E8%AF%8A%E6%96%AD%E4%BB%AA); Data Acquisition
+Industrial condition monitoring instruments face a fundamental tension: they need enough computational horsepower to run FFT, shaft-orbit, and dynamic-balancing algorithms in real time, yet they must remain battery-friendly and handheld. The TI OMAP-L138 resolves this by pairing a C6748 DSP core with an ARM926EJ-S core on a single die, both clocked at up to 456 MHz. The C6748 is a fixed/floating-point DSP descended from the TMS320C6000 family, delivering up to 3648 MIPS and 2746 MFLOPS at 456 MHz while consuming significantly less power than earlier C6000 devices. The ARM926EJ-S is a 32-bit RISC core that executes both 32-bit and 16-bit (Thumb) instruction sets and can process 32-bit, 16-bit, and 8-bit data widths. It includes a CP15 coprocessor, 8 KB of data RAM, and 64 KB of ROM.
 
-Condition monitoring and fault diagnosis of industrial equipment effectively ensure the stable operation of equipment and play an increasingly important role in predictive maintenance. To meet the needs of petrochemical enterprises for condition monitoring and fault diagnosis, a portable, comprehensive equipment condition monitoring and diagnostic instrument has been designed. The design references Xinmai's OMAPL138+SPARTAN6 evaluation board. The OMAPL138 dual-core processor launched by TI possesses powerful complex data processing capabilities and reliable real-time performance, enabling high-performance dual-channel data acquisition and signal analysis, as well as on-site display of FFT spectrums, shaft orbits, and other functions.
-The OMAPL138 processor integrates
+The design references Xinmai's XM138-SP6-SOM core module and its XM138F-IDK-V3.0 evaluation carrier board, which pairs the OMAP-L138 with a Xilinx Spartan-6 FPGA (XC6SLX9/16/25/45). The FPGA connects to the OMAP-L138 via the uPP (Universal Parallel Port), EMIFA, and I2C buses, achieving inter-chip transfer rates of up to 228 MB/s. The SOM measures just 66 mm × 38.6 mm and uses industrial-grade B2B connectors for signal integrity, and it has passed high- and low-temperature certification for use in harsh plant environments.
+
+## Hardware Design
+
+### Processor and Peripheral Circuit
+
+The OMAP-L138's external memory interface (EMIFA) controls the NOR Flash in 16-bit GPCM mode. A 32 MB Spansion NOR Flash device stores the bootloader and application image. One important layout note from the design: OMAP-L138 uses SMALL_EIDEN address ordering, where the significance ordering of address and data lines differs from PowerPC-family processors — failure to account for this during PCB layout results in incorrect memory access.
+
+For main memory, the design uses a single Micron MT47H64M16HR DDR2 SDRAM device — 128 MB capacity, 16-bit data bus width, eight internal banks. Only four registers need initialization to bring DDR2 online: `SDCR`, `SDRCR`, `SDTIMR1`, and `SDTIMR2`. The OMAP-L138's DDR2 controller supports up to 150 MHz, which is sufficient for buffering the dual-channel acquisition data streams fed from the FPGA.
+
+Calibration parameters and firmware version information are stored in a 4096 × 8-bit AT24C32CN EEPROM connected via I2C. The OMAP-L138 also provides a 10/100 Mbps MII Ethernet port for communication with a PC host, and a UART for driver debugging and diagnostic log output during development.
+
+### Data Acquisition Circuit
+
+The data acquisition subsystem is the functional heart of the instrument. Its architecture consists of two high-speed ADC channels, a large-capacity FIFO buffer, and an Altera Cyclone-series FPGA. The FPGA handles all high-speed acquisition logic and FIFO flow control; acquired data is then transferred to the OMAP-L138's DSP core via the uPP interface for signal processing.
+
+Vibration signals are captured by piezoelectric accelerometers. Each channel follows this conditioning chain:
+
+1. **Signal conditioning amplifier** — scales the raw sensor output to the ADC input range.
+2. **Second-order Butterworth band-pass filter** — removes DC offset and out-of-band noise, delivering a clean acceleration signal to the ADC.
+3. **First integration stage** — converts acceleration to velocity.
+4. **Second integration stage** — converts velocity to displacement.
+
+This cascaded integration approach lets a single accelerometer provide simultaneous acceleration, velocity, and displacement data to the diagnostic algorithms.
+
+Keyphasor (key-phase) signals are equally important in rotating machinery diagnostics. The eddy-current sensor used for this purpose produces a negative pulse at roughly −10 V each time a reference mark on the shaft passes the probe. The signal-conditioning circuit DC-blocks the pulse, inverts it, and passes it through a Schmitt-trigger hysteresis comparator to produce a clean 3.3 V narrow pulse suitable for direct input to the FPGA. The FPGA uses this pulse as the phase-zero trigger for synchronized data acquisition, enabling coherent phase-referenced measurements needed for shaft-orbit plots and dynamic balancing.
+
+During a triggered acquisition cycle, the FPGA starts both ADC channels simultaneously on the keyphasor edge. After each ADC conversion cycle completes, the ADC asserts an interrupt to the FPGA. The FPGA writes the converted sample into the FIFO. When the FIFO reaches its half-full threshold, the half-full flag triggers an interrupt that causes the FPGA to assert a read request, and the OMAP-L138 DMA engine reads the buffered samples into DSP memory. In non-triggered mode, the OMAP-L138 itself provides the ADC start and stop signals, allowing free-running acquisition independent of shaft rotation.
+
+Once samples are in DSP memory, the C6748 core performs:
+- **FFT / frequency-domain analysis** — producing the spectrum plots displayed on screen.
+- **Shaft orbit computation** — combining X and Y displacement signals to reconstruct the rotor's orbital path.
+- **Dynamic balancing algorithms** — using amplitude and phase data to calculate correction masses.
+
+Results are passed across the DSP/BIOS bridge to the ARM core for display.
+
+## Software Design
+
+The software stack is divided cleanly between the two cores. The DSP core runs TI's **DSP/BIOS** real-time operating system, which provides deterministic task scheduling for the signal processing pipeline. The ARM core runs **Windows CE**, which provides the graphical UI framework, file system, and peripheral driver model.
+
+Inter-core communication uses **DSP/Link** (part of the DSP/BIOS Bridge framework). On the DSP side, DSP/Link is a DSP/BIOS device driver. On the ARM side, it appears as a standard Windows CE peripheral device, accessed through a user-space API library. This abstraction lets the ARM application call straightforward send/receive functions without managing shared memory directly.
+
+### OS Porting and BSP Construction
+
+Bringing Windows CE up on custom hardware requires a Board Support Package (BSP) composed of four elements:
+
+1. **Bootloader** — initializes clocks, DDR2, and Flash, then loads the OS image.
+2. **OEM Adaptation Layer (OAL)** — implements platform-specific hooks called by the CE kernel (interrupt routing, timer calibration, power management).
+3. **Device drivers** — including the data acquisition driver, infrared temperature module, front-panel keypad, and power management subsystem.
+4. **System image configuration** — the Platform Builder workspace that selects CE components and links them against the BSP to produce the final `.nb0`/`.bin` image.
+
+The BSP is compiled using Microsoft Platform Builder. Selective pruning of CE components (removing unused networking stacks, codecs, and UI shells) keeps the image footprint small enough for the 32 MB Flash and 128 MB RAM budget.
+
+### Data Acquisition Module Workflow
+
+Before starting an acquisition, the operator configures sampling point count, sampling frequency, and single- vs. dual-channel mode. The module's runtime flow is:
+
+1. User initiates acquisition (triggered or free-running mode).
+2. FPGA starts ADC conversion(s).
+3. ADC completion interrupt → FPGA writes sample to FIFO.
+4. FIFO half-full interrupt → FPGA signals OMAP to read FIFO.
+5. OMAP DMA transfers FIFO contents to DSP memory.
+6. DSP/BIOS task processes the buffer (FFT, orbit, balancing).
+7. DSP/Link transfers results to ARM.
+8. Windows CE application renders time-domain waveform, frequency spectrum, and shaft orbit on the display.
+
+The FIFO decouples the ADC's continuous high-speed output from the DSP's burst-read DMA cycles, preventing sample loss even when the DSP core is briefly occupied with computation.
+
+## Results and Conclusion
+
+The OMAP-L138-based portable diagnostic instrument meets the demanding requirements of handheld industrial tools: the ARM926EJ-S running Windows CE provides a familiar, graphically rich operator interface, while the C6748 DSP delivers the real-time throughput needed for dual-channel FFT spectral analysis, shaft-orbit reconstruction, and dynamic balancing — all without exceeding the power budget of a battery-operated device. The uPP interface between the FPGA and the OMAP-L138 sustains the high data rates needed for simultaneous dual-channel acquisition, and the Cyclone FPGA's programmable logic cleanly offloads the ADC timing, FIFO management, and keyphasor synchronization from both processor cores. The resulting architecture is well-suited for on-site predictive maintenance in petrochemical plants and other rotating-machinery environments where portability and diagnostic depth must coexist.

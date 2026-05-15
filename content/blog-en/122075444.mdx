@@ -5,24 +5,50 @@ slug: "122075444"
 tags: ["#FPGADev"]
 source: "https://blog.csdn.net/yeyuangen/article/details/122075444"
 originalTitle: "ethercat主站 FPGA AM5728高实时带加密实现32轴"
+expanded: true
 ---
+Real-time industrial motion control lives or dies on determinism. This post examines the Sienovo FPGA-based EtherCAT master running on the TI AM5728 SoC, covering its headline performance figures — 31.25 µs cycle time, sub-0.004 µs jitter, and 50 ns clock-sync accuracy across four axes — and explains why each of those numbers matters when you are coordinating 32 servo axes on a production line.
 
-Xinmai EtherCAT Master on FPGA: High Real-time with Encryption for 32 Axes
+## Background: Why FPGA for EtherCAT?
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/122075444/01_073c3c79f809e50a1cf62c33769a7f50.png)
+EtherCAT (Ethernet for Control Automation Technology) is an IEC 61158 fieldbus protocol designed around a master/slave topology where a single master node communicates with up to thousands of slave devices over standard Ethernet cabling. The protocol's key insight is that slave devices process frames *on the fly*, inserting or extracting data as a frame passes through rather than buffering the entire frame first. This makes latency predictable and extremely low — but it also means the master must be disciplined enough to send frames at exact, repeatable intervals.
 
-**Performance Advantages**
+On a general-purpose CPU running Linux or even a real-time OS (RTOS), interrupt latency, scheduler jitter, and Ethernet driver overhead all conspire to introduce timing variation. Software-only EtherCAT masters (such as IgH EtherCAT or SOEM) typically achieve cycle times of 1 ms or more with jitter measured in tens of microseconds — acceptable for simple conveyors or low-speed axes, but problematic for high-speed CNC, electronic cam profiles, or coordinated pick-and-place.
 
-1.  Faster cycle time, achieving 31.25us
-2.  Lower jitter, with jitter time less than 0.004us
-3.  Excellent synchronization performance, with master and slave devices achieving clock synchronization accuracy significantly less than 1us (4-axis actual measurement: 50ns)
+Moving the EtherCAT MAC and the cycle timer into programmable logic (an FPGA) removes the OS from the critical path entirely. Frame construction, transmission timing, and distributed-clock (DC) synchronization pulses are all handled in hardware with nanosecond-level repeatability. The host CPU — in this case the dual Cortex-A15 cores of the TI AM5728 — is freed to run the motion planning and application logic without needing hard-real-time guarantees itself.
 
-**Performance Comparison:**
+## The Sienovo AM5728 Implementation
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/122075444/02_189d758fec4b5baf792b6af757282279.png)
+The Sienovo EtherCAT master targets the TI AM5728 SoC, a Sitara-family device that pairs dual ARM Cortex-A15 application cores with dual TMS320C66x floating-point DSP cores, a hardware accelerator subsystem, and the PRU-ICSS (Programmable Real-Time Unit Industrial Communication Subsystem). The FPGA fabric here refers to the programmable logic used alongside or within this SoC platform to offload the EtherCAT timing engine, and the implementation also incorporates an encryption layer to protect proprietary motion programs and fieldbus data — increasingly important in smart-factory deployments where IP theft through fieldbus snooping is a real concern.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/122075444/03_46a68ecebeac947c57b0ab2dfa34b24c.png)
+## Performance Highlights
 
-**Further Performance Comparison Summary:**
+### Cycle Time: 31.25 µs
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/122075444/04_422024ab63dd3fc67f7597d8fd4423f0.png)
+The implementation achieves a minimum cycle time of **31.25 µs** — roughly 32 EtherCAT cycles per millisecond. To put that in motion-control terms: at a 31.25 µs update rate, a servo axis receiving position commands at 1 m/s traverse speed gets a new target approximately every 31 µm of travel. This is well within the resolution needed for precision machining or high-speed semiconductor handling. Typical software-based EtherCAT masters on Cortex-A class processors operating under a real-time kernel sit at 250 µs to 1 ms — an order of magnitude slower.
+
+### Jitter: < 0.004 µs
+
+Cycle-time jitter — the variation in the actual interval between successive EtherCAT frames — is kept below **0.004 µs (4 ns)**. Jitter is often more critical than raw cycle speed: even a fast 100 µs cycle is harmful if adjacent cycles vary by ±50 µs, because the servo drive must interpolate between commands and the interpolation error maps directly onto position error. At sub-4 ns jitter, positional uncertainty introduced by timing variation is negligible for virtually any mechanical axis.
+
+### Synchronization Accuracy: < 1 µs, Measured 50 ns on 4 Axes
+
+EtherCAT Distributed Clocks (DC) allow all slave devices on the network to share a common time reference derived from the master. The Sienovo implementation achieves **master-to-slave clock synchronization accuracy well below 1 µs**, with a four-axis bench measurement returning **50 ns**. This is the figure that enables true multi-axis electronic gearing and cam profiling: when every drive's internal clock is within 50 ns of every other drive's clock, the "simultaneous" start of motion across axes is genuinely simultaneous to within that window. For a servo axis with a 20-bit encoder and a 4 m/min rapid, 50 ns of timing uncertainty maps to less than 3 nm of position uncertainty — effectively zero relative to any physical process.
+
+## Performance Comparison
+
+The performance comparison charts below (images from Sienovo's own validation data) benchmark the FPGA-based master against representative software-based EtherCAT master configurations across cycle time, jitter, and synchronization accuracy:
+
+![Performance comparison table](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/122075444/02_189d758fec4b5baf792b6af757282279.png)
+
+![Jitter and sync accuracy comparison](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/122075444/03_46a68ecebeac947c57b0ab2dfa34b24c.png)
+
+![Extended performance summary](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/122075444/04_422024ab63dd3fc67f7597d8fd4423f0.png)
+
+## Scaling to 32 Axes
+
+Maintaining these timing figures while managing 32 axes is non-trivial. Each additional axis adds slave devices to the EtherCAT ring, increasing the frame propagation delay and the amount of process data that must fit inside each cycle. The FPGA implementation's fixed-function timing engine handles the increased frame size without degrading jitter, because the transmission schedule is computed offline and executed from logic, not from a CPU interrupt service routine that competes with other system activity. The encryption layer adds processing overhead, but because it operates in the FPGA fabric in parallel with frame assembly, it does not add to the cycle time budget visible to the motion controller.
+
+## Takeaway
+
+For applications that demand sub-100 µs cycle times, single-digit nanosecond jitter, and tight multi-axis synchronization — high-speed CNC routers, electronic press brakes, coordinated robot cells — a hardware EtherCAT master on an FPGA fabric is a qualitatively different tool from a software master running on a real-time OS. The Sienovo implementation on AM5728 demonstrates that this level of performance is achievable on an embedded industrial platform, with the added benefit of fieldbus-level encryption for IP protection in OEM machine deployments.

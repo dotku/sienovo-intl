@@ -5,14 +5,96 @@ slug: "118828381"
 tags: ["#OMAPL138", "#FPGA", "#SDR", "#DSP+ARM"]
 source: "https://blog.csdn.net/yeyuangen/article/details/118828381"
 originalTitle: "基于OMAP-L138 DSP+ARM处理器与FPGA实现SDR软件无线电系统"
+expanded: true
 ---
+A customer of Sienovo needed to develop a spread-spectrum radio transceiver for multiple applications. They had already developed modulation and demodulation algorithms but lacked the resources and hardware expertise to build a complete system around those algorithms. Rather than design custom silicon or a rigid hardware platform, they wanted the flexibility of a Software Defined Radio (SDR) architecture — one where signal-processing behaviour could be updated in software as the algorithms matured. This article describes how Sienovo implemented that system using Texas Instruments' OMAP-L138 DSP+ARM processor paired with an FPGA, covering platform selection, the critical data-transfer bottleneck, and the transmit and receive processing chains.
 
-A customer of Xinmai needed to develop a spread spectrum radio transceiver for multiple applications. This customer had already developed a set of algorithms for signal modulation and demodulation but lacked the resources and expertise to build a complete system. The customer wanted to leverage the flexibility advantages of Software Defined Radio (SDR) systems. This article will discuss how to implement this system based on Texas Instruments' OMAP-L138 DSP+ARM processor and FPGA.
+## Platform Selection
 
-### Platform
+Sienovo selected its **XM138F-IDK-V3** embedded system module as the SDR foundation. The module is built around TI's **OMAP-L138 DSP+ARM processor**, which integrates two heterogeneous cores on a single die:
 
-Xinmai chose its XM138F-IDK-V3 embedded system module as the foundation for the SDR because this module not only possesses strong processing capabilities but also saves the customer significant upfront design costs. The XM138F-IDK-V3 module features a TI OMAP-L138 DSP+ARM processor, which integrates a 456MHz ARM9 processing core and a 456MHz TMS320C674x DSP core. In addition, the module also includes an FPGA, NAND and NOR flash memory, and DDR2 memory.
+- A **456 MHz ARM926EJ-S (ARM9)** core running embedded Linux, responsible for system management, user interface, and inter-processor communication.
+- A **456 MHz TMS320C674x floating-point DSP** core delivering up to 3648 MIPS and 2746 MFLOPS, handling the computationally intensive signal-processing workload.
 
-For prototyping considerations, the design utilized TI's high-speed ADC and DAC evaluation kits for radio applications. Additionally, it required data converters capable of operating at a 60MHz sampling frequency.
+Beyond the processor, the XM138F-IDK-V3 also integrates a **Xilinx Spartan-6 FPGA** (compatible with XC6SLX9/16/25/45 variants), NAND and NOR flash, and DDR2 memory — all on a compact 66 mm × 38.6 mm industrial-grade board. Using an off-the-shelf module eliminated the need to design, lay out, and validate a complex multi-chip PCB for the prototype, saving significant engineering time and cost.
 
-For the A/D converter, the design selected TI's ADS5562. This converter offers 16-bit precision and can convert at an 80MSPs sampling rate
+For the RF front end, the design used TI's high-speed ADC and DAC evaluation kits. The system required data converters capable of operating at a **60 MHz sampling frequency**.
+
+### ADC: TI ADS5562
+
+For analog-to-digital conversion, the design chose the **TI ADS5562** — a 16-bit converter with an 80 MSPS sampling rate. High dynamic range is critical in spread-spectrum radio because the receiver must extract a signal that has been deliberately spread across a wide bandwidth and may sit well below the noise floor. The ADS5562's 16-bit resolution provides the dynamic range headroom needed to perform this separation reliably.
+
+### DAC: TI THS5671
+
+On the transmit side, the design used the **TI THS5671**, a 14-bit, 125 MSPS differential current-output DAC. The differential current output is well suited to driving the balanced RF front-end circuitry supplied by the customer.
+
+## The Data-Transfer Bottleneck
+
+Many DSP-based systems are gated not by raw compute throughput but by how quickly data can move between the processor and its peripherals. The OMAP-L138 exposes two distinct bus interfaces for this purpose, and choosing between them has a significant impact on achievable throughput.
+
+### EMIFA — General-Purpose Asynchronous Bus
+
+The **External Memory Interface A (EMIFA)** is a traditional asynchronous address/data bus with configurable wait states and transfer widths. It is flexible enough to connect to almost any external memory or peripheral, but that generality comes at a cost: every transaction takes multiple clock cycles. The minimum read cycle is **3 clock cycles per 16-bit word**. Running EMIFA at 100 MHz yields a theoretical maximum of roughly **66 MB/s**, and interleaved reads and writes degrade that figure further because additional turnaround cycles are required.
+
+### uPP — Universal Parallel Port
+
+The **Universal Parallel Port (uPP)** is a dedicated streaming interface designed specifically for bulk data movement. Its key characteristics:
+
+- Transfers **1 data word (8-bit or 16-bit) per clock cycle** in single data-rate mode, or **2 words per clock cycle** in double data-rate mode (with the clock running at half the rate).
+- The uPP clock can reach up to **half the processor clock rate**. On the OMAP-L138 running at 300 MHz, the uPP clock tops out at **75 MHz**, giving a maximum throughput of **150 MB/s**.
+- The OMAP-L138 contains **two independent uPP interfaces**, each individually configurable. This allows simultaneous, dedicated transmit and receive paths with no bus contention between them.
+- From a hardware perspective, the uPP is a simple synchronous interface: a clock pin, data pins, and a handful of control signals indicating valid data and start/wait conditions. This simplicity makes it easy to connect directly to parallel ADCs and DACs without glue logic.
+
+For this SDR, where ADC samples stream continuously into the processor and pre-computed waveform data streams continuously out to the DAC, the uPP's raw throughput and dual-port configuration made it the obvious choice over EMIFA.
+
+## System Architecture
+
+The SDR uses both uPP ports: one configured as a **receive port** (FPGA → DSP, carrying ADC samples) and one as a **transmit port** (DSP → FPGA → DAC, carrying the outgoing waveform). This bidirectional capability means the system can transmit and receive simultaneously, which is not a hard requirement for the application but proved invaluable during development — it allows a loopback path between transmitter and receiver for extensive testing and debugging without any external RF hardware.
+
+### Role of the FPGA
+
+The modulation scheme required for a 10 MHz carrier imposes a processing load that is too heavy for the OMAP-L138 DSP to handle entirely on its own at the full sample rate. The FPGA is well suited to executing highly repetitive operations at very high clock rates — exactly the kind of work involved in initial downconversion and baseband filtering. By offloading that work to the FPGA, the data rate presented to the DSP is substantially reduced, freeing DSP cycles for the remaining demodulation and decoding steps.
+
+The FPGA contains:
+- A **sine/cosine lookup table** in dual-port RAM, used to synthesise the local oscillator (LO) signal for the receiver's downconverter.
+- A **multiplier/accumulator (MAC)** block that multiplies incoming ADC samples by the quadrature LO signals and integrates the result, producing I and Q baseband samples at a lower data rate.
+
+On the transmit side, the FPGA's role is lighter: it provides a programmable clock to both the DAC and the uPP interface to set the transmit sample rate, and passes waveform data from the uPP port through to the DAC. In principle this pass-through could be implemented without the FPGA, but including it in the datapath preserves the option to add transmit-side processing (predistortion, pulse shaping, etc.) without a hardware redesign.
+
+## Transmit Processing Chain
+
+1. Software running on the **ARM core** signals the DSP to transmit a packet.
+2. The **DSP** encodes the payload data into a spread-spectrum modulated sequence and pre-computes the final modulated sine-wave waveform, writing the result into a DSP memory buffer. Pre-computing the RF waveform ahead of time minimises the real-time encoding burden.
+3. The DSP uses the **uPP's built-in DMA engine** to set up a DMA transfer, moving data from the DSP memory buffer to the DAC with no CPU intervention during the transfer.
+4. The **FPGA** provides the programmable sample-rate clock to both the uPP and the DAC, ensuring the two remain synchronised at the desired transmit rate.
+
+Using DMA for the data transfer keeps the DSP cores free to work on encoding the next packet while the current one is being clocked out.
+
+## Receive Processing Chain
+
+The receive path runs continuously:
+
+1. The **ADC** clocks samples into the FPGA synchronously.
+2. Inside the FPGA, the incoming samples are multiplied by the quadrature LO signals (cosine for I, sine for Q) and integrated — this is the digital downconversion step that shifts the signal from the carrier frequency down to baseband and produces I/Q samples at a significantly lower data rate.
+3. The reduced-rate I/Q samples are transferred into **DSP memory via the uPP DMA engine**, again without CPU involvement.
+4. The **DSP** performs the remaining spread-spectrum demodulation steps on the I/Q data.
+5. Once demodulation is complete, the recovered packet is passed back to the **ARM core** using TI's **DSPLink** inter-processor communication library.
+6. The **ARM software** receives and decodes the data, then presents it to the user through the command interface.
+
+### Why FPGA-Based Baseband Processing Matters
+
+If the input sample rate were substantially below 60 MHz, the DSP could handle baseband processing on its own. At full rate, however, the FPGA offload is essential. Beyond freeing DSP cycles, performing baseband processing at the full sample rate rather than at an undersampled rate also improves noise performance: undersampling aliases out-of-band noise back into the signal band, whereas full-rate digital filtering can attenuate it before decimation.
+
+The system was initially prototyped with a low carrier frequency (tens to hundreds of kHz). In that configuration the FPGA simply forwarded ADC samples to the DSP, which performed all demodulation. This confirmed the algorithm, but the architecture could not scale to higher sample rates. Moving baseband processing into the FPGA resolved the throughput constraint and improved noise floor at the same time.
+
+## Results and Conclusions
+
+The prototype has been validated for proof-of-concept across multiple applications, and its measured performance compares favourably with the theoretical performance of an ideal spread-spectrum radio. Several design decisions contributed to that outcome:
+
+- **Heterogeneous processing**: Splitting work between the ARM (OS and system management), DSP (signal processing), and FPGA (high-rate baseband) lets each compute element do what it does best. The result is a competitive performance envelope achieved with a low-cost, low-power processor instead of a multi-GHz DSP monolith.
+- **uPP as the FPGA interface**: The uPP's simplicity (clock + data + a few control lines) makes FPGA interfacing straightforward, and its 150 MB/s throughput is far beyond what EMIFA can sustain for streaming workloads.
+- **DMA throughout**: Using DMA for both the transmit and receive data paths keeps the DSP and ARM cores available for computation rather than data movement.
+- **Embedded Linux on ARM**: The ARM core running Linux provides a ready-made communication infrastructure for user interface, housekeeping, and network connectivity, without any of that complexity touching the DSP.
+- **Field upgradability**: All three software images — ARM (Linux), DSP (algorithm), and FPGA (bitstream) — can be updated in the field via SD card, USB drive, or Ethernet. This is the defining characteristic of an SDR: as the modulation algorithms evolve, the hardware does not need to change.
+
+The XM138F-IDK-V3 module's combination of the TI OMAP-L138 DSP+ARM and a Xilinx Spartan-6 FPGA, connected at up to 228 MB/s through uPP and EMIFA, provides a flexible, industrially hardened platform for demanding signal-processing applications — from SDR transceivers to data acquisition, image processing, and high-precision instrumentation.

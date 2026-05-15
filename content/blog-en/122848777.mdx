@@ -5,8 +5,92 @@ slug: "122848777"
 tags: ["#ZYNQ", "#H264", "#LowLatency", "#FPGA", "#WirelessVideoLink"]
 source: "https://blog.csdn.net/yeyuangen/article/details/122848777"
 originalTitle: "Zynq FPGA低时延H.264设计方案（编码+解码＜ 1ms）"
+expanded: true
 ---
+Achieving sub-millisecond H.264 encode latency in a real-time video link—while keeping the entire system on a single small PCB—has long been the holy grail of embedded video design. This post walks through how Xinmai Technologies' pure-hardware H.264 IP core, deployed on a Xilinx Zynq-7000 SoC, makes that possible: encoding latency of 0.5 ms, end-to-end glass-to-glass latency under 50 ms, and a complete encode/decode system that fits on a board small enough for an unmanned aerial vehicle (UAV) or other size-constrained platform.
 
-Xinmai Technologies' H.264 video codec, written based on hardware description languages, runs as an IP core on [FPGA](http://bbs.eetop.cn/forum-5-1.html "FPGA") devices. FPGA-based solutions use FPGAs as core devices to implement H.264 codec IP cores. This is a pure hardware solution with negligible startup time and an encoding latency of 0.5ms.
+## The Architecture Trade-off: ASSP vs. FPGA+Processor
 
-ASSP architectures are inflexible, while systems based on [FPGA](http://www.eepw.com.cn/news/listbylabel/label/FPGA "FPGA")-microprocessor combinations are larger but more flexible. Historically, designers had no choice but to repeatedly weigh the trade-offs between these two options when creating IP-based streaming video systems with small PCB footprints. Integrating a soft-core microprocessor into an [FPGA](http://www.eepw.com.cn/news/listbylabel/label/FPGA "FPGA") eliminates the need for separate processors and DRAM, but the performance of the resulting system might not compare to solutions built around external ARM® processors, which may also include USB, Ethernet, and other useful peripherals. With the advent of [Xilinx](http://www.eepw.com.cn/news/listbylabel/label/%E8%B5%9B%E7%8
+Designers building compact IP-based streaming video systems have historically been caught between two unsatisfying extremes.
+
+**ASSP (Application-Specific Standard Product)** chips offer dense integration and low power, but their fixed function blocks are rigid. Most ASSP video encoders provide only two camera inputs, forcing designers to multiplex multiple video streams onto a single input bus. On-screen display (OSD) overlay is typically available only on already-decoded video, which means sending OSD data as metadata or having the application processor write OSD pixels directly into a video frame buffer—both of which add software complexity and latency.
+
+**FPGA + external processor** combinations are more flexible but physically large. Adding a soft-core CPU inside the FPGA avoids a discrete processor chip yet typically sacrifices performance compared to a hard ARM core with dedicated memory interfaces, USB, and Ethernet controllers.
+
+The Xilinx Zynq-7000 All Programmable SoC resolves this dilemma. Its PS (Processing System) side integrates a hard dual-core ARM Cortex-A9 running at 800 MHz, with dedicated DDR3 controllers, USB, Gigabit Ethernet, and UART/CAN/SPI peripherals. Its PL (Programmable Logic) side is a Kintex-7 fabric. Multiple high-speed AXI4 buses connect PS and PL, so the H.264 IP core in the fabric can DMA compressed bitstream directly into the ARM's memory space without off-chip round-trips. The result is a single-chip system that needs only one bank of DRAM to serve both the processor subsystem and the video codec.
+
+## Xinmai Technologies H.264 IP Core: Key Specifications
+
+Xinmai Technologies implemented its H.264 codec entirely in synthesisable HDL (hardware description language), targeting FPGA logic rather than embedded processor cores. Because it is pure logic, startup time is negligible—there is no firmware to load and no codec library to initialise.
+
+Key figures from the source material:
+
+- **Encoding latency:** 0.5 ms (low-latency variant; standard variant buffers one full frame)
+- **Supported resolutions/frame rates:** 720p through 4K at 15–60 fps
+- **Resource consumption (Zynq Z7020):** ~10,000 LUTs for encode-only (~25 % of Z7020 fabric); ~11,000 LUTs for encode+decode
+- **Scalability:** each IP core handles six VGA-resolution camera streams or one 1080p30 stream; four cores in a single Zynq device can feed four independent 1080p30 cameras
+- **Available variants:** encode-only, encode+decode, and low-latency encode+decode
+
+The low resource footprint is significant: a Zynq Z7020 can host multiple H.264 cores alongside other processing blocks—ISP pipelines, fisheye-lens correction, OSD injection—all in the PL fabric before the bitstream ever reaches the PS side.
+
+## Why Hardware Decoding Is Necessary for Low Latency
+
+Many deployed systems encode in hardware but decode on a PC using a player such as VLC. Even after tuning VLC's buffer settings to their minimum, the media-player pipeline typically introduces 500–1000 ms of latency. Achieving a glass-to-glass budget under 100 ms—let alone the 50 ms target common in remotely piloted vehicle (RPV) applications—requires hardware decoding with minimal buffering on the receive side.
+
+The total glass-to-glass latency is the sum of all pipeline stages:
+
+1. Video sensor / ISP processing time
+2. Frame-buffer fill delay at the encoder input
+3. H.264 compression time
+4. Software delay in packetising and transmitting the bitstream
+5. Network transit delay
+6. Software delay in receiving and reassembling packets
+7. H.264 decompression time
+8. Display scan-out delay
+
+Standard H.264 encoders buffer a complete frame before beginning compression. At 30 fps that alone accounts for ~33 ms; at 60 fps it drops to ~16.5 ms. However, doubling the frame rate to halve latency is only possible if both the camera and the encoder can sustain the higher rate, which is not always feasible.
+
+The Xinmai Technologies low-latency encoder takes a different approach: it begins compression after buffering only **16 video lines**. For a 1080p30 stream (1080 lines per frame), 16 lines represent less than 1.5 % of a frame, yielding an encoding latency **below 500 µs**. For a 480p30 stream the latency is **below 1 ms**. This pipeline architecture makes encoding latency essentially deterministic and independent of frame rate.
+
+## Minimising Software-Path Latency
+
+A sub-millisecond encoder is wasted if the software stack around it adds tens of milliseconds of jitter. The two main offenders are:
+
+**RTSP server buffering.** A conventional RTSP server accumulates compressed packets in userspace, applies RTP packetisation, and then hands packets to the kernel network stack. Each kernel↔userspace boundary crossing involves a memory copy, and a general-purpose Linux scheduler offers no hard real-time guarantees on when those copies happen.
+
+**Kernel/userspace copy overhead.** Every `sendmsg()` call on a socket copies payload from userspace into kernel socket buffers. For high-bitrate video this adds up quickly and introduces non-deterministic delays under load.
+
+Xinmai Technologies addressed both issues with two targeted modifications to their low-latency RTSP server/client:
+
+1. **Remove the RTSP server from the forwarding path.** The RTSP server continues to handle session management and RTCP statistics, and it periodically (or asynchronously) updates the kernel driver with the current destination IP/MAC address. But it no longer sits in the data path for every compressed frame.
+
+2. **Kernel-level packet dispatch.** The kernel driver prepends the necessary RTP/UDP headers (using addressing information provided by the RTSP server out-of-band), then calls the network driver's send function (e.g., `udp_send`) directly—bypassing the userspace socket layer entirely. This eliminates the kernel↔userspace memory copy on the transmit side.
+
+The combined effect is a software path whose latency is dominated by interrupt response time rather than scheduler wake-up and copy overhead.
+
+## Complete System Architecture
+
+The full encode/decode system is built from three components:
+
+| Component | Role |
+|---|---|
+| Xilinx Zynq SoC | Platform: dual ARM Cortex-A9 PS + Kintex-7 PL fabric |
+| Xinmai Technologies low-latency H.264 encode/decode IP | Sub-500 µs encode; hardware decode with minimal buffering |
+| Xinmai Technologies low-latency RTSP server/client | Kernel-bypass forwarding; RTCP statistics maintained out-of-band |
+
+From a hardware perspective, the encoder and decoder boards are nearly identical. The encoder side requires camera/sensor inputs; the decoder side requires a display output (e.g., HDMI or LVDS flat-panel interface). A single board with all the necessary I/O can serve in either role. The Xinmai XM-ZYNQ7045-EVM evaluation board, for example, brings out dual HDMI IN/OUT, two CameraLink Base ports (Full-mode capable), four 10 Gbps SFP+ optical ports (via GTX transceivers), dual Gigabit Ethernet, PCIe x4, USB 2.0, FMC HPC, SATA, and a 400-pin FMC connector—covering virtually every interface needed for a production video-link design.
+
+The Zynq XC7Z045 on that board provides 350 K logic cells and runs the PS subsystem at 800 MHz with 1 GB DDR3 for the ARM cores and a separate 1–2 GB DDR3 bank accessible from PL—plenty of headroom for four simultaneous H.264 encode/decode pipelines alongside ISP and OSD blocks.
+
+## FPGA Advantages Over ASSP in This Application
+
+Beyond raw latency, the FPGA fabric confers several practical engineering advantages:
+
+- **Scalable camera count.** Four H.264 IP cores in a Z7045 support four independent 1080p30 inputs, or up to 24 VGA camera streams. ASSP products typically cap at two inputs.
+- **Pre-compression OSD.** In the FPGA fabric, OSD overlay is applied before the compressed bitstream is generated, so on-screen text and graphics are permanently embedded in the encoded video. No ARM-side frame-buffer manipulation is required.
+- **Pipeline extensibility.** Fisheye-lens correction, noise reduction, or motion-vector-based object tracking can be inserted as additional IP blocks upstream of the encoder with no changes to the encoder IP itself.
+- **Future codec support.** Adding an H.265/HEVC encode block to the fabric is a bitstream update, not a board respin.
+
+## Summary
+
+For latency-critical applications such as remotely piloted vehicles, industrial machine vision feedback loops, and real-time surveillance, the combination of a Zynq SoC, a pure-hardware H.264 IP core (encode latency < 500 µs for 1080p, < 1 ms for 480p), and a kernel-bypass RTSP stack delivers a complete glass-to-glass pipeline well under 50 ms on a compact single-board design. The key insight is that hardware compression alone is not sufficient—every layer of the stack, from the encoder's line-level buffering strategy down to the kernel's packet-dispatch path, must be co-designed with latency as the primary constraint.
