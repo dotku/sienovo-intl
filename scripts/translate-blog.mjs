@@ -336,6 +336,12 @@ async function main() {
 
   let success = 0;
   let failed = 0;
+  let consecutiveFailures = 0;
+  // When a provider is exhausted (e.g. Gemini daily quota), every remaining
+  // article will fail with the same 429 — no point burning 6.5s × N waiting
+  // for nothing. Bail out so the workflow's next step (a different provider)
+  // can take over.
+  const CONSECUTIVE_FAILURE_LIMIT = 3;
 
   for (let i = 0; i < toProcess.length; i++) {
     const file = toProcess[i];
@@ -399,10 +405,18 @@ ${translatedContent}
 
       writeFileSync(join(TARGET_DIR, file), mdx, "utf-8");
       success++;
+      consecutiveFailures = 0;
       console.log(`done (${usedProvider})`);
     } catch (err) {
       failed++;
+      consecutiveFailures++;
       console.log(`failed: ${err.message.substring(0, 60)}`);
+      if (consecutiveFailures >= CONSECUTIVE_FAILURE_LIMIT) {
+        console.log(
+          `\n${CONSECUTIVE_FAILURE_LIMIT} consecutive failures — provider likely exhausted, exiting so the next workflow step can take over.`
+        );
+        break;
+      }
     }
 
     // Rate limiting
