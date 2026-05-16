@@ -1,0 +1,22 @@
+---
+title: "MAC ,PHY, MII"
+date: "2014-08-18"
+slug: "38661137"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/38661137"
+originalTitle: "MAC ,PHY, MII"
+---
+
+MAC and PHY handle the lowest two layers of the OSI seven-layer network model.
+
+(I) The PHY is responsible for electrical signal conversion, line status, data encoding, etc. When transmitting data, the PHY receives data from the MAC (for the PHY, there is no concept of frames; it treats everything as data, regardless of addresses, data content, or CRC). It adds a 1-bit error detection code for every 4 bits, then converts parallel data into a serial stream, encodes the data according to physical layer encoding rules (NRZ encoding for 10BASE-T or Manchester encoding for 100BASE-T), and finally converts it into an analog signal for transmission. The process is reversed when receiving data.
+
+(II) The MAC is responsible for frame assembly, CRC checking, interfacing with the IP protocol layer, addressing mechanisms, etc. The data link layer chip in an Ethernet card is called a MAC controller. In many network cards, these two parts are integrated. Their relationship is that the PCI bus connects to the MAC bus, the MAC connects to the PHY, and the PHY connects to the network cable (of course, not directly, there's also a transformer device).
+
+(III) MII (Media Independent Interface) is a media-independent interface. It has 40 pins. MII is similar to the Attachment Unit Interface (AUI) for 10Mbps Ethernet. The MII layer defines a standard electrical and mechanical interface between a 100BASE-T MAC and various physical layers. This standard interface is similar to the AUI in classic Ethernet, allowing manufacturers to create products independent of media and cabling, using an external MAU to connect to the actual physical cable.
+
+The electrical signals of MII and AUI are different. AUI signals are stronger and capable of driving a 50-meter cable, whereas MII signals are digital and can only drive a 0.5-meter cable. MII uses a 40-pin small connector similar to a SCSI connector.
+
+Reference Articles:
+
+1. [PHY and MAC: Network Card Working Principle](http://wenku.baidu.com/link?url=4zn7hG6mmSCMbytRx9T0LDd2hS4XI50Ufmue5SSWevwnTcMAIpbSb3wnd7oN0JhTxdFHgkHsUX1BWLD-n9ugTFB2nFDGFYjIPYRUgiJcelK)

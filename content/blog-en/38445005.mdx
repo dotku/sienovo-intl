@@ -1,0 +1,12 @@
+---
+title: "Understanding the exec Family of Functions"
+date: "2014-08-08"
+slug: "38445005"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/38445005"
+originalTitle: "exec函数簇理解"
+---
+
+In Linux, processes use the `exec` family of functions to launch the execution of another program. The `execve()` system call replaces the current process with a specified program, whose parameters include the filename, argument list (`argv`), and environment variables (`envp`). The `exec` family of functions, of course, consists of more than one function, but they are largely similar. In Linux, they are: `execl`, `execlp`, `execle`, `execv`, `execve`, and `execvp`. Below, I will only use `execlp` as an example. For the specific differences between other functions and `execlp`, please refer to the `man exec` command.
+
+Once a process calls an `exec` family function, it essentially "dies." The system replaces its code segment with the new program's code, discards the original data and stack segments, and allocates new data and stack segments for the new program. The only thing that remains is the process ID. This means that, from the system's perspective, it's still the same process, but it's now running a different program. (However, some `exec` family functions also allow inheriting information such as environment variables.)

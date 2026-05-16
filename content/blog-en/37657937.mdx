@@ -1,0 +1,25 @@
+---
+title: "Principles of Sharing Dynamic Link Libraries Among Multiple Processes"
+date: "2014-07-10"
+slug: "37657937"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/37657937"
+originalTitle: "多个进程间共享动态链接库的原理"
+---
+
+[Principles of Sharing Dynamic Link Libraries Among Multiple Processes](http://blog.chinaunix.net/uid-26983585-id-3364514.html) 
+
+This was a question my director asked me during an interview. I've been busy these past few days and haven't had a chance to read much. Today, let's summarize this question: Why can one process continue to use a dynamic link library (DLL) after another process has finished with it? My answer at the time was vague and only half-correct. Let's properly summarize it here.
+As we've discussed before, there are several ways for inter-process communication (IPC). In fact, the dynamic link library (DLL) mechanism we are discussing now is also one form of IPC.
+Whether it's Windows or Linux operating systems, the underlying principles of all operating systems are essentially the same.
+Dynamic Link Libraries (DLLs) are fundamental to the Windows operating system, with most Windows APIs provided in DLL form. Generally, DLLs cannot be executed directly or receive messages directly. They are independent files (typically with a .dll extension, though other extensions are possible) containing functions that can be called by executable programs or other DLLs to perform specific tasks. In other words, a DLL is essentially composed of a collection of functions. A DLL only becomes active when its functions are called by other modules. In practical programming, functions that perform a specific task are often grouped into a DLL and then made available for other functions to call. When a process that accesses a DLL is loaded, the system allocates a 4GB private address space for that process (on a 32-bit machine). The system then analyzes this executable module, identifies the DLLs it needs to call, and then searches for and loads these DLLs into memory, allocating virtual memory space for them. Finally, the DLL's pages are mapped into the calling process's address space. A DLL's virtual memory consists of code pages and data pages, which are mapped respectively to Process A's code pages and data pages. If Process B also starts and needs to access the same DLL, it only needs to map the DLL's code pages and data pages from virtual memory into Process B's address space. This demonstrates that only one copy of the DLL's code and data needs to exist in memory.
+
+Multiple processes share the same copy of a DLL's code. Clearly, this saves memory space.
+
+However, in Windows (and similarly in Linux), because the system allocates a 4GB private address space for each process, and the DLL's code and data are merely mapped into this private address space, these applications still cannot directly affect each other. In other words, while multiple applications can share the same code within a DLL, the data stored by the DLL for each process is distinct, and each process allocates its own address space for all data used by the DLL.
+
+For the simplest example, suppose my DLL has a function `int Add(int num1, int num2)` whose purpose is to add `num1` and `num2` and return the sum. Then, I have Process A which uses this DLL and calls the function `Add(10, 20)`. And I have Process B which also uses this DLL and calls the function `Add(30, 40)`. The data 10 and 20 for Process A are actually stored in Process A's private address space. Similarly, the data 30 and 40 for Process B are stored in Process B's private address space.
+
+This simple example shows that simply using dynamic link libraries in this straightforward manner cannot achieve inter-process communication.
+
+If one wishes to use dynamic link libraries to achieve inter-process communication, there is a potential approach: to leverage the memory block allocated by the system for the dynamic link library (as the system needs to load the DLL into memory). Since only one copy of the dynamic link library exists in memory, it is shared by all modules, or simply executable programs, that need to call its functions. If it's shared, then if I store data within this memory block allocated by the system for the DLL, couldn't it be accessed or set by all executable programs that access this DLL? In this way, Process A could set the data in this shared memory, and then Process B could read the data from this shared memory. Wouldn't this also achieve inter-process communication? From this perspective, the idea is essentially identical to using the clipboard. It also involves using a shared memory block between two processes as an intermediary for data storage.
