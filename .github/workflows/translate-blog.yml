@@ -61,8 +61,22 @@ jobs:
           git add content/blog-en/
           if git diff --staged --quiet; then
             echo "No new translations to commit."
-          else
-            COUNT=$(git diff --staged --name-only -- content/blog-en/ | wc -l | tr -d ' ')
-            git commit -m "translate: add ${COUNT} English blog translations"
-            git push
+            exit 0
           fi
+          COUNT=$(git diff --staged --name-only -- content/blog-en/ | wc -l | tr -d ' ')
+          git commit -m "translate: add ${COUNT} English blog translations"
+
+          # Retry push with rebase — this workflow runs ~1h, so other
+          # scheduled workflows (sync-blog, seo-daily, outreach-daily, etc.)
+          # may have pushed to main in the meantime.
+          for attempt in 1 2 3 4 5; do
+            if git push; then
+              echo "Pushed on attempt ${attempt}."
+              exit 0
+            fi
+            echo "Push attempt ${attempt} failed; rebasing on origin/main and retrying."
+            git pull --rebase origin main
+            sleep $((attempt * 5))
+          done
+          echo "Push failed after 5 attempts." >&2
+          exit 1
