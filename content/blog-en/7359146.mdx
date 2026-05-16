@@ -1,0 +1,59 @@
+---
+title: "Selecting the 3 Fastest Cows out of 38, Using a Track that Can Only Accommodate 6 Cows at a Time, Requiring the Fastest Method. (Organized)"
+date: "2012-03-15"
+slug: "7359146"
+tags: ["#MathematicalComputation"]
+source: "https://blog.csdn.net/yeyuangen/article/details/7359146"
+originalTitle: "38头牛中选出3头跑得最快的，使用一个每次只能供6头比赛的场地，要求用最快的方法。（整理）"
+---
+
+=================================Correct Solution================================================
+
+Putting 6 cows on the track is equivalent to one sorting operation. To find the 3 fastest cows out of 38, you are essentially looking for the top 3 elements in a sorted list.
+
+The track already suggests using merge sort for implementation; you can directly refer to merge sort.
+
+Since the track can only accommodate a maximum of 6 elements (cows), and the last 3 elements in each merge 'box' are definitely eliminated, this is a special type of merge.
+Each merge only takes the top 3 elements from each 'box' and performs pairwise merge sort.
+
+Done.
+
+Reference for pairwise merge sort:
+
+[http://www.hiahia.org/datastructure/paixu/paixu8.5.1.1-1.htm](http://www.hiahia.org/datastructure/paixu/paixu8.5.1.1-1.htm)
+
+In essence, the efficiency should be slightly better than O(n log n).
+
+================================The following method is incorrect and cannot guarantee the 3 largest numbers==========================================================
+
+From a mathematical calculation perspective: Round 1:
+6 groups of 6 cows each. The top 3 from each group are selected, totaling 18 cows. These 18, along with the 2 cows that didn't participate, make 20 cows for Round 2.
+Round 2: 4 groups of 5 cows each. The top 3 from each group are selected, totaling 12 cows for Round 3.
+Round 3: Divided into 2 groups. 3 cows are selected from each, leaving 6 cows for the final race.
+Total of 13 races.
+////////////////////
+
+However, if I calculate it myself:
+First, remove the extra 2 cows.
+Use 36 cows, comparing them similarly to the above.
+Each race is a group of 6 cows.
+This way, by the 11th round, the top 3 will emerge;
+
+Then, bring in the two removed cows, making a total of 5 cows.
+One more round is needed to determine the final top three.
+
+A total of 12 rounds are needed, which is one less than the 13 rounds above.
+
+6 * 6, 6 times
+6 * 3, 3 times
+A total of 11 cows remain, divided into groups of 5 and 6 for two races, selecting the top three from each.
+Finally, in one more race.
+
+========================================================================
+
+If we don't consider the cows' stamina, and if cows can be numbered, then how about this?
+1. 6 groups of 6 races.
+2. Using the first runner from the 6 groups, 5 cows remain (eliminate the first, which must be among the top three; eliminate cows from groups that didn't make the top three; eliminate the two cows behind the third-place cow in that group; eliminate the third-place cow from the second row; the remaining 5 cows that have raced continue). 1 race.
+3. Add one cow that hasn't raced, 6 cows race mixed, select the top two. 1 race.
+4. The first from step 2, the first and second from step 3, and the remaining cow race to determine the final top three. 1 race.
+Total of 9 races.

@@ -1,0 +1,136 @@
+---
+title: "Implementation of Process Scheduling by Chen Lijun"
+date: "2011-09-11"
+slug: "6766986"
+tags: ["#Struct", "#List", "#Signal", "#Each", "#Null", "#C"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6766986"
+originalTitle: "进程调度的实现  陈莉君"
+---
+
+****5.3.5** Implementation of Process Scheduling**
+
+The scheduler in the kernel is essentially a function. For clarity, we have simplified it here, omitting its SMP-related implementation.
+
+```c
+asmlinkage void schedule(void)
+{
+    struct task_struct *prev, *next, *p; /* prev represents the process before scheduling,
+                                            next represents the process after scheduling */
+    struct list_head *tmp;
+    int this_cpu, c;
+
+    if (!current->active_mm) BUG(); /* Error if current process's active_mm is NULL */
+
+    need_resched_back:
+    prev = current; /* Set prev to current process */
+    this_cpu = prev->processor;
+
+    if (in_interrupt()) { /* If schedule() is called within an interrupt handler,
+                             it indicates an error */
+        printk("Scheduling in interrupt\n");
+        BUG();
+    }
+
+    release_kernel_lock(prev, this_cpu); /* Release global kernel lock and enable interrupts on this_cpu */
+    spin_lock_irq(&runqueue_lock); /* Lock the run queue and disable interrupts */
+
+    if (prev->policy == SCHED_RR) /* Move a SCHED_RR real-time process that has exhausted
+                                     its time slice to the end of the queue */
+        goto move_rr_last;
+
+    move_rr_back:
+    switch (prev->state) { /* Handle based on prev's state */
+        case TASK_INTERRUPTIBLE: /* This state means the process can be interrupted by signals */
+            if (signal_pending(prev)) { /* If there are pending signals, set to runnable */
+                prev->state = TASK_RUNNING;
+                break;
+            }
+        default: /* If in interruptible wait or zombie state */
+            del_from_runqueue(prev); /* Remove from run queue */
+        case TASK_RUNNING:; /* If already runnable, continue processing */
+    }
+
+    prev->need_resched = 0;
+
+    /* Main body of the scheduler starts here */
+    repeat_schedule: /* Actually start selecting the most suitable process to run */
+    next = idle_task(this_cpu); /* Default: select idle task */
+    c = -1000;
+
+    if (prev->state == TASK_RUNNING)
+        goto still_running;
+
+    still_running_back:
+    list_for_each(tmp, &runqueue_head) { /* Traverse the run queue */
+        p = list_entry(tmp, struct task_struct, run_list);
+        if (can_schedule(p, this_cpu)) { /* In uniprocessor, this always returns 1 */
+            int weight = goodness(p, this_cpu, prev->active_mm);
+            if (weight > c)
+                c = weight, next = p;
+        }
+    }
+
+    /* If c is 0, all processes in the run queue have exhausted their time slices.
+       Need to recalculate time slices for all processes. */
+    if (!c) {
+        struct task_struct *p;
+        spin_unlock_irq(&runqueue_lock); /* Unlock run queue */
+        read_lock(&tasklist_lock); /* Lock the process doubly-linked list */
+        for_each_task(p) /* For each process in the system */
+            p->counter = (p->counter >> 1) + NICE_TO_TICKS(p->nice);
+        read_unlock(&tasklist_lock);
+        spin_lock_irq(&runqueue_lock);
+        goto repeat_schedule;
+    }
+
+    spin_unlock_irq(&runqueue_lock); /* Unlock run queue and enable interrupts */
+
+    if (prev == next) { /* If selected process is the same as current */
+        prev->policy &= ~SCHED_YIELD;
+        goto same_process;
+    }
+
+    /* Now perform process switch */
+    kstat.context_swtch++; /* Count context switches */
+    {
+        struct mm_struct *mm = next->mm;
+        struct mm_struct *oldmm = prev->active_mm;
+
+        if (!mm) { /* If next is a kernel thread, borrow prev's address space */
+            if (next->active_mm) BUG();
+            next->active_mm = oldmm;
+        } else { /* If it's a regular process, switch to next's user space */
+            if (next->active_mm != mm) BUG();
+            switch_mm(oldmm, mm, next, this_cpu);
+        }
+
+        if (!prev->mm) { /* If previous process was a kernel thread */
+            prev->active_mm = NULL; /* Release borrowed address space */
+            mmdrop(oldmm); /* Decrement mm_struct's reference count */
+        }
+    }
+
+    switch_to(prev, next, prev); /* Actual process switch, i.e., stack switch */
+    __schedule_tail(prev); /* Clear SCHED_YIELD flag in prev->policy */
+
+    same_process:
+    reacquire_kernel_lock(current); /* For SMP */
+    if (current->need_resched) /* If reschedule flag is set */
+        goto need_resched_back; /* Restart scheduling */
+    return;
+}
+```
+
+The above code constitutes the core of the scheduler. To provide a clear understanding, we offer the following explanation:
+
+- If the current process has neither its own address space nor borrowed one from another process, an error has occurred. Additionally, if `schedule()` is executed within an interrupt service routine, that is also an error.
+
+- Perform necessary processing on the current process to prepare for selecting the next one. The current process is the one currently running, but upon entering `schedule()`, its state may not necessarily be `TASK_RUNNING`. For example, in the `exit()` system call, the process state may have been changed to `TASK_ZOMBIE`; in the `wait4()` system call, it might be set to `TASK_INTERRUPTIBLE`. Therefore, if the current process is in any of these states, it must be removed from the run queue.
+
+- Select the most suitable process from the run queue—the one with the highest weight (priority).
+
+- If the selected process has a weight of 0, it indicates that all processes in the run queue have exhausted their time slices (there are no real-time processes in the queue, as their minimum weight is 1000). Therefore, the time slices for all processes must be recalculated. The macro `NICE_TO_TICKS` converts the nice priority value into clock ticks.
+
+- Perform address space switching. If the new process has its own user space (i.e., `next->mm` equals `next->active_mm`), the `switch_mm()` function switches from kernel space to the process's user space by loading the page directory of `next`. If the new process has no user space (`next->mm` is NULL), meaning it is a kernel thread, it runs in kernel space and thus borrows the previous process's (`prev`) address space. Since all processes share the same kernel space, this borrowing is valid.
+
+- The actual process switch is performed via the `switch_to()` macro, which will be described in detail later.

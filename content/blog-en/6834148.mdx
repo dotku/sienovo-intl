@@ -1,0 +1,286 @@
+---
+title: "How to Install MySQL 5.0 on Linux"
+date: "2011-09-29"
+slug: "6834148"
+tags: ["#MySQL", "#Linux", "#Database", "#Debian", "#User"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6834148"
+originalTitle: "Linux下如何安装MySQL 5.0"
+---
+
+For the clearest guide, refer to Baidu Wenku: [http://wenku.baidu.com/view/571968976bec0975f465e25b.html](http://wenku.baidu.com/view/571968976bec0975f465e25b.html)
+
+\=============================================
+
+**(I) How to Install MySQL Database on Linux**
+
+\=============================================
+
+My first setback was with RPM installation. It reported a MySQL version conflict, preventing the installation from proceeding. After querying with `rpm -q`, I attempted to remove the system's pre-installed version (3.x.x) using `rpm -e`. However, RPM mercilessly returned a slew of other errors. Due to dependencies with other software, version 3.x.x could not be removed. My initial positive impression of RPM vanished in an instant.
+
+As the saying goes, "Among three people, there must be one who can be my teacher." I immediately found Alin on MSN. When I asked him how to uninstall or upgrade MySQL using RPM, he gleefully told me that he upgraded it in just one minute using "Debian." He then added that he "doesn't know how" to use RPM, all while smirking. I knew he was getting back at me; last time he kept recommending "Debian" and I ignored him, so he found his chance. Actually, I do think "Debian" is good, it's just that the name sounds a bit unpleasant...
+
+Since RPM wasn't working, I had to settle for a different approach. This time, I chose the binary installation package. I found an installation guide from a pioneer via Google as a reference. I quickly followed in their footsteps, only to be bounced back, bruised and battered. The previous experience didn't suit me; it seems there truly is no silver bullet in this world.
+
+It became clear that impatience wouldn't solve the problem. I decided to calm down and found several more articles introducing MySQL installation. After multiple attempts, I finally found a small path through the thorny thicket...
+
+1. Download the binary MySQL installation package from [http://www.mysql.com](http://www.mysql.com/) // This MySQL is a binary version, no compilation needed
+2. `# chmod 755 mysql-standard-5.0.15-linux-gnu-i686-glibc23.tar.gz`
+   `//`
+3. `# tar xfz mysql-standard-5.0.15-linux-gnu-i686-glibc23.tar.gz // Copy the extracted directory to /usr/local/ and rename it to mysql`
+4. `# groupadd mysql`
+   `# useradd mysql -g mysql // Create the mysql group`
+   `// Create the mysql user and add them to the mysql group`
+5. `# cp /usr/local/mysql/support-files/my-medium.cnf /etc/my.cnf`
+   `// In the support-files directory, there are 4 template files. We choose one of them as the MySQL configuration file, overwriting /etc/my.cnf (the system's default configuration, which sets performance parameters and some MySQL path parameters).`
+6. `# cd /usr/local/mysql`
+   `# ./scripts/mysql_install_db --user=mysql`
+   `// Enter the mysql directory`
+   `// Initialize tables and specify that the mysql user will access them. After initializing tables, set access permissions for the mysql and root users.`
+7. `# chown -R root . // Set root to have access to /usr/local/mysql`
+8. `# chown -R mysql data`
+   `// Set the mysql user to have access to /usr/local/mysql/data, which contains MySQL database files. This directory is configured in /etc/my.cnf and created during mysql_install_db.`
+9. `# chown -R mysql data/.`
+   `// Set the mysql user to have access to all files under /usr/local/mysql/data/mysql`
+10. `# chgrp -R mysql .`
+    `// Set the mysql group to have access to /usr/local/mysql`
+11. `# /usr/local/mysql/bin/mysqld_safe --user=mysql &`
+    `// Run MySQL`
+    `// If there are no issues, you should see a prompt similar to this:`
+    `[1] 42264`
+    `# Starting mysqld daemon with databases from /usr/local/mysql/var`
+    `// If a statement like "mysql ended" appears, it means MySQL did not start correctly. You can check the log for issues; the log file is usually configured in /etc/my.cnf. Most problems are caused by incorrect permission settings.`
+12. `// Use the following command to change the MySQL password`
+    `# /usr/local/mysql/bin/mysqladmin -u root password yourpassword // The default installation has no password; for security, you must change it immediately.`
+13. `# cp support-files/mysql.server /etc/rc.d/init.d/mysqld`
+    `# chmod 700 /etc/init.d/mysqld`
+    `# chkconfig --add mysqld`
+    `# chkconfig --level 345 mysqld on // Copy a script from the compilation directory`
+    `// Configure MySQL to start automatically on every boot.`
+14. `# service mysqld start`
+    `# netstat -atln`
+    `// Start the mysqld service`
+    `// Check if port 3306 is open. Remember to open this port in the firewall.`
+
+\============================================
+
+**(II) How to Install MySQL Database on Linux**
+
+\============================================
+
+Using Options on the Command Line
+
+Program options specified on the command line follow these rules:
+· Options immediately follow the command name.
+· Option parameters begin with one or two hyphens, depending on whether they have a short or long name. Many options have both forms. For example, -? and --help are the short and long names for the option that tells a MySQL program to display help messages.
+· Option names are case-sensitive. -v and -V are both valid but have different meanings. (They are the short names for the --verbose and --version options).
+· Some options are followed by an option value. For example, -h localhost or --host=localhost indicates the MySQL server host for the client program. The option value tells the program the hostname where the MySQL server is running.
+· For long options with values, separate the option name and value with an '='. For short options with values, the option value can immediately follow the option letter, or there can be a space between them. (-hlocalhost and -h localhost are equivalent). An exception to this rule is the option for specifying the MySQL password. This option can be in the form --password=pass_val or --password. In the latter case (no password value given), the program will prompt for the password. The password option can also be given in the short form -ppass_val or -p. However, for the short form, if a password value is given, it must immediately follow the option without any intervening space. The reason for this requirement is that if there is a space after the option, the program has no way of knowing whether the subsequent argument is the password value or some other argument. Therefore, the following two commands have completely different meanings:
+[pre]· shell> mysql -ptest[/pre][pre]· shell> mysql -p test[/pre]The first command tells mysql to use the password 'test' but does not specify a default database. The second command tells mysql to prompt for the password and use 'test' as the default database.
+
+I. Introduction
+
+I have wanted to use Linux for a long time, but without a specific task, I never systematically learned it. Recently, due to work requirements, I had to use MySQL on Linux. I initially thought that with my experience using SQL Server on Windows, installing MySQL on Linux would be a breeze. However, I encountered many detours and problems during the actual installation and use of MySQL, as Linux and Windows are fundamentally very different. To help beginners like me avoid detours and get started quickly, I wrote this article, hoping it will be helpful to you.
+
+II. Installing MySQL
+
+1. Download MySQL Installation Files
+   To install MySQL, you need the following two files:
+   MySQL-server-5.0.9-0.i386.rpm
+   MySQL-client-5.0.9-0.i386.rpm
+   Download them from: [http://dev.mysql.com/downloads/mysql/5.0.html](http://dev.mysql.com/downloads/mysql/5.0.html). Open this page, scroll down to "Linux x86 RPM downloads," find "Server" and "Client programs," and download the two required RPM files.
+
+2. Install MySQL
+   RPM files are software packages developed by Red Hat. RPM allows Linux to install software packages without many complex procedures. Commonly used parameters for the `rpm` command during installation are –ivh, where `i` indicates installing the specified RPM package, `v` indicates verbose information during installation, and `h` indicates displaying '#' symbols during installation to show the current installation progress. This symbol will continue until the installation is complete.
+   1) Install Server
+   Run the following command in the directory containing the two RPM files:
+   `[root@test1 local]# rpm -ivh MySQL-server-5.0.9-0.i386.rpm`
+   The following information will be displayed:
+   `warning: MySQL-server-5.0.9-0.i386.rpm: V3 DSA signature: NOKEY, key ID 5072e1f5`
+   `Preparing... ########################################### [100%]`
+   `1:MySQL-server ########################################### [100%]`
+   `...... (display omitted)`
+   `/usr/bin/mysqladmin -uroot password 'new-password'`
+   `/usr/bin/mysqladmin -uroot -h test1 password 'new-password'`
+   `...... (display omitted)`
+   `Starting mysqld daemon with databases from /var/lib/mysql`
+![](http://www.badguy.name/attachments/month_0704/y2007418214924.gif)
+   If the above information appears, the server installation is complete. To test if it was successful, you can run `netstat` to see if the MySQL port is open. If it is open, the service has started, and the installation is successful. The default MySQL port is 3306.
+   `[root@test1 local]# netstat -nat`
+   `Active Internet connections (servers and established)`
+   `Proto Recv-Q Send-Q Local Address Foreign Address State`
+   `tcp 0 0 0.0.0.0:3306 0.0.0.0:* LISTEN`
+   The above display shows that the MySQL service has started.
+   2) Install Client
+   Run the following command:
+   `[root@test1 local]# rpm -ivh MySQL-client-5.0.9-0.i386.rpm`
+   `warning: MySQL-client-5.0.9-0.i386.rpm: V3 DSA signature: NOKEY, key ID 5072e1f5`
+   `Preparing... ########################################### [100%]`
+   `1:MySQL-client ########################################### [100%]`
+   The display indicates that the installation is complete.
+   Use the following command to connect to MySQL and test for success.
+
+III. Logging into MySQL
+
+The command to log into MySQL is `mysql`. The syntax for `mysql` is as follows:
+`mysql [-u username] [-h host] [-p[password]] [dbname]`
+`username` and `password` are the MySQL username and password, respectively. The initial MySQL administrative account is `root` with no password. Note: This `root` user is not the Linux system user. The default MySQL user is `root`. Since there is no initial password, you only need to type `mysql` for the first login.
+`[root@test1 local]# mysql`
+`Welcome to the MySQL monitor. Commands end with ; or \g.`
+`Your MySQL connection id is 1 to server version: 4.0.16-standard`
+`Type 'help;' or '\h' for help. Type '\c' to clear the buffer.`
+`mysql>`
+If the "mysql>" prompt appears, congratulations, the installation was successful!
+The login format after adding a password is as follows:
+`mysql -u root -p`
+`Enter password: (enter password)`
+Here, `-u` is followed by the username, and `-p` prompts for the password. Press Enter and then enter the password at the prompt.
+
+Note: This `mysql` file is in the `/usr/bin` directory and is not the same file as the startup file `/etc/init.d/mysql` which will be discussed later.
+
+IV. Several Important MySQL Directories
+
+After MySQL is installed, unlike SQL Server, it is not installed in a single directory. Its database files, configuration files, and command files are in different directories. Understanding these directories is very important, especially for Linux beginners, because the Linux directory structure itself is quite complex. If you don't understand the MySQL installation directories, you cannot talk about in-depth learning.
+
+Below are descriptions of these directories.
+
+1. Database Directory
+   `/var/lib/mysql/`
+
+2. Configuration Files
+   `/usr/share/mysql` (mysql.server command and configuration files)
+
+3. Related Commands
+   `/usr/bin` (mysqladmin, mysqldump, and other commands)
+
+4. Startup Scripts
+   `/etc/rc.d/init.d/` (directory for the MySQL startup script file)
+
+V. Changing the Login Password
+
+MySQL has no default password. The importance of adding a password after installation is self-evident.
+
+1. Command
+   `usr/bin/mysqladmin -u root password 'new-password'`
+   Format: `mysqladmin -u username -p old_password password new_password`
+
+2. Example
+   Example 1: Add a password '123456' for root.
+   Type the following command:
+   `[root@test1 local]# /usr/bin/mysqladmin -u root password 123456`
+   Note: Since root initially has no password, the `-p old_password` part can be omitted.
+
+3. Test if the modification was successful
+   1) Log in without a password
+   `[root@test1 local]# mysql`
+   `ERROR 1045: Access denied for user: 'root@localhost' (Using password: NO)`
+   An error is displayed, indicating that the password has been changed.
+   2) Log in with the modified password
+   `[root@test1 local]# mysql -u root -p`
+   `Enter password: (enter the modified password 123456)`
+   `Welcome to the MySQL monitor. Commands end with ; or \g.`
+   `Your MySQL connection id is 4 to server version: 4.0.16-standard`
+   `Type 'help;' or '\h' for help. Type '\c' to clear the buffer.`
+   `mysql>`
+   Success!
+   This changes the password using the `mysqladmin` command. You can also change the password by modifying the database.
+![](http://www.badguy.name/attachments/month_0704/f200741821503.gif)
+
+VI. Starting and Stopping
+
+1. Start
+   After MySQL is installed, the startup file `mysql` is in the `/etc/init.d` directory. To start it, run the following command:
+   `[root@test1 init.d]# /etc/init.d/mysql start`
+
+2. Stop
+   `/usr/bin/mysqladmin -u root -p shutdown`
+
+3. Automatic Startup
+   1) Check if MySQL is in the automatic startup list
+   `[root@test1 local]# /sbin/chkconfig --list`
+   2) Add MySQL to your system's startup service group
+   `[root@test1 local]# /sbin/chkconfig – add mysql`
+   3) Remove MySQL from the startup service group.
+   `[root@test1 local]# /sbin/chkconfig – del mysql`
+   4. The command to restart the MySQL service is `service mysql restart` or `/etc/init.d/mysql restart`.
+
+VII. Changing MySQL Directory
+
+The default data file storage directory for MySQL is `/var/lib/mysql`. If you want to move the directory to `/home/data`, you need to perform the following steps:
+
+1. Create the `data` directory in `/home`
+   `cd /home`
+   `mkdir data`
+
+2. Stop the MySQL service process:
+   `mysqladmin -u root -p shutdown`
+
+3. Move the entire `/var/lib/mysql` directory to `/home/data`
+   `mv /var/lib/mysql /home/data/`
+   This moves the MySQL data files to `/home/data/mysql`.
+
+4. Find the `my.cnf` configuration file
+   If there is no `my.cnf` configuration file in the `/etc/` directory, find a `*.cnf` file in `/usr/share/mysql/`, copy one to `/etc/`, and rename it to `my.cnf`. The command is as follows:
+   `[root@test1 mysql]# cp /usr/share/mysql/my-medium.cnf /etc/my.cnf`
+
+5. Edit MySQL's configuration file `/etc/my.cnf`
+   To ensure MySQL works correctly, you need to specify the location where the `mysql.sock` file is generated. Modify the `socket=/var/lib/mysql/mysql.sock` line by changing the value to the right of the equals sign to: `/home/mysql/mysql.sock`. Perform the following operation:
+   `vi my.cnf` (Use the `vi` tool to edit the `my.cnf` file, find the following data, and modify it)
+   `# The MySQL server`
+   `[mysqld]`
+   `port = 3306`
+   `#socket = /var/lib/mysql/mysql.sock` (Original content, commented out with "#" for safety)
+   `socket = /home/data/mysql/mysql.sock` (Add this line)
+
+6. Modify the MySQL startup script `/etc/rc.d/init.d/mysql`
+   Finally, you need to modify the MySQL startup script `/etc/rc.d/init.d/mysql`, changing the `datadir=/var/lib/mysql` line by replacing the path to the right of the equals sign with your current actual storage path: `home/data/mysql`.
+   `[root@test1 etc]# vi /etc/rc.d/init.d/mysql`
+   `#datadir=/var/lib/mysql` (Comment out this line)
+   `datadir=/home/data/mysql` (Add this line)
+
+7. Restart the MySQL service
+   `/etc/rc.d/init.d/mysql start`
+   Or restart Linux with the `reboot` command.
+   If it works correctly, the move was successful. Otherwise, recheck the previous 7 steps.
+
+VIII. Common MySQL Operations
+
+Note: Every command in MySQL must end with a semicolon (;).
+
+1. Show Databases
+   `mysql> show databases;`
+   `+----------+`
+   `| Database |`
+   `+----------+`
+   `| mysql |`
+   `| test |`
+   `+----------+`
+   `2 rows in set (0.04 sec)`
+   After MySQL is installed, there are two databases: `mysql` and `test`. The `mysql` database is very important; it contains MySQL's system information. When we change passwords and add new users, we are actually operating on the relevant tables in this database.
+
+2. Show Tables in a Database
+   `mysql> use mysql;` (Open the database; to operate on a database, you must open it, similar to FoxPro)
+   `Database changed`
+
+   `mysql> show tables;`
+   `+-----------------+`
+   `| Tables_in_mysql |`
+   `+-----------------+`
+   `| columns_priv |`
+   `| db |`
+   `| func |`
+   `| host |`
+   `| tables_priv |`
+   `| user |`
+   `+-----------------+`
+   `6 rows in set (0.01 sec)`
+
+3. Show Table Structure:
+   `describe table_name;`
+
+4. Show Records in a Table:
+   `select * from table_name;`
+   For example: Show records in the `user` table in the `mysql` database. All users who can operate on MySQL users are in this table.
+   `Select * from user;`
+
+5. Create Database:
+   `

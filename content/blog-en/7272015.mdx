@@ -1,0 +1,114 @@
+---
+title: "VxWorks Inter-Process Communication 0 -- Task Management"
+date: "2012-02-19"
+slug: "7272015"
+tags: ["#Task", "#TaskScheduling", "#Delay", "#DataStructure", "#DevTools", "#Algorithm"]
+source: "https://blog.csdn.net/yeyuangen/article/details/7272015"
+originalTitle: "VxWorks进程通信0 -- 任务管理"
+---
+
+## VxWorks Inter-Process Communication 0 -- Task Management
+
+A task is an image of code execution. From a system perspective, a task is the smallest execution unit competing for system resources. Tasks can use or wait for system resources such as CPU, I/O devices, and memory space, and run concurrently with other tasks, independently of them (at a macroscopic level). The VxWorks kernel enables tasks to quickly share most system resources while having independent contexts to control the execution of individual threads.
+
+**1. Task Structure**
+
+Multitasking design allows for interrupting currently executing tasks at any time to respond to internal and external events within a deterministic timeframe. The VxWorks real-time kernel, Wind, provides a basic multitasking environment. Superficially, multiple tasks appear to execute simultaneously; in reality, the system kernel schedules them to run alternately according to a specific scheduling policy. The system scheduler uses a Task Control Block (TCB) data structure to manage task scheduling functions. A TCB describes a task, and each task is associated with a TCB. **TCB** includes information such as the task's current state, priority, events or resources to wait for, the starting address of the task's program code, and the initial stack pointer. The scheduler uses this information when a task is initially activated and when it is reactivated from a suspended state.
+
+Additionally, the TCB is used to store the task's "context". A task's context comprises all information that must be saved when an executing task is stopped. When the task is resumed, its context must be restored. Typically, the context is the current state of the computer, i.e., the contents of various registers. This is similar to the information saved during an interrupt. When a task switch occurs, the context of the currently running task is saved into its TCB, and the context of the task to be executed is retrieved from its TCB and loaded into the registers. Execution then switches to this task, starting from where it was previously interrupted. In VxWorks, the memory address space is not part of the task context. All code runs in the same address space. If each task requires its own memory space, support from the optional VxVMI product is needed.
+
+**2. Task States and State Transitions**
+
+A task in a real-time system can have multiple states, with four fundamental states:
+
+Ready: The task is only waiting for the system to allocate **CPU** resources;
+
+Pend: The task is blocked, waiting for certain unavailable resources;
+
+Suspend: If the system does not require a task to work, it is in a suspended state;
+
+Delay: The state a task is in when it is delayed;
+
+When a system function operates on a task, the task transitions from one state to another. A task in any state can be deleted.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/7272015/01_0_1302578860vxac.gif)
+
+**State Transitions**
+
+Ready ----> Pend _semTake()/msgQReceive()_
+
+Ready ----> Delay _taskDelay()_
+
+Ready ----> Suspend _taskSuspend()_
+
+Pend ----> Ready _semGive()/msgQSend()_
+
+Pend ----> Suspend _taskSuspend()_
+
+Delay ----> Ready expired delay
+
+Delay ----> Suspend _taskSuspend()_
+
+Suspend ----> Ready _taskResume()/taskActivate()_
+
+Suspend ----> Pend _taskResume()_
+
+Suspend ----> Delay _taskResume()_
+
+**3. Task Scheduling Policies**
+
+Multitasking scheduling requires a scheduling algorithm to allocate the CPU to ready tasks. The Wind kernel uses priority-based preemptive scheduling as its default policy, and also provides round-robin scheduling.
+
+**Priority-based preemptive scheduling** has many advantages. This scheduling method assigns different priorities to each task. The highest priority task not in a pending or suspended state will continue to run. When a higher-priority task transitions from the ready state to running, the system kernel immediately saves the current task's context and switches to the higher-priority task.
+
+The Wind kernel divides priorities into 256 levels (0~255). Priority 0 is the highest priority, and priority 255 is the lowest. When a task is created, the system assigns its priority based on a given value. However, priorities can also be dynamic; they can be changed by the user at runtime using the system call taskPrioritySet(), but cannot be changed by the operating system at runtime.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/7272015/02_0_1302578906zZBd.gif)
+
+**Round-robin scheduling** allocates an equal execution time slice to each ready task of the same priority. The length of the time slice can be specified by the system call KernelTimeSlice() through an input parameter. Evidently, each task has a running time counter, which increments by one with each clock tick while the task is running. After a task exhausts its time slice, a task switch occurs: the currently running task is stopped, placed at the end of the queue, its running time counter is reset to zero, and the next task in the ready queue begins execution. When a running task is preempted by a higher-priority task, its running time counter is saved until the task runs again.
+
+**![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/7272015/03_0_13025789157v0L.gif)**
+
+**4. Preemption Disablement**
+
+The Wind kernel can enable and disable the scheduler by calling **_taskLock()_** and **_taskUnlock()_**. When a task calls **_taskLock()_** to disable the scheduler, no priority-based preemption occurs while the task is running. However, if the task is blocked or suspended, the scheduler will select and run the highest priority task from the ready queue. When a task with preemption disabled becomes unblocked and starts running again, preemption is again disabled. This preemption disablement prevents task switching but does not affect interrupt handling.
+
+**5. Exception Handling**
+
+Errors in program code and data, such as illegal instructions, bus or address errors, division by zero, etc. The VxWorks exception handling package typically suspends the task that caused the exception and saves the task's state at the point of the error. The kernel and other tasks continue to execute. Users can use the Tornado development tools to view the current task status and identify the suspended task.
+
+**6. Task-Related Functions**
+
+The VxWorks kernel's task management provides functions for dynamic creation, deletion, and control of tasks, specifically implemented through the following system calls:
+
+**_taskSpawn()_** Creates (spawns and activates) a new task
+
+**_taskInit()_** Initializes a new task
+
+**_taskActivate()_** Activates an initialized task
+
+**_taskName()_** Gets a task's name from its **ID**
+
+**_taskNameToId()_** Gets a task's **ID** from its name
+
+**_taskPriorityGet()_** Gets a task's priority
+
+**_taskIsSuspended()_** Checks if a task is suspended
+
+**_taskIsReady()_** Checks if a task is ready to run
+
+**_taskTcb()_** Gets a pointer to a task control block
+
+**_taskDelete()_** Terminates a specified task and frees memory (task stack and control block only)
+
+**_taskSafe()_** Protects the called task from being deleted
+
+**_taskSafe()_** Unprotects the called task
+
+**_taskSuspend()_** Suspends a task
+
+**_taskResume()_** Resumes a task
+
+**_taskRestart()_** Restarts a task
+
+**_taskDelay()_** Delays a task

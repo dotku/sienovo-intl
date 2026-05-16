@@ -1,0 +1,63 @@
+---
+title: "AM5728 uboot Execution Flow"
+date: "2020-02-27"
+slug: "90140811"
+tags: ["#AM5728", "#uboot"]
+source: "https://blog.csdn.net/yeyuangen/article/details/90140811"
+originalTitle: "AM5728  uboot 执行流程"
+---
+
+After the AM5728 CPU powers on, the execution flow is: ROM->MLO(SPL)->u-boot.img
+
+**First-stage bootloader:** These codes are automatically executed after the board powers on, such as determining the boot method (SDcard, SPI, NOR), and then jumping to the second-stage bootloader. These codes should be stored in 176KB of ROM.
+
+Second-stage bootloader: MLO(SPL), used for hardware initialization, disabling the watchdog, disabling interrupts, setting CPU clock frequency and speed, loading uboot.img, DTS, and other operations. The MLO file should be mapped to 64 KB of Internal SRAM.
+
+Third-stage bootloader: u-boot.img, the entry point for C code.
+
+The MLO and u-boot execution flow is as follows:
+
+```
+reset //(arch/arm/cpu/armv7/start.S)  
+save_boot_params_ret //(arch/arm/cpu/armv7/start.S)  
+ |- disable interrupts  
+ |- cpu_init_cp15 //(arch/arm/cpu/armv7/start.S)  
+ |  |- Invalidate L1 I/D  
+ |  |- disable MMU stuff and caches  
+ |- cpu_init_crit //(arch/arm/cpu/armv7/start.S)  
+ |  |- lowlevel_init //(arch/arm/cpu/armv7/lowlevel_init.S)  
+ |      |- Setup a temporary stack  
+ |      |- Set up global data  
+ |      |- s_init //(arch/arm/cpu/armv7/am33xx/board.c)  
+ |          |- watchdog_disable  
+ |          |- set_uart_mux_conf  
+ |          |- setup_clocks_for_console  
+ |          |- uart_soft_reset  
+ |- _main //(arch/arm/lib/crt0.S)  
+      
+ |(MLO) If it is an MLO file  
+ |- board_init_f //(arch/arm/cpu/armv7/am33xx/board.c)  
+ |  |- board_early_init_f //(arch/arm/cpu/armv7/am33xx/board.c)  
+ |  |  |- prcm_init  
+ |  |  |- set_mux_conf_regs  
+ |  |- sdram_init //(board/ti/am335x/board.c) Initialize DDR  
+ |- spl_relocate_stack_gd  
+ |- board_init_r //(common/spl/spl.c)                     [Completes u-boot.img and DTS loading]  
+      |- ...  
+      |- spl_load_image // Loads the u-boot image based on different boot methods,  
+      |- jump_to_image_no_args // Enters u-boot code execution  
+      
+  
+ |(U-Boot) If it is a U-Boot image  
+ |- board_init_f //(common/board_f.c)  
+ |  |- ...  
+ |  |- initcall_run_list(init_sequence_f)  
+ |  |- ...  
+ |  
+ |- relocate_code //(arch/arm/lib/relocate.S) Code relocation  
+ |- relocate_vectors //(arch/arm/lib/relocate.S) Vector table redefinition  
+ |- Set up final (full) environment  
+ |- board_init_r //(common/board_r.c)  
+      |- initcall_run_list(init_sequence_r)// Initializes various peripherals  
+          |- main_loop()
+```

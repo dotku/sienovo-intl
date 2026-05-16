@@ -1,0 +1,159 @@
+---
+title: "Linux Time Slicing and Thread Scheduling Issues – Collection and Summary"
+date: "2011-09-09"
+slug: "6763492"
+tags: ["#Linux", "#Null", "#Struct", "#Delay", "#Multithreading", "#Timer"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6763492"
+originalTitle: "linux时间片及线程调度相关的问题  收集整理"
+---
+
+1. On Linux 2.6, how can you make a thread run once every 1ms?  
+I've tried the following two methods myself, but the results were not satisfactory. According to prototype testing, most intervals are around 1ms, but there are always some intervals lasting several milliseconds, and occasionally even over 10ms.  
+(1) Using `settimer` with an interval of 1000μs;  
+(2) Creating a high-priority thread that includes "the work to be done" and a `usleep` call to achieve the 1ms interval between consecutive thread activations.  
+
+Therefore, I'd like to ask experts:  
+1. How can you implement an accurate 1ms timer at the user level, or make a thread execute precisely every 1ms?  
+2. What is the overhead of thread switching in user space? How long is the time slice each thread gets upon being scheduled?  
+3. What thread scheduling policies are available? Can they be implemented using pthread?
+
+_________________________________________________________________________________________________________
+
+### o-1.txt ---  
+1. How can you implement an accurate 1ms timer at the user level, or make a thread execute once every 1ms?  
+It's not possible to achieve high accuracy without special measures. However, acceptable results can be achieved if requirements are not extremely strict.
+
+2. What is the overhead of thread switching in user space? How long is the time slice each thread gets upon being scheduled?  
+a. The overhead is very small because the scheduler uses an O(1) algorithm;  
+b. The default initial time slice is 20ms, but this value varies dynamically based on scheduling policy, priority, and other factors.
+
+3. What thread scheduling policies are available? Can they be implemented using pthread?  
+a. Thread scheduling policies are the same as process scheduling policies;  
+b. It might be difficult—haven't tried it.
+
+Suggestions:  
+a. Consider trying kernel soft interrupts;  
+b. If timing precision is critical, set the process scheduling policy to `SCHED_FIFO` or `SCHED_RR`, both of which are real-time policies. Also review materials on kernel preemption, and preferably use the latest kernel version.
+
+_________________________________________________________________________________________________________
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <sys/time.h>
+#include <errno.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/types.h>
+
+#define PRINT_USEAGE     { \
+        fprintf(stderr, "\n   Usage:   %s   usec   ",argv[0]); \
+        fprintf(stderr, "\n\n ");\
+    }
+
+int
+main (int argc, char **argv)
+{
+    unsigned int nTimeTestSec = 0;                 /*   sec   */
+    unsigned int nTimeTest = 0;                    /*   usec   */
+    struct timeval tvBegin;
+    struct timeval tvNow;
+    int ret = 0;
+    unsigned int nDelay = 0;                       /*   usec   */
+    fd_set rfds;
+    struct timeval tv;
+    int fd = 1;
+    int i = 0;
+    struct timespec req;
+    unsigned int delay[20] =
+        { 500000, 100000, 50000, 10000, 1000, 900, 500, 100, 10, 1, 0 };
+    int nReduce = 0;                               /*   error   */
+
+#if 0
+    if (argc < 2)
+        {
+            PRINT_USEAGE;
+            exit (1);
+        }
+    nDelay = atoi (argv[1]);
+#endif
+
+    fprintf (stderr, "%18s%12s%12s%12s\n ", "function ", "time(usec) ", "realTime ",
+                      "reduce ");
+    fprintf (stderr,
+                      "-------------------------------------------------------------------\n ");
+
+    for (i = 0; i < 20; i++)
+        {
+            if (delay[i] <= 0)
+                break;
+            nDelay = delay[i];
+
+            /*             test   usleep   */
+            gettimeofday (&tvBegin, NULL);
+            ret = usleep (nDelay);
+            if (-1 == ret)
+                {
+                    fprintf (stderr, "   usleep   error   .   errno=%d   [%s]\n ", errno,
+                                      strerror (errno));
+                }
+            gettimeofday (&tvNow, NULL);
+            nTimeTest =
+                (tvNow.tv_sec - tvBegin.tv_sec) * 1000000 + tvNow.tv_usec -
+                tvBegin.tv_usec;
+            nReduce = nTimeTest - nDelay;
+            fprintf (stderr, "\t   usleep               %8u       %8u       %8d\n ", nDelay, nTimeTest,nReduce);
+
+
+            /*             test   nanosleep   */
+            gettimeofday (&tvBegin, NULL);
+            req.tv_sec = nDelay / 1000000;
+            req.tv_nsec = (nDelay % 1000000) * 1000;
+            ret = nanosleep (&req, NULL);
+            if (-1 == ret)
+                {
+                    fprintf (stderr, "\t   nanosleep          %8u       not   support\n ", nDelay);
+                }
+            else
+                {
+                    gettimeofday (&tvNow, NULL);
+                    nTimeTest =
+                        (tvNow.tv_sec - tvBegin.tv_sec) * 1000000 + tvNow.tv_usec -
+                        tvBegin.tv_usec;
+                    nReduce = nTimeTest - nDelay;
+                    fprintf (stderr, "\t   nanosleep          %8u       %8u       %8d\n ", nDelay,
+                                      nTimeTest,   nReduce);
+                }
+
+            /*             test   select   */
+            gettimeofday (&tvBegin, NULL);
+            FD_ZERO (&rfds);
+            FD_SET (fd, &rfds);
+            tv.tv_sec = 0;
+            tv.tv_usec = nDelay;
+            ret = select (0, NULL, NULL, NULL, &tv);
+            if (-1 == ret)
+                {
+                    fprintf (stderr, "   select   error   .   errno=%d   [%s]\n ", errno,
+                                      strerror (errno));
+                }
+            gettimeofday (&tvNow, NULL);
+            nTimeTest =
+                (tvNow.tv_sec - tvBegin.tv_sec) * 1000000 + tvNow.tv_usec -
+                tvBegin.tv_usec;
+            nReduce = nTimeTest - nDelay;
+            fprintf (stderr, "\t   select               %8u       %8u       %8d\n ", nDelay,   nTimeTest,
+                      nReduce);
+
+        }
+
+    return 0;
+}
+```
+
+This is a small program for testing the difference between expected and actual delay times.  
+You can run it on your own machine.  
+In practice, controlling a 1ms delay precisely is quite challenging.
+
+For more details, please refer to: [http://topic.csdn.net/u/20070807/21/4cc574ab-94db-495d-a3b5-d44cdcf1bb1e.html](http://topic.csdn.net/u/20070807/21/4cc574ab-94db-495d-a3b5-d44cdcf1bb1e.html)

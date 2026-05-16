@@ -1,0 +1,40 @@
+---
+title: "htonl(),htons(),ntohl(),ntons()-- Endianness Conversion Functions"
+date: "2013-06-14"
+slug: "9092717"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/9092717"
+originalTitle: "htonl(),htons(),ntohl(),ntons()--大小端模式转换函数"
+---
+
+## [htonl(),htons(),ntohl(),ntons()-- Endianness Conversion Functions](http://www.cnblogs.com/kungfupanda/archive/2013/04/24/3040785.html)
+
+Different machines store variable bytes in different orders internally; some use big-endian mode, while others use little-endian mode.
+Big-endian mode means that the most significant byte (MSB) is stored at the lowest memory address, and the least significant byte (LSB) is stored at the highest memory address.
+Little-endian mode means that the least significant byte (LSB) is stored at the lowest memory address, and the most significant byte (MSB) is stored at the highest memory address.
+
+When transmitting data over a network, because the two ends of data transmission may correspond to different hardware platforms and the byte order used for storage may also be inconsistent, the TCP/IP protocol therefore stipulates that network byte order (which is big-endian mode) must be used on the network.
+Analysis of the endianness storage principles reveals that for `char` type data, this problem does not exist because it occupies only one byte; this is also one of the reasons why data buffers are generally defined as `char` type. For non-`char` type data such as IP addresses and port numbers, it must be converted to big-endian mode before being sent over the network, and then converted back to the receiving host's storage mode after being received.
+
+The Linux system provides four functions for endianness conversion. The function prototypes can be obtained by entering the `man byteorder` command:
+
+**\[cpp\]**  [view plain](http://www.cnblogs.com/kungfupanda/archive/2013/04/24/3040785.html# "view plain") [copy](http://www.cnblogs.com/kungfupanda/archive/2013/04/24/3040785.html# "copy") [print](http://www.cnblogs.com/kungfupanda/archive/2013/04/24/3040785.html# "?")
+
+1.  #include <arpa/inet.h> 
+
+3.  uint32\_t htonl(uint32\_t hostlong); 
+
+5.  uint16\_t htons(uint16\_t hostshort); 
+
+7.  uint32\_t ntohl(uint32\_t netlong); 
+
+9.  uint16\_t ntohs(uint16\_t netshort); 
+
+```cpp
+#include <arpa/inet.h> uint32_t htonl(uint32_t hostlong); uint16_t htons(uint16_t hostshort); uint32_t ntohl(uint32_t netlong); uint16_t ntohs(uint16_t netshort);
+```
+
+`htons` stands for host to network short, and is used to convert host `unsigned short` type data to network byte order.
+
+`htonl` stands for host to network long, and is used to convert host `unsigned int` type data to network byte order.
+The functions of `ntohl` and `ntohs` are the inverse of `htonl` and `htons`, respectively.

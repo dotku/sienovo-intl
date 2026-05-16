@@ -1,0 +1,30 @@
+---
+title: "The Difference Between Aggregation and Composition"
+date: "2012-02-28"
+slug: "7301881"
+tags: ["#class", "#Language", "#c"]
+source: "https://blog.csdn.net/yeyuangen/article/details/7301881"
+originalTitle: "聚合和组合的区别"
+---
+
+The difference between aggregation and composition is that: aggregation is a "has-a" relationship, while composition is a "contains-a" relationship; the relationship between the whole and its parts is weaker in aggregation and stronger in composition; in an aggregation relationship, the lifecycle of the object representing the part is independent of the object representing the aggregate. Deleting the aggregate object does not necessarily delete the objects representing its parts. In composition, however, deleting the composite object simultaneously deletes the objects representing its parts.
+
+Let's use simple examples to illustrate the difference between aggregation and composition. Consider the phrase 'country destroyed, home ruined' (国破家亡). If the country is destroyed, the home naturally ceases to exist. 'Country' and 'home' clearly represent a composition relationship. Conversely, the relationship between a computer and its peripherals is an aggregation. Their relationship is relatively loose; if the computer is gone, the peripherals can still exist independently and be connected to other computers. In an aggregation relationship, parts can exist independently of the aggregate, and ownership of parts can be shared by several aggregates. For example, a printer can be shared by many colleagues in an office.
+
+In C++, from an implementation perspective, aggregation can be represented as:
+
+```
+class A {...} 
+class B { A* a; .....}
+```
+
+That is, class B contains a pointer to class A.
+
+Whereas composition can be represented as:
+
+```
+class A{...} 
+class B{ A a; ...}
+```
+
+That is, class B contains an object of class A.

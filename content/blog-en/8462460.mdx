@@ -1,0 +1,39 @@
+---
+title: "Doubly Linked List Creation, Insertion, and Deletion"
+date: "2013-01-03"
+slug: "8462460"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/8462460"
+originalTitle: "双向链表建立、插入和删除"
+---
+
+```cpp
+#include<iostream>using std::cout;using std::endl; template<typename T> class Node{  // Definition of a node
+public: Node(T t):item(t),previous(0),next(0){} T item; Node* previous; Node* next;}; template<typename T> class TwoWayLinkedList{  // Definition of a doubly linked list
+public: TwoWayLinkedList():length(0),head(0),tail(0){}; ~TwoWayLinkedList(); int getLength(){return length;} void add(T t); T get(int i); void insert(int i,T t); void del(int i); void display();private: Node<T>* head; Node<T>* tail; int length;}; template <typename T> void TwoWayLinkedList<T>::add(T t){  // Add a new element to the end of the list
+ if(head==0){  // If the list is empty
+  head=new Node<T>(t);  tail=head; } else {  Node<T>* q=new Node<T>(t);  // Create a new node to store the new element
+  tail->next=q;  // Add to the end of the current list
+  q->previous=tail;  // Its previous node is the current tail
+  tail=tail->next;  // Move the tail to this new element
+ } length++;} template<typename T> T TwoWayLinkedList<T>::get(int i){  // Return the element at index i
+ if(i>=length||i<0) return 0;  // If there is no such index, return 0
+ int j=0; Node<T>* p=head; while(j<i){  // Find the node pointed to by the index
+  p=p->next;  j++; } T item=(p->T); return item;} template<typename T> void TwoWayLinkedList<T>::insert(int i, T t){  // Insert a new element at index i
+ if(i<=0){  // If the index is less than or equal to 0, insert at the beginning
+  Node<T>* p=new Node<T>(t);  p->next=head;  head->previous=p;  head=p;  length++; } else if(i>=length) add(t);  // If the index is greater than the maximum index, add to the end
+ else{    Node<T>* n=new Node<T>(t);  int j=0;  Node<T>* t=head;  while(j<i-1){  // Find the element before the insertion point
+   t=t->next;   j++;  }  n->next=t->next;  n->previous=t;  (t->next)->previous=n;  t->next=n;  length++; }} template<typename T> void TwoWayLinkedList<T>::del(int i){  // Delete the element at index i
+ if(i<0||i>=length) return; // If there is no such index, exit directly
+ else{  if(length==0) return;  // If the list is empty, exit
+  else if(length==1){  // If there is only one element
+   delete head;   head=0;   tail=0;  }  else if(i==0){ // If the first element is to be deleted
+   Node<T>* t=head;   head=head->next;  // Move the head to the next element
+   head->previous=0;   delete t;    }  else if(i==length-1){  // If the last element is to be deleted
+   Node<T>* t=tail;   tail=tail->previous;  // Move the tail back one position
+   tail->next=0;   delete t;  }  else{  Node<T>* t=head;  while(i>1){  // Find the element before the one to be deleted
+   t=t->next;   i--;  }  Node<T>* p=t->next;  t->next=p->next;  (p->next)->previous=t;  delete p;  }  length--; }} template<typename T> TwoWayLinkedList<T>::~TwoWayLinkedList(){  // Destructor
+ Node<T>* t=head; Node<T>* p; while(t!=0){  // Clear the space of each node
+  p=t;  t=t->next;  delete p; }} template<typename T> void TwoWayLinkedList<T>::display(){  // Display all elements in order
+ T item; int i=0; while(i<length){  item=this->get(i);  i++;  cout<<item<<" "; } cout<<endl;}
+```

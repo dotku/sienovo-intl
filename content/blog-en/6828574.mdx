@@ -1,0 +1,120 @@
+---
+title: "Understanding the Differences and Relationships Between continue, break, return, and switch"
+date: "2011-09-28"
+slug: "6828574"
+tags: ["#Programming", "#Algorithms", "#Languages", "#C"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6828574"
+originalTitle: "continue break return switch 联系区别"
+---
+
+**_Question: In a switch statement, must there be a break statement after the case statement sequence?_**  
+**Answer:**  
+1) Using a `break` statement in a `switch` statement terminates the sequence of statements. When a `break` is encountered, the program continues execution from the line of code immediately following the entire `switch` statement, effectively "exiting" the `switch`.
+
+The `break` statement is optional. If you omit the `break`, the program will fall through and execute the next `case`. If you intend to have multiple cases share the same logic (fall-through behavior), you can intentionally omit the `break` statement.
+
+The `switch` statement is generally more efficient than `if-else` chains when handling multiple selection conditions.
+
+2) Do you understand what `break` does? Without `break`, the program will continue executing the subsequent case statements.
+
+\==========================================================================================
+
+Typically, in C language, there are four main jump control statements:
+
+- `goto`  
+- `continue`  
+- `break`  
+- `return`
+
+Below is a brief introduction to each:
+
+**goto:**  
+Used for jumping between code blocks. This jump is powerful and allows transferring control to any labeled location within the function. The syntax is as follows:
+
+```
+A: module_one;  // Here, A is a label, usually denoted by uppercase letters, indicating the starting point after the jump
+
+module_two
+{
+    goto A;  // Jump to label A and continue execution
+}
+```
+
+This form of `goto` is commonly used in menu systems to switch between different modules and can be nested. However, this programming style is generally discouraged because it may introduce unpredictable bugs. Its use should be minimized.
+
+**continue:**  
+Typically used to accelerate loops. It is called inside loop bodies and serves to terminate the current iteration, immediately starting the next iteration. For example:
+
+```c
+for(;;)
+{
+    // ... some code
+    if (true)
+        continue;
+    // ... more code
+}
+```
+
+When the `if` condition is true, the loop skips the remaining code and proceeds directly to the next iteration.
+
+**break:**  
+Used to exit the current loop. Whichever loop contains the `break` statement will be terminated. For example:
+
+```c
+while()
+{
+    for(;;)
+    {
+        // ... some code
+        break;
+        // ... more code (this will not be executed)
+    }
+}
+```
+
+In this code snippet, the `for` loop contains the `break`. When `break` is executed, it exits the `for` loop but remains inside the `while` loop, which continues its execution.
+
+**return:**  
+Typically used to return a value (or a complex data type) from a function. It is generally used inside the called function (function one). After the function is called by another (function two), `return` transfers control back to the caller. When function two calls function one, and function one executes a `return`, the program flow returns to the next statement in function two.
+
+For example (where "object" refers to a function in C):
+
+```c
+function_one()
+{
+    return;
+}
+
+function_two()
+{
+    statement_one;
+    function_one();
+    statement_two;
+}
+```
+
+When the program executes `function_two`, it calls `function_one` and jumps into it. Upon encountering `return`, it returns to `function_two` and continues with `statement_two`.
+
+Now, to address your original question:
+
+The first code segment uses `return`. After `return` is executed, the program exits the `main` function. Thus, `return` has the effect of terminating the function call.
+
+The second code segment:
+
+```c
+do
+    // ... body
+while();
+```
+
+is a loop structure. When `break` is used inside the loop, it exits the loop but does not exit the surrounding `if` block.
+
+In general, these control flow behaviors apply across most programming languages, although special algorithms or contexts may have unique usage patterns.
+
+Hope this clarifies your understanding.
+
+\===========================  
+`break;` exits the loop;  
+`return;` immediately returns from the function, terminating the entire function execution.
+
+\============================

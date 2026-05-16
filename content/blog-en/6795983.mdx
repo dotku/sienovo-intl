@@ -1,0 +1,48 @@
+---
+title: "How to Configure Qt (4.3.2) Environment on Linux Operating System"
+date: "2011-09-21"
+slug: "6795983"
+tags: ["#Linux", "#Qt", "#Library", "#Path", "#Windows", "#VirtualMachine"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6795983"
+originalTitle: "Linux操作系统下如何配置Qt(4.3.2)环境"
+---
+
+**Download the open-source package: qt-x11-opensource-src-4.3.2.tar.gz. Extract: gunzip qt-x11-opensource-src-4.3.2.tar.gz tar xvf qt-x11-opensource-src-4.3.2.tar. Run the script: enter the qt-x11-opensource-src-4.3.2 directory and input ./configure to run the shell script, which tests the current system's essential configuration for software installation.**
+
+Download the open-source package: qt-x11-opensource\-src-4.3.2.tar.gz  
+  
+Extract: gunzip qt-x11-opensource-src-4.3.2.tar.gz  
+  
+tar xvf qt-x11-opensource-src-4.3.2.tar  
+  
+Run the script: Enter the qt-x11-opensource-src-4.3.2 folder and input `./configure` to run the shell script program, which tests essential configuration information of the current [system](http://www.stuhack.com/safe/xitong/) for software installation.  
+  
+Compile: gmake  
+  
+Install: gmake install  
+  
+Environment variables: Edit `/etc/profile` using `vi`, and append the following lines at the end of the file:  
+  
+PATH=/usr/local/Trolltech/Qt-4.3.2/bin:$PATH  
+QTDIR=/usr/local/Trolltech/Qt-4.3.2  
+MANPATH=$QTDIR/man:$MANPATH  
+LD_LIBRARY_PATH=$QTDIR/lib:$LD_LIBRARY_PATH  
+  
+export PATH QTDIR MANPATH LD_LIBRARY_PATH  
+  
+After rebooting, the configuration is complete. Write a simple HelloQt program to verify whether the setup was successful. Then run `qmake -project` to generate the project file, use `qmake` on the generated `.pro` file to produce the Makefile, and finally run `make` to generate the executable.  
+  
+Notes:  
+  
+1. During the `gmake` process, errors may occur indicating that `krb5.h` cannot be found. To resolve this issue, execute the following commands:  
+  
+ln -s /usr/kerberos/include/com_err.h /usr/include/com_err.h  
+  
+ln -s /usr/kerberos/include/profile.h /usr/include/profile.h  
+  
+ln -s /usr/kerberos/include/krb5.h /usr/include/krb5.h  
+  
+2. If [Linux](http://www.stuhack.com/linux/) is installed on a virtual machine, it may appear that `mount` cannot detect the [Windows](http://www.stuhack.com/windows/) hard drive. To copy files between [Linux](http://www.stuhack.com/linux/) and [Windows](http://www.stuhack.com/windows/) file systems, first install VMware Tools: Virtual Machine -> Install VMware Tools; then `cd /mnt/cdrom` and run the `./vmware-install.pl` script; finally, go to Virtual Machine -> Settings -> Options -> Shared Folders to create a shared folder (corresponding to `/mnt/hgfs` in Linux) for file exchange between Linux and Windows.  
+
+  
+This article's URL: [http://www.stuhack.com/linux/system/29753.html](http://www.stuhack.com/linux/system/29753.html)

@@ -1,0 +1,122 @@
+---
+title: "Passing Parameters to pthread_create"
+date: "2011-09-07"
+slug: "6757525"
+tags: ["#thread", "#struct", "#casting", "#null", "#function", "#integer"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6757525"
+originalTitle: "pthread_create传递参数"
+---
+
+#include <iostream>
+
+#include <pthread.h>  
+  
+using namespace std;  
+  
+pthread_t thread;  
+  
+void *fn(void *arg)  
+{  
+    int i = *(int *)arg;  
+    cout << "i = " << i << endl;  
+  
+    return ((void *)0);  
+}  
+  
+int main()  
+{  
+    int err1;  
+    int i = 10;  
+  
+    err1 = pthread_create(&thread, NULL, &fn, &i);  
+    pthread_join(thread, NULL);  
+
+}
+
+————————————————————————————————
+
+Thread creation function:  
+int pthread_create(pthread_t *tid, const pthread_attr_t *attr, void *(*func)(void *), void *arg);  
+The parameter `func` represents a function that takes one void * argument and returns a void *;  
+For the `void *arg` parameter, under gcc 3.2.2, both of the following methods can be compiled successfully.  
+int ssock;  
+int TCPechod(int fd);  
+1. pthread_create(&th, &ta, (void *(*)(void *))TCPechod, (void *)ssock);  
+2. pthread_create(&th, &ta, (void *(*)(void *))&TCPechod, (void *)&ssock);  
+  
+  
+**Original post from ChinaUnix blog, please click here to view the original:** [http://blog.chinaunix.net/u/9643/showart_49987.html](http://blog.chinaunix.net/u/9643/showart_49987.html)
+
+pthread_create(&tid, &attr, &func, (void)arg) can only pass one argument to `func`. What if more than one argument needs to be passed? Please advise.
+
+### Define a structure and pass the structure
+
+**Can multiple parameters be passed to the thread function in pthread_create?**
+
+CODE:
+
+typedef union {  
+   size_t arg_cnt;  
+   any_possible_arg_types;  
+} arg_type;  
+  
+arg_type args[ARG_NUM + 1];  
+args[0].arg_cnt = ARG_NUM;  
+args[1].xxx = ...;  
+  
+pthread_create (..., ..., thread_function, **&args[0]**);
+
+Parse them inside the function.
+
+\-------------------------
+
+#### [Usage of Passing Parameters in pthread_create](http://pccts.blogspot.com/2007/11/pthreadcreate.html)
+
+Recently, I started writing socket programs again.  
+Instead of using `select` or the old heavy-weight `fork` approach,  
+this time I'm using pthreads to handle requests received on the server side.  
+However, there's one issue: how to pass parameters to the thread handler?  
+Checking `man pthread_create`, you'll see only the 4th argument can be used.  
+As for how to use it, I looked up some old sample code — turns out, casting works.  
+  
+No problem with strings; for passing an integer, write it like this:  
+  
+void pfunc (void *data)  
+{  
+    int i = (int)data;  
+    ...  
+}  
+  
+main()  
+{  
+    int ival = 100;  
+    pthread_t th;  
+    ...  
+    pthread_create(&th, NULL, pfunc, (void *)ival);  
+}  
+  
+When dealing with multiple parameters, just pack them into a struct and pass the pointer:  
+  
+struct test  
+{  
+    int no;  
+    char name[80];  
+};  
+  
+void pfunc (void *data)  
+{  
+    struct test tt = *(struct test*)data;  
+    ...  
+}  
+  
+main()  
+{  
+    struct test itest;  
+    pthread_t th;  
+    ...  
+    itest.no = 100;  
+    strcpy(itest.name, "Hello");  
+    ...  
+    pthread_create(&th, NULL, pfunc, (void *)&itest);  
+    ...  
+}

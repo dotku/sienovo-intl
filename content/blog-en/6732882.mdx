@@ -1,0 +1,248 @@
+---
+title: "Deep Dive into UNIX Programming: Two Implementations of a Simple Chat Room (fcntl and select)"
+date: "2011-08-30"
+slug: "6732882"
+tags: ["#Chat", "#Unix", "#Programming", "#Server", "#Socket", "#Null"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6732882"
+originalTitle: "深入UNIX编程:一个简单聊天室的两种实现 (fcntl 和 select)-"
+---
+
+In today's highly connected world, online chatting has become a daily routine for many internet users. A chat room program is arguably the simplest form of multipoint communication over the internet. There are various ways to implement a chat room, but all rely on what is known as a "multi-user space" for message exchange, featuring a typical multiplexed I/O architecture. From a programmer’s perspective, a simple chat room is essentially about enabling many-to-many communication across multiple I/O endpoints. Its structure is illustrated in Figure 1. To users, this means that whenever one person types a message in the chat room, all others receive it. This "multi-user space" architecture is widely used in other multipoint communication applications, with the core being multiplexed I/O—also known as I/O multiplexing. I/O multiplexing is generally used in the following scenarios:
+
+    When a client needs to simultaneously handle interactive input and network communication with a server;
+
+    When a client must respond to multiple network connections at once (rare);
+
+    When a TCP server needs to manage both listening and multiple connected sockets;
+
+    When a server must handle sockets using different network protocols;
+
+    When a server must support multiple network services and protocols.
+
+The chat room scenario fits the first and third cases. We will build a simple chat room over TCP/IP to better understand multiplexed I/O and its implementation. The chat room we discuss will have minimal functionality; interested readers may extend it into a more complete version by adding features such as user authentication, nicknames, private messaging, and remote commands. It follows a client/server architecture: the server starts first, and clients then connect to it. The advantage of this model is speed; the disadvantage is that whenever the server is updated, the client must also be updated.
+
+Network Initialization
+
+    First, initialize the server to enter listening mode: (for brevity, the code snippets shown below may differ slightly from actual implementations, as noted)
+
+sockfd = socket( AF_INET, SOCK_STREAM, 0);
+
+// Create a socket with address family AF_INET and type SOCK_STREAM.
+
+// AF_INET refers to ARPA Internet protocols, i.e., the TCP/IP protocol suite.
+
+// SOCK_STREAM provides ordered, reliable, bidirectional, byte-stream connections.
+
+// Since there is only one protocol in this family, the third parameter is 0.
+
+bind( sockfd, ( struct sockaddr *)&serv_addr, sizeof( serv_addr));
+
+// Bind the socket to a specific address.
+
+// serv_addr includes:
+// sin_family = AF_INET (same protocol family as socket)
+// sin_addr.s_addr = htonl( INADDR_ANY) (accept connections from any address)
+// sin_port = htons( SERV_TCP_PORT) (port on which the server listens)
+// In this program, the server's IP and listening port are stored in a config file.
+
+listen( sockfd, MAX_CLIENT);
+
+// After binding, the server enters listening mode.
+// MAX_CLIENT is the maximum number of simultaneous client connections.
+
+Once the server is in listening mode, it waits for clients to connect.
+
+The client must also initialize its connection:
+
+sockfd = socket( AF_INET, SOCK_STREAM, 0);
+
+// Similarly, the client creates a socket with the same parameters.
+
+connect( sockfd, ( struct sockaddr *)&serv_addr, sizeof( serv_addr));
+
+// The client uses connect() to establish a connection.
+// serv_addr is set as follows:
+// sin_family = AF_INET
+// sin_addr.s_addr = inet_addr( SERV_HOST_ADDR) (server's IP address)
+// sin_port = htons( SERV_TCP_PORT) (server's listening port)
+
+When the server receives a connection request from a client, it accepts it using:
+
+accept( sockfd, (struct sockaddr*)&cli_addr, &cli_len);
+
+// Upon return, cli_addr contains information about the connecting client,
+// including its IP address and port.
+// accept() returns a new file descriptor.
+
+After the server enters listening mode, multiple users may be connected. The program must simultaneously manage these users and enable message exchange among them. This is known as I/O multiplexing. Several methods exist for implementing multiplexing:
+
+    Non-blocking I/O: Use fcntl() to set file descriptors to non-blocking mode, then poll them periodically to check if they are ready for reading or writing. The downside is high overhead—most resources are wasted in polling.
+
+    Multi-process approach: Use multiple child processes, each handling one connection in blocking mode. Child processes communicate with the parent via IPC. The parent manages all data. This method is complex and less portable due to inconsistent IPC across operating systems.
+
+    Asynchronous I/O using signal-driven (SIGIO): Asynchronous I/O relies on signals and is unreliable. A single signal cannot carry sufficient information, requiring additional mechanisms—making implementation difficult.
+
+    **select() method**: BSD provides select(), a system call for blocking multiplexed I/O monitoring. It allows simultaneous checking of multiple file descriptors in a blocking manner, making I/O multiplexing easy to implement. Adopted by POSIX under the Single UNIX Specification, select() is widely available across operating systems.
+
+    Dedicated I/O multiplexers: The book "UNIX? SYSTEM V Programmer's Guide: STREAMS" details the construction and use of such multiplexers. We will not cover this here.
+
+We now discuss two implementations of multiplexed I/O:
+
+1. Non-blocking I/O Method
+
+    A file descriptor can operate in one of two modes: blocking or non-blocking. In blocking mode, a read or write operation will pause the program until data is available for reading or the device is ready for writing. In non-blocking mode, the read/write call returns immediately if no data is available or the device is busy. By default, file descriptors are in blocking mode. In a chat server, the server must periodically check all connected client sockets. When data is available, it reads the message and broadcasts it to all other clients. The server must also check for new incoming connections. If the server blocks on any operation, other clients' messages will be delayed, and new connection attempts may be affected. Therefore, we cannot use the default blocking mode and must switch to non-blocking mode. In UNIX, the fcntl() function changes the I/O behavior of a file descriptor:
+
+fcntl( sockfd, F_SETFL, O_NONBLOCK);
+
+// sockfd is the file descriptor to modify.
+// F_SETFL indicates changing the file descriptor's flags.
+// O_NONBLOCK sets the descriptor to non-blocking mode.
+
+To save space, we describe the server logic in pseudocode:
+
+while ( 1)  
+{  
+    if new connection then accept and record it;  
+    for ( all active connections)  
+        begin  
+            if connection has data to read then  
+                begin  
+                    read string;  
+                for ( all other active connections)  
+                    begin  
+                        send string to that connection;  
+                    end;  
+                end;  
+        end;  
+    end.
+
+Because checking for new connections and readable data is non-blocking, each check returns immediately, regardless of whether data exists. Thus, any client sending data or attempting to connect will not interfere with others.
+
+For the client, after connecting, it only needs to handle two file descriptors: the connected socket and standard input. Like the server, using blocking I/O risks one input blocking the other. Therefore, both are set to non-blocking mode, and the client operates as follows:
+
+while ( not exiting)  
+    begin  
+    if ( socket connected to server has data)  
+        begin  
+        read from socket and output to stdout.  
+        End;  
+    if ( stdin is readable)  
+        Begin  
+        read from stdin and send to server socket.  
+        End;  
+    End.
+
+The read and write operations use these functions:
+
+read( userfd[i], line, MAX_LINE);
+
+// userfd[i] is the file descriptor for the i-th client connection.
+// line is the buffer to store the read data.
+// MAX_LINE is the maximum number of characters to read at once.
+// Return value is the actual number of bytes read.
+
+write( userfd[j], line, strlen( line));
+
+// userfd[j] is the file descriptor for the j-th client.
+// line is the string to send.
+// strlen(line) is the length of the string.
+
+Analyzing this code, both server and client continuously poll their file descriptors, processing data as soon as it becomes available. These programs run constantly, consuming CPU resources whenever available. As a result, they heavily burden system resources—when running alone, either the server or client can consume around 98% of CPU capacity.
+
+select Method
+
+    While we don’t want one unresponsive user to block others, we should allow the program to suspend execution and release CPU resources when no activity occurs—entering a blocked state. Is this possible? Modern UNIX systems provide the select() method, implemented as follows:
+
+    In the select() model, all file descriptors are blocking. select() checks whether any descriptor in a set is ready for reading or writing. If none are ready, it blocks until one becomes available. We first examine the simpler client implementation:
+
+Since the client only manages two file descriptors, we add both to the monitored set:
+
+FD_ZERO( sockset);
+
+// Clear the sockset
+
+FD_SET( sockfd, sockset);
+
+// Add sockfd to sockset
+
+FD_SET( 0, sockset);
+
+// Add 0 (standard input) to sockset
+
+The client then processes as follows:
+
+while ( not exiting)  
+{  
+    select( sockfd + 1, &sockset, NULL, NULL, NULL);  
+    // This call blocks until either stdin or sockfd is ready to read  
+    // First argument: max(fd) + 1 (here, sockfd or 0, so max+1)  
+    // Second argument: read set (sockset)  
+    // Third and fourth: write and exception sets (NULL here)  
+    // Fifth: timeout; NULL means wait indefinitely  
+    // When select() returns due to readability, sockset contains only ready descriptors  
+
+    if ( FD_ISSET( sockfd, &sockset))  
+    {  
+        // FD_ISSET checks if sockfd is in the readable set  
+        read from sockfd and output to stdout.  
+    }  
+    if ( FD_ISSET( 0, &sockset))  
+    {  
+        // FD_ISSET checks if stdin is readable  
+        read from stdin and send to sockfd.  
+    }  
+    reinitialize sockset (clear and re-add sockfd and 0)  
+}
+
+Now consider the server:
+
+Initialize sockset as:
+
+FD_ZERO( sockset);  
+FD_SET( sockfd, sockset);  
+for ( all active connections)  
+    FD_SET( userfd[i], sockset);  
+}  
+maxfd = maximum file descriptor + 1;
+
+Server processing:
+
+while ( 1)  
+{  
+    select( maxfd, &sockset, NULL, NULL, NULL);  
+    if ( FD_ISSET( sockfd, &sockset))  
+    {  
+        // New connection request  
+        accept new connection and add its descriptor to sockset.  
+    }  
+    for ( all active connections)  
+    {  
+        if ( FD_ISSET ( userfd[i], &sockset))  
+        {  
+            // Data available on this connection  
+            read data and broadcast to all other active connections.  
+        }  
+    }  
+    reinitialize sockset;  
+}
+
+Performance Comparison
+
+    With select(), the program blocks when no data is available, minimizing CPU usage. Running one server and several clients on the same machine results in a system load of about 0.1. In contrast, the non-blocking method causes a load of around 1.5 with just one server running. Therefore, we recommend using select().
+
+References:
+
+[1] UNIX Network Programming Volume 1 W.Richard Stevens 1998 Prentice Hall  
+[2] Practical Network Programming for Computers Tang Yijian 1993 Posts & Telecom Press  
+[3] UNIX? SYSTEM V RELEASE 4 Programmer's Guide: STREAMS AT&T 1990 Prentice Hall  
+[4] UNIX? SYSTEM V RELEASE 4 Network Programmer's Guide AT&T 1990 Prentice Hall  
+
+All source code is available on the eDOC website. Visit [http://edoc.163.net](http://edoc.163.net/) to download if needed.
+
+By Simon Lei, Jul.01,1999.
+
+Author Introduction:
+
+Name: Lei Yunfei  
+Pen Name: eDOC Team  
+Mailing Address: Box 2331, No.4 Mailbox, Hefei, Anhui 230027

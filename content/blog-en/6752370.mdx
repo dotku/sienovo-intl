@@ -1,0 +1,20 @@
+---
+title: "Relationship Between Main Thread and Worker Thread"
+date: "2011-09-06"
+slug: "6752370"
+tags: ["#Work"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6752370"
+originalTitle: "主线程，工作线程关系"
+---
+
+One: Relationship Between Main Thread and Worker Thread  
+
+1. Before the main thread ends, it sends a termination message to the worker thread, notifying the worker thread to exit.  
+
+2. The main thread immediately enters a waiting state for the worker thread to terminate, using functions such as WaitForSingleObject, WaitForMultipleObjects, etc.  
+
+3. Upon receiving the exit message, the worker thread exits (since it is operating within a large WaitForSingleObject loop waiting for the exit notification).  
+
+4. If the main thread becomes impatient (i.e., the wait times out), it directly terminates the worker thread.  
+
+5. The program exits.

@@ -1,0 +1,155 @@
+---
+title: "Fundamentals of UART, RS232, and RS485"
+date: "2019-02-03"
+slug: "86755590"
+tags: ["#UART", "#RS485", "#RS232"]
+source: "https://blog.csdn.net/yeyuangen/article/details/86755590"
+originalTitle: "UART和RS232、RS485的基础知识"
+---
+
+## I. Relationship between UART, RS232, and RS485:
+
+Communication issues are like traffic. We can use public transportation as an analogy for serial communication.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/86755590/01_4f2b9c9db0940ce8c00a501d172af461.jpeg)      ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/86755590/02_3205c3ffc2adf7cb7a0d9e3f1f06e692.jpeg)
+
+Bus operation can be simply divided into two parts:
+
+1.  Bus stops
+2.  Roads
+
+The bus stops determine what is loaded onto the bus (people), how often it departs (schedule), etc.
+
+When a bus is on the road, it must follow road traffic rules. There are rules for crossing bridges, rules for highways, and these are unrelated to the bus stops.
+
+Returning to serial communication, UART is essentially equivalent to the bus stop, while RS232/RS485 correspond to the rules of the road.
+
+UART, or Universal Asynchronous Receiver/Transmitter, is a "device." Clearly, it's just a piece of hardware designed to perform a specific function; it is not a protocol itself. So, what function does it perform? Its most basic function is the conversion between serial and parallel data. We know that data in a computer is typically stored in Bytes, and accessing a Byte is parallel, meaning 8 bits are simultaneously read/written. Serial communication, however, requires "breaking down" this Byte and transmitting/receiving it bit by bit in sequential order. For example:
+
+The data in memory is: 1 1 1 0 0 1 0 1
+
+The actual effect of serial transmission is (ordered by time [Note 1]):
+
+1
+0
+1
+0
+0
+1
+1
+1
+
+Reception is the reverse of the above process.
+
+This is the most basic work that UART does. Furthermore, it also controls the "bus schedule," such as determining when the 8 bits of a Byte begin and end, and the minimum buffer time between two "departures," and so on. This part also exhibits characteristics of a protocol, but it is more general compared to protocols on the road, or rather, it is relatively independent of the type of road the "bus" is traveling on.
+
+So, what are the rules of the road like?
+
+RS232/RS485 are two different electrical protocols. This means they define electrical and physical characteristics, acting on the data transmission path, and do not inherently include data processing methods. For example, the most significant feature is: RS232 uses effective voltage levels of 3-15V, whereas UART, having no specified electrical characteristics, directly uses the CPU's voltage levels, which are known as TTL levels (possibly between 0-3.3V). More specifically, electrical characteristics also determine the wiring method. For instance, RS232 defines data using voltage levels, so the line is single-ended, requiring two wires to achieve full-duplex communication. RS485, on the other hand, uses differential voltage levels to represent data, thus requiring two wires for basic data transmission, and four wires to achieve full-duplex. However, whether using RS232 or RS485, they are relatively independent of UART. Due to the differences in electrical characteristics, dedicated devices must be interfaced with UART to ensure proper data flow between the line and the UART.
+RS232 even specifies the exact interface style, such as the DB9 connector.
+Summary: In a sense, only current exists on the line. RS232/RS485 define how and in what manner these currents flow on the lines. It is at the UART where the current is interpreted and assembled into data, becoming directly readable and writable by the CPU.
+
+Note 1] This example uses little-endian transmission, which is the basic serial transmission method. However, big-endian serial transmission also exists, though it is less common.
+
+UART can be understood as follows: every SOC chip has an internal UART controller, which is the "bus stop" mentioned above. However, UART usually refers to a type of serial communication protocol that defines data frame formats, baud rates, etc.
+RS232 and RS485: These define the electrical characteristics of data communication. They are concepts of the physical layer. Corresponding physical components include RS232 or RS485 driver chips, which convert the voltage signals transmitted by the CPU via UART into RS232 or RS485 electrical logic levels.
+
+(The blue text represents my personal understanding; please point out any inaccuracies.)
+
+Asynchronous serial ports are one of the most important communication interfaces for industrial equipment. In specific industrial settings, RS232 and RS485 are the most common electrical interfaces for serial ports. Serial ports typically input and output TTL signals from board pins. Customers need to add corresponding driver circuit units to their application baseboards to obtain the required serial interfaces, such as RS232 or RS485. In practical applications, since the serial interface conditions of on-site equipment are uncertain, customer devices are often required to have both RS232 and RS485 interface capabilities.
+The RS232 interface uses positive and negative voltage single-ended signals, with the 3-wire interface being the most common. The signals include RS232_TX, RS232_RX, and GND, providing full-duplex communication capability. The RS485 interface uses a pair of TTL differential signals, RS485_D- and RS485_D+. It can only communicate in half-duplex mode. For switching communication direction (receive or transmit), there are generally two methods: one method uses TTL_TXD, processed to serve as direction control, also known as automatic direction switching; the other method uses the serial port's RTS control line to control direction, where RTS active means transmitting, and inactive means receiving.
+
+The RS485 interface connector uses a DB-9 9-pin plug. A DB-9 (female) is used for the smart terminal RS485 interface, and a DB-9 (male) is used for the keyboard connection's RS485 interface.
+
+RS232 and RS485 definitions are electrical characteristics that affect the data transmission process on the line. RS232 and RS485 transceivers can only be accessed by the CPU via UART. Therefore, by controlling the UART, one can control the serial transmission method. Programming, in essence, is programming the UART, so RS232 and RS485 are invisible from a programmer's perspective. "So, you're just saying there's no difference in programming RS485 and RS232?"
+
+The problem is that reality is always more complex than theory; there is an exception here:
+
+RS232 achieves full-duplex with two lines, each operating independently without affecting the other, allowing simultaneous transmission and reception. Although RS485 can achieve full-duplex with four lines, this is less common in practical applications. More often, only two lines are used for half-duplex communication. This involves switching between "receive state" and "transmit state," which involves two scenarios:
+
+1.  The driver already includes receive switching for half-duplex situations. The driver automatically switches based on your read or write actions. In this case, RS485 programming is exactly the same as RS232.
+2.  The driver does not provide automatic switching. In this case, to perform the switch, an additional GPIO must be used to connect to the RS485 transceiver module's enable pin. Before transmitting or receiving data, this enable pin must be set to the correct "receive" or "transmit" state.
+
+"Is RS-485 synonymous with half-duplex?"
+Answer: No. An RS-485 interface can be connected in both half-duplex and full-duplex communication modes. Half-duplex communication chips include SN75176, SN751276, SN75LBC184, MAX485, MAX1478, MAX3082, MAX1483. Full-duplex communication chips include SN75179, SN75180, MAX488-491, MAX1482, etc.
+
+## II. Differences between RS232 and RS485:
+
+### 1. Anti-interference:
+
+1.  The RS485 interface uses a combination of balanced drivers and differential receivers, providing good noise immunity.
+2.  The RS232 interface uses one signal line and one signal return line to form a common-ground transmission, which is prone to common-mode interference, resulting in weak noise immunity.
+
+### 2. Transmission Distance:
+
+1.  The maximum standard transmission distance for the RS485 interface is 1200 meters (at 9600bps), and it can actually reach up to 3000 meters.
+2.  The RS232 transmission distance is limited, with a maximum standard distance of 50 meters, but in practice, it can only be used up to about 15 meters.
+
+### 3. Communication Capability:
+
+1.  The RS-485 interface allows connecting up to 128 transceivers on the bus, meaning it has multi-drop capability. This allows users to easily establish a device network using a single RS-485 interface.
+2.  RS-232 only allows point-to-point communication.
+
+### 4. Transmission Rate:
+
+1.  RS232 has a lower transmission rate, with a baud rate of 20Kbps for asynchronous transmission.
+2.  The maximum data transmission rate for RS-485 is 10Mbps.
+
+### 5. Signal Lines:
+
+1.  A half-duplex network composed of an RS485 interface generally requires only two signal lines.
+2.  An RS-232 port typically uses only three lines: RXD, TXD, and GND ("Receive Data," "Transmit Data," and "Signal Ground").
+
+### 6. Electrical Level Values:
+
+1.  Logic "1" is represented by a voltage difference of + (2-6)V between the two lines; Logic "0" is represented by a voltage difference of - (2-6)V between the two lines.
+2.  In RS-232-C, the voltage of any signal line has a negative logic relationship. That is: Logic "1" is -5 to -15V; Logic "0" is +5 to +15V. The noise margin is 2V, meaning the receiver must be able to recognize signals as low as +3V as Logic "0" and as high as -3V as Logic "1".
+3.  The RS232 interface has higher signal levels, which can easily damage interface circuit chips. Also, because it is incompatible with TTL levels, a level conversion circuit is required to connect with TTL circuits.
+4.  The RS485 interface signal levels are lower than RS-232-C, making it less prone to damaging interface circuit chips. Furthermore, these levels are compatible with TTL levels, allowing for easy connection to TTL circuits.
+
+### Relationship between RS232 and RS485:
+
+1.  Both can be connected via DB-9 connectors.
+2.  Both interfaces can use shielded twisted pair for transmission.
+3.  Both are serial communication.
+4.  Both communication methods are full-duplex. (RS485 is generally half-duplex).
+
+Since some devices have RS232 interfaces and others have RS485 interfaces, if an RS232 device needs to communicate with an RS485 device, an RS232/RS485 converter is required. This converter converts the RS232 signals from the RS232 device into RS485 signals, which then communicate with the RS485 device. If two RS232 devices need to communicate over a long distance, simply adding two RS232/RS485 conversion circuits will suffice.
+So-called "passive RS232/RS485 converters" on the market use power-stealing technology from the computer's serial port, while "active RS232/RS485 converters" have a similar circuit diagram to the former, with only modifications to the power supply section.
+
+[RS232 and RS485 Pin Assignments](http://blog.itpub.net/7329581/viewspace-1008209/)
+
+Table 1 RS-232 Pin Assignment
+
+| DB9 Female (PIN) | RS-232C Interface Signal |
+| :--------------- | :----------------------- |
+| 1                | Protective Ground        |
+| 2                | Receive Data SIN (RXD)   |
+| 3                | Transmit Data SOUT (TXD) |
+| 4                | Data Terminal Ready DTR  |
+| 5                | Signal Ground GND        |
+| 6                | Data Set Ready DSR       |
+| 7                | Request To Send RTS      |
+| 8                | Clear To Send CTS        |
+| 9                | Ring Indicator R1        |
+
+Table 2 RS-485 Pin Assignment
+
+| DB9 Male (PIN) | Output Signal | RS-485 Half-duplex Wiring |
+| :------------- | :------------ | :------------------------ |
+| 1              | T/R+          | RS-485(A+)                |
+| 2              | T/R-          | RS-485(B-)                |
+| 3              | RXD+          | N/A                       |
+| 4              | RXD-          | N/A                       |
+| 5              | GND           | Ground Wire               |
+| 6              | VCC           | +5V Backup Power Input    |
+
+In Table 1, since flow control signals from the monitoring computer are not used, only three interface lines are needed: "Transmit Data," "Receive Data," and "Signal Ground." In Table 2, T/R+ and T/R- represent transmit/receive A+ and B-, VCC represents backup power input, and GND represents common ground. For point-to-point, point-to-multipoint, and half-duplex communication, two wires (T/R+, T/R-) are connected. The wiring principle is to connect "Tx/Rx+" to the other device's "Tx/Rx+" and "Tx/Rx-" to the other device's "Tx/Rx-". When wiring in RS-485 half-duplex mode, T/R+ (Tx/Rx+) connects to the other device's A+, and T/R- (Tx/Rx-) connects to the other device's B-.
+
+"Is RS-485 synonymous with half-duplex?"
+Answer: No. An RS-485 interface can be connected in both half-duplex and full-duplex communication modes. Half-duplex communication chips include SN75176, SN751276, SN75LBC184, MAX485, MAX1478, MAX3082, MAX1483. Full-duplex communication chips include SN75179, SN75180, MAX488-491, MAX1482, etc.
+
+## III. References:
+http://www.360doc.com/content/13/1119/18/13253385_330564821.shtml
+http://www.360doc.com/content/11/0404/16/1317564_107153860.shtml (Important, can be read in detail)
+http://www.chinadmd.com/file/xoawuzuvowzx66r63iwrpuae_1.html

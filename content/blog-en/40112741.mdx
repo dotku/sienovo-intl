@@ -1,0 +1,27 @@
+---
+title: "Connection to http://dl-ssl.google.com refused"
+date: "2014-10-15"
+slug: "40112741"
+tags: ["#Networking", "#DevelopmentTips"]
+source: "https://blog.csdn.net/yeyuangen/article/details/40112741"
+originalTitle: "Connection to http://dl-ssl.google.com refused"
+---
+
+If you encounter issues connecting to dl-ssl.google, apply the following solutions:
+
+（1） Add the following IP addresses to `/windows/system32/drivers/etc/hosts`:
+
+```
+203.208.46.146 www.google.com
+203.208.46.146 dl.google.com
+203.208.46.146 dl-ssl.google.com
+74.125.113.121 developer.android.com
+```
+
+（2） In Eclipse → Options, change HTTPS to Forbidden HTTP;
+
+（3） If the issue persists, run `netstat` in CMD, locate the proxy being used, and input it into Eclipse → Options.
+
+That's it! Note: I performed the final step at my company network, not at home. Not sure if it works the same on home networks. However, at home, I previously found that only the first two steps were needed.  
+
+[Reference](http://cppblog.com/hlong/archive/2012/04/06/170311.html)

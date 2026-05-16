@@ -1,0 +1,243 @@
+---
+title: "Summary of Chinese Character Encoding and Programming: How ASCII, Internal Code, Zone-Position Code, GB Code, and Unicode Are Converted"
+date: "2011-08-26"
+slug: "6722193"
+tags: ["#Programming", "#Transformation", "#Character", "#Windows", "#Language", "#Internet"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6722193"
+originalTitle: "汉字编码与编程相关问题总结：ASCII、机内码、区位码、国标码、Unicode码是如何转换的"
+---
+
+**I. How do ASCII, internal code, zone-position code, GB code, and Unicode convert among each other? What are the conversion formulas?**
+
+The process in Chinese character systems involves zone-position code, national standard code (GB code), and internal machine code. The conversion relationships are as follows:
+
+1. **Convert zone-position code (decimal) to zone-position code (hexadecimal)**:  
+   Convert the zone number and position number separately into hexadecimal.  
+   For example, if a character's zone-position code is 5448, convert 54 to hexadecimal 36, and 48 to hexadecimal 30. The resulting hexadecimal code is 3630.
+
+2. **GB Code = Zone-Position Code (hex) + 2020H**  
+   Example: 3630H + 2020H = 5050H → This yields the GB2312 national standard code.
+
+3. **Internal Machine Code = GB Code + 8080H**  
+   Example: 5050H + 8080H = D0D0H.  
+   ASCII uses a single byte with the highest bit set to 0, which distinguishes it from Chinese character encoding.
+
+Unicode is a character encoding standard proposed in Europe. If a large data packet contains double-byte values greater than A0A0H, it can preliminarily be identified as Chinese character encoding. Note: In data packets, you can only obtain the internal machine code. Zone-position code is an input code and does not exist inside computers.
+
+---
+
+**II. What are the differences and relationships between GBK internal code, Unicode, and zone-position code? How to convert among them?**
+
+**ANSI** is an encoding format established by the [American National Standards Institute](http://wenwen.soso.com/z/Search.e?sp=S%E7%BE%8E%E5%9B%BD%E5%9B%BD%E5%AE%B6%E6%A0%87%E5%87%86%E5%8D%8F%E4%BC%9A&ch=w.search.yjjlink&cid=w.search.yjjlink). For example, the string "A汉" in ANSI encoding has the byte values `41 BA BA` in memory: 'A' occupies one [byte](http://wenwen.soso.com/z/Search.e?sp=S%E5%AD%97%E8%8A%82&ch=w.search.yjjlink&cid=w.search.yjjlink), while "汉" uses two bytes.  
+Here, `BA BA` is exactly the GBK internal code value. Let's first understand GBK encoding.
+
+GB2312, GBK, and GB18030 are all Chinese-developed encoding standards (not used outside China), introduced in chronological order: GB2312 → GBK → GB18030. They are backward compatible. "GB" likely stands for "Guo Biao" (National Standard), and "K" may mean "Kuo Zhan" (Extended). These are formal specifications. To represent GB2312 in computer memory, each byte of the zone-position code must have 0x80 added to form the [internal code](http://wenwen.soso.com/z/Search.e?sp=S%E6%9C%BA%E5%86%85%E7%A0%81&ch=w.search.yjjlink&cid=w.search.yjjlink). Adding 0x80 ensures the highest bit of each byte is 1, allowing memory to distinguish Chinese characters from ASCII (whose highest bit is always 0).  
+
+However, when extending GB2312 to GBK and GB18030, more encoding space was needed. Thus, GBK and GB18030 do not require the second byte’s highest bit to be 1. Instead, the first byte determines whether it's a single-byte ASCII or a double-byte GBK character. Note: GB2312, GBK, and GB18030 are backward compatible. For example, the character "汉" is encoded as `BA BA` in all three standards.
+
+Moreover, GB2312 and GBK have not disappeared due to GB18030; they are still widely used in [embedded devices](http://wenwen.soso.com/z/Search.e?sp=S%E5%B5%8C%E5%85%A5%E5%BC%8F%E8%AE%BE%E5%A4%87&ch=w.search.yjjlink&cid=w.search.yjjlink) because reducing font library size significantly cuts costs.
+
+Back to ANSI: We now understand GBK (though it's unclear why GBK is preferred over GB18030—perhaps because "GBK" is shorter and easier to write). So what is ANSI? ANSI acts like a pointer with no inherent content. If it points to "Chinese encoding," it means GBK; if to "Indian encoding," it means something else. Thus, in China, ANSI means GBK; in Japan, it means XXX; in India, ???—but in Windows Notepad, they all appear as "ANSI." However, ANSI makes a small adjustment: as shown earlier, 'A' occupies only one byte in memory. So ANSI = ASCII + local encoding.
+
+**Unicode**:  
+But how can we write Japanese characters in a Chinese document? This is where Unicode comes in. Whoever invented it, Unicode includes all written characters worldwide, solving the above issue. Programs written in Unicode by [programmers](http://wenwen.soso.com/z/Search.e?sp=S%E7%A8%8B%E5%BA%8F%E5%91%98&ch=w.search.yjjlink&cid=w.search.yjjlink) can run on computers globally. In C, Unicode is represented using `wchar_t`.
+
+**UCS**:  
+UCS is reportedly a parallel project to Unicode. Eventually, both projects reached consensus and are fully compatible. Thus, UCS can be treated as equivalent to Unicode.  
+UCS-2 (commonly referred to as UCS) uses two bytes per character, while UCS-4 uses four.
+
+**UTF-8**:  
+(UCS Transformation Format) Why was UTF-8 created? One reason: In C and operating systems, `0x00` has special meaning (e.g., string termination). However, in raw Unicode encoding, a character might have a non-zero high byte and a zero low byte, causing C to mistakenly treat it as a string end. UTF-8 ensures that `0x00` does not appear in the encoded byte stream (except for the actual null character).
+
+**UTF-8 Encoding Rules**:
+```
+UCS-2 (Hex)     UTF-8 Byte Stream (Binary)
+0000 - 007F     0xxxxxxx
+0080 - 07FF     110xxxxx 10xxxxxx  (Number of 1s after the first 1 indicates following bytes: 1 here)
+0800 - FFFF     1110xxxx 10xxxxxx 10xxxxxx  (2 following bytes)
+```
+
+Due to this encoding scheme, UTF-8 does not require endianness detection, making it suitable for network transmission (reason not explained here).
+
+**BOM (Byte Order Mark)**: `EF BB BF`. We can use BOM to detect if a text file is UTF-8 encoded.
+
+**How to detect a text file's encoding when opening it?**
+
+1. Prompt the user to select the encoding type.  
+2. Guess the encoding based on certain rules.  
+3. Detect file header signatures:
+   - `EF BB BF` → UTF-8  
+   - `FE FF` → UTF-16/UCS-2 (Unicode), little endian (e.g., a file with only 'A' contains `FE FF 00 41`)  
+   - `FF FE` → UTF-16/UCS-2 (Unicode), big endian (e.g., `FF FE 41 00`)  
+   - `FF FE 00 00` → UTF-32/UCS-4, little endian  
+   - `00 00 FE FF` → UTF-32/UCS-4, big-endian
+
+**Zone-Position Code, GB (GBK) Code, Internal Code**
+
+| Character | Zone-Position | GB Code | Internal Code |
+|-----------|---------------|---------|---------------|
+| 汉        | 1A1A          | 3A3A    | BABA          |
+
+- **GB Code = Zone-Position Code + 0x20 (per byte)**  
+- **Internal Code = GB Code + 0x80 (per byte)**
+
+---
+
+**III. Summary of Chinese Character Encoding and Programming Issues**
+
+**There are many Chinese character encodings. Common ones include UNICODE, GB (internal code), and GB2312-80 (zone-position code). UNICODE is the international character set standard, compatible only with ASCII.**
+
+**The difference between GB (internal code) and GB2312-80 (zone-position code) is that GB (internal code) is represented as a 4-digit hexadecimal number, while GB2312-80 (zone-position code) uses a 4-digit decimal number. The conversion is as follows:**
+
+**GB (internal code) = ((GB2312-80(zone-position)/100 + 160) << 8) | ((GB2312-80(zone-position) % 100) + 160)**
+
+**1. How to convert or query Chinese character encoding?**
+
+For example, the character "汉": write it in Notepad and open the file with WinHex. The displayed code `BABA` is its GB (internal code). You can also calculate its zone-position code using the reverse method:
+
+**(High byte - 0xA0, Low byte - 0xA0) → Convert to decimal → GB2312-80 (zone-position code)**  
+Note: 0xA0 = 160 (hex vs. decimal representation)
+
+Example:  
+`(0xBA - 0xA0) * 100 + (0xBA - 0xA0) = 26 * 100 + 26 = 2626` → This is the GB2312-80 zone-position code.
+
+**2. When programming with many Chinese characters, use WinHex's conversion feature to generate C code directly instead of typing manually.**
+
+For example, drag a document or image file into WinHex, right-click the data → Edit → Copy All → As C Source. The data in C format is copied to the clipboard and can be pasted into any document.
+
+**3. How to obtain the Unicode code of a Chinese character from text?**
+
+Use **Notepad++**, a free open-source editor (excellent for coding, with built-in syntax highlighting). Open a document in Notepad++, then:
+
+**Format → Convert to UCS-2 Big/Little Endian**, then save. The file is now saved in Unicode encoding.
+
+Open it in WinHex to view the Unicode code. Choosing big or little endian only affects byte order (big endian places high byte first, at lower memory address).
+
+Below is an additional translated article and the standard Chinese zone-position code table to help understand various encoding formats:
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+**"On Unicode Encoding" by fmddlmyy**
+
+Unicode is a character encoding method capable of accommodating all written languages. The encoding methods from ASCII, GB2312, GBK to GB18030 are backward compatible. Unicode, however, is only compatible with ASCII (more precisely, ISO-8859-1), not with GB codes. For example, the Unicode code for "汉" is `6C49`, while its GB code is `BABA`.
+
+This is a fun read for programmers—fun in the sense of easily understanding previously unclear concepts, gaining knowledge, like leveling up in an RPG game. The motivation for writing this article came from two questions:
+
+**Question 1:**  
+Using Windows Notepad's "Save As," you can convert between GBK, Unicode, Unicode big endian, and UTF-8. For the same `.txt` file, how does Windows identify the encoding?
+
+I long noticed that Unicode, Unicode big endian, and UTF-8 files have extra bytes at the beginning: `FF FE` (Unicode), `FE FF` (Unicode big endian), `EF BB BF` (UTF-8). But what standard defines these markers?
+
+**Question 2:**  
+Recently, I found a `ConvertUTF.c` that converts among UTF-32, UTF-16, and UTF-8. I already knew about Unicode (UCS2), GBK, and UTF-8. But this program confused me—what's the relationship between UTF-16 and UCS2?
+
+After researching, I finally clarified these issues and learned some Unicode details. I wrote this article for others with similar questions. I tried to make it easy to understand, assuming readers know what bytes and hexadecimal are.
+
+**0. Big Endian and Little Endian**  
+Big and little endian are CPU methods for handling multi-byte numbers. For example, the Unicode code for "汉" is `6C49`. When writing to a file, should `6C` come first or `49`? If `6C` comes first, it's big endian; if `49` comes first, it's little endian.
+
+The term "endian" comes from *Gulliver's Travels*, where a civil war erupted over whether to crack an egg from the big end (Big-Endian) or the small end (Little-Endian), causing six rebellions, one emperor's death, and another's dethronement.
+
+We usually translate "endian" as "byte order," with "big endian" and "little endian" as "big-end" and "little-end."
+
+**1. Character Encoding, Internal Code, and Chinese Encoding**
+
+Characters must be encoded to be processed by computers. The default encoding used by a computer is its internal code. Early computers used 7-bit ASCII. To handle Chinese, programmers designed GB2312 for simplified Chinese and Big5 for traditional Chinese.
+
+GB2312 (1980) includes 7,445 characters: 6,763 Chinese characters and 682 other symbols. The Chinese character area ranges from B0-F7 (high byte) and A1-FE (low byte), covering 72×94 = 6,768 code points, with 5 unused positions (D7FA-D7FE).
+
+GB2312 supports too few characters. GBK1.0 (1995) expanded to 21,886 symbols, divided into Chinese and graphic symbol areas, with 21,003 Chinese characters. GB18030 (2000) replaced GBK1.0 as the official national standard, including 27,484 Chinese characters and major minority scripts like Tibetan, Mongolian, and Uyghur. Current PC platforms must support GB18030, but embedded products are exempt. Thus, phones and MP3s usually support only GB2312.
+
+From ASCII, GB2312, GBK to GB18030, these encodings are backward compatible: the same character has the same code across standards, and later standards support more characters. English and Chinese can be uniformly processed. Chinese characters are identified by a high byte with the highest bit set to 1. Programmers refer to GB2312, GBK, and GB18030 as Double-Byte Character Sets (DBCS).
+
+Some Chinese Windows systems still use GBK as the default internal code. GB18030 upgrade packs are available. However, the additional characters in GB18030 are rarely used, so "GBK" often refers to Chinese Windows internal code.
+
+Some details:
+- GB2312 originally uses zone-position code. To convert to internal code, add A0 to both high and low bytes.
+- In DBCS, GB internal code is always stored in big-endian (high byte first).
+- Both bytes in GB2312 have their highest bit set to 1. But only 128×128 = 16,384 code points meet this. Thus, GBK and GB18030 low bytes may not have the highest bit set. However, this doesn't affect DBCS parsing: when reading a DBCS stream, encountering a byte with the highest bit set indicates the next two bytes form a double-byte character, regardless of the low byte's high bit.
+
+**2. Unicode, UCS, and UTF**
+
+As mentioned, ASCII → GB2312 → GBK → GB18030 are backward compatible. Unicode is only compatible with ASCII (ISO-8859-1), not GB codes. For example, "汉" is `6C49` in Unicode, `BABA` in GB.
+
+Unicode is a character encoding method designed internationally to include all written languages. Its full name is "Universal Multiple-Octet Coded Character Set" (UCS), which can be seen as "Unicode Character Set."
+
+According to Wikipedia (http://zh.wikipedia.org/wiki/), two independent groups developed Unicode: ISO (International Organization for Standardization) and Unicode Consortium (a software vendors' association). ISO developed ISO 10646; Unicode Consortium developed Unicode.
+
+Around 1991, both realized the world didn't need two incompatible standards. They merged their work and collaborated on a single encoding table. Starting with Unicode 2.0, Unicode adopted the same character set and codes as ISO 10646-1.
+
+Both projects still exist and publish standards independently. Unicode Consortium's latest version is Unicode 4.1.0 (2005). ISO's latest is 10646-3:2003.
+
+UCS defines how to represent various scripts using multiple bytes. UTF (UCS Transformation Format) defines how to transmit these encodings. Common UTF formats include UTF-8, UTF-7, UTF-16.
+
+IETF's RFC2781 and RFC3629 clearly and rigorously describe UTF-16 and UTF-8 encoding methods. IETF (Internet Engineering Task Force) maintains RFCs, the foundation of all Internet standards.
+
+**3. UCS-2, UCS-4, BMP**
+
+UCS has two formats: UCS-2 (2 bytes) and UCS-4 (4 bytes, using only 31 bits; highest bit must be 0). Some simple math:
+
+- UCS-2: 2^16 = 65,536 code points  
+- UCS-4: 2^31 = 2,147,483,648 code points
+
+UCS-4 divides the highest byte (with MSB=0) into 128 groups. Each group divides the second byte into 256 planes. Each plane divides the third byte into 256 rows, each with 256 cells (only the last byte differs).
+
+Group 0, Plane 0 is called the Basic Multilingual Plane (BMP). Alternatively, UCS-4 code points with the top two bytes zero are BMP.
+
+Removing the two leading zero bytes from UCS-4 BMP yields UCS-2. Adding two zero bytes to UCS-2 yields UCS-4 BMP. Currently, no UCS-4 characters are assigned outside BMP.
+
+**4. UTF Encoding**
+
+UTF-8 encodes UCS in 8-bit units. UCS-2 to UTF-8 conversion:
+
+```
+UCS-2 (Hex)     UTF-8 Byte Stream (Binary)
+0000 - 007F     0xxxxxxx
+0080 - 07FF     110xxxxx 10xxxxxx
+0800 - FFFF     1110xxxx 10xxxxxx 10xxxxxx
+```
+
+Example: "汉" has Unicode code `6C49`. Since `6C49` is in 0800–FFFF, it uses the 3-byte template: `1110xxxx 10xxxxxx 10xxxxxx`.  
+`6C49` in binary is `0110110001001001`. Filling the template:  
+`11100110 10110001 10001001` → `E6 B1 89`.
+
+You can test this encoding in Notepad.
+
+UTF-16 encodes UCS in 16-bit units. For UCS codes < 0x10000, UTF-16 equals the 16-bit unsigned integer. For ≥ 0x10000, a specific algorithm is used. However, since UCS-2 and UCS-4 BMP are always < 0x10000, UTF-16 and UCS-2 are currently nearly identical. But UCS-2 is just a scheme, while UTF-16 is for actual transmission, requiring byte order consideration.
+
+**5. UTF Byte Order and BOM**
+
+UTF-8 uses bytes as units, so no byte order issue. UTF-16 uses 16-bit units; before interpreting a UTF-16 text, you must know the byte order of each unit. For example, receiving byte stream `594E`: is it "奎" (Unicode 594E) or "乙" (4E59)?
+
+Unicode recommends using BOM (Byte Order Mark) to indicate byte order. BOM is a clever idea:
+
+UCS defines a character "ZERO WIDTH NO-BREAK SPACE" with code `FEFF`. `FFFE` does not exist in UCS and should never appear in transmission. UCS suggests transmitting `FEFF` first.
+
+If the receiver gets `FEFF`, the stream is big-endian; if `FFFE`, it's little-endian. Thus, "ZERO WIDTH NO-BREAK SPACE" is called BOM.
+
+UTF-8 doesn't need BOM for byte order, but can use it to indicate encoding. The UTF-8 encoding of `FEFF` is `EF BB BF`. So, if a stream starts with `EF BB BF`, it's UTF-8.
+
+Windows uses BOM to mark text file encodings.
+
+**6. Further References**
+
+Main reference: "Short overview of ISO-IEC 10646 and Unicode" (http://www.nada.kth.se/i18n/ucs/unicode-iso10646-oview.html).
+
+Two other good resources (not read, as my questions were answered):
+- "Understanding Unicode A general introduction to the Unicode Standard" (http://scripts.sil.org/cms/scripts/page.php?site_id=nrsi&item_id=IWS-Chapter04a)
+- "Character set encoding basics Understanding character set encodings and legacy encodings" (http://scripts.sil.org/cms/scripts/page.php?site_id=nrsi&item_id=IWS-Chapter03)
+
+I've written software packages for converting between UTF-8, UCS-2, and GBK, including versions with and without Windows API. I may publish them on my homepage (http://fmddlmyy.home4u.china.com) later.
+
+I wrote this article only after fully understanding everything, expecting it to take minutes. But wording and detail-checking took hours—from 1:30 PM to 9:00 PM. I hope readers benefit.
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+**GB = (Hex)(GB2312(H) + 160) + (Hex)(GB2312(L) + 160)**
+
+   People's Republic of China National Standard  
+   Chinese Character Coded Character Set for Information Interchange  
+   Basic Set  
+   GB 2312-80
+
+*(Zone-position code table follows, unchanged)*

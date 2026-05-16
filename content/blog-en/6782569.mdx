@@ -1,0 +1,311 @@
+---
+title: "Linux Inter-Process Communication via Message Queues"
+date: "2011-09-16"
+slug: "6782569"
+tags: ["#Linux", "#System", "#Struct", "#DataStructure", "#Communication", "#Null"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6782569"
+originalTitle: "Linux进程间通信之消息队列"
+---
+
+Message Queues:  
+  
+  
+Benefits of using message queues: You can attach specific message types to messages. Message queues are used for inter-process communication on the same computer.  
+  
+  
+Related system functions:  
+  
+  
+       #include <sys/types.h>  
+  
+  
+       #include <sys/ipc.h>  
+  
+  
+       key\_t ftok(const char \*pathname, int proj\_id);  
+  
+  
+This function generates an ID based on a file name. When the system establishes IPC communication (message queues, semaphores, and shared memory), an ID value must be specified.  
+  
+  
+       #include <sys/types.h>  
+  
+  
+       #include <sys/ipc.h>  
+  
+  
+       #include <sys/msg.h>  
+  
+  
+       int msgget(key\_t key, int msgflg);  
+  
+  
+This function creates a new message queue or retrieves an existing one.  
+  
+  
+       #include <sys/types.h>  
+  
+  
+       #include <sys/ipc.h>  
+  
+  
+       #include <sys/msg.h>  
+  
+  
+       int msgsnd(int msqid, const void \*msgp, size\_t msgsz, int msgflg);  
+  
+  
+This function sends a message to the message queue. Here, msqid is the message queue ID, msgp is a user-defined message data type, msgsz is the size of the message payload, and msgflg is the message flag.  
+  
+  
+      ssize\_t msgrcv(int msqid, void \*msgp, size\_t msgsz, long msgtyp,  
+  
+  
+                      int msgflg);  
+  
+  
+msqid is the message queue ID; msgp is a pointer to the message data structure; msgsz is the length of the message data.  
+  
+  
+type == 0: Returns the first message in the queue.  
+  
+  
+type > 0: Returns the first message in the queue with the message type equal to type.  
+  
+  
+type < 0: Returns the first message in the queue with a message type less than or equal to the absolute value of type.  
+  
+  
+The value of msgflg can be set to IPC\_NOWAIT or 0. When set to IPC\_NOWAIT, msgrcv returns immediately if the queue is empty. When set to 0, msgrcv blocks until a matching message arrives or the message queue is removed.  
+  
+  
+send.c function  
+  
+  
+#include<stdio.h>  
+  
+  
+#include<stdlib.h>  
+  
+  
+#include<string.h>  
+  
+  
+#include<sys/types.h>  
+  
+  
+#include<sys/ipc.h>  
+  
+  
+#include<sys/msg.h>  
+  
+  
+struct my\_msg{  
+  
+  
+long type;  
+  
+  
+char mtext\[512\];  
+  
+  
+};  
+  
+  
+int main()  
+  
+  
+{  
+  
+  
+        struct my\_msg my\_msg;  
+  
+  
+        int msg\_id;  
+  
+  
+        key\_t key;  
+  
+  
+        key = ftok("/usr/local", 1);  
+  
+  
+        if(key == -1)  
+  
+  
+                key = 1234;  
+  
+  
+        msg\_id = msgget(key, IPC\_CREAT|0600);  
+  
+  
+        if(msg\_id == -1)  
+  
+  
+        {  
+  
+  
+                perror("error msgget\\n");  
+  
+  
+                return -1;  
+  
+  
+        }  
+  
+  
+        my\_msg.type = 1;  
+  
+  
+        memset(my\_msg.mtext, 0, sizeof(my\_msg.mtext));  
+  
+  
+        strcpy(my\_msg.mtext, "write someting about my\_msg.type=1");  
+  
+  
+        if(msgsnd(msg\_id, (void \*)&my\_msg, (size\_t)strlen(my\_msg.mtext), IPC\_NOWAIT))  
+  
+  
+        {  
+  
+  
+                perror("error msgsnd\\n");  
+  
+  
+                return  -1;  
+  
+  
+        }  
+  
+  
+        system("ipcs -q");  
+  
+  
+        sleep(20);  
+  
+  
+        msgctl(msg\_id, IPC\_RMID, NULL);  
+  
+  
+        return 0;  
+  
+  
+}  
+  
+  
+   
+  
+  
+recv.c function  
+  
+  
+#include<stdio.h>  
+  
+  
+#include<stdlib.h>  
+  
+  
+#include<string.h>  
+  
+  
+#include<sys/types.h>  
+  
+  
+#include<sys/ipc.h>  
+  
+  
+#include<sys/msg.h>  
+  
+  
+struct my\_msg{  
+  
+  
+long type;  
+  
+  
+char mtext\[512\];  
+  
+  
+};  
+  
+  
+int main()  
+  
+  
+{  
+  
+  
+        struct my\_msg my\_msg;  
+  
+  
+        int msg\_id;  
+  
+  
+        key\_t key;  
+  
+  
+        int len;  
+  
+  
+        key = ftok("/usr/local", 1);  
+  
+  
+        if(key == -1)  
+  
+  
+                key = 1234;  
+  
+  
+        msg\_id = msgget(key, IPC\_CREAT|0600);  
+  
+  
+        if(msg\_id == -1)  
+  
+  
+        {  
+  
+  
+                perror("msgget error\\n");  
+  
+  
+                return -1;  
+  
+  
+        }  
+  
+  
+        len = msgrcv(msg\_id, (void \*)&my\_msg, sizeof(my\_msg.mtext), 0, 0);  
+  
+  
+        if(len == -1)  
+  
+  
+        {  
+  
+  
+                perror("error msgrcv\\n");  
+  
+  
+        }  
+  
+  
+        printf("type is %ld \\nmtext is %s\\n", my\_msg.type, my\_msg.mtext);  
+  
+  
+        system("ipcs -q");  
+  
+  
+        sleep(20);  
+  
+  
+        system("ipcs -q");  
+  
+  
+        return 0;  
+  
+  
+}  
+  
+  
+This article was originally published on Linux公社 (www.linuxidc.com)  
+Original link: http://www.linuxidc.com/Linux/2011-09/42429.htm

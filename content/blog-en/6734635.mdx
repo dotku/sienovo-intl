@@ -1,0 +1,41 @@
+---
+title: "Mutex Thread Control"
+date: "2011-08-31"
+slug: "6734635"
+tags: ["#Null", "#Join", "#Test"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6734635"
+originalTitle: "mutex 互斥锁线程控制"
+---
+
+**I. Introduction**
+
+A mutex is a simple locking mechanism used to control access to shared resources. A mutex has only two states: locked and unlocked. A mutex can be thought of as a global variable in some sense. At any given time, only one thread can acquire a specific mutex. The thread that holds the lock can operate on the shared resource. If another thread attempts to lock an already locked mutex, that thread will be suspended until the thread holding the lock releases it. In essence, this lock ensures that shared resources are accessed in an orderly fashion by different threads.
+
+Key mutex operations:
+
+1) Initialization: pthread\_mutex\_init
+2) Locking: pthread\_mutex\_lock
+3) Unlocking: pthread\_mutex\_unlock
+4) Attempting to Lock: pthread\_mutex\_trylock
+5) Destroying: pthread\_mutex\_destroy
+
+=========
+
+Q&A
+
+=========
+
+1. Can there be multiple mutexes? How do they exist? What is their scope?
+A:
+
+**II. Example**
+
+```cpp
+/*mutex.c*/#include <stdio.h>#include <stdlib.h>#include <unistd.h>#include <pthread.h>#include <errno.h> pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;int lock_var = 0;time_t end_time; void pthread1(void *arg);void pthread2(void *arg); int main(int argc, char *argv[]){	pthread_t id1,id2;	pthread_t mon_th_id;	int ret; 	end_time = time(NULL)+10;		pthread_mutex_init(&mutex,NULL);	/* Create two threads: pthread1, pthread2 */	ret=pthread_create(&id1,NULL,(void *)pthread1, NULL);	if(ret!=0)		perror("pthread cread1");		ret=pthread_create(&id2,NULL,(void *)pthread2, NULL);	if(ret!=0)		perror("pthread cread2");		pthread_join(id1,NULL);	pthread_join(id2,NULL);		exit(0);} void pthread1(void *arg){	int i;	while(time(NULL) < end_time)	{/* Mutex lock */		if(pthread_mutex_lock(&mutex)!=0)		{			perror("pthread_mutex_lock");		}		else			printf("pthread1:pthread1 lock the variable\n");				for(i=0;i<2;i++)          // Sleep for two time units		{			sleep(1);             			lock_var++;		} /* Mutex unlock */		if(pthread_mutex_unlock(&mutex)!=0)		{			perror("pthread_mutex_unlock");		}		else			printf("pthread1:pthread1 unlock the variable\n");				sleep(1);           // Sleep for 1 time unit	}} void pthread2(void *arg){	int nolock=0;	int ret;		while(time(NULL) < end_time)	{/* Test lock status */		ret=pthread_mutex_trylock(&mutex);		if(ret==EBUSY)                         // If busy, it means it's occupied by another thread			printf("pthread2:the variable is locked by pthread1\n");		else		{			if(ret!=0)			{				perror("pthread_mutex_trylock");				exit(1);			}			else				printf("pthread2:pthread2 got lock.The variable is %d\n",lock_var);/* Unlock */			if(pthread_mutex_unlock(&mutex)!=0)			{				perror("pthread_mutex_unlock");			}			 else				printf("pthread2:pthread2 unlock the variable\n");		}		sleep(3);  // Sleep for 3 time units	}}
+```
+
+The running result is as follows:
+
+```cpp
+[root@localhost net]# ./mutexpthread1:pthread1 lock the variablepthread2:the variable is locked by pthread1pthread1:pthread1 unlock the variablepthread2:pthread2 got lock.The variable is 2pthread2:pthread2 unlock the variablepthread1:pthread1 lock the variablepthread1:pthread1 unlock the variablepthread2:pthread2 got lock.The variable is 4pthread2:pthread2 unlock the variablepthread1:pthread1 lock the variablepthread1:pthread1 unlock the variablepthread2:pthread2 got lock.The variable is 6pthread2:pthread2 unlock the variablepthread1:pthread1 lock the variablepthread1:pthread1 unlock the variable
+```

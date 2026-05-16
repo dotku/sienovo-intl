@@ -1,0 +1,25 @@
+---
+title: "Difference Between chmod 4755 and chmod 755"
+date: "2011-09-17"
+slug: "6785197"
+tags: ["#Linux"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6785197"
+originalTitle: "chmod 4755和chmod 755的区别"
+---
+
+[Difference Between chmod 4755 and chmod 755](http://wangrusheng5200.iteye.com/blog/537200 " chmod 4755 and chmod 755 Difference")
+
+chmod is a Linux command used to set file permissions, where the following digits represent permissions for different users or user groups.  
+Typically, there are three digits: the first digit represents the file owner's permissions, the second digit represents the permissions for other users in the same group as the file owner, and the third digit represents the permissions for users in all other groups.  
+
+Permissions are divided into three types: read (r=4), write (w=2), and execute (x=1).  
+Combined, these yield read-execute (rx=5=4+1), read-write (rw=6=4+2), and read-write-execute (rwx=7=4+2+1).  
+
+Therefore, chmod 755 sets the following permissions:  
+1. The file owner has read, write, and execute permissions  
+2. Other users in the same group as the file owner have read and execute permissions  
+3. Users in other groups have read and execute permissions  
+
+The difference between chmod 4755 and chmod 755 lies in the extra leading digit. This "4" means that when users from other groups execute the file, they do so with the same permissions as the file owner.  
+
+For example: if the root user creates a network authentication program called netlogin, and other users also need to use this program to access the network, the root user must run the command chmod 755 netlogin so that other users can execute netlogin.

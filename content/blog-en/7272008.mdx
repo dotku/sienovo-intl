@@ -1,0 +1,182 @@
+---
+title: "VxWorks Inter-Process Communication 2 -- Semaphores"
+date: "2012-02-19"
+slug: "7272008"
+tags: ["#semaphore", "#Task", "#Optimization", "#delete", "#Work"]
+source: "https://blog.csdn.net/yeyuangen/article/details/7272008"
+originalTitle: "VxWorks进程间通信2 -- 信号量"
+---
+
+## VxWorks Inter-Process Communication 2 -- Semaphores
+
+## I. Concept of Semaphores
+
+Semaphores are the primary mechanism for achieving task mutual exclusion and synchronization. The semaphores provided by VxWorks are highly optimized and are the fastest among all inter-task communication mechanisms.
+
+**II. Classification of Semaphores**
+
+**Binary Semaphores**: The optimal way to achieve mutual exclusion and synchronization; fastest and most commonly used.
+
+**Mutual Exclusion Semaphores**: A special type of binary semaphore, specifically optimized for mutual exclusion operations.
+
+**Counting Semaphores**: Similar to binary semaphores, they can record the number of times a semaphore has been released and can monitor multiple instances of the same resource.
+
+III. **Binary Semaphores**
+
+Tasks often wait for events or need to acquire resources. Polling is generally not allowed in Real-Time systems; it's best to use Pending to wait for events or resources.
+
+**State Diagram:**
+
+**![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/7272008/01_0_1302757680pZDD.gif)**
+
+**Explanation:**
+
+1. Call **semBCreate()** for a resource to create a binary semaphore and specify:
+
+SEM\_Full (resource available) SEM\_Empty (resource unavailable).
+
+2. When the resource is unavailable, the Task calls **semTake()** to enter Pending until the semaphore is Given.
+
+**Related Functions:**
+
+**\[c-sharp\]** [view plain](http://write.blog.csdn.net/postedit# "view plain") [copy](http://write.blog.csdn.net/postedit# "copy")
+
+1.  SEM\_ID semBCreate  
+2.  (  
+3.      int         options,      /\* semaphore options \*/  
+
+5.      SEM\_B\_STATE initialState  /\* initial semaphore state \*/  
+6.  )  
+
+8.  STATUS semTake  
+9.  (  
+10.      SEM\_ID semId, /\* ID of the semaphore to acquire \*/  
+
+12.      int timeout /\* timeout (ticks)/no-wait/forever \*/  
+13.  )  
+
+**![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/7272008/02_0_1302757687fO1m.gif)**
+
+**ISR** (Interrupt Service Routine) cannot call **semTake()**!
+
+**\[c-sharp\]** [view plain](http://write.blog.csdn.net/postedit# "view plain") [copy](http://write.blog.csdn.net/postedit# "copy")
+
+1.  STATUS semGive  
+2.  (  
+3.      SEM\_ID semId /\* ID of the semaphore to release \*/  
+4.  )  
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/7272008/03_0_1302757693c8m2.gif)
+
+**\[c-sharp\]** [view plain](http://write.blog.csdn.net/postedit# "view plain") [copy](http://write.blog.csdn.net/postedit# "copy")
+
+1.  semFlush()  
+
+**![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/7272008/04_0_1302757699BFl9.gif)**
+
+**Application Directions:**
+
+**1. Mutual Exclusion Operations**: Refers to different tasks using semaphores to mutually exclusively access critical resources. This method of mutual exclusion offers finer granularity compared to interrupt disabling and preemptive locks.
+
+For mutual exclusion operations, the initial state is set to (SEM\_FULL) available. **semTake()** and **semGive()** are called in pairs and sequentially within the **same** Task.
+
+**2. Synchronization Operations**: Refers to a task using semaphores to control its execution progress, synchronizing itself with a set of external events. For synchronization operations, the initial state is set to (SEM\_EMPTY) unavailable. **semTake()** and **semGive()** are called separately in **different** Tasks.
+
+**IV. Mutual Exclusion Semaphores**
+
+Mutual exclusion semaphores are a special type of binary semaphore designed to address some issues that arise when using binary semaphores for mutual exclusion. Mutual exclusion semaphores primarily add handling for priority inversion, deletion safety, and recursive access.
+
+**State Diagram:**
+
+**![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/7272008/05_0_1302757705h5V6.gif)**
+
+**Related Functions:**
+
+**\[c-sharp\]** [view plain](http://write.blog.csdn.net/postedit# "view plain") [copy](http://write.blog.csdn.net/postedit# "copy")
+
+1.  SEM\_ID semMCreate  
+2.  (  
+3.      int options               /\* mutex semaphore options \*/  
+4.  )  
+
+**Differences:**
+
+1. Mutual exclusion semaphores can only be used for mutual exclusion operations.
+
+2. Only the task that has acquired the mutual exclusion semaphore can release it.
+
+3. Interrupt Service Routines (ISRs) cannot release (semGive()) mutual exclusion semaphores.
+
+4. Mutual exclusion semaphores do not support semFlush() operations.
+
+**Application Directions:**
+
+**1. Avoiding Priority Inversion**:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/7272008/06_0_1302757711Wif8.gif)
+
+In the figure above, task2 waits for task1's resource and thus enters a Pend state. At this point, a medium-priority task enters and preempts task1's CPU. The result is that a lower-priority task executes before the higher-priority task2. This phenomenon is called priority inversion.
+
+Using **semId = semMCreate(SEM\_Q\_PRIORITY | SEM\_INVERSION\_SAFE);** can prevent inversion.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/7272008/07_0_1302757716mBzR.gif)
+
+At this point, task1's priority is elevated to be the same as task2's until task2 completes execution.
+
+**SEM\_INVERSION\_SAFE** cannot be paired with **SEM\_Q\_FIFO**!
+
+**2. Deletion Safety**
+
+Using: **semId = semMCreate(SEM\_Q\_FIFO | SEM\_DELETE\_SAFE);** can achieve safe deletion.
+
+Its essence is: before a Task performs a semTake() operation on a mutual exclusion semaphore and successfully acquires it, a taskSafe() operation is implicitly executed; after performing a semGive() operation, a taskUnsafe() operation is implicitly executed.
+
+If task1 attempts to delete task2, which is already protected, task1 will be blocked until task2 is unprotected (releases the mutual exclusion semaphore with deletion protection) before the deletion can be completed.
+
+**3. Recursive Access**
+
+**\[c-sharp\]** [view plain](http://write.blog.csdn.net/postedit# "view plain") [copy](http://write.blog.csdn.net/postedit# "copy")
+
+1.  InitFun()  
+2.  {  
+3.      sem\_ID = semMCreate(…);  
+4.  }  
+
+6.  funB()  
+7.  {  
+8.      semTake(sem\_ID, SEM\_FOREVER);  
+
+10.      /\* Access critical resource \*/  
+
+12.      semGive(sem\_ID);  
+13.  }  
+
+15.  funA()  
+16.  {  
+17.      semTake(sem\_ID, SEM\_FOREVER);  
+
+19.      /\* Access critical resource \*/  
+
+21.      funB();  // Recursive access, without deadlock  
+
+23.      semGive(sem\_ID);  
+24.  }  
+
+**V. Counting Semaphores**
+
+Both counting semaphores and binary semaphores can be used for synchronization and mutual exclusion between tasks. The difference is that counting semaphores can record the number of times a semaphore has been released, which can be used to monitor the usage status of a particular resource.
+
+**State Diagram:**
+
+**![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/7272008/08_0_1302757721tR04.gif)**
+
+**Related Functions:**
+
+**\[c-sharp\]** [view plain](http://write.blog.csdn.net/postedit# "view plain") [copy](http://write.blog.csdn.net/postedit# "copy")
+
+1.  SEM\_ID semCCreate  
+2.  (  
+3.      int options,              /\* semaphore option modes \*/  
+
+5.      int initialCount          /\* initial count \*/  
+6.  )

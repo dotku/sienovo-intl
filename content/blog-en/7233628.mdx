@@ -1,0 +1,67 @@
+---
+title: "C Implementation of Bitmap"
+date: "2012-02-04"
+slug: "7233628"
+tags: ["#C", "#Null", "#File", "#INI", "#Test"]
+source: "https://blog.csdn.net/yeyuangen/article/details/7233628"
+originalTitle: "C实现bitmap位图"
+---
+
+In fact, we use each element to represent a 32-bit binary string, so this element can store information about the presence of 32 adjacent numbers, and the array size is reduced to 10,000,000 / 32. For example, for the number 89256, since 89256 mod 32 = 2789 with a remainder of 8, we should set the 8th bit (starting from the least significant bit) of the 32-bit string in `a[2789]` to 1.
+
+Basic Operations:
+
+**[cpp]**  [view plain](http://blog.csdn.net/qibaoyuan/article/details/5914662# "view plain") [copy](http://blog.csdn.net/qibaoyuan/article/details/5914662# "copy")
+
+1.  #define WORD 32  
+2.  #define SHIFT 5 //// Shift 5 bits. Left shift is equivalent to multiplying by 32, right shift is equivalent to integer division by 32.  
+3.  #define MASK 0x1F // 31 in hexadecimal  
+4.  #define N 10000000  
+5.  int bitmap\[1 + N / WORD\];  
+6.  /\* 
+7.   \* Set bit function - uses "|" operator. i & MASK is equivalent to modulo operation. 
+8.   \* For m mod n, when n is a power of 2, m mod n = m & (n-1). 
+9.   \*/  
+10.  void set(int i) {  
+11.      bitmap\[i >> SHIFT\] |= (1 << (i & MASK));  
+12.  }  
+13.  /\* Clear bit operation, uses "&~" operator \*/  
+14.  void clear(int i) {  
+15.      bitmap\[i >> SHIFT\] &= ~(1 << (i & MASK));  
+16.  }  
+17.  /\* Test bit operation, uses "&" operator \*/  
+18.  int test(int i) {  
+19.      return bitmap\[i >> SHIFT\] & (1 << (i & MASK));  
+20.  }  
+
+Implementing Sorting (No Duplicates):
+
+**[cpp]**  [view plain](http://blog.csdn.net/qibaoyuan/article/details/5914662# "view plain") [copy](http://blog.csdn.net/qibaoyuan/article/details/5914662# "copy")
+
+1.  int main(void) {  
+2.      FILE \*in = fopen("in.txt", "r");  
+3.      FILE \*out = fopen("out.txt", "w");  
+4.      if (in == NULL || out == NULL) {  
+5.          exit(-1);  
+6.      }  
+7.      int i = 0;  
+8.      int m;  
+9.      for (i = 0; i < N; i++) {  
+10.          clear(i);  
+11.      }  
+12.      while (!feof(in)) {  
+13.          fscanf(in, "%d", &m);  
+14.          printf("%d/n", m);  
+15.          set(m);  
+16.      }  
+17.      printf("abnother");  
+18.      for (i = 0; i < N; i++) {  
+19.          if (test(i)) {  
+20.              printf("%d/n", i);  
+21.              fprintf(out, "%d/n", i);  
+22.          }  
+23.      }  
+24.      fclose(in);  
+25.      fclose(out);  
+26.      return EXIT\_SUCCESS;  
+27.  }

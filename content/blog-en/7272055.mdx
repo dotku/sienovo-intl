@@ -1,0 +1,45 @@
+---
+title: "VxWorks Inter-task Communication Mechanisms"
+date: "2012-02-19"
+slug: "7272055"
+tags: ["#Task", "#Semaphore", "#EmbeddedOS", "#Server", "#Embedded", "#Socket"]
+source: "https://blog.csdn.net/yeyuangen/article/details/7272055"
+originalTitle: "VxWorks的多任务通信机制"
+---
+
+### VxWorks Inter-task Communication Mechanisms
+
+Author: Chen Junke
+
+**I. Introduction to VxWorks Operating System**
+　　The VxWorks real-time operating system is a high-performance, scalable embedded real-time operating system launched by Wind River Systems of the United States, designed to run on target machines. At its core, VxWorks features the high-performance microkernel Wind, which boasts rapid task switching, interrupt support, and pre-emptive and time-slice round-robin scheduling mechanisms, ensuring quick responses to external events. Beyond the microkernel, VxWorks also includes modules such as an I/O system, file system, TCP/IP network system, graphics system, virtual memory management, and Board Support Packages (BSPs). The existence of the BSP layer allows VxWorks to be easily ported to various hardware platforms. In the current embedded operating system market, VxWorks holds over 80% market share and is widely applied in fields such as communications, consumer electronics, transportation, industrial control, and aerospace.
+
+**II. VxWorks Inter-task Communication Mechanisms**
+　　Typically, in a real-time system, multiple concurrent tasks collaborate to achieve system functionality. The operating system must provide fast and powerful communication mechanisms for these tasks. In VxWorks, communication mechanisms include semaphores, message queues, pipes, and events. For a system developer, the judicious use of these communication mechanisms is crucial for the system's long-term efficient, reliable, and secure operation.
+**1. Semaphores**
+　　In VxWorks, semaphores are the fastest and lowest-overhead mechanism for providing inter-task synchronization and mutual exclusion. VxWorks offers three different types of semaphores:
+　(1) Binary Semaphores: Can be used for synchronization between two tasks. For example, if Task A must proceed only after Task B completes a specific action, Task A can obtain the semaphore and enter a pending state. Task B releases the semaphore after completing its action. Generally, binary semaphores are suitable for one-to-one task synchronization.
+　(2) Mutual Exclusion Semaphores (Mutexes): Primarily used for mutual exclusion protection of shared data areas among tasks. They feature priority inversion protection, safe deletion, and recursion. When two or more tasks share a data area, a mutual exclusion mechanism must be used for protection.
+　(3) Counting Semaphores: Similar to binary semaphores, but they have a counting capability for semaphore releases and acquisitions, whereas binary semaphores only have two states: 0 and 1.
+　　VxWorks provides a set of function interfaces for developers to manage semaphores, including creation, deletion, acquisition, and release.
+　　While semaphores offer the advantages of speed and low overhead, they also have limitations. Firstly, they cannot provide additional information. Secondly, semaphores are insufficient when a task needs to synchronize with multiple other tasks. Therefore, in many situations, semaphores must be used in conjunction with other communication mechanisms to achieve inter-task communication.
+**2. Message Queues**
+　　Message queues are one of the primary mechanisms provided by VxWorks for inter-task communication within a single CPU. Message queues allow messages to be queued either on a FIFO basis or based on task priority. The number of messages and message length for a message queue can be specified by the developer when creating it. Theoretically, VxWorks allows multiple tasks to send messages to the same message queue or receive messages from the same message queue. However, in practical applications, typically only one task receives messages from a message queue, while one or more tasks send messages, meaning the message queue has multiple producers but only one consumer. Message queues are unidirectional; for two tasks requiring bidirectional communication, two message queues must be used. Message queues are very suitable for communication between tasks in a Client-Server architecture. As shown in Figure 1, Task Client1 and Task Client2 both require services from Task Server. They send requests and parameters to Task Server via the "Request Queue" message queue. After processing the requests, Task Server returns results to these two tasks via "Reply Queue 1" and "Reply Queue 2" respectively.
+
+![](http://write.blog.csdn.net/UploadFile/Image/2010727135020402.gif)
+　　                      Client-Server tasks communicate using message queues
+
+　　In VxWorks, message queues are a relatively high-overhead communication mechanism. Therefore, when using them, message lengths should be kept as short as possible, and their use should be avoided in scenarios requiring very frequent communication. Additionally, messages in a message queue are queued; even identical messages will not overwrite previous ones.
+**3. Pipes**
+　　In VxWorks, pipes are a message queue communication mechanism implemented through virtual I/O devices. The functions pipeDevCreate() and pipeDevDelete() are used to create and delete pipes. Once a pipe is created, tasks can communicate using standard I/O operations, primarily read() and write(). The advantage of pipes is that they are I/O devices, and like standard VxWorks I/O, they can use the select mechanism. With the select mechanism, a task can easily handle multiple asynchronous I/O devices. For example, if a task needs to process data received simultaneously from a serial port, a pipe, and a socket, it can use select.
+**4. Events**
+　　Before version 5.5, VxWorks did not have an event communication mechanism. Events first appeared in the pSOS real-time operating system. After Wind River acquired pSOS, the event mechanism was added starting from VxWorks 5.5, with enhancements and improvements based on pSOS events. Events can be used for communication between tasks and Interrupt Service Routines (ISRs), between tasks themselves, and between tasks and VxWorks resources. Tasks use the eventReceive() function to receive events they are interested in, and eventSend() to send events to another task.
+　　VxWorks resources primarily refer to semaphores and message queues. For a task to receive an event from a VxWorks resource, it must first register. Then, when the resource is in a FREE state, an event will be sent to the registered task. For each VxWorks resource, only one task is allowed to register at most. For example, for a message queue, a task can use the msgQEvStart() function to register. Then, when a message arrives at this message queue and no task is waiting for it, an event will be sent to the registered task, indicating that the message queue is available. For semaphores, the semEvStart() function can be used for registration. However, it must be noted that a task receiving an event from a resource does not guarantee that the task can acquire that resource, such as obtaining a semaphore or receiving a message from a message queue.
+　　In VxWorks, each task has a 32-bit event register. The high 8 bits are reserved by the VxWorks system, while developers can use the lower 24 bits. Each bit represents a type of event, and the meaning of the event is entirely defined by the task. Therefore, for different tasks, the same bit might have different meanings. VxWorks does not count events but merely indicates that an event has occurred, which differs from message queues. Consequently, a task receiving an event cannot know how many times the event has occurred.
+　　Events are very suitable for scenarios where one task must communicate with multiple other tasks. For example, if Task A must communicate simultaneously with Task B, Task C, and Task D, where Task B sends data to Task A via a message queue at a low frequency, requiring Task A to process it promptly; Task C merely indicates a status to Task A at a high frequency; and Task D is used to notify Task A to release dynamically allocated resources and cease operation. In such scenarios, the event mechanism can effectively solve the problem.
+
+**III. Conclusion**
+　　In VxWorks, efficient and economical inter-task communication significantly impacts the overall system performance. Generally, a single communication mechanism cannot solve all problems; rather, multiple communication mechanisms need to be used simultaneously. Furthermore, a reasonable division of tasks can simplify inter-task communication. In summary, developers must gain sufficient practical experience to fully leverage VxWorks' various communication mechanisms to design efficient and reliable real-time systems.
+
+**References**
+1. VxWorks 5.5 Programmer’s Guide

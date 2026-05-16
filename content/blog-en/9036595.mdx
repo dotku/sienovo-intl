@@ -1,0 +1,142 @@
+---
+title: "Basic Operations and Usage of C++ map"
+date: "2013-06-06"
+slug: "9036595"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/9036595"
+originalTitle: "C++ map的基本操作和使用"
+---
+
+### Basic Operations and Usage of C++ map
+
+   Source: ([http://blog.sina.com.cn/s/blog_61533c9b0100fa7w.html](http://blog.sina.com.cn/s/blog_61533c9b0100fa7w.html)) - Basic Operations and Usage of C++ map_Live_Sina Blog
+
+    Map is a standard C++ container that provides an excellent one-to-one relationship. Creating a map in some programs can achieve twice the result with half the effort. Here's a summary of some basic, simple, and practical map operations!
+1. Most basic map constructors;
+   map<string, int> mapstring;          map<int, string> mapint;
+   map<string, char> mapstring;          map<char, string> mapchar;
+   map<char, int> mapchar;             map<int, char> mapint;
+
+2. Adding data to map;
+
+   map<int, string> maplive;   
+   1. maplive.insert(pair<int, string>(102, "aclive"));
+   2. maplive.insert(map<int, string>::value_type(321, "hai"));
+   3. maplive[112] = "April"; // The simplest and most commonly used insertion method for map!
+3. Searching for elements in map:
+
+   The find() function returns an iterator pointing to the element with the key value, or an iterator to the end of the map if not found.         
+
+   map<int, string>::iterator l_it;  
+   l_it = maplive.find(112);
+   if (l_it == maplive.end())
+                cout << "we do not find 112" << endl;
+   else cout << "we find 112" << endl;
+4. Deleting elements from map:
+   To delete 112;
+   map<int, string>::iterator l_it;
+   l_it = maplive.find(112);
+   if (l_it == maplive.end())
+        cout << "we do not find 112" << endl;
+   else  maplive.erase(l_it);   // delete 112;
+5. Usage of swap in map:
+  The swap operation in map does not exchange elements within a single container, but rather swaps two containers.
+  For example:
+  #include <map>
+  #include <iostream>
+
+  using namespace std;
+
+  int main()
+  {
+      map<int, int> m1, m2, m3;
+      map<int, int>::iterator m1_Iter;
+
+      m1.insert(pair<int, int>(1, 10));
+      m1.insert(pair<int, int>(2, 20));
+      m1.insert(pair<int, int>(3, 30));
+      m2.insert(pair<int, int>(10, 100));
+      m2.insert(pair<int, int>(20, 200));
+      m3.insert(pair<int, int>(30, 300));
+
+   cout << "The original map m1 is:";
+   for (m1_Iter = m1.begin(); m1_Iter != m1.end(); m1_Iter++)
+      cout << " " << m1_Iter->second;
+      cout   << "." << endl;
+
+   // This is the member function version of swap
+   //m2 is said to be the argument map; m1 the target map
+   m1.swap(m2);
+
+   cout << "After swapping with m2, map m1 is:";
+   for (m1_Iter = m1.begin(); m1_Iter != m1.end(); m1_Iter++)
+      cout << " " << m1_Iter->second;
+      cout   << "." << endl;
+   cout << "After swapping with m2, map m2 is:";
+   for (m1_Iter = m2.begin(); m1_Iter != m2.end(); m1_Iter++)
+      cout << " " << m1_Iter->second;
+      cout   << "." << endl;
+   // This is the specialized template version of swap
+   swap(m1, m3);
+
+   cout << "After swapping with m3, map m1 is:";
+   for (m1_Iter = m1.begin(); m1_Iter != m1.end(); m1_Iter++)
+      cout << " " << m1_Iter->second;
+      cout   << "." << endl;
+}
+
+6. Map sorting issues:
+  Elements in a map are automatically sorted in ascending order by key, so the sort function cannot be used directly on a map.
+  For example:
+  #include <map>
+  #include <iostream>
+
+  using namespace std;
+
+ int main()
+ {
+   map<int, int> m1;
+   map<int, int>::iterator m1_Iter;
+
+   m1.insert(pair<int, int>(1, 20));
+   m1.insert(pair<int, int>(4, 40));
+   m1.insert(pair<int, int>(3, 60));
+   m1.insert(pair<int, int>(2, 50));
+   m1.insert(pair<int, int>(6, 40));
+   m1.insert(pair<int, int>(7, 30));
+
+   cout << "The original map m1 is:" << endl;
+   for (m1_Iter = m1.begin(); m1_Iter != m1.end(); m1_Iter++)
+      cout <<  m1_Iter->first << " " << m1_Iter->second << endl;
+   
+} 
+  The original map m1 is:
+  1 20
+  2 50
+  3 60
+  4 40
+  6 40
+  7 30
+  Press any key to continue . . .
+
+7. Basic map operation functions:
+      C++ Maps are associative containers that store "key/value" pairs.
+      begin()           Returns an iterator to the beginning of the map
+      clear()          Deletes all elements
+      count()           Returns the number of times a specified element appears
+      empty()           Returns true if the map is empty
+      end()             Returns an iterator to the end of the map
+      equal_range()     Returns a pair of iterators for a specific range of elements
+      erase()           Deletes an element
+      find()            Finds an element
+      get_allocator()   Returns the allocator for the map
+      insert()          Inserts elements
+      key_comp()        Returns the function that compares element keys
+      lower_bound()     Returns an iterator to the first element whose key is not less than the given key
+      max_size()        Returns the maximum number of elements that can be held
+      rbegin()          Returns a reverse iterator to the end of the map
+      rend()            Returns a reverse iterator to the beginning of the map
+      size()            Returns the number of elements in the map
+      swap()             Swaps two maps
+      upper_bound()      Returns an iterator to the first element whose key is greater than the given key
+      value_comp()       Returns the function that compares element values

@@ -1,0 +1,144 @@
+---
+title: "C++ Type Casting"
+date: "2011-12-08"
+slug: "7053292"
+tags: ["#C++", "#Class", "#Compiler", "#Programming", "#Null", "#Work"]
+source: "https://blog.csdn.net/yeyuangen/article/details/7053292"
+originalTitle: "c++强制类型转换"
+---
+
+dynamic_cast:      Typically used for conversions between base and derived classes, run-time cast.
+
+　　const_cast:          Mainly used for conversions involving const and volatile qualifiers.
+
+　　static_cast:          General-purpose conversion, no run-time check. Usually, if you're unsure which to use, go with this one.
+
+　　reinterpret_cast: Used for conversions between unrelated types, such as converting a character pointer to an integer.
+
+　　1) static_cast<T*>(a)
+
+　　Handled by the compiler at compile time.
+
+　　Converts address a to type T. T and a must be pointers, references, arithmetic types, or enumeration types.
+
+　　In the expression static_cast<T*>(a), the value of a is converted to the type T specified in the template. During runtime, no type checking is performed to ensure the safety of the conversion.
+
+　　static_cast can convert between built-in data types and only between related pointer types for classes. It allows pointer conversions up and down an inheritance hierarchy, but cannot convert to a type outside the inheritance hierarchy.
+
+　　class A { ... };
+
+　　class B { ... };
+
+　　class D : public B { ... };
+
+　　void f(B* pb, D* pd)
+
+　　{
+
+　　D* pd2 = static_cast<D*>(pb);        // Unsafe, pb might just be a pointer to B
+
+　　B* pb2 = static_cast<B*>(pd);        // Safe
+
+　　A* pa2 = static_cast<A*>(pb);        // Error: A and B have no inheritance relationship
+
+　　...
+
+　　}
+
+　　2) dynamic_cast<T*>(a)
+
+　　Processed at runtime, checks whether the conversion is valid.
+
+　　Used for safe downcasting within a class hierarchy. T must be a pointer, reference, or void pointer. a must be an expression yielding a pointer or reference.
+
+　　dynamic_cast applies only to pointers or references and does not support built-in data types.
+
+　　The expression dynamic_cast<T*>(a) converts the value of a to a pointer of type T. If T is not a base type of a, the operation returns a null pointer.
+
+　　Unlike static_cast, dynamic_cast not only checks whether the two pointers belong to the same inheritance tree, but also examines the actual type of the object being pointed to, to determine if the conversion is valid.
+
+　　If the conversion is valid, it returns a new pointer, even calculating any necessary offset required for multiple inheritance. If the conversion between the two pointers is not allowed, the cast fails and returns a null pointer (NULL).
+
+　　Clearly, for dynamic_cast to work properly, the compiler must support Run-Time Type Information (RTTI).
+
+　　4) reinterpret_cast<T*>(a)
+
+　　Handled by the compiler at compile time.
+
+　　Any pointer can be converted to another type of pointer. T must be a pointer, reference, arithmetic type, function pointer, or pointer to a class member.
+
+　　The expression reinterpret_cast<T*>(a) can be used for conversions such as char* to int*, or One_class* to Unrelated_class*, and is therefore potentially unsafe.
+
+　　class A { ... };
+
+　　class B { ... };
+
+　　void f()
+
+　　{
+
+　　A* pa = new A;
+
+　　void* pv = reinterpret_cast<void*>(pa);
+
+　　// pv now points to an object of type B, which could be unsafe
+
+　　...
+
+　　}
+
+　　The use of reinterpret_cast is rare and should only be employed when absolutely necessary and when other cast types are insufficient.
+
+　　== ===========================================
+
+　　== static_cast vs. reinterpret_cast
+
+　　== ===========================================
+
+　　reinterpret_cast is meant to map to a completely different type. This keyword is used when we need to map a type back to its original form. The mapped type is only for obfuscation or other special purposes, making this the most dangerous of all casts. (This sentence is quoted verbatim from "Thinking in C++".)
+
+　　Both static_cast and reinterpret_cast modify the operand's type. They are not inverses of each other.
+
+　　static_cast uses type information at compile time to perform conversions and conducts necessary checks (such as pointer bounds calculation, type checking), making it relatively safe.
+
+　　On the other hand, reinterpret_cast is a C++ type-casting operator that changes the operand's type by reinterpreting the bit pattern of the given object without performing binary conversion.
+
+　　Example:
+
+　　int n = 9;
+
+　　double d = static_cast<double>(n);
+
+　　In the above example, we convert a variable from int to double. The binary representations of these types differ. To convert integer 9 to double 9.0, static_cast properly fills in the necessary bits for double d. The result is 9.0.
+
+　　However, reinterpret_cast behaves differently:
+
+　　int n = 9;
+
+　　double d = reinterpret_cast<double&>(n);
+
+　　This time, the result is different. After computation, d contains a garbage value. This is because reinterpret_cast simply copies the bit pattern of n into d without performing any necessary analysis.
+
+　　Therefore, reinterpret_cast should be used with great caution.
+
+　　The most common use of reinterpret_cast is converting between function pointer types.
+
+　　For example, suppose you have an array of function pointers:
+
+　　typedef void (*FuncPtr)(); // FuncPtr is a pointer to a function that takes no parameters and returns void
+
+　　FuncPtr funcPtrArray[10]; // funcPtrArray is an array capable of holding 10 FuncPtrs
+
+　　Now suppose you want (for some obscure reason) to store a pointer to the following function in funcPtrArray:
+
+　　int doSomething();
+
+　　You cannot do this directly without a cast, because doSomething has the wrong type for funcPtrArray—functions in funcPtrArray return void, while doSomething returns int.
+
+　　funcPtrArray[0] = &doSomething; // Error! Type mismatch
+
+　　reinterpret_cast allows you to force the compiler to treat the types your way:
+
+　　funcPtrArray[0] = reinterpret_cast<FuncPtr>(&doSomething);
+
+　　Code that converts function pointers is non-portable (C++ does not guarantee that all function pointers are represented the same way), and in some cases, such conversions may produce incorrect results.

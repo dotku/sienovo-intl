@@ -1,0 +1,55 @@
+---
+title: "Unix + The Art of Programming Study Notes 13 + Complexity: As Simple as Possible, but Not Simpler"
+date: "2011-10-12"
+slug: "6867054"
+tags: ["#Unix", "#Programming", "#Lisp", "#Documentation", "#Work", "#Assembly"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6867054"
+originalTitle: "unix+编程艺术学习笔记13+复杂度:尽可能简单，但别简单过了头"
+---
+
+\==============================  
+Complexity  
+As Simple as Possible, but Not Simpler  
+\==============================
+
+Several core issues that triggered over a decade of internal conflicts in the Unix world will be discussed in this chapter. We begin with established Unix practices and professional terminology, then delve slightly deeper than the rest of this book. Rather than attempting to simply provide answers to these questions—because definitive answers do not exist—we aim to offer conceptual insights that help you discover your own solutions.
+
+13.1 On Complexity
+
+13.1.1 Three Sources of Complexity  
+The Unix world has invested tremendous passion into questions about simplicity, complexity, and the optimal scale of software. Unix programmers have adopted a worldview in which simplicity is beautiful, elegant, and good, while complexity is ugly, bizarre, and evil. This passion for simplicity stems from practical experience: complexity is cost.
+
+Preliminary definition of complexity:  
+From the programmer's perspective: the difficulty of understanding a program, forming a mental model of it, and debugging it.  
+From the user's perspective: the complexity of the program's interface, proportional to the user's cognitive load.  
+Code size is a third metric. (More lines of code imply more bugs, and debugging is often the most expensive and time-consuming part of development.)  
+
+Code size, interface complexity, and implementation complexity are three manifestations—three faces—of complexity.  
+If a user interface is designed primarily for ease of implementation or minimal code footprint, it may simply offload many low-level tasks onto users. Under pressure to keep the codebase small, developers may resort to extremely obscure and complex implementation techniques, leading to layers of implementation complexity that become an un-debuggable tangle (e.g., using assembly language). Conversely, if a project's designers are highly sensitive to implementation complexity, they may prefer writing repetitive, specialized code instead of reusable, generalized code—resulting in bloated, hard-to-maintain systems.
+
+13.1.2 Trade-off Between Interface and Implementation Complexity  
+"Lisp: Good News, Bad News, and How to Win Big" \[Gabriel\] introduced the concept of "worse is better."  
+Gabriel's central argument revolves around a precise trade-off between interface and implementation complexity—one that aligns exactly with the classification we are examining in this chapter. He contrasts the "MIT" philosophy, which emphasizes interface simplicity, with the "New Jersey" philosophy, which prioritizes implementation simplicity. Although the MIT approach may lead to more elegant abstractions, Gabriel argues that the New Jersey model ("worse") is more contagious and ultimately more successful. Over time, more attention has been paid to the New Jersey style, allowing it to evolve faster. Thus, "worse" becomes "better."  
+
+In fact, the tension between MIT and New Jersey philosophies resembles an internal conflict within the Unix design tradition itself. A central theme in Unix thinking is the emphasis on small, sharp tools, ground-up design, and simple, consistent interfaces. This view was famously championed by Doug McIlroy. Another school of thought emphasizes creating simple, working implementations quickly, regardless of crude methods or unresolved edge cases. Ken Thompson's code and programming principles often reflect this tendency.
+
+A landmark example not mentioned in Gabriel's paper comes from distributed hypertext systems. Early distributed hypertext projects like NLS and Xanadu were severely constrained by MIT-style assumptions: broken links were considered an unacceptable user interface flaw. This limited systems either to browsing within a controlled, closed set of documents (e.g., on a single CD-ROM), or required increasingly complex replication, caching, and indexing mechanisms to prevent document loss. Tim Berners-Lee instead applied a classic New Jersey approach to solve this problem. His simple solution allowed "404: Not Found" as a valid response, making the World Wide Web extremely lightweight, widely deployable, and ultimately hugely successful.
+
+Although Gabriel himself maintains that the "worse" approach is more infectious and often prevails in the end, he has publicly changed his mind several times about whether this inherent complexity is truly beneficial. His ambivalence mirrors many ongoing design debates within the Unix community.
+
+We cannot offer a one-size-fits-all answer. For most questions in this chapter, good taste and engineering judgment require that the answer depends on context. What matters is cultivating the habit of carefully weighing every design decision. As we previously advised when discussing software modularity: the complexity calculus must be done.
+
+13.1.3 Essential, Accidental, and Optional Complexity
+
+In an ideal world, Unix programmers would handcraft small, perfect software gems—each tiny, elegant, and flawless. But unfortunately, many real-world problems are inherently complex and demand complex solutions. No ten-line program, no matter how elegant, can control a jetliner. There are too many systems, too many pathways and interfaces, too many different processors—and too many subsystems defined by different operators who can't even agree on basic conventions. Even if every individual software component in an aircraft control system could be made elegant, the assembled result would likely be a large, complex, and messy codebase—albeit one with the crucial advantage of actually working.
+
+The complexity of a jetliner is essential. There's a sharp point here: functionality cannot be sacrificed for simplicity, because the plane must fly. Precisely for this reason, aircraft control systems do not become battlegrounds for complexity holy wars—the kind that Unix programmers often avoid.
+
+Accidental complexity: can be eliminated through good design or redesign.  
+Optional complexity: can only be removed by changing the project's goals.
+
+When the distinction between optional and accidental complexity is blurred, design debates become exceptionally chaotic. Questions like "What are the project's goals?" become entangled with ideological beliefs about simplicity and beauty, and even with judgments about whether people are smart enough.
+
+13.1.4 Mapping Complexity
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/6867054/01_0_1318411286L1mb.gif)

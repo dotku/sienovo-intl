@@ -1,0 +1,17 @@
+---
+title: "Understanding the Linux sleep Function"
+date: "2011-09-14"
+slug: "6774530"
+tags: ["#Linux", "#Float"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6774530"
+originalTitle: "Linux sleep函数作用"
+---
+
+The sleep function changes the process's execution state to sleeping, removing it from the system's runnable queue so that the scheduler will not select the process or allocate CPU time slices to it. At the same time, based on the specified sleep duration, the process is added to the appropriate timer queue.
+
+The kernel maintains a timer queue. During each clock interrupt handling, any processes whose time has expired in the timer queue are awakened and moved back to the runnable process queue. Additionally, the remaining time values for all processes in the timer queue are decremented by one.
+
+```cpp
+    clock_t start=clock();    sleep(5);    clock_t end=clock();    float time=(float)(end-start)/CLOCKS_PER_SEC;    printf("Sleep clock:%f\n",time);
+```
+First, the current system tick count A is obtained. Then, the number of ticks B corresponding to the requested sleep duration—calculated based on CPU clock frequency—is added to A. A while loop continuously reads the current tick count, and only exits when this count exceeds (A + B), at which point the function returns.

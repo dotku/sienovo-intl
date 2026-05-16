@@ -1,0 +1,250 @@
+---
+title: "Virtual Functions in C++"
+date: "2012-02-04"
+slug: "7233742"
+tags: ["#Function", "#C++", "#Class", "#Compiler", "#Delete", "#DesignPatterns"]
+source: "https://blog.csdn.net/yeyuangen/article/details/7233742"
+originalTitle: "C++中的虚函数(virtual function)"
+---
+
+## Virtual Functions in C++ (1)
+
+Virtual functions are a mechanism in C++ used to achieve polymorphism. The core idea is to access functions defined in derived classes through a base class.
+
+**I. Introduction**
+Virtual functions are a mechanism in C++ used to achieve polymorphism. The core idea is to access functions defined in derived classes through a base class. Suppose we have the following class hierarchy:
+```cpp
+class A
+{
+public:
+virtual void foo() { cout << "A::foo() is called" << endl;}
+};
+class B: public A
+{
+public:
+virtual void foo() { cout << "B::foo() is called" << endl;}
+};
+```
+Then, when using it, we can:
+```cpp
+A * a = new B();
+a->foo(); // Here, although 'a' is a pointer to A, the function called (foo) is B's!
+```
+This example is a typical application of virtual functions, and through it, you might already have some concept of what they are. Their "virtual" nature lies in what's called "deferred binding" or "dynamic binding," where the call to a class function is not determined at compile time but at runtime. Because it's not possible to determine at the time of writing the code whether the base class's function or a derived class's function will be called, they are referred to as "virtual" functions.
+
+Virtual functions can only achieve polymorphism through pointers or references. If the code is as follows, even though it's a virtual function, it won't exhibit polymorphism:
+```cpp
+class A
+{
+public:
+virtual void foo();
+};
+class B: public A
+{
+virtual void foo();
+};
+void bar()
+{
+A a;
+a.foo(); // A::foo() is called
+}
+```
+1.1 Polymorphism
+
+After understanding what virtual functions mean, it's easy to grasp polymorphism. Still considering the class hierarchy above, but with a slightly more complex usage:
+```cpp
+void bar(A * a)
+{
+a->foo(); // Is A::foo() or B::foo() called?
+}
+```
+Because `foo()` is a virtual function, within the `bar` function, based solely on this code, it's impossible to determine whether `A::foo()` or `B::foo()` will be called. However, it can be stated with certainty: if `a` points to an instance of class A, then `A::foo()` is called; if `a` points to an instance of class B, then `B::foo()` is called.
+This characteristic, where the same code can produce different effects, is called "polymorphism."
+1.2 What is polymorphism used for?
+
+Polymorphism is amazing, but what can it be used for? This is a question I find hard to summarize in a sentence or two. Most C++ tutorials (or tutorials for other object-oriented languages) use a drawing example to demonstrate the use of polymorphism, so I won't repeat that example. If you don't know it, any book should cover it. I'll try to describe it from an abstract perspective, and then, by revisiting the drawing example, it might be easier for you to understand.
+In object-oriented programming, abstraction (determining base classes) and inheritance (determining derived classes) are first performed on data to form a class hierarchy. If users of this class hierarchy still write code specific to the base class when a base class is needed, and code specific to a derived class when a derived class is needed, it means the class hierarchy is completely exposed to the user. If there are any changes to this class hierarchy (e.g., adding a new class), the user needs to "know" about it (write code for the new class). This increases the coupling between the class hierarchy and its users, which some consider one of the "bad smells" in programming.
+Polymorphism can relieve programmers from this predicament. Looking back at the example in 1.1, `bar()` as a user of the A-B class hierarchy doesn't know how many classes are in this hierarchy or what each class is called, yet it can still work well. When a class C is derived from class A, `bar()` doesn't need to "know" (be modified). This is entirely due to polymorphism—the compiler generates code for virtual functions that can determine the called function at runtime.
+1.3 How "Dynamic Binding" Works
+
+How does the compiler generate code for virtual functions that can determine the called function at runtime? In other words, how are virtual functions actually processed by the compiler? Lippman discusses several methods in different chapters of "Inside the C++ Object Model" [1]. Here, I'll briefly introduce the "standard" method.
+What I refer to as the "standard" method is the so-called "VTABLE" mechanism. When the compiler finds a function declared as `virtual` in a class, it creates a virtual function table for it, known as a VTABLE. A VTABLE is essentially an array of function pointers, with each virtual function occupying a slot in this array. A class has only one VTABLE, regardless of how many instances it has. Derived classes have their own VTABLEs, but the derived class's VTABLE has the same function arrangement order as the base class's VTABLE; virtual functions with the same name are placed in the same position in both arrays. When creating a class instance, the compiler also adds a `vptr` field to the memory layout of each instance, which points to the class's VTABLE. Through these means, when the compiler sees a virtual function call, it rewrites this call. For the example in 1.1:
+```cpp
+void bar(A * a)
+{
+a->foo();
+}
+```
+would be rewritten as:
+```cpp
+void bar(A * a)
+{
+(a->vptr[1])();
+}
+```
+Because the `foo()` functions of derived and base classes have the same VTABLE index, and their `vptr`s point to different VTABLEs, this method allows determining which `foo()` function to call at runtime.
+Although the actual situation is far more complex, the basic principle is roughly as described.
+1.4 Overload and Override
+
+Virtual functions are always rewritten in derived classes; this rewriting is called "override." I often confuse the words "overload" and "override." However, with the increasing number of C++ books, later programmers may no longer make the mistakes I did. But I intend to clarify:
+`override` refers to a derived class rewriting a virtual function of its base class, just as our class B rewrote the `foo()` function in class A. The rewritten function must have a consistent parameter list and return type (the C++ standard allows for different return types in some cases, which I will briefly introduce in the "Syntax" section, but few compilers support this feature). This word doesn't seem to have a suitable Chinese equivalent; some translate it as "覆盖" (cover), which is somewhat apt.
+`overload` is conventionally translated as "重载." It refers to writing a function with the same name as an existing function but with a different parameter list. For example, a function that can accept an integer as a parameter and also a floating-point number as a parameter.
+
+**II. Virtual Function Syntax**
+
+The hallmark of a virtual function is the "virtual" keyword.
+2.1 Using the `virtual` keyword
+
+Consider the following class hierarchy:
+```cpp
+class A
+{
+public:
+virtual void foo();
+};
+class B: public A
+{
+public:
+void foo(); // No virtual keyword!
+};
+class C: public B // Inherits from B, not A!
+{
+public:
+void foo(); // Also no virtual keyword!
+};
+```
+In this case, `B::foo()` is a virtual function, and `C::foo()` is also a virtual function. Therefore, it can be said that a virtual function declared in a base class remains virtual in derived classes, even if the `virtual` keyword is no longer used.
+2.2 Pure Virtual Functions
+
+The following declaration indicates a function is a pure virtual function:
+```cpp
+class A
+{
+public:
+virtual void foo()=0; // =0 marks a virtual function as pure virtual
+};
+```
+Once a function is declared pure virtual, it means: "I am an abstract class! Do not instantiate me!" Pure virtual functions are used to standardize the behavior of derived classes, essentially serving as an "interface." They tell the user that all my derived classes will have this function.
+2.3 Virtual Destructors
+
+Destructors can also be virtual, or even pure virtual. For example:
+```cpp
+class A
+{
+public:
+virtual ~A()=0; // Pure virtual destructor
+};
+```
+When a class is intended to be used as a base class for other classes, its destructor must be virtual. Consider the following example:
+```cpp
+class A
+{
+public:
+A() { ptra_ = new char[10];}
+~A() { delete[] ptra_;} // Non-virtual destructor
+private:
+char * ptra_;
+};
+class B: public A
+{
+public:
+B() { ptrb_ = new char[20];}
+~B() { delete[] ptrb_;}
+private:
+char * ptrb_;
+};
+void foo()
+{
+A * a = new B;
+delete a;
+}
+```
+In this example, the program might not run as you expect. When `delete a` is executed, only `A::~A()` is actually called, and the destructor of class B is not called! Isn't that a bit scary?
+If `A::~A()` above is changed to `virtual`, it can guarantee that `B::~B()` is also called when `delete a`. Therefore, base class destructors must be `virtual`.
+A pure virtual destructor serves no particular purpose; being virtual is sufficient. Usually, a pure virtual destructor is used only when you want to make a class abstract (a class that cannot be instantiated) and there is no other suitable function to make pure virtual.
+2.4 Virtual Constructors?
+Constructors cannot be virtual.
+
+**III. Virtual Function Usage Tips**
+3.1 Private Virtual Functions
+
+Consider the following example:
+```cpp
+class A
+{
+public:
+void foo() { bar();}
+private:
+virtual void bar() { ...}
+};
+class B: public A
+{
+private:
+virtual void bar() { ...}
+};
+```
+In this example, even though `bar()` is private in class A, it can still appear in derived classes and still produce polymorphic effects just like public or protected virtual functions. It won't happen that `A::foo()` cannot access `B::bar()` because it's private, nor will `B::bar()`'s override of `A::bar()` be ineffective.
+The semantic meaning of this writing style is: A tells B, "You'd better override my `bar()` function, but don't worry about how it's used, and don't call this function yourself."
+3.2 Virtual Function Calls in Constructors and Destructors
+
+When a class's virtual function is called within its own constructor or destructor, they become ordinary functions and are no longer "virtual." This means you cannot achieve polymorphism within constructors and destructors. For example:
+```cpp
+class A
+{
+public:
+A() { foo();} // Here, A::foo() is always called, no matter what!
+~A() { foo();} // Same as above
+virtual void foo();
+};
+class B: public A
+{
+public:
+virtual void foo();
+};
+void bar()
+{
+A * a = new B;
+delete a;
+}
+```
+If you expect `delete a` to cause `B::foo()` to be called, then you are mistaken. Similarly, when `new B` is executed, A's constructor is called, but within A's constructor, `A::foo()` is called, not `B::foo()`.
+3.3 Virtual Functions in Multiple Inheritance 3.4 When to use virtual functions
+
+When designing a base class, if you find that a function needs to behave differently in derived classes, then it should be virtual. From a design perspective, a virtual function in a base class is an interface, and a virtual function in a derived class is a concrete implementation of that interface. Through this method, the behavior of objects can be abstracted.
+Taking the Factory Method pattern [2] in design patterns as an example, the `factoryMethod()` of the Creator is a virtual function. After derived classes override this function, they produce different Product classes, and the generated Product classes are used by the base class's `AnOperation()` function. The base class's `AnOperation()` function operates on the Product class, and naturally, the Product class must also have polymorphism (virtual functions).
+Another example is collection operations. Suppose you have a class hierarchy with class A as the base class, and you use a `std::vector` to store pointers to instances of different classes in this hierarchy. You would certainly want to operate on the classes in this collection without having to cast each pointer back to its original type (derived class), but rather perform the same operation on all of them. In this case, that "same operation" should be declared `virtual`.
+In reality, there are far more examples than the two I've given, but the general principle is what I stated earlier: "if you find that a function needs to behave differently in derived classes, then it should be virtual." This statement can also be reversed: "if you find that a base class provides a virtual function, then you'd better override it."
+
+**Appendix: Usage of Virtual Functions and Pure Virtual Functions in C++**
+1. Virtual functions and pure virtual functions can be defined in the same class. A class containing pure virtual functions is called an abstract class, while a class containing only virtual functions cannot be called an abstract class.
+2. A virtual function can be used directly or called polymorphically after being overridden by a subclass. A pure virtual function must be implemented in a subclass before it can be used, because a pure virtual function only has a declaration but no definition in the base class.
+3. Both virtual functions and pure virtual functions can be overridden in subclasses and called polymorphically.
+4. Virtual functions and pure virtual functions typically exist in abstract base classes (ABC) and are overridden by inherited subclasses to provide a unified interface.
+5. The definition form of a virtual function is: `virtual {method body}`; the definition form of a pure virtual function is: `virtual { } = 0;`. The `static` identifier cannot be used in the definition of virtual functions and pure virtual functions. The reason is simple: functions modified by `static` require early binding at compile time, whereas virtual functions are dynamically bound (run-time bind), and the lifetime of functions modified by both is also different.
+6. If a class contains pure virtual functions, any attempt to instantiate that class will result in an error, because abstract base classes (ABC) cannot be called directly. They must be inherited and overridden by subclasses, and their subclass methods called as required.
+The following is a simple demonstration of virtual and pure virtual function usage, intended to spark further thought!
+```cpp
+#include
+//father class
+class Virtualbase
+{
+public:
+virtual void Demon()= 0; //prue virtual function
+virtual void Base() {cout<<"this is farther class"<};
+//sub class
+class SubVirtual :public Virtualbase
+{
+public:
+void Demon() { cout<<" this is SubVirtual!"< void Base() {
+cout<<"this is subclass Base"<};
+/* instance class and sample */
+void main()
+{
+Virtualbase* inst = new SubVirtual(); //multstate pointer
+inst->Demon();
+inst->Base();
+// inst = new Virtualbase();
+// inst->Base()
+return ;
+}
+```

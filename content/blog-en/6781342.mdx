@@ -1,0 +1,165 @@
+---
+title: "Detailed Explanation of msgsnd/msgrcv Functions"
+date: "2011-09-16"
+slug: "6781342"
+tags: ["#Struct", "#Signal", "#Null", "#Buffer", "#Less"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6781342"
+originalTitle: "msgsnd/msgrcv函数祥解"
+---
+
+\================================
+
+   msgrcv() Function  
+
+\============================
+
+The `msgrcv()` function is used to receive messages from a message queue. Its definition in `linux/msg.h` is as follows:  
+System call: msgrcv()  
+Function prototype: int msgrcv(int msqid, struct msgbuf \*msgp, int msgsz, long mtype, int msgflg)  
+Return value: Number of bytes copied into the message buffer  
+-1 on error: errno = E2BIG (Message length is greater than msgsz, no MSG\_NOERROR)  
+EACCES (No read permission)  
+EFAULT (Address pointed to by msgp is invalid)  
+EIDRM (Queue was removed during retrieval)  
+EINTR (Interrupted by arriving signal)  
+EINVAL (Invalid msgqid, or msgsz less than 0)  
+ENOMSG (IPC\_NOWAIT asserted, and no message exists in the queue to satisfy the request)  
+
+The first three parameters have the same meaning as their counterparts in the `msgsnd()` function. The fourth parameter, `mtype`, specifies the type of message to retrieve from the queue. The function searches the queue for a message matching this type and returns it. However, there is one exception: if `mtype` is zero, the function ignores the type and automatically returns the oldest message in the queue.
+
+The fifth parameter is a flag that controls the behavior of the function and can take the following values:  
+0 — Indicates no special behavior;  
+IPC\_NOWAIT — If the message queue is empty, the function returns ENOMSG immediately and returns control to the calling process. If this flag is not specified, the calling process will block until a qualifying message becomes available. If the queue is removed while a client is waiting, EIDRM is returned. If the process is interrupted by a signal while blocked, EINTR is returned.  
+MSG\_NOERROR — If the retrieved message is longer than `msgsz`, only `msgsz` bytes are returned and the rest is discarded. If this flag is not set, E2BIG is returned and the message remains in the queue.
+
+Once a message is retrieved from the queue, it is automatically removed.
+
+We will develop a wrapper function for `msgrcv()` called `read_message()`:
+
+```c
+int read_message( int qid, long type, struct mymsgbuf *qbuf )
+{
+    int result, length;
+    /* The length is essentially the size of the structure minus sizeof(mtype) */
+    length = sizeof(struct mymsgbuf) - sizeof(long);
+    if((result = msgrcv( qid, qbuf, length, type, 0)) == -1)
+    {
+        return(-1);
+    }
+    return(result);
+}
+```
+
+Using the message length handling behavior of `msgrcv()`, we can use the following method to check whether a qualifying message exists in the queue:
+
+```c
+int peek_message( int qid, long type )
+{
+    int result, length;
+    if((result = msgrcv( qid, NULL, 0, type, IPC_NOWAIT)) == -1)
+    {
+        if(errno == E2BIG)
+            return(TRUE);
+    }
+    return(FALSE);
+}
+```
+
+Here, we set `msgp` to `NULL` and `msgsz` to 0, then check the return value. If it is E2BIG, it indicates that a message of the specified type exists. Note the use of IPC\_NOWAIT, which prevents blocking.
+
+\=======================
+
+msgsnd() Function  
+
+\=======================
+
+As the name suggests, the `msgsnd()` function is used to send messages to a message queue. In `linux/msg.h`, its declaration is as follows:  
+System call: msgsnd()  
+Function prototype: int msgsnd(int msqid, struct msgbuf \*msgp, int msgsz, int msgflg)  
+Return value: 0 on success  
+-1 on error: errno = EAGAIN (queue is full and IPC\_NOWAIT was set)  
+EACCES (permission denied, no write permission)  
+EFAULT (msgp address is not accessible — invalid)  
+EIDRM (The message queue has been removed)  
+EINTR (Received a signal while waiting to write)  
+EINVAL (Invalid message queue identifier, nonpositive message type, or invalid message size)  
+ENOMEM (Not enough memory to copy message buffer)  
+
+The first parameter, `msqid`, is the identifier of the message queue (obtained via `msgget()`). The second parameter, `msgp`, points to the memory location of the message to be sent. The third parameter, `msgsz`, is the length (in bytes) of the message, which can be calculated using the following formula:  
+`msgsz = sizeof(struct mymsgbuf) - sizeof(long);`
+
+The fourth parameter is a flag that controls the function's behavior and can take the following values:  
+0 — Ignore the flag;  
+IPC\_NOWAIT — If the message queue is full, the message will not be written, and control returns immediately to the calling thread. If this flag is not specified, the thread will block until space becomes available in the queue.
+
+Below is a wrapper function demonstrating the use of `msgsnd()`:
+
+```c
+int send_message( int qid, struct mymsgbuf *qbuf )
+{
+    int result, length;
+    /* The length is essentially the size of the structure minus sizeof(mtype) */
+    length = sizeof(struct mymsgbuf) - sizeof(long);
+    if((result = msgsnd( qid, qbuf, length, 0)) == -1)
+    {
+        return(-1);
+    }
+    return(result);
+}
+```
+
+\========================================
+
+   msgsnd/msgrcv System Calls
+
+\========================================  
+
+Function Description:  
+Perform message send and receive operations on a message queue. To send a message, the calling process must have write permission on the queue. To receive a message, read permission is required.
+
+Usage:  
+```c
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/msg.h>
+
+int msgsnd(int msqid, const void *msgp, size_t msgsz, int msgflg);
+ssize_t msgrcv(int msqid, void *msgp, size_t msgsz, long msgtyp, int msgflg);
+```
+
+Parameters:  
+`msqid`: Identifier of the message queue.  
+`msgp`: Pointer to the message buffer, used to temporarily store sent or received messages. This is a user-defined generic structure, typically defined as:
+
+```c
+struct msgbuf {
+    long mtype;
+    char mtext[1];
+};
+```
+
+`msgsz`: Size of the message (in bytes).  
+`msgtyp`: Type of message to read from the queue. If zero, the function reads the oldest message regardless of type.  
+`msgflg`: Specifies the action to take when the queue is full (for `msgsnd`) or empty (for `msgrcv`). If `msgflg` includes `IPC_NOWAIT`, `msgsnd()` will return -1 immediately (without blocking) if the queue is full, and `msgrcv()` will return -1 immediately (with errno set to ENOMSG) if the queue is empty. If `msgflg` is 0, both `msgsnd()` and `msgrcv()` will block until the queue becomes available.
+
+Return Value:  
+On success, `msgsnd()` returns 0 and `msgrcv()` returns the number of bytes copied into the `mtext` array. On failure, both return -1 and set `errno` to one of the following values:
+
+\[For msgsnd\]  
+EACCES: The calling process lacks write permission on the queue and does not have CAP\_IPC\_OWNER capability  
+EAGAIN: The message cannot be sent due to the queue's msg_qbytes limit and the IPC\_NOWAIT flag being set  
+EFAULT: The memory pointed to by msgp is inaccessible  
+EIDRM: The message queue has been removed  
+EINTR: The process was interrupted by a signal while waiting for queue space  
+EINVAL: Invalid argument  
+ENOMEM: Insufficient system memory to copy the message  
+
+\[For msgrcv\]  
+E2BIG: Message length exceeds msgsz and MSG\_NOERROR is not set in msgflg  
+EACCES: The calling process lacks read permission and does not have CAP\_IPC\_OWNER capability  
+EAGAIN: The queue is empty and IPC\_NOWAIT is not set  
+EFAULT: The memory pointed to by msgp is inaccessible  
+EIDRM: The queue was removed while the process was sleeping  
+EINTR: The process was interrupted by a signal while waiting  
+EINVAL: Invalid argument  
+ENOMSG: IPC\_NOWAIT is set and no message of the requested type exists

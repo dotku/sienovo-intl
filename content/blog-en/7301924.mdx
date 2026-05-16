@@ -1,0 +1,50 @@
+---
+title: "Defending Coupling, Vindicating Inheritance"
+date: "2012-02-28"
+slug: "7301924"
+tags: ["#DataStructures", "#Interface", "#Language", "#Windows", "#Unix", "#DOS"]
+source: "https://blog.csdn.net/yeyuangen/article/details/7301924"
+originalTitle: "为耦合辩护,为继承伸冤"
+---
+
+Defending Coupling, Vindicating Inheritance
+
+Everyone has heard of a term called "object-based," used to describe languages that don't qualify for the "object-oriented" title but aspire to it. As far as I know, the disqualifying factor is usually the lack of inheritance support. One could say that support for inheritance is the watershed between "object-oriented" and "object-based."
+
+Inheritance, being so crucial, has been heavily utilized since its inception alongside "object-oriented" programming. However, an undercurrent has always been flowing, and recently it has even surfaced. These voices openly accuse inheritance of being closely related to coupling, and by slandering coupling as the root of all evil, they aim to defame inheritance, openly advocating for less use of inheritance, or even no inheritance at all.
+
+Is the situation truly as they describe? Is module independence really so precious, and low coupling so desirable, that it's worth abandoning inheritance and resorting to "object-based" languages?
+
+Let's first discuss coupling. Generally speaking, coupling isn't a good thing; the lower the coupling, the better. However, this is not absolute.
+
+Firstly, uncoupled or low-coupled systems are often impossible to achieve. From a theoretical standpoint, complete decoupling is fundamentally impossible. Even data coupling is practically impossible; otherwise, why would classes exist? No matter what, functions still cluster together, tightly coupled through data structures. As for deeper coupling between classes, it's not limited to inheritance; consider Iterator, for example. Many problems cannot be solved without deep coupling.
+
+Furthermore, the deepest coupling is not between functions, nor between classes, but *within* a function itself. This internal coupling problem can never be truly resolved.
+
+Secondly, low coupling is not always paramount. The importance of coupling is less than that of cohesion. When both cannot be simultaneously guaranteed, high cohesion should be prioritized over low coupling.
+
+Thirdly, low coupling doesn't necessarily offer significant benefits. Low coupling often leads to an exponential increase in the number of modules or the emergence of overly large modules. Too many modules make it easier for a user to understand a single module, but understanding *more* modules might negate most of the benefits. Overly large modules are even more frightening; while their interfaces might appear low-coupled, their internal implementation is certainly a tangled mess of coupling.
+
+Fourthly, high coupling often has advantages. In many cases, highly coupled modules are more efficient than low-coupled ones. Sometimes, creating a highly coupled module is the best alternative to copy-pasting.
+
+Finally, the drawbacks of high coupling can be mitigated. There are two ways to do this: familiarity and standardization.
+
+Regarding the role of familiarity, consider a simple example: system calls in DOS, UNIX, and Windows. Don't they all involve internal system data structures and implementation details? This is not ordinary coupling. Yet, aren't programmers working on these systems doing just fine? In fact, once you're familiar with something, you don't really need to worry about high coupling.
+
+Standardization has an even greater impact. We can define standards for modules: to what extent coupling is acceptable, which details need to be exposed, and which must be hidden. We standardize all of this and support it across versions. Haven't operating systems, as in the previous example, done exactly this?
+
+Furthermore, things that many people are familiar with tend to become standards, and things that become standards are easily familiarized by people.
+
+Now, let's discuss the relationship between inheritance and coupling, primarily comparing inheritance-coupling relationships with aggregation-coupling relationships. Many might have repeatedly told you that inheritance and coupling are very closely related, while aggregation and coupling are distant. Is this truly the case?
+
+1. In reality, the highly coupled inheritance and loosely coupled aggregation you observe are an illusion. Since both inheritance and aggregation appear within a single system, it's natural to implement the highly coupled parts using inheritance and the loosely coupled parts using aggregation. If you were to use only inheritance, you would find both highly coupled inheritance and loosely coupled inheritance. Similarly, if you used only aggregation, you would encounter both highly coupled aggregation and loosely coupled aggregation. What's particularly alarming is highly coupled aggregation, because you would be forced to expose the complete details of certain classes. As a result, you'd discover that aggregation is far more adept at breaking encapsulation than inheritance, which is often criticized for this very reason.
+
+2. Aggregation and association relationships sometimes also require high coupling; Iterator is an example.
+
+3. It's possible to reduce the coupling of inheritance by creating inheritance interfaces that are independent of class implementations, much like Java's `interface` is independent of class implementation.
+
+In summary, coupling is not as terrifying as some claim, and inheritance does not necessarily lead to higher coupling than other approaches.
+
+That concludes our discussion on inheritance and coupling for now; we'll delve deeper next time.
+
+Liang Haiying, August 7, 2001, Beijing

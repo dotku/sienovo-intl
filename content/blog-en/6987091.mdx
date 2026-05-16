@@ -1,0 +1,126 @@
+---
+title: "Summary of const Usage in C/C++"
+date: "2011-11-18"
+slug: "6987091"
+tags: ["#Compiler", "#file", "#Storage", "#Assembly", "#fun"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6987091"
+originalTitle: "c/c++中const用法总结"
+---
+
+Definition of const type: It indicates that the value of a variable or object cannot be updated. Its introduction aims to replace preprocessor directives.
+
+********************Constants must be initialized********************
+
+Purpose of const
+(1) Can define const constants. For example:
+```cpp
+const int Max=100;
+int Array[Max];
+```
+(2) Facilitates type checking. For example:
+```cpp
+void f(const int i) { .........}
+```
+The compiler will know that `i` is a constant and cannot be modified.
+(3) Can protect the modified entity, preventing accidental modification and enhancing program robustness.
+Continuing with the previous example, if `i` is modified within the function body, the compiler will report an error. For example:
+```cpp
+void f(const int i) { i=10;//error! }
+```
+(5) Provides a basis for function overloading.
+```cpp
+class A
+{
+  ......
+  void f(int i)       {......} // A function
+  void f(int i) const {......} // Overload of the previous function
+  ......
+};
+```
+(6) Can save space, avoiding unnecessary memory allocation.
+For example:
+```cpp
+#define PI 3.14159           // Constant macro
+const double Pi=3.14159;     // At this point, Pi is not yet placed in ROM
+......
+double i=Pi;                 // Memory is allocated for Pi at this point, and no more will be allocated later!
+double I=PI;                 // Macro replacement occurs during compilation, allocating memory
+double j=Pi;                 // No memory allocation
+double J=PI;                 // Macro replacement occurs again, allocating memory once more!
+```
+From an assembly perspective, const-defined constants only provide the corresponding memory address, unlike #define which provides an immediate value. Therefore, const-defined constants have only one copy during program execution, whereas #define-defined constants can have multiple copies in memory.
+(7) Improves efficiency.
+Compilers typically do not allocate storage space for ordinary const constants but rather store them in the symbol table. This makes them compile-time constants, eliminating storage and memory read operations, thus making them highly efficient.
+
+Using const
+(1) Modifying general constants, constant arrays, and constant objects
+The `const` qualifier can be placed before or after the type specifier. For example:
+`int const x=2;    or    const int x=2;`
+
+`int const a[5]={1, 2, 3, 4, 5};    or    const int a[5]={1, 2, 3, 4, 5};`
+
+`class A;    const A a;     or     A const a;`
+
+(2) Modifying pointers
+`const int *A;   or   int const *A; // const modifies the pointed-to object, A is mutable, the object A points to is immutable`
+`int *const A;           // const modifies pointer A, A is immutable, the object A points to is mutable`
+`const int *const A;     // Both pointer A and the object A points to are immutable`
+(3) Modifying references
+`const double & v;     // The object referenced by this reference cannot be updated`
+(4) Modifying function return values:
+The `const` qualifier can also modify function return values, making the return value immutable. The format is as follows:
+```cpp
+const int Fun1();
+const MyClass Fun2();
+```
+(5) Modifying class member functions:
+The `const` qualifier can also modify class member functions. The format is as follows:
+```cpp
+class ClassName
+{
+  public:
+    int Fun() const;
+    .....
+};
+```
+This way, when calling the `Fun` function, the data within the class cannot be modified.
+(6) Referencing const constants in another linkage file
+```cpp
+extern const int i;     // Correct reference
+extern const int j=10;  // Error! Constants cannot be reassigned
+```
+
+What are the restrictions on constants placed inside a class?
+
+```cpp
+class A
+{
+  private:
+    const int c3 = 7;         // err
+    static int c4 = 7;        // err
+    static const float c5 = 7; // err
+    ......
+};
+```
+Initializing constants inside a class
+1. Initializer list:
+```cpp
+class A
+{
+  public:
+    A(int i=0):test(i) {}
+  private:
+    const int i;
+};
+```
+2. External initialization, for example:
+```cpp
+class A
+{
+  public:
+    A() {}
+  private:
+    static const int i;
+};
+const int A::i=3;
+```

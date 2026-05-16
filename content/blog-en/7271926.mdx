@@ -1,0 +1,166 @@
+---
+title: "VxWorks Message Queue Example"
+date: "2012-02-19"
+slug: "7271926"
+tags: ["#Task", "#Storage", "#Null"]
+source: "https://blog.csdn.net/yeyuangen/article/details/7271926"
+originalTitle: "Vxworks消息队列例解"
+---
+
+### VxWorks Message Queue Example
+
+###
+Inter-task communication methods in VxWorks include shared memory, semaphores, message queues, and pipes. Regarding semaphores, I published an article on the China Microcontroller World Forum. The link is:
+http://www.mcuw.com/bbs/dispbbs.asp?boardID=26&ID=5267&page=1
+  
+▲ Comparison of Message Queues with Other Methods:  
+
+  
+1. Semaphores are easy to use and can solve many inter-task coordination problems, but the information they convey is limited. Shared memory, while capable of conveying more information, is not standardized. Message queues serve as a compromise for information exchange between threads.  
+
+  
+2. Message queues allow many messages to be queued, and each message can have a different length. In contrast, data in traditional pipes is merely a stream of bytes with no boundaries. Data in VxWorks pipes is composed of messages.  
+
+  
+▲ Message Queue Usage Characteristics:  
+
+  
+Message queues are highly efficient when transferring small data blocks, but less efficient than shared memory for large data transfers. Additionally, message queues cannot specify recipients and do not support broadcast mechanisms, meaning a message sent by one task cannot be received by multiple tasks.  
+
+  
+Using message queues as a communication mechanism for tasks transmitting relatively small amounts of data is ideal and generally does not lead to deadlock issues.  
+
+  
+▲ Types of Message Queues:  
+
+  
+They are divided into Wind-type and POSIX-type. Wind-type is designed specifically for VxWorks, while POSIX-type is for easier portability to other POSIX-compliant operating systems. The respective libraries are:  
+
+  
+`msgQLib` Wind message queue library  
+
+  
+`msgQShow` Wind message queue viewing function library  
+
+  
+`mqPxLib` POSIX message queue library  
+
+  
+`mqPxShow` POSIX message queue viewing function library  
+
+  
+▲ Principle Overview:  
+First, a message queue is created, specifying the maximum number of messages it can hold and the maximum length of each message, which generates a message queue ID (MsgQId). Task A sends a piece of information to the message queue using the `msgQSend()` function. If Task B is waiting for a message in the queue, the sent message is immediately delivered to Task B. Task B has a designated storage area where it stores the received information using `msgQReceive()`. If there are no messages in the queue, Task B, which is waiting for messages, will be blocked and added to the queue of waiting tasks.  
+
+  
+▲ Parameter Description:  
+
+  
+`myMsgQId = msgQCreate (MAX_MSGS, MAX_MSG_LEN, MSG_Q_PRIORITY)`  
+
+  
+`myMsgQId`: Message queue name `MAX_MSGS`: Maximum number of messages  
+
+  
+`MAX_MSG_LEN`: Maximum length of each message. `MSG_Q_PRIORITY`: Attribute. Here, it's priority-based. There's also a FIFO type. This parameter description applies to tasks that need to wait for messages and are blocked. That is, if there are no messages in the message queue, the tasks waiting for messages are blocked, and the arrangement of these blocked tasks is either priority-based or FIFO-based.  
+
+  
+
+  
+
+  
+`msgQSend (myMsgQId, MESSAGE, sizeof (MESSAGE), WAIT_FOREVER,`  
+
+  
+`MSG_PRI_NORMAL)`  
+
+  
+`myMsgQId`: Name of the message queue to send the message to. `MESSAGE`: Message content `sizeof (MESSAGE)`: Message size `WAIT_FOREVER`: Waiting mode `MSG_PRI_NORMAL`: Priority of the sent message. It is divided into normal and urgent types. This priority relates to the order of messages in the message queue: if it's a normal priority, the message is placed at the tail of the queue; if it's urgent, it's placed at the head of the queue.  
+
+  
+
+  
+
+  
+Message Queue Example (adopted from many textbooks, with one modification):  
+
+  
+```c
+#include "vxWorks.h"  
+
+#include "msgQLib.h"  
+
+#define MAX_MSGS (10)  
+
+#define MAX_MSG_LEN (100)  
+
+MSG_Q_ID myMsgQId;  
+
+task2 (void)  
+
+{  
+
+char msgBuf[MAX_MSG_LEN]; // Receive and store message  
+
+if (msgQReceive(myMsgQId, msgBuf, MAX_MSG_LEN, WAIT_FOREVER) == ERROR)  
+
+return (ERROR);  
+
+printf ("Message from task 1:\n%s\n", msgBuf); // Display message content on serial port  
+
+}  
+
+task3 (void)  
+
+{  
+
+char msgBuff[MAX_MSG_LEN];  
+
+  
+
+if (msgQReceive(myMsgQId, msgBuff, MAX_MSG_LEN, WAIT_FOREVER) == ERROR)  
+
+return (ERROR);  
+
+printf ("\n Message from task 1f:\n%s\n", msgBuff); // To test if messages can be received repeatedly  
+
+}  
+
+#define MESSAGE "Greetings from Task 1"  
+
+task1 (void)  
+
+{  
+
+if ((myMsgQId = msgQCreate (MAX_MSGS, MAX_MSG_LEN, MSG_Q_PRIORITY))  
+
+== NULL) // Message queue creation  
+
+return (ERROR);  
+
+if (msgQSend (myMsgQId, MESSAGE, sizeof (MESSAGE), WAIT_FOREVER,  
+
+MSG_PRI_NORMAL) == ERROR)  
+
+return (ERROR);  
+
+}  
+
+void start(void)  
+
+{  
+
+int tGetId,tJudId,tProId;  
+
+tGetId = taskSpawn("tPget",200,0,1000,(FUNCPTR)task1,1,0,0,0,0,0,0,0,0,0);  
+
+tJudId = taskSpawn("tPjud",201,0,1000,(FUNCPTR)task2,3,0,0,0,0,0,0,0,0,0);  
+
+tProId = taskSpawn("tPro",202,0,1000,(FUNCPTR)task3,3,0,0,0,0,0,0,0,0,0);  
+
+}  
+```  
+
+The test result is: only "Message from task 1: Greetings from Task 1" is printed (only one, not two, indicating that once a message is taken from the buffer, it's gone).  
+
+Explanation: If a message is taken from the message queue, other tasks cannot receive it again. If there are multiple messages, they are arranged according to the attribute parameters specified during message queue creation and are read one by one, once. In essence, the entire process in the example above is: Task 1 creates a message queue and puts a message (i.e., a string of data) into it. Then, Task 2 receives the message stored and arranged in the message queue. This message, sent by Task 1, is consumed by Task 2 in a single use and stored in the storage area specified in Task 2's receive function, completing the inter-task communication.

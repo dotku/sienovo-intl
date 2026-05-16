@@ -1,0 +1,18 @@
+---
+title: "Linux Socket Implementation of a Network Chat Room (Part 1): Server and Client Communication"
+date: "2011-08-30"
+slug: "6731962"
+tags: ["#Socket", "#Server", "#Linux", "#Chat", "#Network", "#Struct"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6731962"
+originalTitle: "linux socket实现网络聊天室（一）：服务器和客户端对话"
+---
+
+```cpp
+1.服务器端#include <sys/types.h>#include <sys/socket.h>#include <stdio.h>#include <stdlib.h>#include <errno.h>#include <string.h>#include <unistd.h>#include <netinet/in.h>#define SERVPORT 3333#define BACKLOG 10#define MAX_CONNECTED_NO 10#define MAXDATASIZE 5 int main(){	struct sockaddr_in server_sockaddr,client_sockaddr;	int sin_size,recvbytes;	int sockfd,client_fd;	char buf[MAXDATASIZE];/* Create socket */	if((sockfd = socket(AF_INET,SOCK_STREAM,0))==-1){		perror("socket");		exit(1);	}	printf("socket success!,sockfd=%d\n",sockfd);/* Set up server sockaddr_in structure */	server_sockaddr.sin_family=AF_INET;	server_sockaddr.sin_port=htons(SERVPORT);	server_sockaddr.sin_addr.s_addr=INADDR_ANY;	bzero(&(server_sockaddr.sin_zero),8);/* Bind socket and port */	if(bind(sockfd,(struct sockaddr *)&server_sockaddr,sizeof(struct sockaddr))==-1){		perror("bind");		exit(1);	}	printf("bind success!\n");/* Listen for client requests */	if(listen(sockfd,BACKLOG)==-1){		perror("listen");		exit(1);	}	printf("listening....\n");/* Accept client request */	if((client_fd=accept(sockfd,(struct sockaddr *)&client_sockaddr,&sin_size))==-1){		perror("accept");		exit(1);	}/* Receive client message */	if((recvbytes=recv(client_fd,buf,MAXDATASIZE,0))==-1){		perror("recv");		exit(1);	} 	printf("received a connection :%s\n",buf);/* Close socket */	close(sockfd);}2.客户端#include <stdio.h>#include <stdlib.h>#include <errno.h>#include <string.h>#include <netdb.h>#include <sys/types.h>#include <netinet/in.h>#include <sys/socket.h>#define SERVPORT 3333#define MAXDATASIZE 100main(int argc,char *argv[]){	int sockfd,sendbytes;	char buf[MAXDATASIZE];	struct hostent *host;	struct sockaddr_in serv_addr;/* If argc < 2, it means no hostname was entered. The hostname should be in IP address format, e.g., "192.168.1.1" */	if(argc < 2){		fprintf(stderr,"Please enter the server's hostname!\n");		exit(1);	}/* Get hostname, address resolution function */	if((host=gethostbyname(argv[1]))==NULL){		perror("gethostbyname");		exit(1);	}/* Create socket */	if((sockfd=socket(AF_INET,SOCK_STREAM,0))==-1){		perror("socket");		exit(1);	}/* Set serv_addr structure parameters */	serv_addr.sin_family=AF_INET;	serv_addr.sin_port=htons(SERVPORT);	serv_addr.sin_addr=*((struct in_addr *)host->h_addr);	bzero(&(serv_addr.sin_zero),8);/* Request connection to the server; serv_addr is the server's address */	if(connect(sockfd,(struct sockaddr *)&serv_addr,\		sizeof(struct sockaddr))==-1){		perror("connect");		exit(1);	}/* Send message to the server; "hello" should be visible on the server side */	if((sendbytes=send(sockfd,"hello",5,0))==-1){		perror("send");		exit(1);	}/* Close connection */	close(sockfd);} 
+```
+
+II. Compilation Steps
+
+```cpp
+#gcc server.c -o server#./server                       // The server is now listening#gcc client.c -o client#./client 172.31.100.236        // The client sends "hello" to the server, and the server's listening terminates
+```

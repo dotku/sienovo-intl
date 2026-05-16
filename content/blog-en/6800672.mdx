@@ -1,0 +1,262 @@
+---
+title: "Difference Between .c and .h Files (The Relationship Between Header Files and Implementation Files)"
+date: "2011-09-22"
+slug: "6800672"
+tags: ["#Compiler", "#Include", "#C", "#Language", "#Work", "#Makefile"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6800672"
+originalTitle: ".c和.h文件的区别（头文件与之实现文件的的关系~ ）"
+---
+
+[**Difference Between .c and .h Files**](http://blog.163.com/xiaotu_sh2008/blog/static/683125962009103045557443)  
+
+A simple question: What is the difference between .c and .h files?  
+After studying C for several months, I feel more and more confused. Subroutines can be defined either in a .c file or in a .h file — so what exactly is the difference in usage between these two?
+
+Reply #2:  
+Do not define subroutines in .h files.  
+Function definitions should be placed in .c files, while .h files should only contain declarations. Otherwise, if included multiple times, it will lead to errors due to duplicate function definitions.
+
+Reply #3:  
+.h files are for declarations only and do not generate code after compilation.
+
+Reply #4:  
+The purpose is to achieve software modularity, making the software structure clear and also easier for others to use your code.
+
+From a pure C language syntax perspective, you can technically place anything in a .h file, because `#include` is completely equivalent to copying and pasting the content of the .h file directly into the .c file.
+
+.h files should contain macros, variable and function declarations — they tell others "what your program can do and how to use it."  
+.c files contain the actual definitions of variables and functions — they tell the computer "how your program is implemented."
+
+Reply #5:  
+Of course, if a .h file is included by multiple .c files  
+and the .h file contains definitions of entities (variables or functions), duplicate definition errors will occur.  
+Declarations can appear any number of times, but definitions must be unique.
+
+Reply #6:  
+Generally speaking, a C file should represent a module.  
+If your program consists of only one module (a single C file), you may not need a header file at all.
+
+Otherwise, your module is clearly not independent and its implementation needs to be called by other modules. In this case, you should create a header file (H file) to declare which functions are public. Once other modules include your header file, they can use these public declarations.
+
+Reply #7:  
+One C file corresponds to one H file — this makes management easier.  
+For example, if you have a "feed\_dog.c", you should also create a "feed\_dog.h":
+
+#ifndef \_feed\_dog\_h  
+#define \_feed\_dog\_h
+
+extern void feed\_dog(void);
+
+#endif
+
+Actually, it doesn't matter if you write function bodies in H files — it's just not conventional. As long as you follow the above format, you can include the H file as many times as needed, hehe.
+
+**Reply #8:**  
+It's just a convention.  
+The compiler itself makes no distinction between .c and .h files. How you use .c and .h files is entirely up to the programmer. However, to ensure your code remains readable (to yourself and others) in the future, please follow common conventions — which have already been well explained by others above.  
+It's like driving on the right side of the road: it's a human-defined rule. The car (compiler) itself doesn't know whether it's driving on the left or right.  
+If you prefer, you could even use arbitrary extensions for source and header files, but doing so might cause your integrated development and debugging environment to fail, forcing you to write your own makefile.
+
+**Reply #9:**  
+Thank you all very much, but I'm getting even more confused now:  
+1. When a function is used frequently (e.g., by a dozen C files), I usually put it in the H file and prefix it with `__inline`. For `__inline` functions, many C files can include this H file, but it seems only one H file can include it — if two H files include it, compilation errors occur.  
+2. Some array variables can be as large as十几K (tens of kilobytes) and require initial values, so I don't put them in C files — otherwise, it becomes too confusing.  
+3.  
+#ifndef \_feed\_dog\_h  
+#define \_feed\_dog\_h
+
+extern void feed\_dog(void);
+
+#endif  
+Brother Mohanwei, does this mean that feed\_dog.h can be included an unlimited number of times?
+
+**Reply #11:**  
+#ifndef \_feed\_dog\_h // If the macro "\_feed\_dog\_h" has not been defined yet  
+#define \_feed\_dog\_h // Then define the macro "\_feed\_dog\_h"
+
+extern void feed\_dog(void); // Declare an external function
+
+#endif // End of "#ifndef"
+
+Therefore, no matter how many times you include it (even multiple times in the same C file), conflicts will not occur.
+
+An article found online about .H and .C files — quite helpful, sharing it with everyone.
+
+In simple terms:  
+To understand the difference between C files and header files, you first need to understand how a compiler works. Generally, the compiler performs the following steps:  
+1. Preprocessing phase  
+2. Lexical and syntactic analysis phase  
+3. Compilation phase: first convert to pure assembly code, then assemble into CPU-specific binary code, generating individual object files  
+4. Linking phase: perform absolute address relocation on code segments from various object files to generate a platform-specific executable file. Optionally, `objcopy` can be used to generate pure binary code, stripping away file format information.
+
+The compiler works on a per-C-file basis. This means if your project contains no C files at all, it cannot be compiled. The linker works on object files, relocating functions and variables across one or more object files to generate the final executable. In PC-based software development, there is usually a `main` function, which is a convention across compilers. Of course, if you write your own linker script, you don't have to use `main` as the entry point!
+
+With this background, let's return to the topic. To generate a final executable, you need some object files — hence you need C files. Among these C files, one must contain the `main` function as the program entry point. Let's start with a single C file. Suppose its content is:
+
+#include <stdio.h>  
+#include "mytest.h"
+
+int main(int argc,char \*\*argv)  
+{  
+ test = 25;  
+ printf("test.................%d\\n",test);  
+}
+
+And the header file content is:  
+int test;
+
+Now, let's walk through how the compiler processes this example:  
+1. **Preprocessing phase**: The compiler treats each C file as a unit. It reads the C file and finds the first two lines include header files. It searches all include paths for these files. Once found, it processes macros, variables, function declarations, and nested includes in the headers, checks dependencies, performs macro substitution, and detects duplicate definitions or declarations. Finally, it effectively merges all content from the included files into the current C file, forming an intermediate "C file."
+
+2. **Compilation phase**: In the previous step, the `test` variable from the header file is effectively merged into the intermediate C file, making `test` a global variable in this file. The compiler then allocates memory for all variables and functions, compiles functions into binary code, and generates an object file in a specific format. This object file contains symbol descriptions for global variables and functions, and organizes the binary code according to the target file standard.
+
+3. **Linking phase**: The linker takes the object files generated in the previous step and, based on certain parameters, combines them into the final executable. Its main task is to relocate functions and variables across object files — essentially merging their binary code into a single file according to specific rules.
+
+Now, returning to the question of what should go in C files versus header files:  
+Theoretically, anything supported by the C language can go in either .c or .h files. For example, you can write a function body in a header file. As long as some C file includes this header, the function will be compiled as part of that object file (since compilation is per C file, if no C file includes the header, the code is effectively dead). You can also place function declarations, variable declarations, or struct declarations in C files — no problem! So why do we separate code into header and C files? And why do we generally place function and variable declarations, macros, and struct declarations in headers, while definitions and implementations go in C files? The reasons are:
+
+1. If a function body is implemented in a header file and that header is included by multiple C files, each C file that includes it will generate a copy of the function in its object file. If the function is not declared static (local), the linker will encounter multiple identical functions and report an error.
+
+2. If a global variable is defined in a header file and initialized, then every C file that includes this header will have a copy of this variable. Since it has an initial value, the compiler places it in the DATA segment. During linking, multiple instances of the same variable will exist in the DATA segment, and the linker cannot merge them into a single variable (i.e., allocate only one storage space). However, if the variable is not initialized, the compiler places it in the BSS segment, and the linker will merge multiple instances of the same variable in BSS into a single storage location.
+
+3. If macros, structs, or functions are declared in a C file, then to use them in another C file, you must repeat the declaration. If you modify a declaration in one C file but forget to update others, serious bugs can occur, making program logic unpredictable. By placing these common elements in a single header file, any C file that needs them can simply include the header — much more convenient. When you need to change a declaration, you only need to modify the header file.
+
+4. Declaring structs, functions, etc., in header files allows you to package your code into a library for others to use without revealing the source code. How can others use your library functions? One way is to publish the source code, but another is to provide only the header file. Users can see your function prototypes in the header and know how to call them — just like using `printf`. How do you know its parameters? By looking at the declarations in its header file! Of course, these have become part of the C standard, so even without checking headers, you may already know how to use them.
+
+What is the difference between ".h" and ".c" files in source code?  
+In a source code project, I see both udp.h and udp.c files — what's the relationship between them? What's the difference? Any experts care to help? Thanks!
+
+Best answer: .c files are C source files, stored in text format, while .h files are header files — they contain function and global variable declarations in C. Since C functions are encapsulated, their implementation code is not visible.
+
+**The Relationship Between Header Files and Implementation Files**  
+Today I came across an online article explaining .h and .c (.cpp) files. After reading it, I found some parts misleading, so I'd like to provide some guidance based on my understanding — especially for beginners.  
+Do you understand the basic meaning?  
+To understand the relationship between the two, we need to go back many years — long long ago, once upon a time...  
+It was a forgotten era when compilers only recognized .c (.cpp) files and had no idea what a .h file was.  
+People wrote many .c (.cpp) files and gradually noticed that the same declaration statements were repeated across many files. Yet they had to painstakingly retype them in every .c (.cpp) file. Worse, when a declaration changed, they had to manually search and update every file — a true apocalypse!  
+Finally, someone (or some people) could no longer endure this and extracted the repeated parts into a new file. Then, in any .c (.cpp) file that needed them, they added `#include XXXX`. Now, when a declaration changed, they only needed to update one file — and peace was restored!  
+Because this new file was typically placed at the top of .c (.cpp) files, it was called a "header file," with the extension .h.  
+From then on, compilers (actually preprocessors) learned that besides .c (.cpp) files, there were also .h files and a `#include` directive.
+
+Although many changes have occurred since, this practice continues to this day — though over time, people have largely forgotten its origins.
+
+Now that we've mentioned header files, let's discuss their roles.  
+I recall Lin Rui's concise description from *High-Quality C/C++ Programming*:  
+(1) Use header files to access library functionality. In many cases, source code cannot or must not be disclosed to users. Providing only header files and binary libraries is sufficient. Users can call library functions based on the interface declarations in the header, without needing to know the implementation details. The compiler extracts the appropriate code from the library.  
+(2) Header files enhance type safety. If an interface is implemented or used in a way inconsistent with its declaration in the header, the compiler will flag an error. This simple rule greatly reduces debugging and error-fixing effort.
+
+Preprocessing is the compiler's precursor, responsible for combining program modules stored in different files into a complete source program.  
+`#include` is merely a simple file inclusion preprocessor command — it inserts the content of the specified file at that location. Other than that, it has no other purpose (at least that's my understanding).
+
+I fully agree with Brother Qiankun Yixiao's view — foundational concepts must be clearly understood.  
+I'll now expand on his example to clarify some confusing points.
+
+Example:  
+//a.h  
+void foo();
+
+//a.c  
+#include "a.h"  // My question: Is this line necessary or not?  
+void foo()  
+{  
+    return;  
+}
+
+//main.c  
+#include "a.h"  
+int main(int argc, char \*argv\[\])  
+{  
+   foo();  
+ 　return 0;  
+}
+
+For the above code, answer three questions:  
+Is the `#include "a.h"` in a.c redundant?  
+1. Why do we often see xx.c including its corresponding xx.h?  
+2. If a.c does not include it, will the compiler automatically bind the contents of the .h file with the同名 .c file?  
+3. I'll rephrase the third question: If a.c does not include the .h file, will the compiler automatically bind the contents of the .h file with the同名 .c file?
+
+Here is Qiankun Yixiao's original explanation:
+
+From the C compiler's perspective, .h and .c files are irrelevant — you could rename them to .txt or .doc with little consequence. In other words, there is no inherent connection between .h and .c files. .h files typically contain declarations of variables, arrays, and functions defined in the同名 .c file — declarations that need to be accessible outside the .c file. What's the purpose of these declarations? Simply to make it convenient for other code to reference them. The `#include "xx.h"` directive literally means "remove this line and insert the entire content of xx.h here." Since many places need these function declarations (every place that calls functions from xx.c must declare them beforehand), using `#include "xx.h"` saves many lines of code — letting the preprocessor do the replacement. In short, xx.h exists only to save keystrokes for places that need to declare functions from xx.c. Whether the file that includes this .h is a .h, a .c, or the同名 .c file, there is no necessary relationship.  
+You might say: "Wait — if I only want to call one function from xx.c, but I include the entire xx.h, doesn't that bring in many useless declarations?" Yes, indeed, it introduces some "garbage." But it saves you effort and keeps the code cleaner. You can't have both fish and bear's paws — that's the trade-off. Anyway, extra declarations (since .h files usually contain only declarations, not definitions — see my article "Crossing the Road, Look Left and Right") do no harm and don't affect compilation — so why not?
+
+Now, revisiting the three questions above — are they easier to answer?
+
+His answers:  
+Answer: 1. Not necessarily. In this example, it's clearly redundant. But if functions in .c need to call other functions in the same .c file, including the同名 .h at the top avoids issues with declaration and call order (C requires declarations before use, and including the同名 .h at the beginning of the .c file solves this). Many projects even adopt this as a coding standard to ensure clean, readable code.  
+2. Answered in 1.  
+3. No. Anyone asking this question lacks clear understanding — or is trying to confuse things. It's extremely annoying that many Chinese exams include such poor-quality questions, seemingly designed only to confuse students.
+
+Over!
+
+One key point must be clarified: compilers work on compilation units. A compilation unit consists of a .c file and all .h files it includes. Intuitively, it's one file. A project can contain many files, one of which is the entry point — typically `main()` (though it's possible to have no such function and still run the program — see my blog). Without an entry point, the compilation unit only generates an object file (.o on Unix, .obj on Windows).
+
+This example contains two compilation units: a.c and main.c. During the compilation phase, each generates its own .o file independently, without interaction with other files.  
+The `#include` preprocessor directive is handled during the preprocessing phase — which occurs before actual compilation and is handled by a preprocessor.
+
+.h and .c files aren't entirely "irrelevant" — discussing them without considering the compiler is meaningless. Going deeper — such as how the OS loads the file, PE format (ELF on Linux), etc. — the compiler must first recognize the file to compile it. That's the prerequisite. If you change the extension, will the compiler still recognize it? At a higher level, Brother XX's point is valid — he means that just because two files have the same name doesn't imply a technical relationship; names are arbitrary.  
+The connection between them, as I mentioned earlier, is historical and habitual. Who wants to remember dozens of different filenames? (Take me as an example — if a data table has more than 30 fields, my head spins. Now some tables have over a hundred fields. I really hope someone invents a better method to make our world a better place.)
+
+Qiankun Yixiao's third question is very representative — it appears frequently online. Modern compilers are absolutely not that intelligent, nor is there any need for them to be. Let's now discuss the compiler's processing flow (this is likely where beginners have doubts — lack of understanding of how .h and .c (.cpp) files change during compilation).
+
+Let me give a simple example:  
+//a.h  
+class   A  
+{  
+public:  
+      int   f(int   t);  
+};
+
+//a.cpp  
+#include   "a.h"  
+int   A::f(int   t)  
+{  
+    return   t;  
+}
+
+//main.cpp  
+#include   "a.h"  
+void   main()  
+{  
+      A   a;  
+      a.f(3);  
+}  
+During preprocessing, when the preprocessor sees `#include "filename"`, it reads that file in. For example, when compiling main.cpp and encountering `#include "a.h"`, it reads the content of a.h. It now knows there is a class A with a member function f that takes an int parameter and returns an int. Proceeding further, it understands `A a` — creating an object of class A on the stack. Then it sees a call to A's member function f with parameter 3. Since it knows f expects an integer, and 3 matches, it places 3 on the stack and generates a call instruction (typically a `call`). It doesn't know where f is implemented — it leaves that blank to be resolved at link time. It also knows f returns an int, so it may prepare for that (though in this example, we don't use the return value, so it may ignore it). Reaching the end, main.cpp is compiled, producing main.obj. Throughout this process, it never needs to know the content of a.cpp.  
+Similarly, the compiler compiles a.cpp, generating the f() function and producing a.obj.  
+Finally, the linker combines all .obj files generated from the project's .cpp files.  
+At this stage, it locates the actual address of the f(int) function and fills in the blank address in main.obj. The final executable, main.exe, is produced.
+
+Clear now? If not, let me explain further. When we study compiler principles, we know compilers work in phases, transforming the source program from one representation to another. Typically: source -> lexer -> parser -> semantic analyzer -> intermediate code generator -> optimizer -> code generator -> target program.  
+Among these, two key components involved in most phases are the symbol table and error handler.  
+Ultimately, it's the symbol table that causes confusion. The symbol table is a data structure. A fundamental task of the compiler is to record identifiers used in the source and collect attribute information for each — such as storage location, type, scope (where it's valid), etc. Simply put, when the compiler sees a symbol declaration (e.g., a function name), it registers it in the symbol table, storing information like entry address, number of parameters, return type, etc. The linking phase mainly resolves symbol references across files — what we commonly call "dereferencing."  
+After all this, is it clearer?
+
+Finally, quoting Brother XXX's concluding three points:  
+Understanding syntax and concepts can be easy or hard. Three tips:  
+1. Don't work blindly — take time to think, reflect, and read.  
+2. Read good books and ask knowledgeable people. Bad books and weak programmers give you wrong concepts and mislead you.  
+3. Diligence compensates for lack of talent — hard work brings results.
+
+If you think .c and .h files differ only in name, your understanding is too shallow. Looking at language evolution from procedural to object-oriented, header files resemble classes in some ways. Header files offer better encapsulation — this is easy to see. Just open any standard C library .h file — the pattern is obvious. So I agree with Brother XXX that Qiankun Yixiao's view is superficial.
+
+But from another perspective:
+
+(As for compiler implementation, I'm not fully informed. But I believe)  
+//a.cpp  
+#include "a.h"  
+int A::f(int t)  
+{  
+return t;  
+}  
+programs like this probably don't exist... hehe. So modern developers simplifying .h and .c usage is also influenced by history and era.
+
+I'm not very bright, but after reading several times, I finally got it.  
+Now summarizing (please correct me if wrong):
+
+1. Header files can pre-inform the compiler of necessary declarations, allowing smooth compilation even before actual definitions appear.  
+The significance of header files lies in:  
+a. Making programs concise and clear.  
+b. Avoiding redundant declaration code.  
+2. There is no inherent connection between \*\*.c and \*\*.h files.  
+This article is from CSDN Blog. Please credit the source: [http://blog.csdn.net/bm1408/archive/2006/02/22/606382.aspx](http://blog.csdn.net/bm1408/archive/2006/02/22/606382.aspx)

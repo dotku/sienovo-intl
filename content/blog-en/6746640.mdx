@@ -1,0 +1,101 @@
+---
+title: "Differences between Heap and Stack (A Frequently Reposted Article)"
+date: "2011-09-04"
+slug: "6746640"
+tags: ["#DataStructures", "#Compiler", "#Windows", "#Byte", "#Storage", "#Extension"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6746640"
+originalTitle: "堆和栈的区别（转过无数次的文章）"
+---
+
+I. Preliminary Knowledge - Program Memory Allocation
+A program compiled in C/C++ occupies memory divided into the following parts:
+1. Stack Area (stack) — Automatically allocated and deallocated by the compiler, used to store function parameters, local variable values, etc. Its operation is similar to a stack in data structures.
+2. Heap Area (heap) — Generally allocated and deallocated by the programmer. If the programmer does not deallocate it, it might be reclaimed by the OS when the program ends. Note that it is different from a heap in data structures; its allocation method is more similar to a linked list, haha.
+3. Global/Static Area (static) — Global variables and static variables are stored together. Initialized global and static variables are in one area, while uninitialized global and static variables are in an adjacent area. - Released by the system after the program ends.
+4. Literal Constant Area — Constant strings are stored here. Released by the system after the program ends.
+5. Program Code Area — Stores the binary code of function bodies.
+
+II. Example Program
+This was written by a senior, very detailed.
+```c++
+//main.cpp
+int a = 0; // Global Initialized Area
+char *p1; // Global Uninitialized Area
+main()
+{
+int b; // Stack
+char s[] = "abc"; // Stack
+char *p2; // Stack
+char *p3 = "123456"; // "123456\0" is in the constant area, p3 is on the stack.
+static int c =0； // Global (Static) Initialized Area
+p1 = (char *)malloc(10);
+p2 = (char *)malloc(20);
+// The allocated 10 and 20-byte areas are in the heap.
+strcpy(p1, "123456"); // "123456\0" is placed in the constant area. The compiler might optimize it to share the same location as "123456" pointed to by p3.
+}
+```
+
+II. Theoretical Knowledge of Heap and Stack
+2.1 Allocation Method
+Stack: Automatically allocated by the system. For example, when declaring a local variable `int b;` within a function, the system automatically allocates space for `b` on the stack.
+Heap: Requires the programmer to explicitly request and specify the size, using the `malloc` function in C.
+E.g., `p1 = (char *)malloc(10);`
+In C++, using the `new` operator.
+E.g., `p2 = new char[10];`
+However, note that `p1` and `p2` themselves are on the stack.
+
+2.2 System Response After Allocation
+Stack: As long as the remaining stack space is greater than the requested space, the system will provide memory for the program; otherwise, an exception will be reported, indicating a stack overflow.
+Heap: First, it's important to know that the operating system maintains a linked list of free memory addresses. When the system receives a program's request, it traverses this linked list to find the first heap node whose space is greater than the requested space. It then removes this node from the free node linked list and allocates its space to the program. Additionally, for most systems, the size of this allocation is recorded at the starting address of this memory block, so that `delete` statements in the code can correctly free this memory space. Furthermore, since the size of the found heap node may not exactly match the requested size, the system automatically returns the excess portion to the free linked list.
+
+2.3 Allocation Size Limits
+Stack: In Windows, the stack is a data structure that grows towards lower addresses and is a contiguous memory region. This means that the stack top address and maximum stack capacity are predetermined by the system. In Windows, the stack size is 2MB (some say 1MB, but it's a compile-time constant). If the requested space exceeds the remaining stack space, an overflow will be reported. Therefore, the space obtainable from the stack is relatively small.
+Heap: The heap is a data structure that grows towards higher addresses and is a non-contiguous memory region. This is because the system stores free memory addresses using a linked list, which is naturally non-contiguous, and the linked list is traversed from lower to higher addresses. The size of the heap is limited by the effective virtual memory in the computer system. Thus, the space obtained from the heap is more flexible and larger.
+
+2.4 Comparison of Allocation Efficiency:
+Stack is automatically allocated by the system, which is faster. However, programmers have no control over it.
+Heap memory is allocated by `new` (or `malloc`), which is generally slower and prone to memory fragmentation, but it is the most convenient to use.
+Additionally, in Windows, the best way is to allocate memory using `VirtualAlloc`. This is neither on the heap nor the stack; it directly reserves a block of memory in the process's address space. Although it's the least convenient to use, it offers high speed and maximum flexibility.
+
+2.5 Contents Stored in Heap and Stack
+Stack: During a function call, the first item pushed onto the stack is the address of the next instruction after the function call statement in the main function (the next executable statement). Then, the function's parameters are pushed; in most C compilers, parameters are pushed from right to left. Finally, local variables within the function are pushed. Note that static variables are not pushed onto the stack.
+When the current function call ends, local variables are popped first, then parameters, and finally the stack pointer points to the address stored at the very beginning, which is the next instruction in the main function, and the program resumes execution from that point.
+Heap: Generally, one byte at the beginning of the heap is used to store the size of the heap block. The specific contents within the heap are arranged by the programmer.
+
+2.6 Comparison of Access Efficiency
+```c++
+char s1[] = "aaaaaaaaaaaaaaa";
+char *s2 = "bbbbbbbbbbbbbbbbb";
+```
+`aaaaaaaaaaa` is assigned at runtime;
+whereas `bbbbbbbbbbb` is determined at compile time;
+However, in subsequent access, arrays on the stack are faster than strings pointed to by pointers (e.g., on the heap).
+For example:
+```c++
+#include
+void main()
+{
+char a = 1;
+char c[] = "1234567890";
+char *p ="1234567890";
+a = c[1];
+a = p[1];
+return;
+}
+```
+Corresponding assembly code:
+```assembly
+10: a = c[1];
+00401067 8A 4D F1 mov cl,byte ptr [ebp-0Fh]
+0040106A 88 4D FC mov byte ptr [ebp-4],cl
+11: a = p[1];
+0040106D 8B 55 EC mov edx,dword ptr [ebp-14h]
+00401070 8A 42 01 mov al,byte ptr [edx+1]
+00401073 88 45 FC mov byte ptr [ebp-4],al
+```
+In the first case, the element from the string is directly read into the `cl` register. In the second case, the pointer value must first be read into `edx`, and then the character is read based on `edx`, which is clearly slower.
+
+2.7 Summary:
+The differences between heap and stack can be illustrated with the following analogy:
+Using the stack is like going to a restaurant: you just order (make a request), pay, and eat (use). Once you're full, you leave, without needing to worry about preparation work like chopping vegetables or washing dishes, or cleanup work like washing bowls and scrubbing pots. Its advantage is speed, but with less flexibility.
+Using the heap is like cooking your favorite dishes yourself: it's more troublesome, but it better suits your taste and offers greater flexibility. (Classic!)

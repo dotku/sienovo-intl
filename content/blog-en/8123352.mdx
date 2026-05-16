@@ -1,0 +1,96 @@
+---
+title: "Detecting a Cycle in a Singly Linked List"
+date: "2012-10-29"
+slug: "8123352"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/8123352"
+originalTitle: "判断单链表是否有环"
+---
+
+1. How to determine if a linked list has a cycle? 2. If a linked list has a cycle, how do you find the entry point of the cycle?
+
+Solution:
+
+I. Detecting if a Linked List Has a Cycle, the method is as follows:
+
+Set two pointers (fast, slow), both initially pointing to the head. The `slow` pointer advances one step at a time, and the `fast` pointer advances two steps at a time. If the linked list contains a cycle, the `fast` pointer will inevitably enter the cycle first, followed by the `slow` pointer, and the two pointers will eventually meet. (Of course, if the `fast` pointer reaches NULL at the end of the list, then it's a cycle-free linked list). The code is as follows:
+
+```c
+bool IsExitsLoop(slist *head) {
+    slist *slow = head, *fast = head;
+    while ( fast && fast->next )
+    {
+        slow = slow->next;
+        fast = fast->next->next;
+        if ( slow == fast ) break;
+    }
+    return !(fast == NULL || fast->next == NULL);
+}
+```
+
+II. Finding the Entry Point of the Cycle
+
+When `fast` and `slow` meet, `slow` has certainly not traversed the entire linked list (see Note 1), while `fast` has already cycled `n` times within the loop (1 <= n). Assume `slow` has moved `s` steps, then `fast` has moved `2s` steps (the number of steps `fast` took is also `s` plus `n` additional turns around the cycle). Let the cycle length be `r`. Then:
+
+　`2s = s + nr`
+　`s = nr`
+
+Let the total length of the linked list be `L`, the distance from the cycle entry point to the meeting point be `x`, and the distance from the start to the cycle entry point be `a`.
+　`a + x = nr`
+　`a + x = (n – 1)r + r = (n-1)r + L - a`
+　`a = (n-1)r + (L – a – x)`
+
+`(L – a – x)` is the distance from the meeting point to the cycle entry point. From this, we can deduce that the distance from the head of the linked list to the cycle entry point is equal to `(n-1)` full cycles plus the distance from the meeting point to the cycle entry point. Therefore, if we set one pointer at the head of the linked list and another at the meeting point, and both advance one step at a time, the two pointers will inevitably meet, and their first meeting point will be the cycle entry point. The code is as follows:
+
+```c
+slist* FindLoopPort(slist *head) {
+    slist *slow = head, *fast = head;
+    while ( fast && fast->next )
+    {
+        slow = slow->next;
+        fast = fast->next->next;
+        if ( slow == fast ) break;
+    }
+    if (fast == NULL || fast->next == NULL)
+        return NULL;
+    slow = head;
+    while (slow != fast)
+    {
+        slow = slow->next;
+        fast = fast->next;
+    }
+    return slow;
+}
+```
+
+Extended Problem:
+
+Determine if two singly linked lists intersect. If they do, find their first intersection point (assume neither linked list has a cycle).
+
+There are two relatively good methods:
+
+I. Connect the tail of one linked list to its head, then check if the other linked list contains a cycle. If a cycle is detected, the two linked lists intersect, and the detected cycle entry point is the first intersection point.
+
+II. If two linked lists intersect, then from the intersection point to the end of both lists, they share the same nodes. We can first traverse one linked list to its tail, then traverse the other linked list. If it also reaches the same tail node, then the two linked lists intersect.
+
+At this point, we record the lengths of both linked lists. Then, traverse again: the pointer on the longer list advances `(lengthMax - lengthMin)` steps first. After that, both pointers advance one step at a time simultaneously. Their first meeting point will be the first intersection point of the two linked lists.
+
+Note 1
+
+Let `r` be the length of the cycle. The `fast` pointer can complete a full circle within `r/2` steps. If `r` is odd, `fast` will traverse all points within the cycle within `r` steps, and will definitely meet `slow` within `r` steps. If `r` is even, within `r/2` steps, the closest distance between `fast` and `slow` can become 2 or 1 (`f` chasing `s`). If it's 2, then
+
+　　　　　　　　　　`fast + 2 = slow`
+
+So, in the next step, `slow`'s position will be `slow + 1`; and `fast`'s will be `fast + 2`;
+
+In the step after that, `slow + 2`, `fast + 4`;
+
+Because `fast + 2 = slow` previously, therefore
+
+　　　　　　　　　`slow - 2 + 4 = slow + 2`
+
+And because when the closest distance is 1, the two pointers will meet after each takes one step.
+
+Therefore, the two pointers will meet. The maximum number of steps `s <= r/2 + 2` (`r >= 4`).
+
+Note: This commentary section was added by me and is for reference only. Please excuse any errors.

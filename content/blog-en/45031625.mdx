@@ -1,0 +1,58 @@
+---
+title: "Explaining the Socket send and recv Functions from a Protocol Perspective"
+date: "2015-04-13"
+slug: "45031625"
+tags: ["#Networking", "#SocketDev", "#TCPIP"]
+source: "https://blog.csdn.net/yeyuangen/article/details/45031625"
+originalTitle: "Socket send函数和recv函数协议角度解释"
+---
+
+##   
+
+### 1. send Function  
+
+**int send(SOCKET s, const char FAR \*buf, int len, int flags);**  
+
+Both client and server applications use the send function to transmit data to the other end of a TCP connection. Typically, client programs use send to send requests to the server, while servers use send to send responses back to clients.
+
+The first parameter of this function specifies the sending socket descriptor;  
+The second parameter points to a buffer containing the application data to be sent;  
+The third parameter indicates the number of bytes of data to actually send;  
+The fourth parameter is usually set to 0.
+
+Here, we only describe the execution flow of the send function for synchronous sockets. When this function is called:
+
+(1) send first compares the length of data to be sent (`len`) with the size of the socket `s`'s send buffer. If `len` is greater than the send buffer size, the function returns `SOCKET_ERROR`;  
+
+(2) If `len` is less than or equal to the send buffer size, send checks whether the protocol is currently transmitting data already in the socket's send buffer. If so, it waits for the protocol to finish sending the data. If the protocol hasn't started sending or there's no data in the send buffer, send then compares the available space in the send buffer with `len`;  
+
+(3) If `len` is greater than the available space, send waits until the protocol has transmitted the existing data in the send buffer;  
+
+(4) If `len` is less than or equal to the available space, send simply copies the data from `buf` into the available space in the send buffer (**note: send does not directly transmit the data to the other end of the connection — that is handled by the protocol. send only copies the data from `buf` into the available space in the socket's send buffer**).
+
+If the copy operation is successful, send returns the number of bytes actually copied. If an error occurs during the copy, send returns `SOCKET_ERROR`. If the network disconnects while send is waiting for the protocol to transmit data, send also returns `SOCKET_ERROR`.
+
+**Note: After send successfully copies the data from `buf` into the available space of the socket's send buffer, it immediately returns. However, this data may not be immediately transmitted to the other end of the connection.** If a network error occurs during the subsequent transmission by the protocol, the next socket function call will return `SOCKET_ERROR`. (Every socket function except send first waits for the data in the socket's send buffer to be completely transmitted by the protocol before proceeding. If a network error occurs during this wait, the socket function returns `SOCKET_ERROR`.)
+
+Note: On Unix systems, if the network disconnects while send is waiting for the protocol to transmit data, the calling process receives a `SIGPIPE` signal. The default action for this signal is to terminate the process.
+
+Testing shows that for asynchronous sockets, the send function may still return a valid byte count immediately after a network disconnection, and `select` may still indicate the socket is writable. However, after a few seconds, further send calls will fail and return -1, and `select` will no longer detect the socket as writable.
+
+### 2. recv Function  
+
+**int recv(SOCKET s, char FAR \*buf, int len, int flags);**  
+
+Both client and server applications use the recv function to receive data from the other end of a TCP connection. The first parameter specifies the receiving socket descriptor;  
+The second parameter points to a buffer where the received data will be stored;  
+The third parameter specifies the length of `buf`;  
+The fourth parameter is usually set to 0.
+
+Here, we only describe the execution flow of the recv function for synchronous sockets. When an application calls recv:
+
+(1) recv first waits for any data in socket `s`'s send buffer to be completely transmitted by the protocol. If a network error occurs during this transmission, recv returns `SOCKET_ERROR`;  
+
+(2) Once there is no data left in `s`'s send buffer or the data has been successfully transmitted, recv checks the socket's receive buffer. If the receive buffer is empty or the protocol is still receiving data, recv waits until the protocol has finished receiving. Once the data is fully received, recv copies the data from the socket's receive buffer into `buf` (**note: the data received by the protocol may be larger than the size of `buf`, so in such cases, multiple recv calls may be required to completely copy all data from the receive buffer. recv only performs the data copy — actual data reception is handled by the protocol**).
+
+recv returns the number of bytes actually copied. If an error occurs during the copy, recv returns `SOCKET_ERROR`. If the network disconnects while recv is waiting for the protocol to receive data, recv returns 0.
+
+Note: On Unix systems, if the network disconnects while recv is waiting for the protocol to receive data, the calling process receives a `SIGPIPE` signal, whose default action is to terminate the process.

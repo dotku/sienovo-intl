@@ -1,0 +1,36 @@
+---
+title: "Issues with Samba Folder Uploads, Mapping Samba Directories to Windows Drives, and Using Source Insight for Linux Projects"
+date: "2011-08-18"
+slug: "6698541"
+tags: ["#Linux", "#Windows", "#Vim", "#RedHat", "#Firewall", "#Server"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6698541"
+originalTitle: "linux下使用samba上传文件夹和映射samba目录为windows下的目录以及使用source insight查看Linux工程的问题"
+---
+
+A friend recently encountered a problem: how to map a Samba directory as a Windows drive, and why his Samba couldn't upload directories.
+
+Today, I'm writing down the solutions to these two problems, hoping to help others who encounter similar issues.
+
+**Problem 1: How to map?**
+
+First, you need to start your Linux system, correctly configure your Samba server, and set the permissions of the shared directory to 777. All directories must be traversable.
+
+Then, go back to Windows, right-click 'My Computer' (or 'This PC'), select 'Map network drive', click 'Browse' next to 'Folder', choose your Samba directory, and click 'Finish'. That's it.
+
+This way, you won't have to type the Linux IP address in the 'Run' dialog every time you want to access Samba files from Windows.
+
+Now the Samba directory is a local directory on your Windows machine, and you can access it normally.
+
+**Problem 2: After creating Samba, I found that individual files could be dragged in, but directories could not?**
+
+We are using Red Hat Enterprise Linux, and SELinux is enabled during installation. This issue is primarily caused by SELinux being active.
+
+Enter the Linux system, and after disabling SELinux and the firewall in `System --> Administration --> Security Level and Firewall`, you will be able to drag folders.
+
+**Problem 3: In Windows, we can use Source Insight to read and modify project files, but currently, in Linux, we can only use Vim. Is it possible to use the Windows version of Source Insight to view them?**
+
+Of course. For viewing projects under Linux, you can use the Linux version of Source Insight, or you can configure Vim directly to view them. Vim is very powerful!
+
+Now, let's use the Windows version of Source Insight to view them. After you've mapped the Samba share, you can create a Source Insight project for the files you want to view, just as you would in Windows. However, you might encounter a prompt saying "there was an error opening project ......." when opening the project. This is actually still due to the firewall. Of course, you also need to set the permissions of the project file directory and files to read, write, and execute. After following the steps for Problem 2 above, you will find that you can open the project normally. This way, we can read and modify the project just as we would in Windows.
+
+I hope the above can help those who encounter similar difficulties!

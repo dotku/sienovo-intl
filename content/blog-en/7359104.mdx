@@ -1,0 +1,71 @@
+---
+title: "Four Processes A, B, C, D: A Writes to Buffer, B, C, D Read from Buffer, Implemented with P/V Operations"
+date: "2012-03-15"
+slug: "7359104"
+tags: ["#c", "#semaphore"]
+source: "https://blog.csdn.net/yeyuangen/article/details/7359104"
+originalTitle: "A,B,C,D四个进程，A向buf里面写数据，B,C,D向buf里面读数据,pv实现"
+---
+
+There are four processes: A, B, C, D. Process A writes data to a buffer, and processes B, C, D read data from the buffer.
+
+A can only write again after it has finished writing and processes B, C, D have all read once. Implement this using P and V operations.
+
+  
+
+  
+
+```
+semaphore empty = n;
+semaphore full;
+semaphore mutex = 1;
+semaphore b = 1;
+semaphore c = 1;
+semaphore d = 1;
+
+A () {
+    while(true) {
+        p(empty);
+        p(b);
+        p(c);
+        p(d);
+        p(mutex);
+        write();
+        v(mutex);
+        v(full);
+    }
+}
+
+B () {
+    while(true) {
+        p(full);
+        p(mutex);
+        write();
+        v(mutex);
+        v(empty);
+        v(b);
+    }
+}
+
+C() {
+    while(true) {
+        p(full);
+        p(mutex);
+        write();
+        v(mutex);
+        v(empty);
+        v(c);
+    }
+}
+
+D () {
+    while(true) {
+        p(full);
+        p(mutex);
+        write();
+        v(mutex);
+        v(empty);
+        v(d);
+    }
+}
+```

@@ -1,0 +1,112 @@
+---
+title: "In-Depth Exploration of the Difference Between C/C++ Array Names and Pointers"
+date: "2011-09-19"
+slug: "6790535"
+tags: ["#DataStructure", "#String", "#Platform", "#Language", "#Work", "#C"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6790535"
+originalTitle: "C/C++数组名与指针区别深入探索"
+---
+
+**Introduction**  
+  
+　　Pointers are a hallmark feature of the C/C++ language, and array names bear such a strong resemblance to pointers that, in many cases, array names can be used as pointers. As a result, many programmers become confused. Even numerous university instructors incorrectly teach students during C language courses: "An array name is a pointer." Fortunately—or unfortunately—my university professor was one of them. To this day, as I carry out C/C++ project development on a daily basis, I still encounter many programmers around me who hold onto the misconception that "an array name is a pointer."  
+  
+　　This misunderstanding likely originates from a well-known C programming textbook in China. If this article manages to correct the widespread misunderstanding among Chinese programmers regarding array names and pointers, I will be deeply satisfied. Through this writing, I sincerely hope that domestic computer book authors will adopt a mindset of "in-depth exploration" and uphold rigorous, meticulous standards in their writing—may we see more books in the market that truly reflect the authors' intellectual insights!  
+  
+　　 **The Magic of Array Names**  
+  
+　　Consider the following program (compiled on WIN32 platform):  
+  
+`1. #include <iostream.h>   2. int main(int argc, char* argv[])   3. {   4. 　char str[10];   5. 　char *pStr = str;   6. 　cout << sizeof(str) << endl;   7. 　cout << sizeof(pStr) << endl;   8. 　return 0;   9. }`  
+　　1. Array names are not pointers  
+  
+　　Let us first disprove the claim that "array names are pointers," using proof by contradiction.  
+  
+　　Proof: Array names are not pointers  
+  
+　　Assumption: Array names are pointers;  
+  
+　　Then: both pStr and str are pointers;  
+  
+　　Because: on the WIN32 platform, the size of a pointer is 4 bytes;  
+  
+　　Therefore: lines 6 and 7 should both output 4;  
+  
+　　In reality: line 6 outputs 10, and line 7 outputs 4;  
+  
+　　Hence: the assumption is invalid—array names are not pointers.  
+  
+　　2. Array names resemble pointers  
+  
+　　We have just proven that array names are indeed not pointers. However, look at line 5 of the program: the array name is directly assigned to a pointer, which makes the array name appear exactly like a pointer!  
+  
+　　We can find more examples where array names seem to behave like pointers:  
+  
+`1. #include <string.h>   2. #include <iostream.h>   3. int main(int argc, char* argv[])   4. {   5. 　char str1[10] = "I Love U";   6. 　char str2[10];   7. 　strcpy(str2,str1);   8. 　cout << "string array 1: " << str1 << endl;   9. 　cout << "string array 2: " << str2 << endl;   10.　 return 0;   11. }`  
+　　The standard C library function `strcpy` accepts two parameters, both of type `char*` (character pointers). Yet in our call, we are passing two array names! The output of the function is:  
+  
+`string array 1: I Love U   string array 2: I Love U`  
+　　Once again, the array name behaves like a pointer!  
+  
+　　Since array names are not pointers, why are they used as pointers everywhere? Many programmers thus arrive at a strange conclusion: an array name is (essentially) a pointer that is not a pointer.  
+  
+　　It’s utterly bewildering.  
+  
+　　 **Unveiling the Truth About Array Names**  
+  
+　　Now it's time to reveal the true nature of array names. Here are three key conclusions:  
+  
+　　(1) The essence of an array name lies in that it refers to an entity—a data structure—and that data structure is the array itself;  
+  
+　　(2) The extension of an array name is that it can be converted into a pointer to its referred entity, and specifically, a pointer constant;  
+  
+　　(3) A pointer to an array is a different type of variable (4 bytes on WIN32), representing only the memory address where the array is stored!  
+  
+　　1. Array names represent a data structure: the array  
+  
+　　Now we can explain why line 6 of the first program outputs 10. According to conclusion (1), the essence of the array name `str` is a data structure—a `char` array of length 10. Therefore, `sizeof(str)` returns the memory size occupied by this data structure: 10 bytes.  
+  
+　　Consider this:  
+  
+`1. int intArray[10];   2. cout << sizeof(intArray) ;`  
+　　The output of line 2 is 40 (the memory size occupied by an integer array).  
+  
+　　If C/C++ allowed syntax like this:  
+  
+`1. int[10] intArray;   2. cout << sizeof(intArray) ;`  
+　　We would all understand: `intArray` is an instance of the data structure `int[10]`. Unfortunately, C/C++ does not currently support such syntax.  
+  
+　　2. Array names can act as pointer constants  
+  
+　　According to conclusion (2), an array name can be converted into a pointer to its underlying entity. This explains why line 5 of program 1 (assigning an array name directly to a pointer) and line 7 of program 2 (passing an array name as a pointer parameter) are valid.  
+  
+　　What about the following program?  
+  
+`1. int intArray[10];   2. intArray++;`  
+　　Try compiling it—you’ll get a compilation error. The reason is that although an array name can be converted into a pointer to its entity, it is treated as a pointer constant and cannot be modified.  
+  
+　　In contrast, any pointer—whether pointing to a structure, an array, or a basic data type—does not carry the intrinsic meaning of the original data structure. On the WIN32 platform, `sizeof` applied to any pointer yields 4.  
+By the way, let’s correct another common misconception: many programmers believe `sizeof` is a function, but in fact, it is an operator. Although its usage resembles that of a function, `sizeof(int)` clearly shows it cannot be a function, since functions accept variables as parameters, and no C/C++ function accepts a data type (like `int`) as a parameter.  
+  
+　　3. Array names may lose their data structure essence  
+  
+　　At this point, the mystery of array names seems fully resolved—yet another ripple disturbs the calm. Consider the following code:  
+  
+`1. #include <iostream.h>   2. void arrayTest(char str[])   3. {   4. 　cout << sizeof(str) << endl;   5. }   6. int main(int argc, char* argv[])   7. {   8. 　char str1[10] = "I Love U";   9. 　arrayTest(str1);   10.　 return 0;   11. }`  
+　　The output is 4. Unbelievable?  
+  
+　　A terrifying number—previously identified as the size of a pointer!  
+  
+　　Conclusion (1) states that the essence of an array name is the array data structure. Inside the `arrayTest` function, `str` is an array name—why then does `sizeof` return the size of a pointer? This is because:  
+  
+　　(1) When an array name is used as a function parameter, within the function body, it loses its original essence and becomes merely a pointer;  
+  
+　　(2) Unfortunately, it also loses its constancy and can be modified—supporting increment, decrement, and other operations.  
+  
+　　Therefore, when used as a function parameter, an array name completely degrades into an ordinary pointer! Its noble identity is stripped away, reduced to a common 4-byte civilian.  
+  
+　　This is conclusion (4).  
+  
+　　 **Conclusion**  
+  
+　　Finally, I reiterate my sincere hope: that I and my fellow developers may adopt a careful, research-oriented attitude toward technical problems in development. Only then can we cultivate master-level programmers and produce world-class technical books. Every time we pick up a programming book from the West, we can't help but sigh: we are still so far behind.

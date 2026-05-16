@@ -1,0 +1,134 @@
+---
+title: "The Purpose of `static` (Scope, Storage Area, Lifetime)"
+date: "2012-11-01"
+slug: "8138624"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/8138624"
+originalTitle: "static作用（作用范围，存储区域，生命周期）"
+---
+
+[The Purpose of `static` (Modifying Functions, Local Variables, Global Variables)](http://www.cnblogs.com/stoneJin/archive/2011/09/21/2183313.html)
+
+In C language, the literal meaning of `static` can easily lead us astray. In fact, it has three main purposes.
+
+(1) Let's first introduce its first and most important purpose: hiding.
+
+When we compile multiple files simultaneously, all global variables and functions without the `static` prefix have global visibility. To understand this, I'll illustrate with an example. We will compile two source files simultaneously: `a.c` and `main.c`.
+
+Below is the content of `a.c`
+
+char a = 'A'; // global variable
+void msg()
+{
+printf("Hello\\n");
+}
+
+Below is the content of `main.c`
+
+int main(void)
+{
+extern char a; // extern variable must be declared before use
+printf("%c", a);
+(void)msg();
+return 0;
+}
+
+The program's output is:
+
+A Hello
+
+You might ask: why can the global variable `a` and function `msg` defined in `a.c` be used in `main.c`? As mentioned earlier, all global variables and functions without the `static` prefix have global visibility, and other source files can also access them. In this example, `a` is a global variable, `msg` is a function, and neither has the `static` prefix, so they are visible to the other source file, `main.c`.
+
+If `static` is added, they will be hidden from other source files. For example, if `static` is added before the definitions of `a` and `msg`, `main.c` will not be able to see them. This feature allows defining functions and variables with the same name in different files without worrying about naming conflicts. `static` can be used as a prefix for functions and variables. For functions, the purpose of `static` is limited to hiding, but for variables, `static` has two additional purposes:
+
+(2) The second purpose of `static` is to maintain the persistence of variable content. Variables stored in the static data segment are initialized when the program starts, and this initialization happens only once. There are two types of variables stored in the static storage area: global variables and `static` variables. However, compared to global variables, `static` can control the visibility scope of variables; ultimately, `static` is still used for hiding. Although this usage is not common, I will still provide an example.
+
+#include <stdio.h>
+
+int fun(void){
+static int count = 10; // In fact, this assignment statement is never executed
+return count--;
+}
+
+int count = 1;
+
+int main(void)
+{
+printf("global\\t\\tlocal static\\n");
+for (; count <= 10; ++count)
+printf("%d\\t\\t%d\\n", count, fun());
+
+return 0;
+}
+
+The program's output is:
+
+global local static
+
+1 10
+
+2 9
+
+3 8
+
+4 7
+
+5 6
+
+6 5
+
+7 4
+
+8 3
+
+9 2
+
+10 1
+
+(3) The third purpose of `static` is default initialization to 0. Global variables also possess this property because they are also stored in the static data segment. In the static data segment, all bytes in memory default to 0x00. Sometimes this feature can reduce the programmer's workload. For example, when initializing a sparse matrix, we can set all elements to 0 one by one and then assign values to the non-zero elements. If defined as `static`, the initial zeroing operation is omitted. Another example: if you want to use a character array as a string but find it troublesome to add `\0` at the end of the character array every time. If the string is defined as `static`, this trouble is avoided because it's already `\0` there by default. Let's do a small experiment to verify this.
+
+#include <stdio.h>
+
+int a;
+
+int main(void)
+{
+int i;
+static char str[10];
+
+printf("integer: %d; string: (begin)%s(end)", a, str);
+
+return 0;
+}
+
+The program's output is as follows:
+
+integer: 0; string: (begin)(end)
+
+Finally, a one-sentence summary of the three purposes of `static`. Firstly, the primary function of `static` is hiding. Secondly, because `static` variables are stored in the static storage area, they possess persistence and a default value of 0.
+
+The above content was written by Mr. Write from Cnblogs, and is quite clear and easy to understand, archived for easy review. Original article: [http://www.cnblogs.com/dc10101/archive/2007/08/22/865556.html](http://www.cnblogs.com/dc10101/archive/2007/08/22/865556.html)
+
+Below is a Q&A question from ZTE's 2012 campus recruitment written exam:
+
+**1. What is the difference between `static` global variables and ordinary global variables?**
+
+A global variable (external variable) prefixed with `static` before its declaration forms a `static` global variable.
+
+Global variables are inherently stored in static storage, and `static` global variables are naturally also stored in static storage. There is no difference between the two in terms of storage method.
+
+The difference lies in the scope: non-`static` global variables have a scope that spans the entire program. When a program consists of multiple source files, non-`static` global variables are valid in all of them. `static` global variables, however, restrict their scope, meaning they are only valid within the source file where they are defined and cannot be used in other source files of the same program. Because the scope of `static` global variables is limited to a single source file, they can only be shared by functions within that file, thus preventing errors in other source files.
+
+`static` global variables are initialized only once and prevent being referenced in other compilation units.
+
+**2. What is the difference between `static` local variables and ordinary local variables?**
+
+Changing a local variable to a `static` variable changes its storage method, which means changing its **lifetime**. Changing a global variable to a `static` variable changes its **scope**, restricting its usage range.
+
+`static` local variables are initialized only once; subsequent calls retain their previous value.
+
+**3. What is the difference between `static` functions and ordinary functions?**
+
+`static` functions have a different scope than ordinary functions, limited only to the current file. Functions used only within the current source file should be declared as internal functions (functions modified by `static`). Internal functions should be declared and defined in the current source file. For functions that can be used outside the current source file, they should be declared in a header file, and source files that use these functions should include that header file.
+
+`static` functions exist as a single instance in memory, while ordinary functions maintain a copy for each call.

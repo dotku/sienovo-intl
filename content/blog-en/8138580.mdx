@@ -1,0 +1,94 @@
+---
+title: "const int *p,const * int p,int const *p"
+date: "2012-11-01"
+slug: "8138580"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/8138580"
+originalTitle: "const int *p,const * int p,int const *p"
+---
+
+Let's start with a Microsoft interview question.
+
+  
+
+5.What is the output of the follow code ?
+
+voidmain(int argc, char\* argv\[\]) {
+
+int i = 11;
+
+int const \*p = &i;
+
+p++;
+
+print(“%d”,\*p);
+
+}
+
+A. 11 B. 12 C.Garbage value D. Comipler error E. None of above
+
+Choose:C
+
+  
+
+#### const int *p,const * int p,int const *p
+
+1 Let's start with const int i
+When 'ic' is modified by 'const', we don't call it a variable, but rather a symbolic constant, representing the number 20. This is the purpose of 'const'. 'ic' cannot be reassigned a new value elsewhere.
+After understanding the role of 'const', we also need to know the format. There are two ways: `const int ic=20;` and `int const ic=20;`. They are completely identical. This point must be clear. In short, you must remember that whether 'const' or 'int' comes first does not affect the semantics. With this concept in mind, let's look at these two: `const int * pi` and `int const * pi`. According to your logic, do their semantics differ? Haha, you just need to remember one thing: whether 'int' or 'const' comes first, it's the same, just like `const int ic;` and `int const ic;`. In other words, they are identical.
+Alright, we've now resolved the "twin" issue. So, how does `int * const pi` differ from the previous two expressions? Below, I will specifically analyze their format and semantics!
+
+2 Semantics of const int * pi
+Let me first explain the role of `const int * pi`. Look at the example below:
+int i1=30;
+int i2=40;
+const int \* pi=&i1;
+pi=&i2; //4. Note here, pi can be reassigned a new memory address at any time
+i2=80; //5. Think: Can this be replaced by *pi=80;? Of course not
+printf( “%d”, \*pi ) ; //6. Output is 80
+
+Semantic analysis:
+Did you notice that the value of 'pi' can be modified? That is, it can be made to point to another address, but you cannot modify the value of 'i2' through `*pi`. Does this rule conform to the logic we discussed earlier? Of course it does!
+Firstly, 'const' modifies the entire `*pi` (note, I wrote `*pi` not `pi`). Therefore, `*pi` is a constant and cannot be assigned a value (even though 'i2', which 'pi' points to, is a variable, not a constant).
+Secondly, 'pi' itself is not modified by 'const', so 'pi' is a pointer variable and can be assigned to point to another memory address. You might wonder: how then can I use 'const' to modify 'pi'? In fact, if you pay attention to the position of 'const' in `int * const pi`, you'll probably understand. Remember, understand semantics through format.
+
+3 Let's look at int * const pi again
+Indeed, `int * const pi` can easily be confused with the previous `int const * pi`. Note: in the former, 'const' is written before 'pi' and after the asterisk, not before `*pi`. Clearly, it modifies and qualifies 'pi'. Let me show you an example first:
+int i1=30;
+int i2=40;
+int \* const pi=&i1;
+//pi=&i2; 4. Note here, pi cannot be reassigned like this, meaning it cannot point to another new address.
+//So I have commented it out.
+i1=80; //5. Think: Can this be replaced by *pi=80;? Yes, here you can modify the value of i1 through *pi.
+//Please compare it with the previous example yourself.
+printf( “%d”, \*pi ) ; //6. Output is 80
+
+Semantic analysis:
+After reading this code, what did you understand? Did you notice that the value of 'pi' cannot be reassigned or modified? It can only ever point to the memory address it was initialized with. Conversely, this time you can modify the value of 'i1' through `*pi`. Compare it with the previous example! Look at the following two points of analysis:
+1). Because 'pi' is modified by 'const', it is merely a constant pointer: meaning the value of 'pi' cannot be modified (i.e., 'pi' cannot be made to point to the variable 'i2' again) (see line 4).
+2). The entire `*pi` is not modified by 'const'. This means that `*pi` is a variable, not a constant, so we can modify the value of 'i1' in the memory it points to through `*pi` (see the comment on line 5).
+In a nutshell, this time 'pi' is a constant pointer to data of type 'int' variable.
+
+Finally, two concluding remarks:
+1). If 'const' modifies `*pi`, then `*pi` cannot be changed, not 'pi'.
+2). If 'const' is written directly before 'pi', then 'pi' cannot be changed.
+
+3. Supplementing three cases.
+Here, I will supplement the following three cases. In fact, if the above semantics are clear, these three cases are already covered. However, as three specific forms, I will briefly mention them!
+
+Case One: `int * pi` pointer pointing to a `const int i` constant
+const int i1=40;
+int \*pi;
+pi=&i1;//Is this okay? No, it's a compilation error under VC.
+//The address of 'const int' type 'i1' cannot be assigned to a pointer 'pi' that points to an 'int' type address. Otherwise, wouldn't 'pi' be able to modify the value of 'i1'?
+pi=(int\* ) &i1;　　//　Is this okay? Type casting is supported by C.
+//It compiles under VC, but you still cannot modify the value of 'i1' through '*pi=80'. Go ahead and try it! See what happens.
+
+Case Two: `const int * pi` pointer pointing to `const int i1`
+const int i1=40;
+const int \* pi;
+pi=&i1;//The two types are the same, so assignment is possible. Clearly, the value of 'i1' cannot be modified, whether through 'pi' or 'i1'.
+
+Case Three: Pointer declared with `const int * const pi`
+int i
+const int \* const pi=&i;//Can you imagine what operations 'pi' can perform? The value of 'pi' cannot be changed, nor can the value of 'i' be modified through 'pi'. This is because both '*pi' and 'pi' are 'const'.

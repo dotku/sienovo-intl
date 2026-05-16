@@ -1,0 +1,383 @@
+---
+title: "Demystifying C Language Pointers"
+date: "2011-09-16"
+slug: "6782297"
+tags: ["#C", "#Language", "#Compiler", "#Storage", "#Fun", "#Float"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6782297"
+originalTitle: "深入理解C语言指针的奥秘"
+---
+
+A pointer is a special variable whose stored value is interpreted as an address in memory. To fully understand a pointer, you need to clarify four aspects: the pointer's type, the type it points to, its value (or the memory region it points to), and the memory space occupied by the pointer itself. Let's go through each in detail.
+
+First, declare a few pointers as examples:
+
+Example One:
+(1) int\* ptr;  
+(2) char\* ptr;  
+(3) int\*\* ptr;  
+(4) int(\*ptr)\[3\];  
+(5) int\*(\*ptr)\[4\];
+
+Pointer Type  
+From a syntactic perspective, if you remove the pointer name from its declaration, what remains is the pointer's type — the inherent type of the pointer itself. Let's examine the pointer types in Example One:
+(1) int\* ptr; // pointer type is int\*  
+(2) char\* ptr; // pointer type is char\*  
+(3) int\*\* ptr; // pointer type is int\*\*  
+(4) int(\*ptr)\[3\]; // pointer type is int(\*)\[3\]  
+(5) int\*(\*ptr)\[4\]; // pointer type is int\*(\*)\[4\]  
+
+Pretty straightforward, right? The method for identifying a pointer's type is quite simple.
+
+Type Pointed To by the Pointer  
+When accessing the memory region via a pointer, the type pointed to by the pointer determines how the compiler interprets the contents of that memory region.
+
+Syntactically, remove the pointer name and the \* operator to its left from the declaration — what remains is the type the pointer points to. For example:
+(1) int\* ptr; // type pointed to is int  
+(2) char\* ptr; // type pointed to is char  
+(3) int\*\* ptr; // type pointed to is int\*  
+(4) int(\*ptr)\[3\]; // type pointed to is int()\[3\]  
+(5) int\*(\*ptr)\[4\]; // type pointed to is int\*()\[4\]  
+
+The type pointed to plays a critical role in pointer arithmetic.
+
+The pointer's type (i.e., the type of the pointer itself) and the type it points to are two distinct concepts. As you become more familiar with C, you'll realize that distinguishing between these two types is key to mastering pointers. I've read many books, and some poorly written ones conflate these two concepts, leading to contradictions and confusion.
+
+Pointer Value, or the Memory Region (Address) It Points To  
+The pointer's value is the numerical value it stores, which the compiler interprets as a memory address rather than a regular integer. In a 32-bit program, all pointer values are 32-bit integers because all memory addresses are 32 bits long. The memory region pointed to by the pointer starts at the address represented by the pointer's value and spans a length of sizeof(the type pointed to by the pointer). Hence, saying "a pointer's value is XX" is equivalent to saying "the pointer points to a memory region starting at address XX"; similarly, saying "a pointer points to a certain memory region" means "the pointer's value is the starting address of that region."
+
+The memory region pointed to and the type pointed to are entirely different concepts. In Example One, the type pointed to is defined, but since the pointer hasn't been initialized, the memory region it points to is either nonexistent or meaningless.
+
+Whenever you encounter a pointer, always ask: What is its type? What type does it point to? Where does it point?
+
+Memory Space Occupied by the Pointer Itself  
+How much memory does a pointer occupy? You can determine this using sizeof(pointer type). On a 32-bit platform, a pointer occupies 4 bytes.
+
+This concept is particularly useful when determining whether a pointer expression is an lvalue.
+
+Pointer Arithmetic  
+A pointer can be incremented or decremented by an integer. This arithmetic differs significantly from regular integer arithmetic. For example:
+
+Example Two:
+1. char a\[20\];  
+2. int\* ptr = a;  
+...  
+...  
+3. ptr++;
+
+In this example, ptr is of type int\*, pointing to int, and is initialized to point to array a. In line 3, ptr is incremented by 1. The compiler handles this by adding sizeof(int) — which is 4 in a 32-bit program — to the pointer's value. Since addresses are byte-addressed, ptr now points to an address 4 bytes higher than before.
+
+Since a char is 1 byte, ptr initially pointed to the first 4 bytes starting at a\[0\], and now points to the 4 bytes starting at a\[4\].
+
+We can use a pointer and a loop to traverse an array. For example:
+
+Example Three:
+int array\[20\];  
+int\* ptr = array;  
+...  
+// Code to initialize array values omitted  
+...  
+for (i = 0; i < 20; i++)  
+{  
+　(\*ptr)++;  
+　ptr++;  
+}  
+
+This example increments each element of the integer array by 1. Since ptr is incremented in each iteration, it accesses the next array element each time.
+
+Another example:
+
+Example Four:
+1. char a\[20\];  
+2. int\* ptr = a;  
+...  
+...  
+3. ptr += 5;
+
+Here, ptr is increased by 5. The compiler computes this as ptr's value plus 5 \* sizeof(int) — 5 \* 4 = 20 in a 32-bit program. Since addresses are in bytes, ptr now points 20 bytes higher. Before the addition, ptr pointed to the first 4 bytes of a; afterward, it points outside the valid range of array a. While this may cause issues in practice, it is syntactically valid — demonstrating pointer flexibility.
+
+If ptr were instead decreased by 5, the process would be similar, but ptr's value would be reduced by 5 \* sizeof(int), moving it 20 bytes lower in memory.
+
+In summary:  
+When a pointer `ptrold` is incremented by an integer `n`, the result is a new pointer `ptrnew`. `ptrnew` has the same type and points to the same type as `ptrold`. The value of `ptrnew` is `ptrold`'s value plus `n * sizeof(type pointed to by ptrold)` bytes. Thus, `ptrnew` points to a memory region `n * sizeof(type)` bytes higher than `ptrold`.
+
+Similarly, when `ptrold` is decremented by `n`, `ptrnew` has the same type and points to the same type, but its value is reduced by `n * sizeof(type)`, pointing `n * sizeof(type)` bytes lower.
+
+Operators & and \*  
+Here, & is the address-of operator, and \* is the "indirection operator" as referred to in textbooks.
+
+The result of &a is a pointer. Its type is the type of a with an added \*, the type it points to is the type of a, and the address it points to is the address of a.
+
+The result of \*p varies. In general, \*p evaluates to the object pointed to by p — its type is the type pointed to by p, and its address is the address p points to.
+
+Example Five:
+int a = 12;  
+int b;  
+int\* p;  
+int\*\* ptr;  
+p = &a;  
+// &a results in a pointer of type int\*, pointing to type int, at address of a.  
+\*p = 24;  
+// \*p here has type int and refers to the address p points to — clearly, \*p is variable a.  
+ptr = &p;  
+// &p results in a pointer of type int\*\* (p's type with an added \*), pointing to type int\*, at p's own address.  
+\*ptr = &b;  
+// \*ptr is a pointer, and &b is also a pointer — both have the same type and pointed-to type, so assigning &b to \*ptr is valid.  
+\*\*ptr = 34;  
+// \*ptr refers to what ptr points to — here, a pointer. Applying \* again yields an int variable.
+
+Pointer Expressions  
+An expression whose final result is a pointer is called a pointer expression.
+
+Examples:
+Example Six:
+int a, b;  
+int array\[10\];  
+int\* pa;  
+pa = &a; // &a is a pointer expression.  
+int\*\* ptr = &pa; // &pa is also a pointer expression.  
+\*ptr = &b; // both \*ptr and &b are pointer expressions.  
+pa = array;  
+pa++; // this is also a pointer expression.
+
+Example Seven:
+char\* arr\[20\];  
+char\*\* parr = arr; // if arr is treated as a pointer, it's a pointer expression  
+char\* str;  
+str = \*parr; // \*parr is a pointer expression  
+str = \*(parr + 1); // \*(parr + 1) is a pointer expression  
+str = \*(parr + 2); // \*(parr + 2) is a pointer expression
+
+Since a pointer expression results in a pointer, it possesses the same four attributes: pointer type, type pointed to, memory region pointed to, and memory space occupied.
+
+When the resulting pointer of a pointer expression clearly occupies its own memory, the expression is an lvalue; otherwise, it is not.
+
+In Example Seven, &a is not an lvalue because it doesn't occupy definite memory. \*ptr is an lvalue because it already occupies memory — \*ptr is effectively pointer pa, and since pa has a defined location in memory, \*ptr does too.
+
+Relationship Between Arrays and Pointers  
+An array name can essentially be viewed as a pointer. For example:
+
+Example Eight:
+int array\[10\] = {0,1,2,3,4,5,6,7,8,9}, value;  
+...  
+...  
+value = array\[0\]; // equivalent to: value = \*array;  
+value = array\[3\]; // equivalent to: value = \*(array + 3);  
+value = array\[4\]; // equivalent to: value = \*(array + 4);
+
+Typically, the array name array represents the entire array, with type int\[10\]. But if treated as a pointer, it points to the 0th element, has type int\*, and points to type int. Thus, \*array equals 0 is unsurprising. Similarly, array + 3 is a pointer to the 3rd element, so \*(array + 3) equals 3, and so on.
+
+Example Nine:
+char\* str\[3\] = {  
+　"Hello, this is a sample! ",  
+　"Hi, good morning. ",  
+　"Hello world "  
+};  
+char s\[80\];  
+strcpy(s, str\[0\]); // equivalent to: strcpy(s, \*str);  
+strcpy(s, str\[1\]); // equivalent to: strcpy(s, \*(str + 1));  
+strcpy(s, str\[2\]); // equivalent to: strcpy(s, \*(str + 2));
+
+Here, str is a 3-element array, each element being a pointer to a string. Treating str as a pointer, it points to the 0th element, has type char\*\*, and points to type char\*.
+
+\*str is a pointer of type char\*, pointing to char, and pointing to the first character 'H' of "Hello, this is a sample! ".
+
+str + 1 is also a pointer, of type char\*\*, pointing to the 1st element.
+
+\*(str + 1) is a pointer of type char\*, pointing to the first character 'H' of "Hi, good morning.", and so on.
+
+To summarize array names: declaring TYPE array\[n\] gives array two meanings:  
+1. It represents the entire array, with type TYPE\[n\].  
+2. It is a pointer of type TYPE\*, pointing to type TYPE (the array element type), pointing to the 0th element, and occupying its own memory space — distinct from the memory of the 0th element. Its value cannot be modified; expressions like array++ are invalid.
+
+In different expressions, array can play different roles.
+
+In sizeof(array), array represents the entire array, so sizeof returns the total size.
+
+In \*array, array acts as a pointer, so the result is the value of the 0th element. sizeof(\*array) returns the size of one element.
+
+In array + n (n = 0,1,2,...), array acts as a pointer, so array + n is a pointer of type TYPE\*, pointing to the nth element. Thus, sizeof(array + n) returns the size of a pointer.
+
+Example Ten:
+int array\[10\];  
+int(\*ptr)\[10\];  
+ptr = &array;
+
+Here, ptr is a pointer of type int(\*)\[10\], pointing to type int\[10\], initialized with the array's base address. In ptr = &array, array represents the entire array.
+
+This section mentioned sizeof(). So, what does sizeof(pointer_name) measure — the size of the pointer type itself or the size of the type it points to? The answer is the former. For example:
+int(\*ptr)\[10\];  
+Then in a 32-bit program:
+sizeof(int(\*)\[10\]) == 4  
+sizeof(int\[10\]) == 40  
+sizeof(ptr) == 4
+
+In fact, sizeof(object) always returns the size of the object's own type, not any other type.
+
+Relationship Between Pointers and Structure Types  
+You can declare a pointer to a structure type.
+
+Example Eleven:
+struct MyStruct  
+{  
+　int a;  
+　int b;  
+　int c;  
+}  
+MyStruct ss = {20, 30, 40};  
+// Declares structure object ss, initialized with 20, 30, 40.  
+MyStruct\* ptr = &ss;  
+// Declares a pointer to ss, of type MyStruct\*, pointing to MyStruct.  
+int\* pstr = (int\*)&ss;  
+// Declares another pointer to ss, but with different type and pointed-to type than ptr.
+
+How to access the three members of ss via ptr?  
+Answer:  
+ptr->a;  
+ptr->b;  
+ptr->c;
+
+How to access them via pstr?  
+Answer:  
+\*pstr;        // accesses member a  
+\*(pstr + 1);  // accesses member b  
+\*(pstr + 2);  // accesses member c
+
+Although I've tested this code in MSVC++ 6.0, using pstr this way is non-standard. To understand why, consider how pointers access array elements:
+
+Example Twelve:
+int array\[3\] = {35, 56, 37};  
+int\* pa = array;
+
+Accessing array elements via pa:
+\*pa;         // accesses element 0  
+\*(pa + 1);   // accesses element 1  
+\*(pa + 2);   // accesses element 2
+
+The syntax resembles the non-standard way of accessing structure members via pointers.
+
+All C/C++ compilers store array elements in contiguous memory with no gaps. However, when storing structure members, some compilers may require alignment (e.g., word or double-word), inserting "padding bytes" between members, creating gaps.
+
+Thus, even if \*pstr accesses member a of ss, \*(pstr + 1) may not access member b — it might access padding bytes between a and b. This demonstrates pointer flexibility. If your goal is to detect padding bytes, this is a decent method.
+
+The correct way to access structure members via pointers is as shown with ptr in Example Twelve.
+
+Relationship Between Pointers and Functions  
+You can declare a pointer to a function:
+int fun1(char\*, int);  
+int(\*pfun1)(char\*, int);  
+pfun1 = fun1;  
+....  
+....  
+int a = (\*pfun1)("abcdefg", 7); // call function via function pointer.
+
+You can also use pointers as function parameters and use pointer expressions as arguments.
+
+Example Thirteen:
+int fun(char\*);  
+int a;  
+char str\[\] = "abcdefghijklmn ";  
+a = fun(str);  
+...  
+...  
+int fun(char\* s)  
+{  
+int num = 0;  
+for(int i = 0; i < strlen(s); i++)  
+{  
+num += \*s; s++;  
+}  
+return num;  
+}
+
+This function fun calculates the sum of ASCII values of all characters in a string. As mentioned earlier, an array name is also a pointer. When str is passed to s, the value of str (its address) is copied to s. s and str point to the same location but occupy separate storage. Incrementing s inside the function does not affect str.
+
+Pointer Type Casting  
+When initializing or assigning a pointer, the left side is a pointer, and the right side is a pointer expression. In most earlier examples, the pointer type and the expression type match, as do the types they point to.
+
+Example Fourteen:
+1. float f = 12.3;  
+2. float\* fptr = &f;  
+3. int\* p;
+
+Suppose we want p to point to float f. Can we write:
+p = &f;
+
+No. p has type int\*, pointing to int. &f has type float\*, pointing to float. The types don't match. At least in MSVC++ 6.0, pointer assignments require matching types and pointed-to types. (Other compilers may vary.) To achieve this, we need a "cast":
+p = (int\*)&f;
+
+To convert a pointer p to type TYPE\* pointing to TYPE, use:
+(TYPE\*)p;
+
+This cast creates a new pointer of type TYPE\*, pointing to TYPE, at the same address. The original pointer p remains unchanged.
+
+When a function uses a pointer parameter, type conversion also occurs during argument passing.
+
+Example Fifteen:
+void fun(char\*);  
+int a = 125, b;  
+fun((char\*)&a);  
+...  
+...  
+void fun(char\* s)  
+{  
+char c;  
+c = \*(s + 3); \*(s + 3) = \*(s + 0); \*(s + 0) = c;  
+c = \*(s + 2); \*(s + 2) = \*(s + 1); \*(s + 1) = c;  
+}
+
+Note: This is a 32-bit program — int is 4 bytes, char is 1 byte. The function fun reverses the byte order of an integer. Notice that in the function call, &a has type int\*, pointing to int, while the parameter s has type char\*, pointing to char. Thus, a conversion from int\* to char\* occurs. Imagine the compiler creates a temporary char\* temp, assigns temp = (char\*)&a, then passes temp to s. The result: s is of type char\*, points to char, and points to the address of a.
+
+We know a pointer's value is the address it points to — a 32-bit integer in 32-bit programs. Can we assign an integer directly as a pointer value?
+unsigned int a;  
+TYPE\* ptr; // TYPE could be int, char, struct, etc.  
+...  
+a = 20345686;  
+ptr = 20345686; // want ptr to point to address 20345686 (decimal)  
+ptr = a; // same goal
+
+Compiling this shows both lines are invalid. Is there no way? Yes, there is:
+unsigned int a;  
+TYPE\* ptr;  
+...  
+a = some_value; // must represent a valid address  
+ptr = (TYPE\*)a; // this works.
+
+Strictly speaking, this (TYPE\*) differs slightly from casting in pointer conversions. Here, (TYPE\*) treats the unsigned integer a as a memory address. a must represent a valid address; otherwise, using ptr may cause illegal access.
+
+Can we reverse this — extract a pointer's value as an integer, then assign that integer as an address to another pointer? Yes. Example:
+
+Example Sixteen:
+int a = 123, b;  
+int\* ptr = &a;  
+char\* str;  
+b = (int)ptr; // extract ptr's value as integer  
+str = (char\*)b; // assign integer as address to str
+
+Now we know: a pointer's value can be extracted as an integer, and an integer can be assigned as a pointer address.
+
+Pointer Safety Issues  
+Consider this example:
+
+Example Seventeen:
+char s = 'a';  
+int\* ptr;  
+ptr = (int\*)&s;  
+\*ptr = 1298;
+
+ptr is an int\* pointing to int, at the address of s. In a 32-bit program, s occupies 1 byte, int occupies 4. The last statement modifies not only s's byte but also the next 3 higher bytes. What are those bytes? Only the compiler knows — they might hold critical data or even executable code. Your careless pointer use could corrupt them, causing a crash.
+
+Another example:
+
+Example Eighteen:
+1. char a;  
+2. int\* ptr = &a;  
+...  
+...  
+3. ptr++;  
+4. \*ptr = 115;
+
+This compiles and runs. But after incrementing ptr in line 3, it points to memory adjacent to a. What's there? Unknown — possibly critical data or code. Line 4 writes to that region — a serious error. Always know exactly where your pointer points. When using pointers with arrays, ensure you don't exceed array bounds, or similar errors occur.
+
+In pointer casting: ptr1 = (TYPE\*)ptr2, if sizeof(ptr2's type) > sizeof(ptr1's type), accessing ptr2's memory via ptr1 is safe. If sizeof(ptr2's type) < sizeof(ptr1's type), it's unsafe. Think about Example Seventeen to understand why.
+
+http://embedfans.com/C/2007181016375897.htm

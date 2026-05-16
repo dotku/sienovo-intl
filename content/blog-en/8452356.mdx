@@ -1,0 +1,420 @@
+---
+title: "Mediator Pattern"
+date: "2012-12-30"
+slug: "8452356"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/8452356"
+originalTitle: "Mediator模式"
+---
+
+Mediator Pattern
+
+The goal of object-oriented design is to achieve high cohesion and low coupling, ultimately leading to the development of software that is easy to maintain, extend, and reuse. Therefore, during software high-level design and architecture setup, we should consciously reduce the coupling between classes and minimize inter-class interactions. When we first start with object-oriented development, due to a lack of knowledge and experience, we often prioritize functionality over software structure. Code often becomes cluttered with situations where class A's header file includes a pointer to class B, and class B's header file includes a pointer to class A. Such operations lead to excessively strong coupling between classes A and B. We need to reduce the interactions between classes A and B, and the Mediator pattern can help us lower inter-class coupling.
+
+First, let's look at a highly coupled program:
+
+```cpp
+//类A头文件
+
+class B;
+
+class C;
+
+class A
+
+{
+
+public:
+
+   void    SetInfo(B* pB,C* pC);
+
+   void  ACallB();
+
+   void  ACallC();
+
+   void  Function();
+
+private:
+
+   B *m_pB;
+
+   C *m_pC;
+
+};
+
+//类A源文件
+
+void  A::SetInfo(B* pB,C* pC)
+
+{
+
+   m_pB=pB;
+
+   m_pC=pC;
+
+}
+
+void  A::ACallB()
+
+{
+
+   m_pB->Function();
+
+}
+
+void  A::ACallC()
+
+{
+
+   m_pC->Function();
+
+}
+
+void  A::Function()
+
+{
+
+}
+
+//类B头文件
+
+class B
+
+{
+
+public:
+
+   void    SetInfo(A* pA,C* pC);
+
+   void  BCallA();
+
+   void  BCallC();
+
+   void  Function();
+
+private:
+
+   A *m_pA;
+
+   C *m_pC;
+
+};
+
+//类B源文件
+
+void  B::SetInfo(A* pA,C* pC)
+
+{
+
+   m_pA=pA;
+
+   m_pC=pC;
+
+}
+
+void  B::BCallA()
+
+{
+
+   m_pA->Function();
+
+}
+
+void  B::BCallC()
+
+{
+
+   m_pC->Function();
+
+}
+
+void  B::Function()
+
+{
+
+}
+
+//类C头文件
+
+class C
+
+{
+
+public:
+
+   void    SetInfo(A* pA,B* pB);
+
+   void  CCallA();
+
+   void  CCallB();
+
+   void  Function();
+
+private:
+
+   A *m_pA;
+
+   B *m_pB;
+
+};
+
+//类C源文件
+
+void  C::SetInfo(A* pA,B* pB)
+
+{
+
+   m_pA=pA;
+
+   m_pB=pB;
+
+}
+
+void  C::CCallA()
+
+{
+
+   m_pA->Function();
+
+}
+
+void  C::CCallB()
+
+{
+
+   m_pB->Function();
+
+}
+
+void  C::Function()
+
+{
+
+}
+
+//
+
+void main()
+
+{
+
+   A a;
+
+   B b;
+
+   C c;
+
+   a.SetInfo(&b,&c);
+
+   a.ACallB();
+
+   a.ACallC();
+
+   b.SetInfo(&a,&c);
+
+   b.BCallA();
+
+   b.BCallC();
+
+   c.SetInfo(&a,&c);
+
+   c.CCallA();
+
+   c.CCallB();
+
+}
+```
+
+In the program above, classes A, B, and C call each other, which significantly increases inter-class coupling, hindering software extensibility and reusability. To reduce coupling, we can adopt the Mediator pattern by creating an intermediary class. This intermediary class facilitates communication between A, B, and C, and is responsible for executing the final calls, thereby preventing direct calls between A, B, and C.
+
+```cpp
+class Mediator
+
+{
+
+public:
+
+   void  SetInfo(A* pA,B* pB,C* pC);
+
+   void  ACallB();
+
+   void  ACallC();
+
+   void  BCallA();
+
+   void  BCallC();
+
+   void  CCallA();
+
+   void  CCallB();
+
+private:
+
+   A *m_pA;
+
+   B *m_pB;
+
+   C *m_pC;
+
+};
+
+void  Mediator::SetInfo(A* pA,B* pB,C* pC)
+
+{
+
+   m_pA=pA;
+
+   m_pB=pB;
+
+   m_pC=pC;
+
+}
+
+void  Mediator::CCallA()
+
+{
+
+   m_pA->Function();
+
+}
+
+void  Mediator::CCallB()
+
+{
+
+   m_pB->Function();
+
+}
+
+void  Mediator::BCallA()
+
+{
+
+   m_pA->Function();
+
+}
+
+void  Mediator::BCallC()
+
+{
+
+   m_pC->Function();
+
+}
+
+void  Mediator::ACallB()
+
+{
+
+   m_pB->Function();
+
+}
+
+void  Mediator::ACallC()
+
+{
+
+   m_pC->Function();
+
+}
+```
+
+Simultaneously, modify the design of classes A, B, and C.
+
+```cpp
+//类A头文件
+
+class B;
+
+class C;
+
+class A
+
+{
+
+public:
+
+   void    SetInfo(Mediator *pMediator);
+
+   void  ACallB();
+
+   void  ACallC();
+
+   void  Function();
+
+private:
+
+   Mediator *m_ pMediator;
+
+};
+
+//类A源文件
+
+void  A:: SetInfo(Mediator *pMediator)
+
+{
+
+   m_ pMediator = pMediator;
+
+}
+
+void  A::ACallB()
+
+{
+
+   m_ pMediator -> ACallB();
+
+}
+
+void  A::ACallC()
+
+{
+
+   m_ pMediator -> ACallC ();
+
+}
+
+void  A::Function()
+
+{
+
+}
+```
+
+// Modifications for classes B and C are similar to class A, omitted for brevity.
+
+```cpp
+void main()
+
+{
+
+   A a;
+
+   B b;
+
+   C c;
+
+Mediator mt(&a,&b,&c);
+
+a. SetInfo（&mt）；
+
+b. SetInfo（&mt）；
+
+c. SetInfo（&mt）；
+
+   a.ACallB();
+
+   a.ACallC();
+
+   b.BCallA();
+
+   b.BCallC();
+
+   c.CCallA();
+
+   c.CCallB();
+
+}
+```
+
+The simple example above illustrates how to use the Mediator pattern to reduce inter-class dependencies. In software design, while implementing functionality is crucial, developing programs that adhere to object-oriented principles is equally important. By diligently understanding and boldly applying various design patterns, and with accumulated experience, we believe the quality of the software we develop will continuously improve.

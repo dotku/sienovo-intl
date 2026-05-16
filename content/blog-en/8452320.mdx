@@ -1,0 +1,412 @@
+---
+title: "Adapter Pattern and Facade Pattern (Highly Recommended)"
+date: "2012-12-30"
+slug: "8452320"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/8452320"
+originalTitle: "适配器模式和外观模式（强烈推荐）"
+---
+
+Original Link: [适配器模式和外观模式](http://www.cnblogs.com/goody9807/archive/2011/09/06/2168729.html)  
+
+**Adapter Pattern (Adapter)**
+
+Let's start with an introduction and a problem. As is well known, the common voltage in China is 220V, while in the United States it is 110V. If an IT professional frequently travels between the US and China, always carrying their laptop, how can the laptop's voltage issue be resolved? (Because the voltage differs between the US and China, general electrical appliances are not interchangeable.) This is where the adapter shines.
+
+Modern laptops all have a power adapter, and it is precisely this power adapter that solves the aforementioned adaptation problem. For example, a Sony laptop might have an input voltage range of AC 100V~240V, with a unified DC output of 19.5V. AC current is input into one end of the power adapter, which then converts the power to the required voltage. In essence, the adapter's role is to make one thing suitable for another.
+
+**Here is the definition of the Adapter Pattern**
+
+**The Adapter Pattern converts the interface of a class into another interface clients expect.**
+
+It is mainly used in the following situations:
+
+For example, suppose you have an old software system with an outdated component that needs updating. You acquire a third-party component (the new component), but its interface differs from the old component's. At the same time, you don't want to change the existing code (which might be impossible if the system is large). This is where the Adapter Pattern comes in. You can use the Adapter Pattern to convert some interfaces of the new component into the interfaces you expect (i.e., compatible with the old component). This way, you can easily update from the old component to the new one without altering the original code.
+
+Another good application is when many things that run on Windows cannot run on Linux. For instance, a tool like WINE allows users to run Windows programs in a Linux environment; this is also a form of adapter.
+
+In essence, the Adapter Pattern can be understood as wrapping some objects and making their interfaces appear as different interfaces.
+
+It's also worth mentioning: The Adapter Pattern is traditionally divided into Class Adapter Pattern and Object Adapter Pattern. However, since the Class Adapter Pattern relies on multiple inheritance, and C# does not support multiple inheritance, only the Object Adapter is introduced here. If you are interested in the Class Adapter Pattern, you can implement it using C++.  
+
+**First, let's look at the Target class (the Target class represents the interface that clients can use)**
+
+```csharp
+namespace Adapter 
+{ 
+    public abstract class Target 
+    { 
+        // Temperature 
+        /// <summary> 
+        /// The interfaces below are the ones recognizable by the client, i.e., the target interfaces. 
+        /// The Chinese methods in the Adaptee class, however, are not recognizable by the client and need to be adapted. 
+        /// </summary> 
+        public abstract void GetTemperature();
+
+        // Pressure 
+        public abstract void GetPressure();
+
+        // Humidity 
+        public abstract void GetHumidity();
+
+        // UV Intensity 
+        public abstract void GetUltraviolet(); 
+    } 
+}
+```
+
+**Next, let's look at the Adaptee class (the interfaces in Adaptee are not recognizable by the client, so they need to be adapted)**
+
+```csharp
+using System;
+
+namespace Adapter 
+{ 
+    class Adaptee 
+    { 
+        /// <summary> 
+        /// The interfaces in the Adaptee class are not the ones the client needs. 
+        /// For example, here Chinese is used, but the client requires English. 
+        /// Therefore, an adapter must be used here. 
+        /// </summary> 
+        public void 得到温度() 
+        { 
+            Console.WriteLine("You got today's temperature"); 
+        }
+
+        public void 得到气压() 
+        { 
+            Console.WriteLine("You got today's pressure"); 
+        }
+
+        public void 得到湿度() 
+        { 
+            Console.WriteLine("You got today's humidity"); 
+        }
+
+        public void 得到紫外线强度() 
+        { 
+            Console.WriteLine("You got today's UV intensity"); 
+        } 
+    } 
+}
+```
+
+**Then, let's look at the code for the Adapter (the Adapter indirectly converts interfaces not recognizable by the client into recognizable ones)**
+
+```csharp
+namespace Adapter 
+{ 
+    public class Adapter:Target 
+    { 
+        // An Adaptee object must be maintained within the adapter 
+        private Adaptee adaptee = new Adaptee();
+
+        /// <summary> 
+        /// Adapt interfaces not originally recognized by the client through the adapter 
+        /// </summary> 
+        public override void GetTemperature() 
+        { 
+            adaptee.得到温度(); 
+        }
+
+        public override void GetPressure() 
+        { 
+            adaptee.得到气压(); 
+        }
+
+        public override void GetHumidity() 
+        { 
+            adaptee.得到湿度(); 
+        }
+
+        public override void GetUltraviolet() 
+        { 
+            adaptee.得到紫外线强度(); 
+        } 
+    } 
+}
+```
+
+**Finally, let's look at the client code**
+
+```csharp
+using System;
+
+namespace AdapterTest 
+{ 
+    class Program 
+    { 
+        static void Main(string[] args) 
+        { 
+            // Instantiate an adapter for the target interface 
+            Adapter.Target target = new Adapter.Adapter();
+
+            // The following are the interfaces recognizable by the client 
+
+            target.GetTemperature(); 
+            target.GetPressure(); 
+            target.GetHumidity(); 
+            target.GetUltraviolet();
+
+            Console.ReadKey(); 
+        } 
+    } 
+}
+```
+
+===================================================================  
+
+**Facade Pattern (Facade)**
+
+Let's start with an example from 'Head First Design Patterns' (I've reorganized that example). The example describes how many people in the US set up home theaters (I'll consider the simplest approach, which is just turning everything on and off). In a home theater, you typically need basic tools like lights, a screen, a projector, an amplifier, and a DVD player. Lights can be turned on or off. The projector can be turned on or off. The screen can also be opened or closed. The amplifier can have its volume turned up or down. The DVD player can be turned on or off.
+
+Then, to watch a movie, I would have to perform the following operations on the client side: first turn on the projector, then turn on the amplifier, then open the screen, then turn on the DVD player, and finally turn on the lights. After all these operations, you can finally watch a movie (how inconvenient, so many steps, too complicated!). And when you're done, you still have to turn off the projector, then the amplifier, then close the screen, then turn off the DVD player, and finally turn off the lights. Oh, this is too complicated!!!
+
+There are so many operations on the client side (and the problem is that some users might not know how to use one of these tools, meaning they can't watch a movie). Users would be utterly annoyed!!!
+
+This actually reflects a common phenomenon in modern software development systems: client programs often have direct contact with the internal subsystems of a complex system, causing the client program to change as the subsystems change. In the example above, the client program is the user's operation, and the internal subsystems of the complex system represent the usage interfaces of these tools.
+
+In the example above, I only used the simplest tool operation interfaces, namely simple on/off functions. What if there are new features in the subsystems, i.e., in each tool? This would inevitably lead to changes in the client code.
+
+To solve this series of problems, you must simplify the interaction interface between the client program and the subsystems (to enable users who don't know how to use all the tools to still watch a movie). Then, you need to decouple the client program from the subsystems, and the Facade Pattern can solve this problem perfectly.
+
+**Definition of Facade Pattern (Facade)**
+
+**The Facade Pattern provides a unified interface to a set of interfaces in a subsystem. This pattern defines a higher-level interface that makes the subsystem easier to use.**
+
+Simply put, the Facade Pattern hides the complex operations of one or more classes, exposing only a consistent interface for the client to use.
+
+It's also important to note that the Facade Pattern merely provides you with a more direct and easier way to operate; it does not isolate the original subsystems. Therefore, if you still need higher-level functionality from the subsystem classes, you can still use the original subsystems. This is a major advantage of the Facade Pattern.
+
+At the same time, the Facade Pattern allows for the creation of a high-level interface over multiple subsystem interfaces, providing this high-level interface to the client. This decouples the client from the complex subsystems.
+
+Furthermore, the Facade Pattern also enables us to adhere to the Law of Demeter (also known as the Principle of Least Knowledge).
+
+**Now let's look at the code for a few playback tools**
+
+```csharp
+using System;
+
+namespace Facade 
+{ 
+    /// <summary> 
+    /// Projector 
+    /// </summary> 
+    public class Projector 
+    { 
+        public void OpenProjector() 
+        { 
+            Console.WriteLine("Open projector"); 
+        }
+
+        public void CloseProjector() 
+        { 
+            Console.WriteLine("Close projector"); 
+        }
+
+        public void SetWideScreen() 
+        { 
+            Console.WriteLine("Projector is in widescreen mode"); 
+        }
+
+        public void SetStandardScreen() 
+        { 
+            Console.WriteLine("Projector is in standard mode"); 
+        } 
+    } 
+}
+```
+
+```csharp
+using System;
+
+namespace Facade 
+{ 
+    /// <summary> 
+    /// Amplifier 
+    /// </summary> 
+    public class Amplifier 
+    { 
+        public void OpenAmplifier() 
+        { 
+            Console.WriteLine("Open amplifier"); 
+        }
+
+        public void CloseAmplifier() 
+        { 
+            Console.WriteLine("Close amplifier"); 
+        } 
+    } 
+}
+```
+
+```csharp
+using System;
+
+namespace Facade 
+{ 
+    /// <summary> 
+    /// Screen 
+    /// </summary> 
+    public class Screen 
+    { 
+        public void OpenScreen() 
+        { 
+            Console.WriteLine("Open screen"); 
+        }
+
+        public void CloseScreen() 
+        { 
+            Console.WriteLine("Close screen"); 
+        } 
+    } 
+}
+```
+
+```csharp
+using System;
+
+namespace Facade 
+{ 
+    /// <summary> 
+    /// DVD Player 
+    /// </summary> 
+    public class DVDPlayer 
+    { 
+        public void OpenDVDPlayer() 
+        { 
+            Console.WriteLine("Open DVD player"); 
+        }
+
+        public void CloseDVDPlayer() 
+        { 
+            Console.WriteLine("Close DVD player"); 
+        } 
+    } 
+}
+```
+
+```csharp
+using System;
+
+namespace Facade 
+{ 
+    /// <summary> 
+    /// Light 
+    /// </summary> 
+    public class Light 
+    { 
+        public void OpenLight() 
+        { 
+            Console.WriteLine("Turn on light"); 
+        }
+
+        public void CloseLight() 
+        { 
+            Console.WriteLine("Turn off light"); 
+        } 
+    } 
+}
+```
+
+**Next, here's the code for the Facade class**
+
+```csharp
+namespace Facade 
+{ 
+    /// <summary> 
+    /// Define a facade 
+    /// </summary> 
+    public class MovieFacade 
+    { 
+        /// <summary> 
+        /// The facade class must hold references to various objects in the subsystem 
+        /// </summary> 
+        private Projector projector; 
+        private Amplifier amplifier; 
+        private Screen screen; 
+        private DVDPlayer dvdPlayer; 
+        private Light light;
+
+        public MovieFacade() 
+        { 
+            projector = new Projector(); 
+            amplifier = new Amplifier(); 
+            screen = new Screen(); 
+            dvdPlayer = new DVDPlayer(); 
+            light = new Light(); 
+        }
+
+        /// <summary> 
+        /// Open movie 
+        /// </summary> 
+        public void OpenMovie() 
+        { 
+            // First, turn on the projector 
+            projector.OpenProjector(); 
+            // Then, turn on the amplifier 
+            amplifier.OpenAmplifier(); 
+            // Then, open the screen 
+            screen.OpenScreen(); 
+            // Then, turn on the DVD 
+            dvdPlayer.OpenDVDPlayer(); 
+            // Then, turn on the lights 
+            light.OpenLight(); 
+        }
+
+        /// <summary> 
+        /// Close movie 
+        /// </summary> 
+        public void CloseMovie() 
+        { 
+            // Turn off the projector 
+            projector.CloseProjector(); 
+            // Turn off the amplifier 
+            amplifier.CloseAmplifier(); 
+            // Close the screen 
+            screen.CloseScreen(); 
+            // Turn off the DVD 
+            dvdPlayer.CloseDVDPlayer(); 
+            // Turn off the lights 
+            light.CloseLight(); 
+        } 
+    } 
+}
+```
+
+**Finally, here's the client code**
+
+```csharp
+using System;
+
+namespace FacadeTest 
+{ 
+    class Program 
+    { 
+        static void Main(string[] args) 
+        { 
+            Facade.MovieFacade movie = new Facade.MovieFacade(); 
+            Facade.Projector projector = new Facade.Projector();
+
+            // First, watch the movie 
+            movie.OpenMovie();
+
+            Console.WriteLine();
+
+            // Then, set the projector to widescreen mode 
+            projector.SetWideScreen(); 
+            // Then, set the projector back to standard mode 
+            projector.SetStandardScreen(); 
+            Console.WriteLine();
+
+            // Finally, close the movie 
+            movie.CloseMovie();
+
+            Console.ReadKey(); 
+        } 
+    } 
+}
+```
+
+As can be seen from the screenshots above, I can still use the content from the subsystem in the client. That is, the Facade Pattern does not isolate the subsystem from the client; it merely provides a clean interface to the client. However, if the client wants to access interfaces within the complex subsystem, it can still do so, as demonstrated in the Demo above where the projector within the subsystem was accessed and

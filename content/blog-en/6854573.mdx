@@ -1,0 +1,982 @@
+---
+title: "Linux 2.6.36 Kernel Optimization Guide"
+date: "2011-10-09"
+slug: "6854573"
+tags: ["#Linux", "#Debugging", "#Deprecated", "#Attributes", "#Transformation", "#Filesystems"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6854573"
+originalTitle: "Linux 2.6.36内核优化指南"
+---
+
+Linux 2.6.36 Kernel Optimization Guide
+
+Author: [Ken Wu](http://kenwublog.com/about)
+
+Email: ken.wug@gmail.com
+
+Please credit the original link when reposting this document: [http://kenwublog.com/docs/linux-kernel-2-6-36-optimization.htm](http://kenwublog.com/docs/linux-kernel-2-6-36-optimization.htm)!
+
+**Introduction**
+
+This document is a minimal optimization guide for Linux Kernel 2.6.36. The author aims to compile a kernel with optimal performance suitable for application development (with a GNOME graphical interface).  
+The kernel tuning described here is primarily achieved by selecting optimal compilation options, removing unnecessary drivers, reducing kernel size, and disabling certain security features.
+
+The optimization results are mainly reflected in OS boot time, memory usage after boot, and application runtime performance.
+
+Due to the author's limited expertise, please feel free to provide corrections if any inaccuracies are found.
+
+**Runtime Environment**
+
+Virtual Machine
+
+VirtualBox 4.0.2
+
+CPU
+
+Core i7 quad-core, assigned 2 cores with VT-x and IO APIC enabled
+
+Disk
+
+10GB virtual SATA disk
+
+Memory
+
+2GB physical RAM allocated
+
+Network Card
+
+Virtual Intel PRO/1000 MT
+
+Graphics Card
+
+128MB video memory
+
+Others
+
+USB, serial ports, and sound card all disabled
+
+The author compiled the kernel within a virtual machine. If your environment differs from the author's, some descriptions in this document may not exactly match your actual setup.
+
+However, most users should be able to make appropriate selections upon reading the option descriptions.
+
+**References**
+
+[Introduction to Kernel Options by Jin Guobu](http://lamp.linux.gov.cn/Linux/kernel_options.html)
+
+[Linux Kernel Database](http://cateee.net/lkddb/web-lkddb/)
+
+[Linuxsir BBS](http://www.linuxsir.org/bbs/)
+
+[http://www.path8.net/tn/archives/3497](http://www.path8.net/tn/archives/3497)
+
+**Performance Comparison Before and After Optimization**
+
+| Item | Before Optimization | After Optimization |
+|------|---------------------|--------------------|
+| Kernel Size | 4.1M | 1.6M |
+| Boot Time (including DHCP + default init services) | 22s | 14s |
+| Memory Usage After Boot | 25M | 22M |
+| APP SPEC Test Score | Pending | Pending |
+
+Red comments explain the reasons for disabling an option.  
+Black comments explain the meaning of default-selected options.  
+Other unselected options are not explained.
+
+**General setup  --->**
+
+[ ] Prompt for development and/or incomplete code/drivers <=== Shows code and drivers still under development or incomplete. Some devices may require this option to be enabled. I chose to disable it because first, I am not a kernel or driver developer, and second, I haven't encountered any device that requires this option to function. You can safely disable it; if issues arise, simply re-enable it.
+
+()  Local version - append to kernel release
+
+[ ] Automatically append version information to the version string
+
+Kernel compression mode (Bzip2)  ---> <=== Compared to the default Gzip, Bzip2 is a lossless compression software based on the Burrows-Wheeler transform, offering better compression than traditional LZ77/LZ78 algorithms. It is recommended to select this.
+
+[*] Support for paging of anonymous memory (swap) // Enables kernel support for virtual memory. This virtual memory in Linux is the SWAP partition. Unless you don't want a SWAP partition, you must select Y here.
+
+[*] System V IPC // Supports System V inter-process communication (IPC), allowing processors to synchronize and exchange information between programs. If this is not selected, many programs will fail to run. Specifically, if you want to run DOS emulation programs under Linux, you must select Y.
+
+[*] BSD Process Accounting // Allows user processes to access the kernel and write accounting information into files. This is generally considered a good idea, and it's recommended to enable it. This user-level system call writes process statistics into files, including process creation time, creator, memory usage, and more.
+
+[ ]  BSD Process Accounting version 3 file format
+
+[ ] Export task/process statistics through netlink (EXPERIMENTAL) <=== Experimental feature. Exports job/process data via a generic network interface. Unlike BSD, this data can be accessed via commands while the process is running. Similar to BSD, the data is sent to user space when the process ends. Unclear—select N.
+
+[ ] Auditing support <=== Audit support, used with certain kernel subsystems (e.g., SELinux). Required to audit system calls, but only if sub-options are also selected. My use case is primarily application development, which doesn't require such high security. Additionally, security often comes at the cost of performance.
+
+RCU Subsystem  ---> // [Asymmetric read-write lock system](http://www.ibm.com/developerworks/cn/linux/l-rcu/) is a high-performance kernel locking mechanism suitable for read-heavy, write-light environments.
+
+RCU Implementation (Tree-based hierarchical RCU)  --->
+
+< > Kernel .config support
+
+(18) Kernel log buffer size (16 => 64KB, 17 => 128KB)
+
+[ ] Control Group support  ---><=== cgroups support, [documentation](http://www.mjmwired.net/kernel/Documentation/cgroups.txt). cgroups primarily groups processes and allows dynamic control of CPU usage per group. For example, assign process A to group apple with 20% CPU, process E to group easy with 50% CPU, up to 100%. I currently have no such use case, so I'll compile it in only when needed.
+
+[ ] enable deprecated sysfs features to support old userspace tools
+
+[ ] Kernel->user space relay support (formerly relayfs) <=== Provides an interface to transfer large amounts of data from kernel space to user space over certain file systems (e.g., debugfs). I currently have no such use case.
+
+-*- Namespaces support
+
+[ ]   UTS namespace <=== I have no installed applications requiring UTS ns
+
+[ ]   IPC namespace <=== I have no installed applications requiring IPC ns
+
+[ ] Initial RAM filesystem and RAM disk (initramfs/initrd) support <=== Used to perform operations before the real kernel loads (commonly known as two-stage boot), such as loading modules, mounting non-root partitions, or providing a disaster recovery shell environment. [Documentation](http://blog.linux.org.tw/~jserv/archives/001954.html). I prefer direct boot from the kernel image, so I did not select this.
+
+[ ] Optimize for size <=== This option replaces the GCC "-O2" parameter with "-Os", resulting in a smaller kernel. Not necessary. Enabling it may sometimes produce incorrect binary code.
+
+[ ] Configure standard kernel features (for small systems)  --->
+
+-*-   Load all symbols for debugging/ksymoops
+
+[ ]     Include all symbols in kallsyms <=== Includes all symbols known to the kernel in kallsyms, increasing kernel size by 300K. Disable if not debugging the kernel.
+
+[ ]   Do an extra kallsyms pass <=== Only enable if you find a bug in kallsyms and need to report it.
+
+Kernel Performance Events And Counters  --->  
+
+-*- Kernel performance events and counters // CPU performance monitoring, including instructions executed per unit time, cache misses, and branch prediction failures ([Branch misprediction](http://en.wikipedia.org/wiki/Branch_misprediction)). Might be useful when tuning other programs, such as JVM.
+
+[ ] Debug: use vmalloc to back perf mmap() buffers <=== Disable debugging feature
+
+[ ] Kernel performance counters (old config option)
+
+[ ] Disable heap randomization
+
+Choose SLAB allocator (SLUB (Unqueued Allocator))  --->
+
+[ ] Profiling support (EXPERIMENTAL) <=== I am not a kernel developer and don't need kernel profiling. Enable only when needed. Those using OProfile should enable it.
+
+[ ] Kprobes <=== I am not a kernel developer and don't need kernel debugging.
+
+GCOV-based kernel profiling  --->
+
+[ ] Enable gcov-based kernel profiling
+
+**[*] Enable loadable module support  ---> // Enables loadable module support. If enabled, you must run "make modules_install" to install kernel modules into /lib/modules/. This option allows your kernel to support modules**
+
+--- Enable loadable module support
+
+[ ]   Forced module loading
+
+[*]   Module unloading // Allows unloading of loaded modules
+
+[ ]   Module versioning support
+
+[ ]   Source checksum for all modules
+
+**-*- Enable the block layer  --->**
+
+--- Enable the block layer
+
+[*]   Support for large (2TB+) block devices and files // Required for large hard drives. If not selected for SATA devices, kernel panic may occur for unknown reasons.
+
+[ ]   Block layer SG support v4 <=== Supports version 4 of the generic SCSI block device. I use SATA.
+
+[ ]   Block layer data integrity support
+
+IO Schedulers  ---> // IO scheduler support. Different programs may use different scheduling policies. We won't change this here.
+
+<*> Anticipatory I/O scheduler
+
+<*> Deadline I/O scheduler
+
+<*> CFQ I/O scheduler
+
+    Default I/O scheduler (CFQ)  --->
+
+**Processor type and features  --->**
+
+[*] Tickless System (Dynamic Ticks) // Dynamic tick system. This technology allows the new kernel to run more efficiently and save power. Dynamic ticks mean reducing the kernel timer polling frequency when the CPU is idle.
+
+[*] High Resolution Timer Support // I sometimes test Real-Time JVM and want the kernel to support high-response kernel timers. General users may disable this.
+
+[*] Symmetric multi-processing support // Support for symmetric multiprocessing. Select this if you have multiple CPUs or a multi-core CPU.
+
+[ ] Support sparse irq numbering <=== Supports sparse interrupt numbering. Disable.
+
+[ ] Enable MPS table <=== MPS multiprocessor specification. Disable.
+
+[ ] Support for big SMP systems with more than 8 CPUs
+
+[ ] Support for extended (non-PC) x86 platforms <=== I am on an x86 platform and don't need support for other platforms.
+
+[*] Single-depth WCHAN output // Best not to disable, related to proc.
+
+[ ] Paravirtualized guest support  --->
+
+--- Paravirtualized guest support
+
+[*] Disable Bootmem code // Optimizes complex initialization memory allocation logic in the kernel.
+
+[ ] Memtest
+
+Processor family (Core 2/newer Xeon)  ---> <=== Select the appropriate CPU. Mine is Core 2 Duo.
+
+[ ] Generic x86 support <=== Generic x86 support. If your CPU is listed in "Processor family" above, do not select this.
+
+[*] HPET Timer Support // HPET timer support. Allows the kernel to use HPET. HPET is a newer timer replacing the 8254 chip, supported by i686 and higher motherboards. Safe to select. However, HPET only runs on platforms and BIOS that support it. If unsupported, 8254 will activate. Selecting N continues using the 8254 timer.
+
+(8) Maximum number of CPUs // Maximum number of CPUs supported. Each additional CPU increases kernel size by 8K.
+
+[ ] SMT (Hyperthreading) scheduler support <=== Supports Intel's Hyper-Threading (HT) technology. The HT scheduler may benefit Intel Pentium 4 HT series in some cases. If unsure, select N.
+
+[*] Multi-core scheduler support // Optimizes scheduling policies for multi-core CPUs. Required for dual-core CPUs. Multi-core scheduling may benefit multi-core CPU series in some cases.
+
+Preemption Model (Voluntary Kernel Preemption (Desktop))  ---> // Kernel preemption model. Allows high-priority programs to preempt lower-priority ones, even when running in kernel mode. Reduces kernel latency and improves system responsiveness. However, the kernel is non-preemptible at certain critical points (e.g., the scheduler itself). This feature improves performance for desktop and real-time systems.
+
+[*] Reroute for broken boot IRQs // Prevents system chaos when multiple boot IRQs (interrupts) are received simultaneously.
+
+[*] Machine Check Exception // Allows the CPU to notify the kernel upon detecting system faults, so the kernel can take appropriate actions (e.g., shutdown due to overheating).
+
+[*]   Intel MCE features
+
+[ ]   AMD MCE features <=== I have an Intel CPU
+
+[ ]   Support for old Pentium 5 / WinChip machine checks
+
+< > Machine check injector support
+
+< > Toshiba Laptop support
+
+< > Dell laptop support
+
+[ ] Enable X86 board specific fixups for reboot <=== Fixes reboot bugs on certain old x86 motherboards, which are now nearly obsolete.
+
+<*> /dev/cpu/microcode - microcode support // Supports Intel IA32 architecture CPUs. This option allows updating microcode for Intel IA32 processors. You must download the latest code online, as Linux does not provide it. You must also select "/dev file system support" in the file system options to use it properly. If compiled as a module, it will be named microcode. IA32 is mainly used for memory above 4GB. See "High Memory Options" below. To use IA32 microcode not distributed with the Linux kernel, you need the IA32 microcode binary file. Only valid for Intel CPUs.
+
+[*]   Intel microcode patch loading support
+
+[ ]   AMD microcode patch loading support <=== I have an Intel CPU
+
+<*> /dev/cpu/*/msr - Model-specific register support // Enables CPU model-specific register functionality. Desktop users generally don't need this; it's mainly used in Intel embedded CPUs. The register's function depends on the CPU type and can alter the CPU's physical structure usage. In multi-CPU systems, allows privileged CPUs to access x86 MSR registers.
+
+<*> /dev/cpu/*/cpuid - CPU information support // Enables recording CPU-related information. This creates device files under /dev/cpu, allowing processes to access specific CPUs. CPUID (unique CPU identifier) can be obtained from /dev/cpu/x/cpuid.
+
+High Memory Support (4GB)  --->
+
+      [ ] Enable KSM for page merging
+
+(4096) Low address space to protect from user allocation
+
+[ ] Enable recovery from hardware memory errors
+
+[ ] Allocate 3rd-level pagetables from highmem <=== On machines with large memory (greater than 4G), places user-space page tables in high memory to save valuable low memory. I only virtualized 1G.
+
+[ ] Check for low memory corruption <=== Checks for corruption in low memory, defaulting to once every 60 seconds. Such corruption is usually caused by improper BIOS handling. [Reference link](http://cateee.net/lkddb/web-lkddb/X86_CHECK_BIOS_CORRUPTION.html). I trust my current virtual BIOS version.
+
+[ ] Reserve low 64K of RAM on AMI/Phoenix BIOSen <=== I don't use AMI/Phoenix BIOS.
+
+[ ] Math emulation
+
+-*- MTRR (Memory Type Range Register) support // Memory Type Range Register. On Intel P6 series processors (Pentium Pro, Pentium II and newer), MTRR controls the processor's memory access policies for specific regions. This is very useful if you have a VGA card on the PCI or AGP bus, potentially increasing graphics transfer speed by over 2.5x. Selecting Y generates /proc/mtrr, which can be used to manipulate the processor's MTRR. Typically used by X servers. This code has a generic interface, allowing other CPUs' registers to use this feature. Cyrix 6×86, 6×86MX, and M II processors have ARR, similar to MTRR. AMD K6-2/K6-3 have two MTRRs, Centaur C6 has eight MCRs allowing compound writes. All these processors support this code—you can safely select Y if you have one. Selecting Y can also fix SMP BIOS issues where MTRR is provided only for the first CPU. Selecting Y is wise. You can safely select Y even if your machine lacks MTRR, adding only 9KB to the kernel. Enabling it can double graphics speed on PCI/AGP cards and fix certain BIOS bugs.
+
+[ ]   MTRR cleanup support
+
+[ ] EFI runtime service support <=== My machine uses BIOS boot, not EFI (Extensible Firmware Interface). If you want to try EFI, enable it in VirtualBox.
+
+[ ] Enable seccomp to safely compute untrusted bytecode <=== Only embedded systems can deselect this.
+
+[ ] Enable -fstack-protector buffer overflow detection (EXPERIMENTAL)
+
+Timer frequency (1000 HZ)  ---> // Timer frequency (1000 HZ) —> Kernel timer frequency. 1000 for desktops, 100 or 250 for servers.
+
+[ ] kexec system call <=== kexec system call. kexec is a system call that shuts down the current kernel and starts another without accessing firmware. Similar to rebooting, but you can boot any kernel, not just Linux. The name comes from the exec system call. It's just a process that ensures hardware shuts down correctly. Even Linus has had issues—so we shouldn't fall for it. Select N! Provides kexec system call, allowing switching to another kernel without rebooting. Select only if needed. Most users don't require it.
+
+[ ] kernel crash dumps <=== Dumps runtime information when the kernel crashes. Even if it crashes, I won't debug the kernel core dump.
+
+[ ] Build a relocatable kernel <=== [Official documentation](http://cateee.net/lkddb/web-lkddb/RELOCATABLE.html) (builds a relocatable kernel, increasing kernel size by 10%, discarded at runtime). I see no practical benefit.
+
+(0x1000000) Physical address where the kernel is loaded
+
+-*- Support for hot-pluggable CPUs // Supports SMP sleep and hot-plug CPUs.
+
+[ ] Compat VDSO support
+
+[ ] Built-in kernel command line
+
+**Power management and ACPI options  --->**
+
+[*] Power Management support
+
+[ ]   Power Management Debug Support <=== Don't want to debug ACPI
+
+[ ]       Extra PM attributes in sysfs  for low-level debugging/testing
+
+[ ]     Verbose Power Management debugging
+
+[*] Suspend to RAM and standby // Standby
+
+[*] Hibernation (aka 'suspend to disk') // Hibernate
+
+[ ] Runtime PM core functionality
+
+[*] ACPI (Advanced Configuration and Power Interface) Support  --->
+
+[*]   Deprecated /proc/acpi files
+
+[*]   Deprecated power /proc/acpi directories
+
+<>  ACPI 4.0 power meter
+
+[*]   Future power /sys interface
+
+<>  EC read/write through /sys/kernel/debug/ec
+
+[*]   Deprecated /proc/acpi/event support
+
+<*>   AC Adapter
+
+<*>   Battery
+
+<*>   Button
+
+<*>   Fan
+
+<*>   Processor
+
+<*>     Thermal Zone
+
+(0)   Disable ACPI for systems before Jan 1st this year
+
+[ ]   Debug Statements
+
+< >   PCI slot detection driver
+
+< >   Smart Battery System
+
+< >   Hardware Error Device
+
+[ ]   ACPI platform Error Interface (APEI)     
+
+[ ] SFI  (Simple Firmware Interface) Support --->
+
+< > APM(Advanced Power Management) BIOS Support --->
+
+CPU Frequency scaling  --->
+
+[*] CPU Frequency scaling
+
+[ ]   Enable CPUfreq debugging <=== I don't need CPUfreq debugging
+
+< >   CPU frequency translation statistics
+
+Default CPUFreq governor (performance)  ---> <=== Default to "performance" governor for high-performance CPU frequency scaling
+
+-*-   'performance' governor
+
+< >   'powersave' governor
+
+<>   'userspace' governor for userspace frequency scaling
+
+<>   'ondemand' cpufreq policy governor <=== "Periodically checks CPU load and dynamically adjusts CPU frequency." I only use performance.
+
+<>   'conservative' cpufreq governor
+
+*** CPUFreq processor drivers ***
+
+                 < >     Processor Clocking P-stat driver
+
+<*>   ACPI Processor P-States driver
+
+< >   AMD Mobile K6-2/K6-3 PowerNow!
+
+< >   AMD Mobile Athlon/Duron PowerNow!
+
+< >   AMD Opteron/Athlon64 PowerNow!
+
+< >   Cyrix MediaGX/NatSemi Geode Suspend Modulation
+
+< >   Intel Enhanced SpeedStep (deprecated)
+
+< >   Intel Speedstep on ICH-M chipsets (ioport interface)
+
+< >   Intel Pentium 4 clock modulation
+
+< >   Transmeta LongRun
+
+< >   VIA Cyrix III Longhaul
+
+ [ ]    Cpuidle Driver for Intel Processors
+
+**Bus options (PCI etc.)  --->**
+
+[*] PCI support
+
+PCI access mode (Any)  --->
+
+      [ ] Read CNB20LE Host Bridge Window
+
+[*] PCI Express support
+
+< > PCI Express Hotplug driver
+
+[*]   Root Port Advanced Error Reporting support // Hardware drivers handle error reporting
+
+[ ]     PCI Express ECRC settings control
+
+< >     PCIE AER error injector support
+
+-*-    PCI Express ASPM control
+
+[ ]           Debug PCI Express ASPM
+
+[*] Message Signaled Interrupts (MSI and MSI-X)
+
+[ ] PCI Debugging
+
+< > PCI Stub driver
+
+[*] Interrupts on hypertransport devices
+
+[ ] PCI IOV support
+
+[ ] ISA support
+
+[ ] MCA support
+
+< > NatSemi SCx200 support
+
+[ ] One Laptop Per Child support
+
+[ ] Support for OLPC’s Open Firmware
+
+< > PCCard (PCMCIA/CardBus) support  ---> <=== Typically found on laptops (e.g., wireless cards). Choose based on your hardware and use case. Although I use a notebook, I never use PCMCIA.
+
+< > Support for PCI Hotplug  ---> <=== I have no need to hot-plug PCI devices.
+
+**Executable file formats / Emulations  --->**
+
+[*] Kernel support for ELF binaries
+
+[*] Write ELF core dumps with partial segments
+
+< > Kernel support for a.out and ECOFF binaries
+
+<*> Kernel support for MISC binaries
+
+**[*] Networking support  --->**
+
+Networking options  --->
+
+<*> Packet socket
+
+<*> Unix domain socket
+
+<*> Transformation user configuration interface
+
+< > PF_KEY sockets
+
+[*] TCP/IP networking
+
+[*]   IP: multicasting
+
+[*]   IP: advanced router
+
+Choose IP: FIB lookup algorithm (choose FIB_HASH if unsure) (FIB_HASH)  --->
+
+[*]   IP: policy routing
+
+[*]   IP: equal cost multipath
+
+[*]   IP: verbose route monitoring
+
+[ ]   IP: kernel level autoconfiguration <=== I rarely use network booting; kernel-level network configuration is useless to me.
+
+[ ]     IP: DHCP support
+
+[ ]     IP: BOOTP support
+
+[ ]     IP: RARP support
+
+< >   IP: tunneling
+
+< >   IP: GRE tunnels over IP
+
+[*]   IP: multicast routing
+
+[ ]         IP: multicast policy routing
+
+[*]     IP: PIM-SM version 1 support
+
+[*]     IP: PIM-SM version 2 support
+
+[ ]   IP: ARP daemon support
+
+[ ]   IP: TCP syncookie support (disabled per default) <=== Resists SYN flood attacks. I'm using a development machine, so I'm not considering security features for now.
+
+< >   IP: AH transformation
+
+< >   IP: ESP transformation
+
+ < >   IP: IPComp transformation
+
+< >   IP: IPsec transport mode
+
+< >   IP: IPsec tunnel mode
+
+< >   IP: IPsec BEET mode
+
+[*]   Large Receive Offload (ipv4/tcp)
+
+< >   INET: socket monitoring interface
+
+[ ]   TCP: advanced congestion control  ---> <=== Advanced congestion control. Don't select unless you have special needs (e.g., wireless networks).
+
+< >   The IPv6 protocol  ---> <=== I currently don't need IPv6 support.
+
+[ ]   NetLabel subsystem support <=== NetLabel subsystem, supports protocols like CIPSO and RIPSO that add labels to packet information. I don't need it.
+
+[ ] Security Marking <=== Security marking for network packets, similar to nfmark but designed primarily for security. Security feature—I'm not considering it now.
+
+[ ] Network packet filtering framework (Netfilter)  ---> <=== I don't plan to use a firewall. Compile it in when needed.
+
+< > Asynchronous Transfer Mode (ATM)
+
+< > 802.1d Ethernet Bridging
+
+< > 802.1Q VLAN Support
+
+< > DECnet Support
+
+< > ANSI/IEEE 802.2 LLC type 2 Support
+
+< > The IPX protocol
+
+< > Appletalk protocol support
+
+< > Phonet protocols family
+
+[ ] QoS and/or fair queueing  --->  <=== Switch QoS policies on network devices via IPRoute. I don't plan to use IP routing.
+
+[ ] Data Center Bridging support
+
+Network testing  --->
+
+[ ]   Amateur Radio support  ---> <=== I don't use radio.
+
+< >   CAN bus subsystem support  --->
+
+< >   IrDA (infrared) subsystem support  --->
+
+< >   Bluetooth subsystem support  --->
+
+[ ]   Wireless  ---> <=== I don't use wireless network cards.
+
+       <> cfg80211 – wireless configuration API
+
+        <> Common routines for IEEE802.11 driver
+
+[ ]     Wimax Wireless Broadband support
+
+< >   RF switch subsystem support  ---> <=== I don't have RF switching devices.
+
+< >  CAIF support
+
+**Device Drivers  --->**
+
+Generic Driver Options  --->
+
+(/sbin/hotplug) path to uevent helper
+
+[*] Prevent firmware from being built
+
+-*- Userspace firmware loading support
+
+[*]   Include in-kernel firmware blobs in kernel binary
+
+()    External firmware blobs to build into the kernel binary
+
+[ ] Driver Core verbose debug messages
+
+[ ] Managed device resources verbose debug messages <=== Verbose debug messages for managing device resources. I don't need them.
+
+<*> Connector - unified userspace <-> kernelspace linker  --->// Channel between kernel space and user space
+
+[*]   Report process events to userspace // Report process events to user space
+
+< > Memory Technology Device (MTD) support  --->
+
+< > Parallel port support  --->
+
+-*- Plug and Play support  --->
+
+[ ]   PNP debugging messages <=== Debug messages. Same old rule.
+
+[ ] Block devices  ---> <=== I don't need support for block devices like ramdisk, RAID, CD/DVD burning, etc. See internal options.
+
+[ ] Misc devices  ---> <=== No miscellaneous devices to support.
+
+< > ATA/ATAPI/MFM/RLL support  --->
+
+SCSI device support  --->
+
+< > RAID Transport Class
+
+-*- SCSI device support
+
+[ ] legacy /proc/scsi/ support <=== I don't have SCSI devices.
+
+*** SCSI support type (disk, tape, CD-ROM) ***
+
+<*> SCSI disk support // Required even if you use SATA.
+
+< > SCSI tape support
+
+< > SCSI OnStream SC-x0 tape support
+
+<> SCSI CDROM support <=== I don't have SCSI devices.
+
+<> SCSI generic support <=== I don't have SCSI devices.
+
+< > SCSI media changer support
+
+[ ] Probe all LUNs on each SCSI device
+
+[ ] Verbose SCSI error reporting (kernel size +=12K) <=== I don't have SCSI devices.
+
+[ ] SCSI logging facility
+
+[ ] Asynchronous SCSI scanning
+
+SCSI Transports  --->
+
+<> Parallel SCSI (SPI) Transport Attributes <=== I don't have SCSI devices.
+
+< > FiberChannel Transport Attributes
+
+< > iSCSI Transport Attributes
+
+< > SAS Domain Transport Attributes
+
+< > SRP Transport Attributes
+
+[ ] SCSI low-level drivers  --->
+
+< > SCSI Device Handlers  --->
+
+< > OSD-Initiator library
+
+Serial ATA (prod) and Parallel ATA (experimental) drivers  --->
+
+        [*]  Verbose ATA error reporting
+
+[*]   ATA ACPI Support
+
+[ ]   SATA Port Multiplier support <=== I only have one SATA device and no need for multiple SATA/SATA Hub. Port Multiplier is a technology provided by southbridge chips to support multiple SATA devices sharing bandwidth.
+
+<*>   AHCI SATA support
+
+< >      Platform AHCI SATA support
+
+< >      Inito 162x SATA support
+
+<*>   ATA SFF support // Select the driver matching your hardware.
+
+< >     ServerWorks Frodo / Apple K2 SATA support
+
+<*>     Intel ESB, ICH, PIIX3, PIIX4 PATA/SATA support // Intel ICH, G-series chipset driver
+
+< >     Marvell SATA support 
+
+< >     NVIDIA SATA support  
+
+< >     Pacific Digital ADMA support            
+
+< >     Pacific Digital SATA QStor support      
+
+< >     Promise SATA TX2/TX4 support            
+
+< >     Silicon Image SATA support              
+
+< >     SiS 964/965/966/180 SATA support        
+
+< >     ULi Electronics SATA support            
+
+< >     VIA SATA support     
+
+< >     VITESSE VSC-7174 / INTEL 31244 SATA support 
+
+< >     Initio 162x SATA support                
+
+< >     ACPI firmware driver for PATA           
+
+< >     ALi PATA support     
+
+< >     AMD/NVidia PATA support <=== I use SATA, so disable PATA support.
+
+< >     ARTOP 6210/6260 PATA support            
+
+< >     ATI PATA support     
+
+< >     CMD64x PATA support  
+
+< >     CS5510/5520 PATA support                
+
+< >     CS5530 PATA support
+
+< >     CS5536 PATA support                   
+
+< >     EFAR SLC90E66 support                  
+
+< >     Generic ATA support                    
+
+< >     HPT 366/368 PATA support              
+
+< >     HPT 343/363 PATA support              
+
+< >     IT8211/2 PATA support                 
+
+< >     JMicron PATA support                  
+
+< >     Compaq Triflex PATA support           
+
+< >     Marvell PATA support via legacy mode  
+
+<>     Intel PATA MPIIX support <=== I use SATA, so disable PATA support.
+
+< >     Intel PATA old PIIX support <=== I use SATA, so disable PATA support.
+
+< >     NETCELL Revolution RAID support       
+
+< >     Nat Semi NS87410 PATA support         
+
+< >     Nat Semi NS87415 PATA support         
+
+< >     Older Promise PATA controller support 
+
+< >     PC Tech RZ1000 PATA support           
+
+< >     SC1200 PATA support                   
+
+< >     SERVERWORKS OSB4/CSB5/CSB6/HT1000 PATA support
+
+< >     Promise PATA 2027x support            
+
+< >     CMD / Silicon Image 680 PATA support  
+
+< >     SiS PATA support                     
+
+< >     VIA PATA support                     
+
+< >     Winbond SL82C105 PATA support        
+
+< >     Intel SCH PATA support <=== I use SATA, so disable PATA support.
+
+[ ] Multiple devices driver support (RAID and LVM)  ---> <=== No current need for RAID (disk arrays) or LVM (Logical Volume Manager, adding/removing logical partitions).
+
+[ ] Fusion MPT device support  --->
+
+IEEE 1394 (FireWire) support  --->
+
+< > I2O device support  --->
+
+[ ] Macintosh device drivers  ---> <=== Mac hardware drivers. Nothing to say—disable.
+
+[*] Network device support  --->
+
+< >   Dummy net driver support              
+
+< >   Bonding driver support                
+
+< >   EQL (serial line load balancing) support
+
+< >   Universal TUN/TAP device driver support
+
+< >   Virtual ethernet pair device          
+
+< >   General Instruments Surfboard 1000    
+
+< >   ARCnet support  ---> 
+
+-*-   PHY Device support and infrastructure  ---> <=== PHY (physical layer control chip). No matching hardware here.
+
+[ ]   Ethernet (10 or 100Mbit)  ---> <=== Select if you have a 100M card.
+
+[*]   Ethernet (1000 Mbit)  ---> // Select matching hardware.
+
+[ ]   Ethernet (10000 Mbit)  ---> <=== Select if you have a 10G card.
+
+<>   Token Ring driver support  ---> <=== IBM Token Ring network. Ignore if using Ethernet.
+
+[ ]     Wireless LAN  --->  <=== Not using wireless network.
+
+      *** Enable WiMAX (Networking options) to see the WiMAX drivers *** 
+
+      USB Network Adapters  --->            
+
+[ ]   Wan interfaces support                 
+
+<>   FDDI driver support <=== Fiber card driver. Few people can use this.
+
+< >   PPP (point-to-point protocol) support  
+
+< >   SLIP (serial line) support             
+
+[ ]   Fibre Channel driver support
+
+[ ]    Network console logging support
+
+[ ]    VMware VMXNET3 ethernet driver
+
+[ ] ISDN support  --->       
+
+< > Telephony support  ---> 
+
+Input device support  --->
+
+-*- Generic input layer (needed for keyboard, mouse, ...)
+
+-*-   Support for memoryless force-feedback devices  
+
+<>   Polled input device skeleton  <=== A driver that periodically polls hardware status. Removing it has no side effects.
+
+     *** Userland interfaces ***                   
+
+-*-   Mouse interface
+
+[ ]     Provide legacy /dev/psaux device 
+
+(1024)  Horizontal screen resolution           
+
+(768)   Vertical screen resolution             
+
+< >   Joystick interface                       
+
+<*>   Event interface  // Stores input device events in /dev/input/eventX for applications to read
+
+< >   Event debugging                          
+
+     *** Input Device Drivers ***             
+
+-*-   Keyboards  --->
+
+[*]   Mice  --->                      
+
+[ ]   Joysticks/Gamepads  --->  <=== Gaming devices
+
+[ ]   Tablets  ---> <=== Tablet PCs
+
+[ ]   Touchscreens  --->  <=== Touchscreens
+
+[ ]   Miscellaneous devices  ---> <=== Miscellaneous drivers: speakers, laptop extended keys, etc.
+
+Hardware I/O ports  --->
+
+Character devices  ---> 
+
+-*- Virtual terminal         
+
+[*]   Support for binding and unbinding console drivers // Some systems support multiple console drivers (e.g., framebuffer console driver). This option allows you to choose one. I usually only use the default virtual terminal.
+
+[ ] /dev/kmem virtual device support  <=== Supports /dev/kmem device. Rarely used.
+
+[ ] Non-standard serial port support  <=== I don't have non-standard serial devices.
+
+ Serial drivers  --->
+
+< > 8250/16550 and compatible serial support <=== Supports older serial devices. I usually don't use them.
+
+    *** Non-8250 serial port support ***
+
+< > Digi International NEO PCI Support
+
+-*- Unix98 PTY support       
+
+[ ]   Support multiple instances of devpts             
+
+[ ] Legacy (BSD) PTY support 
+
+< > IPMI top-level message handler                     
+
+<*> Hardware Random Number Generator Core support     
+
+< >   Timer IOMEM HW Random Number Generator support   
+
+<*>   Intel HW Random Number Generator support     
+
+<>   AMD HW Random Number Generator support  <=== I have an Intel motherboard
+
+< >   AMD Geode HW Random Number Generator support <=== I have an Intel motherboard
+
+<>   VIA HW Random Number Generator support <=== I have an Intel motherboard    
+
+<> /dev/nvram support  <=== Direct CMOS access—too dangerous. Disable.
+
+< > Siemens R3964 line discipline
+
+< > Applicom intelligent fieldbus card support         
+
+< > ACP Modem (Mwave) support
+
+< > NatSemi PC8736x GPIO Support                     
+
+< > NatSemi Base GPIO Support
+
+< > AMD CS5535/CS5536 GPIO (Geode Companion Device)   
+
+< > RAW driver (/dev/raw/rawN)
+
+[*] HPET - High Precision Event Timer               
+
+[ ]   Allow mmap of HPET     
+
+< > Hangcheck timer
+
+-*- I2C support  ---> // Sensing hardware state, such as temperature and fan speed.
+
+[ ] SPI support  --->       
+
+    PPS support  --->       
+
+[ ] GPIO Support  --->      
+
+< > Dallas's 1-wire support  --->                   
+
+-*- Power supply class support  --->                   
+
+<*> Hardware Monitoring support  --->   
+
+-*- Generic Thermal sysfs driver  --->                 
+
+[ ] Watchdog Timer Support  ---> <=== System monitoring program. I usually don't use it.
+
+    Sonics Silicon Backplane  --->                   
+
+[*]    Multifunction device drivers  --->                 
+
+[ ] Voltage and Current Regulator Support  --->       
+
+< > Multimedia support  ---> 
+
+Graphics support  --->
+
+< > /dev/agpgart (AGP Support)  ---> < --- VirtualBox does not support virtual discrete graphics.
+
+-*-  VGA arbitration
+
+(16) Maximum number of GPU
+
+[ ] Laptop Hybrid Graphics – GPU switch support           
+
+<*> Direct Rendering Manager (XFree86 4.1.0 and higher DRI support)  --->
+
+<> Lowlevel video output switch controls 
+
+<> Support for frame buffer devices  --->
+
+[ ] Backlight & LCD device support  --->  < --- Supports backlight settings, e.g., for PDAs. I don't need it.
+
+    Display device support  ---> 
+
+    Console display driver support  ---> 
+
+[ ]   Enable Scrollback Buffer in System RAM
+
+<> Sound card support  --->  <=== Don't need sound card.
+
+[ ] HID Devices  --->  <=== Don't need human interface devices.
+
+[ ] USB support  --->  <

@@ -1,0 +1,48 @@
+---
+title: "Inter-Process Communication Series (Part One): Pipe Read/Write Example"
+date: "2011-08-31"
+slug: "6736411"
+tags: ["#numbers", "#server", "#Terminal", "#null"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6736411"
+originalTitle: "进程间通信系列（一）管道读写实例"
+---
+
+**I. Pipe Read/Write Considerations**
+
+1. Writing to a pipe is only meaningful when a read end of the pipe exists; otherwise, an error signal SIFPIPE will be received from the kernel.
+
+2. Atomicity of writes is not guaranteed when writing data to a pipe; as soon as there is free space in the pipe buffer, the writing process attempts to write content to it. If the reading process does not read the content from the pipe, the writing process will remain blocked.
+
+3. When parent and child processes run, their execution order is not guaranteed. Therefore, to ensure the parent process closes the read descriptor, `sleep(2)` can be added to the child process.
+
+**II. Examples**
+
+**1. Unnamed Pipe**
+
+```cpp
+/*pipe_rw.c*/#include <unistd.h>#include <sys/types.h>#include <errno.h>#include <stdio.h>#include <stdlib.h> int main(){	int pipe_fd[2];	pid_t pid;	char buf_r[100];	char* p_wbuf;	int r_num;	memset(buf_r,0,sizeof(buf_r));	if(pipe(pipe_fd)<0)	{	printf("pipe create error\n");	return -1;	}	if((pid=fork())==0)    //若是子进程	{		printf("\n");		/*关闭子进程管道写端。睡眠2秒，确保父进程已相应地关闭了管道读端*/		close(pipe_fd[1]);		sleep(2);		/*子进程读取管道内容*/		if((r_num=read(pipe_fd[0],buf_r,100))>0){			printf(   "%d numbers read from the pipe is %s\n",r_num,buf_r);		}			/*关闭子进程读端*/		close(pipe_fd[0]);		exit(0);  	}	else if(pid>0)	{	/*关闭父进程读端*/		close(pipe_fd[0]);		/*分两次向管道写入数据*/		if(write(pipe_fd[1],"Hello",5)!=-1)			printf("parent write1 success!\n");		if(write(pipe_fd[1]," Pipe",5)!=-1)			printf("parent write2 success!\n");		/*关闭父进程写端并睡眠3秒，让子进程读数据*/		close(pipe_fd[1]);		sleep(3);		/*收集子进程退出信息*/		waitpid(pid,NULL,0);		exit(0);	}}
+```
+Running result is as follows:
+```cpp
+[root@localhost ipc]# ./pipe_rw parent write1 success!parent write2 success!10 numbers read from the pipe is Hello Pipe
+```
+
+  
+
+**2. Named Pipe**
+
+```cpp
+/*fifo_write.c*/#include <sys/types.h>#include <sys/stat.h>#include <errno.h>#include <fcntl.h>#include <stdio.h>#include <stdlib.h>#include <string.h>#define FIFO_SERVER "/tmp/myfifo" main(int argc,char** argv){	int fd;	char w_buf[100];	int nwrite;		if(fd==-1)		if(errno==ENXIO)			printf("open error; no reading process\n");	/*打开有名管道，并设置为非阻塞*/	fd=open(FIFO_SERVER,O_WRONLY|O_NONBLOCK,0);	if(argc==1)		printf("Please send something\n");	strcpy(w_buf,argv[1]);	/*向管道写入字符串*/	if((nwrite=write(fd,w_buf,100))==-1)	{		if(errno==EAGAIN)			printf("The FIFO has not been read yet.Please try later\n");	}	else 		printf("write %s to the FIFO\n",w_buf);}  /*fifo_read.c*/ #include <sys/types.h>#include <sys/stat.h>#include <errno.h>#include <fcntl.h>#include <stdio.h>#include <stdlib.h>#include <string.h>#define FIFO "/tmp/myfifo" main(int argc,char** argv){	char buf_r[100];	int  fd;	int  nread;		/*创建有名管道,并设置相应的权限*/	if((mkfifo(FIFO,O_CREAT|O_EXCL)<0)&&(errno!=EEXIST))		printf("cannot create fifoserver\n");	printf("Preparing for reading bytes...\n");		memset(buf_r,0,sizeof(buf_r));	/*打开有名管道，并设置非阻塞标志*/	fd=open(FIFO,O_RDONLY|O_NONBLOCK,0);	if(fd==-1)	{		perror("open");		exit(1);		}	while(1)	{		memset(buf_r,0,sizeof(buf_r));		/*读取管道中的字符串*/		if((nread=read(fd,buf_r,100))==-1){			if(errno==EAGAIN)				printf("no data yet\n");		}		printf("read %s from FIFO\n",buf_r);		sleep(1);	}		pause();	unlink(FIFO);}  
+```
+Running result:
+
+Terminal 1:
+
+```cpp
+[root@localhost ipc]# ./fifo_write 123123write 123123 to the FIFO
+```
+Terminal 2:
+
+```cpp
+[root@localhost ipc]# ./fifo_readPreparing for reading bytes...read  from FIFOread  from FIFOread  from FIFOread  from FIFOread  from FIFOread 123123 from FIFOread  from FIFO
+```

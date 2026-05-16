@@ -1,0 +1,504 @@
+---
+title: "Linux Socket Network Programming (Theoretical Analysis + Comprehensive Examples)"
+date: "2011-09-06"
+slug: "6752089"
+tags: ["#Socket", "#Networking", "#Programming", "#Linux", "#Struct", "#Server"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6752089"
+originalTitle: "Linux Socket网络编程（理论分析+充足的示例）"
+---
+
+What is a Socket?  
+The Socket interface is the API for TCP/IP networks. It defines numerous functions or routines that developers can use to build applications over TCP/IP networks. To master Internet-based TCP/IP network programming, one must understand the Socket interface.  
+Socket interfaces were originally designed for Unix operating systems. If you are familiar with Unix I/O operations, understanding Sockets becomes much easier. Network socket data transmission is a special form of I/O, and a socket is essentially a file descriptor. Similar to opening a file, there is a function call `socket()` that returns an integer socket descriptor. Subsequent operations such as connection establishment and data transfer are performed using this descriptor. There are two commonly used socket types: stream sockets (`SOCK_STREAM`) and datagram sockets (`SOCK_DGRAM`). Stream sockets are connection-oriented and used with TCP services; datagram sockets are connectionless and correspond to UDP services.
+
+Socket Creation  
+To create a socket, a program calls the `socket()` function, which returns a handle similar to a file descriptor. The function prototype is:  
+```c
+int socket(int domain, int type, int protocol);
+```  
+The `domain` parameter specifies the protocol family, usually `PF_INET`, indicating the Internet protocol family (TCP/IP). The `type` parameter defines the socket type: `SOCK_STREAM` or `SOCK_DGRAM`. The Socket interface also defines raw sockets (`SOCK_RAW`), allowing programs to access lower-level protocols. The `protocol` parameter is typically set to 0. The `socket()` call returns an integer socket descriptor, which can be used in subsequent operations.  
+A socket descriptor is a pointer to an internal data structure, pointing to an entry in the descriptor table. When `socket()` is called, the system allocates storage space for a socket data structure. The system manages the descriptor table on behalf of the application.  
+A network connection between two programs consists of five pieces of information: communication protocol, local protocol address, local host port, remote host address, and remote protocol port. This information is stored within the socket data structure.
+
+Socket Configuration  
+After obtaining a socket descriptor via `socket()`, the socket must be configured before network transmission can occur. Connection-oriented socket clients use the `connect()` function to store local and remote information in the socket structure. Unconnected socket clients and servers, as well as connection-oriented socket servers, use the `bind()` function to configure local information.  
+The `bind()` function associates a socket with a port on the local machine, after which the application can listen for service requests on that port. The function prototype is:  
+```c
+int bind(int sockfd, struct sockaddr *my_addr, int addrlen);
+```  
+Here, `sockfd` is the socket descriptor returned by `socket()`, `my_addr` is a pointer to a `sockaddr` structure containing the local IP address and port number, and `addrlen` is typically set to `sizeof(struct sockaddr)`.  
+The `struct sockaddr` type is used to store socket information:  
+```c
+struct sockaddr {
+    unsigned short sa_family; /* Address family, AF_xxx */
+    char sa_data[14];         /* 14-byte protocol address */
+};
+```  
+The `sa_family` field is usually `AF_INET`, representing the Internet (TCP/IP) address family. The `sa_data` field contains the socket's IP address and port number.  
+Another commonly used structure is:  
+```c
+struct sockaddr_in {
+    short int sin_family;           /* Address family */
+    unsigned short int sin_port;    /* Port number */
+    struct in_addr sin_addr;        /* IP address */
+    unsigned char sin_zero[8];      /* Padding to match struct sockaddr size */
+};
+```  
+This structure is more convenient. The `sin_zero` field ensures `sockaddr_in` is the same size as `sockaddr` and can be zeroed using `bzero()` or `memset()`. Pointers to `sockaddr_in` and `sockaddr` can be cast interchangeably, meaning you can pass a `sockaddr_in*` where a `sockaddr*` is expected, and vice versa.  
+When using `bind()`, you can use the following assignments to automatically obtain the local IP address and a randomly selected unused port:  
+```c
+my_addr.sin_port = 0;                    /* System selects an unused port */
+my_addr.sin_addr.s_addr = INADDR_ANY;   /* Use local IP address */
+```  
+Setting `my_addr.sin_port` to 0 lets the system automatically choose an available port. Setting `my_addr.sin_addr.s_addr` to `INADDR_ANY` tells the system to fill in the local IP address.  
+Note: When using `bind()`, `sin_port` and `sin_addr` must be converted to network byte order; `sin_addr` itself does not require conversion.  
+Computers use two byte orders: big-endian (most significant byte first) and little-endian (least significant byte first). Internet data is transmitted in big-endian order. Machines using little-endian internally must convert data before transmission to avoid inconsistencies.  
+The following functions perform byte order conversion:  
+- `htonl()`: Convert a 32-bit value from host to network byte order  
+- `htons()`: Convert a 16-bit value from host to network byte order  
+- `ntohl()`: Convert a 32-bit value from network to host byte order  
+- `ntohs()`: Convert a 16-bit value from network to host byte order  
+`bind()` returns 0 on success and -1 on error, setting `errno` to the appropriate error code. Avoid using port numbers below 1024 when calling `bind()`, as ports 1–1024 are reserved. Choose any unused port above 1024.
+
+Connection Establishment  
+Connection-oriented client programs use the `connect()` function to configure the socket and establish a TCP connection with a remote server. The function prototype is:  
+```c
+int connect(int sockfd, struct sockaddr *serv_addr, int addrlen);
+```  
+`sockfd` is the socket descriptor returned by `socket()`; `serv_addr` is a pointer to a structure containing the remote host's IP address and port; `addrlen` is the size of the address structure. `connect()` returns -1 on error and sets `errno` accordingly. Client programs typically do not call `bind()` because they only need to know the destination IP address. The system automatically selects an unused local port and notifies the program when data arrives.  
+`connect()` initiates a direct connection to the remote host. Only connection-oriented clients need to connect their socket to a remote host. Connectionless protocols never establish direct connections. Connection-oriented servers do not initiate connections; they passively listen for client requests on a port.  
+The `listen()` function places the socket in passive listening mode and creates an incoming connection queue, storing service requests until the program processes them.  
+```c
+int listen(int sockfd, int backlog);
+```  
+`sockfd` is the socket descriptor returned by `socket()`; `backlog` specifies the maximum number of pending connections in the queue, which wait for `accept()` (see below). Most systems default `backlog` to 20. If a new request arrives when the queue is full, the socket rejects the connection, and the client receives an error.  
+`listen()` returns -1 on error and sets `errno`.  
+The `accept()` function allows a server to accept incoming client connection requests. After setting up the input queue, the server calls `accept()`, then sleeps until a connection request arrives.  
+```c
+int accept(int sockfd, void *addr, int *addrlen);
+```  
+`sockfd` is the listening socket descriptor; `addr` is typically a pointer to a `sockaddr_in` variable that stores information about the requesting host (which host, which port); `addrlen` is usually a pointer to an integer with value `sizeof(struct sockaddr_in)`. On error, `accept()` returns -1 and sets `errno`.  
+When `accept()` detects a connection request on the monitored socket, the system creates a new socket, associates it with the requesting process's address, and returns its descriptor. The original socket continues listening, while data transmission occurs over the new socket.
+
+Data Transmission  
+The `send()` and `recv()` functions are used for data transfer over connection-oriented sockets.  
+`send()` prototype:  
+```c
+int send(int sockfd, const void *msg, int len, int flags);
+```  
+`sockfd` is the socket descriptor for data transmission; `msg` is a pointer to the data to send; `len` is the data length in bytes; `flags` is usually 0 (refer to man pages for advanced usage).  
+`send()` returns the number of bytes actually sent, which may be less than requested. Always compare the return value with `len` and handle partial sends appropriately.  
+Example:  
+```c
+char *msg = "Hello!";
+int len, bytes_sent;
+...
+len = strlen(msg);
+bytes_sent = send(sockfd, msg, len, 0);
+...
+```  
+`recv()` prototype:  
+```c
+int recv(int sockfd, void *buf, int len, unsigned int flags);
+```  
+`sockfd` is the receiving socket descriptor; `buf` is the buffer to store received data; `len` is buffer size; `flags` is usually 0. `recv()` returns the number of bytes actually received, or -1 on error with `errno` set.  
+`sendto()` and `recvfrom()` are used for connectionless datagram sockets. Since no connection is established, the destination address must be specified during data transmission.  
+`sendto()` prototype:  
+```c
+int sendto(int sockfd, const void *msg, int len, unsigned int flags, const struct sockaddr *to, int tolen);
+```  
+This function adds two parameters: `to`, which contains the destination IP and port, and `tolen`, typically `sizeof(struct sockaddr)`. `sendto()` returns the number of bytes sent or -1 on error.  
+`recvfrom()` prototype:  
+```c
+int recvfrom(int sockfd, void *buf, int len, unsigned int flags, struct sockaddr *from, int *fromlen);
+```  
+`from` is a `sockaddr` variable storing the source IP and port. `fromlen` is usually `sizeof(struct sockaddr)`. On return, `fromlen` contains the actual size of data stored in `from`. `recvfrom()` returns the number of bytes received or -1 on error with `errno` set.  
+If `connect()` is called on a datagram socket, `send()` and `recv()` can be used for data transfer. The socket remains a datagram socket using UDP, but the kernel automatically adds source and destination address information during transmission.
+
+Ending Transmission  
+After all data operations are complete, call `close()` to release the socket and stop all data operations:  
+```c
+close(sockfd);
+```  
+Alternatively, use `shutdown()` to close the socket partially. This function allows stopping data transmission in one direction while continuing in the other. For example, you can disable sending while still receiving data until all incoming data is read.  
+```c
+int shutdown(int sockfd, int how);
+```  
+`sockfd` is the socket descriptor to close. The `how` parameter specifies the shutdown mode:  
+- 0 — Disallow further receives  
+- 1 — Disallow further sends  
+- 2 — Disallow both sends and receives  
+To fully close, call `close()`.  
+`shutdown()` returns 0 on success and -1 on error with `errno` set.
+
+Socket Programming Example  
+The server in this example sends the string "Hello, you are connected!" to the client via a socket connection. Running the server software on the server and the client software on the client will result in the client receiving the string.  
+Server code:  
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <string.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/wait.h>
+#define SERVPORT 3333 /* Server listening port */
+#define BACKLOG 10     /* Max concurrent connection requests */
+main()
+{
+    int sockfd, client_fd; /* sockfd: listening socket; client_fd: data transfer socket */
+    struct sockaddr_in my_addr;    /* Local address info */
+    struct sockaddr_in remote_addr; /* Client address info */
+    int sin_size;
+    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+        perror("socket creation failed!");
+        exit(1);
+    }
+    my_addr.sin_family = AF_INET;
+    my_addr.sin_port = htons(SERVPORT);
+    my_addr.sin_addr.s_addr = INADDR_ANY;
+    bzero(&(my_addr.sin_zero), 8);
+    if (bind(sockfd, (struct sockaddr *)&my_addr, sizeof(struct sockaddr)) == -1) {
+        perror("bind failed!");
+        exit(1);
+    }
+    if (listen(sockfd, BACKLOG) == -1) {
+        perror("listen failed!");
+        exit(1);
+    }
+    while(1) {
+        sin_size = sizeof(struct sockaddr_in);
+        if ((client_fd = accept(sockfd, (struct sockaddr *)&remote_addr, &sin_size)) == -1) {
+            perror("accept failed");
+            continue;
+        }
+        printf("received a connection from %s\n", inet_ntoa(remote_addr.sin_addr));
+        if (!fork()) { /* Child process code */
+            if (send(client_fd, "Hello, you are connected!\n", 26, 0) == -1)
+                perror("send failed!");
+            close(client_fd);
+            exit(0);
+        }
+        close(client_fd);
+    }
+}
+```
+The server workflow: First, `socket()` creates a socket. Then `bind()` associates it with the local address and port. `listen()` starts listening on that socket. When `accept()` receives a connection request, it creates a new socket. The server prints the client's IP address and sends the greeting via the new socket, then closes it.  
+The `fork()` function creates a child process to handle data transfer. `fork()` returns 0 in the child process, so the `if` block contains child process code, executed concurrently with the parent process code that follows.
+
+Client code:  
+```c
+#include<stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <string.h>
+#include <netdb.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#define SERVPORT 3333
+#define MAXDATASIZE 100 /* Max data size per transfer */
+main(int argc, char *argv[]){
+    int sockfd, recvbytes;
+    char buf[MAXDATASIZE];
+    struct hostent *host;
+    struct sockaddr_in serv_addr;
+    if (argc < 2) {
+        fprintf(stderr,"Please enter the server's hostname!\n");
+        exit(1);
+    }
+    if((host=gethostbyname(argv[1]))==NULL) {
+        herror("gethostbyname failed!");
+        exit(1);
+    }
+    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1){
+        perror("socket creation failed!");
+        exit(1);
+    }
+    serv_addr.sin_family=AF_INET;
+    serv_addr.sin_port=htons(SERVPORT);
+    serv_addr.sin_addr = *((struct in_addr *)host->h_addr);
+    bzero(&(serv_addr.sin_zero),8);
+    if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(struct sockaddr)) == -1) {
+        perror("connect failed!");
+        exit(1);
+    }
+    if ((recvbytes=recv(sockfd, buf, MAXDATASIZE, 0)) == -1) {
+        perror("recv failed!");
+        exit(1);
+    }
+    buf[recvbytes] = '\0';
+    printf("Received: %s",buf);
+    close(sockfd);
+}
+```
+The client first resolves the server's hostname to an IP address using `gethostbyname()`, then creates a socket and connects to the server. After a successful connection, it receives data and closes the socket.  
+`gethostbyname()` performs domain name resolution. Since IP addresses are hard to remember, domain names are commonly used, requiring conversion. Function prototype:  
+```c
+struct hostent *gethostbyname(const char *name);
+```  
+It returns a pointer to a `hostent` structure:  
+```c
+struct hostent {
+    char *h_name;          /* Official host name */
+    char **h_aliases;      /* NULL-terminated array of host aliases */
+    int h_addrtype;        /* Address type, AF_INET in Internet */
+    int h_length;          /* Length of address in bytes */
+    char **h_addr_list;    /* NULL-terminated array of host addresses */
+};
+#define h_addr h_addr_list[0] /* First address in h_addr_list */
+```  
+On success, `gethostbyname()` returns a pointer to `struct hostent`; on failure, it returns NULL. Use `herror()` instead of `perror()` to print error messages.
+
+Connectionless client/server programs work similarly in principle to connection-oriented ones. The key difference is that connectionless clients typically do not establish a connection and must specify the remote address when sending or receiving data.
+
+Blocking and Non-blocking  
+A blocking function prevents the program from calling another function until its task is complete. For example, when a program executes a read operation, it waits until the read finishes before proceeding. When a server reaches the `accept()` statement and no client connection request has arrived, it blocks, waiting for a request. This is called blocking. Non-blocking operations return immediately. For instance, if a server should only check for pending connections without waiting, the socket can be set to non-blocking mode. In non-blocking mode, `accept()` returns immediately if no client is waiting.  
+```c
+#include <unistd.h>
+#include <fcntl.h>
+...
+sockfd = socket(AF_INET, SOCK_STREAM, 0);
+fcntl(sockfd, F_SETFL, O_NONBLOCK);
+...
+```  
+Setting a socket to non-blocking enables polling of multiple sockets. Attempting to read from a non-blocking socket with no data returns immediately with -1 and sets `errno` to `EWOULDBLOCK`. However, polling wastes CPU cycles. The `select()` system call solves this efficiently by suspending the process while the kernel monitors a set of file descriptors. When activity occurs on any monitored descriptor, `select()` returns, indicating which descriptor is ready. This avoids wasteful CPU polling. The `select()` prototype is:  
+```c
+int select(int numfds, fd_set *readfds, fd_set *writefds,
+           fd_set *exceptfds, struct timeval *timeout);
+```  
+`readfds`, `writefds`, and `exceptfds` are sets of file descriptors monitored for read, write, and exception events. To check if data can be read from standard input and a socket, add file descriptor 0 and the socket descriptor to `readfds`. `numfds` is the highest-numbered file descriptor plus one—in this case, `sockfd + 1`. After `select()` returns, `readfds` is modified to indicate ready descriptors. Use `FD_ISSET()` to test. Macros for manipulating `fd_set`:  
+- `FD_ZERO(fd_set *set)` — Clear the set  
+- `FD_SET(int fd, fd_set *set)` — Add a descriptor to the set  
+- `FD_CLR(int fd, fd_set *set)` — Remove a descriptor from the set  
+- `FD_ISSET(int fd, fd_set *set)` — Test if a descriptor is set  
+The `timeout` parameter is a pointer to a `struct timeval`, allowing `select()` to return after the specified time if no descriptors are ready. The structure:  
+```c
+struct timeval {
+    int tv_sec;    /* seconds */
+    int tv_usec;   /* microseconds */
+};
+```
+
+POP3 Client Example  
+This example implements a POP3 client that connects to a mail server and retrieves emails for a specified account. Commands are stored in the `POPMessage` array and sent in a `do-while` loop.  
+```c
+#include<stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <string.h>
+#include <netdb.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#define POP3SERVPORT 110
+#define MAXDATASIZE 4096
+
+main(int argc, char *argv[]){
+    int sockfd;
+    struct hostent *host;
+    struct sockaddr_in serv_addr;
+    char *POPMessage[]={
+        "USER userid\r\n",
+        "PASS password\r\n",
+        "STAT\r\n",
+        "LIST\r\n",
+        "RETR 1\r\n",
+        "DELE 1\r\n",
+        "QUIT\r\n",
+        NULL
+    };
+    int iLength;
+    int iMsg=0;
+    int iEnd=0;
+    char buf[MAXDATASIZE];
+
+    if((host=gethostbyname("your.server"))==NULL) {
+        perror("gethostbyname error");
+        exit(1);
+    }
+    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1){
+        perror("socket error");
+        exit(1);
+    }
+    serv_addr.sin_family=AF_INET;
+    serv_addr.sin_port=htons(POP3SERVPORT);
+    serv_addr.sin_addr = *((struct in_addr *)host->h_addr);
+    bzero(&(serv_addr.sin_zero),8);
+    if (connect(sockfd, (struct sockaddr *)&serv_addr,sizeof(struct sockaddr))==-1){
+        perror("connect error");
+        exit(1);
+    }
+
+    do {
+        send(sockfd,POPMessage[iMsg],strlen(POPMessage[iMsg]),0);
+        printf("have sent: %s",POPMessage[iMsg]);
+
+        iLength=recv(sockfd,buf+iEnd,sizeof(buf)-iEnd,0);
+        iEnd+=iLength;
+        buf[iEnd]='\0';
+        printf("received: %s,%d\n",buf,iMsg);
+
+        iMsg++;
+    } while (POPMessage[iMsg]);
+
+    close(sockfd);
+}
+```
+
+A robust Linux/Unix network file transfer example:
+
+I've been studying Unix network programming recently. Initially, when transferring image files, extra bytes would appear. After testing and reviewing online articles, I discovered the issue was improper handling of the final read/write operations. I've improved the program, and it now successfully transfers various file types. Next step: implement video file transfer.
+
+server.c
+
+```c
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <stdio.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+
+#define MAXSIZE 100
+
+int main(int argc,char **argv)
+{
+    int server_sockfd,client_sockfd;
+    int server_len,client_len;
+    char ch[MAXSIZE];
+    struct sockaddr_in server_address;
+    struct sockaddr_in client_address;
+
+    if (argc != 2)
+    {
+        printf("server:file name\n");
+        exit(1);
+    }
+
+    server_sockfd = socket(AF_INET,SOCK_STREAM,0);
+    if(server_sockfd <0)
+    {
+        printf("Creating socket error!\n");
+        exit(1);
+    }
+
+    bzero(&server_address,sizeof(struct sockaddr_in));
+    server_address.sin_family = AF_INET;
+    server_address.sin_addr.s_addr = htonl(INADDR_ANY);
+    server_address.sin_port = htons(5000);
+    server_len = sizeof(server_address);
+
+    int opt = 1;
+    setsockopt(server_sockfd,SOL_SOCKET,SO_REUSEADDR,&opt,sizeof(opt));
+
+    if(bind(server_sockfd,(struct sockaddr *)&server_address,server_len) < 0)
+    {
+        perror("Bind error.");
+        exit(1);
+    }
+
+    if(listen(server_sockfd,5) == -1)
+    {
+        printf("listen error!\n");
+        exit(1);
+    }
+
+    client_len = sizeof(client_address);
+    client_sockfd = accept(server_sockfd,(struct sockaddr *)&client_address, &client_len);
+    if(client_sockfd == -1)
+    {
+        printf("accept error!\n");
+        exit(1);
+    }
+
+    FILE *fd = fopen(argv[1],"rb");
+    if (fd == NULL)
+    {
+        printf("file open error!\n");
+        exit(2);
+    }
+    while(!feof(fd))
+    {
+        int len = fread(ch,1,MAXSIZE,fd);
+        write(client_sockfd,ch,len);
+    }
+
+    close(client_sockfd);
+    fclose(fd);
+    return 0;
+}
+```
+
+client.c
+
+```c
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <netdb.h>
+#define MAXSIZE 100
+
+int main(int argc,char **argv)
+{
+    int sockfd,len;
+    int result,count;
+    char recvs[MAXSIZE];
+    struct sockaddr_in address;
+    struct hostent *host;
+
+    if (argc != 3)
+    {
+        printf("client ip filename\n");
+        exit(1);
+    }
+
+    host = gethostbyname(argv[1]) ;
+    if(( sockfd = socket(AF_INET,SOCK_STREAM,0))== -1)
+    {
+        printf("socket create error!\n");
+        exit(1);
+    }
+
+    bzero(&address,sizeof(address));
+    address.sin_family = AF_INET;
+    address.sin_addr = *((struct in_addr *)host->h_addr);
+    address.sin_port = htons(5000);
+
+    int opt = 1;
+    setsockopt(sockfd,SOL_SOCKET,SO_REUSEADDR,&opt,sizeof(opt));
+
+    len = sizeof(address);
+    result = connect(sockfd,(struct sockaddr *)&address,len);
+    if (result == -1)
+    {
+        perror("client");
+        exit(1);
+    }
+
+    FILE *fd = fopen(argv[2],"wb");
+    if (fd == NULL)
+    {
+        printf("create file error!\n");
+        exit(1);
+    }
+
+    while(1){
+        count = read(sockfd,recvs,MAXSIZE);
+        if (count ==0)
+            break;
+
+        fwrite(recvs,1,count,fd);
+    }
+
+    close(sockfd);
+    fclose(fd);
+    return 0;
+}
+```

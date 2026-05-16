@@ -1,0 +1,22 @@
+---
+title: "The TASK_RUNNING Process Linked List in Linux"
+date: "2012-03-14"
+slug: "7353107"
+tags: ["#linux", "#struct", "#list"]
+source: "https://blog.csdn.net/yeyuangen/article/details/7353107"
+originalTitle: "Linux中TASK_RUNNING状态的进程链表"
+---
+
+Earlier versions of Linux organized all processes in the TASK\_RUNNING state into a linked list called the runqueue. Maintaining processes sorted by priority within the list incurred significant overhead, consequently, early schedulers had to scan the entire queue to select the 'best' runnable process.
+
+The runqueue implementation in Linux 2.6 is different. **To select the 'best' runnable process within a fixed time, the kernel divides the priorities of runnable processes into 0-139 and, for this purpose, establishes 140 linked lists for runnable processes to organize processes in the TASK\_RUNNING state, with each process priority corresponding to a different list.** Furthermore, in a multiprocessor system, each CPU has its own runqueue.
+
+The structure of the runqueue implemented in Linux 2.6 is as follows:
+
+| Type                | Field       | Description                                                                                             |
+| :------------------ | :---------- | :------------------------------------------------------------------------------------------------------ |
+| int                 | nr\_active  | Number of process descriptors in the list                                                               |
+| unsigned long\[5\]  | bitmap      | Priority bitmap: The corresponding bit flag is set if and only if the process list for a certain priority is not empty. |
+| struct list\_head\[140\] | queue       | Head nodes for 140 priority queues                                                                      |
+
+The structure of process descriptors all includes a `tasks` field of type `list_head`, whose `prev` and `next` fields point to the preceding and succeeding `task_struct` elements, respectively, implementing a doubly linked list.

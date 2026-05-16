@@ -1,0 +1,108 @@
+---
+title: "Analysis of Linux Atomic Operations"
+date: "2012-03-14"
+slug: "7351451"
+tags: ["#Linux", "#Assembly", "#Compiler", "#Struct", "#Integer"]
+source: "https://blog.csdn.net/yeyuangen/article/details/7351451"
+originalTitle: "Linux原子操作的分析"
+---
+
+## Analysis of Linux Atomic Operations
+
+Author: Lu Ran (Please cite the source for reproduction)
+
+This article provides a detailed example-based analysis of the `atomic_dec_and_test` atomic operation function provided by Linux, explaining the essential meaning of its atomicity. It also clarifies common misunderstandings about `volatile`.
+
+### 1. Analysis of `atomic_dec_and_test`
+
+(1) First, let's look at the definition of `atomic_dec_and_test`:
+
+```c
+11 #ifdef CONFIG_SMP
+12 #define LOCK "lock ; "
+13 #else
+14 #define LOCK ""
+15 #endif
+137 static __inline__ int atomic_dec_and_test(atomic_t _ v)
+138 {
+139 unsigned char c;
+140
+141 __asm__ __volatile__(
+142 LOCK "decl %0; sete %1"
+143 :"=m" (v->counter), "=qm" (c)
+144 :"m" (v->counter) : "memory");
+145 return c ! = 0;
+146 }
+```
+11–15 this macro is used in the inline assembly part of some of the functions that follow. It means that
+the LOCK macro can always be used. But sometimes (the SMP case) it invokes the machine
+instruction to lock the bus; other times it has no effect.
+142 the SETE instruction sets parameter 1 (the unsigned char c) to 1 if the zero bit is set in
+EFLAGS (i.e. if the result of the subtraction was 0).
+143 parameter 0 (the counter field) is write only ("=") and may be in memory ("m"). Parameter 1
+is the unsigned char c declared on line 139. It may be in a general purpose register, or in
+memory ("=qm").
+144 parameter 2 is the input parameter i; it is expected as an immediate integer operand and may be
+in a general register ("ir") . Parameter 3 is the other input, the value in (v- . counter)
+beforehand. The "memory" operand constraint tells the compiler that memory will be modified
+in an unpredictable manner, so it will not keep memory values cached in registers across the
+group of assembler instructions.
+145 if the result of the decrement was 0, then c was set to 1 on line 142. In that case, c ! = 0 is TRUE.
+Otherwise, c was set to 0, and c ! = 0 is FALSE.
+
+In a uniprocessor scenario, `LOCK` expands to nothing. For example, if an interrupt occurs immediately after `decl %0` is executed, I believe this could lead to system inconsistency. So, how is the true implementation of atomic operations guaranteed on a single processor?
+
+The explanation is as follows: First, it's important to note that any assembly instruction is completed within an indivisible instruction cycle. This means that interrupts are only checked at the very end of an instruction cycle. Now, let's discuss the role of `LOCK`. Consider this: since all operations are performed internally by the CPU, if you want to operate on a variable `v`, then within an `inc` instruction cycle, the CPU actually needs to read the value of `v` from memory, process `v`, and then write it back to memory. A crucial point here is that during an `inc` instruction cycle, multiple memory accesses actually occur, and these memory accesses are not atomic on the address bus. This means that if there are multiple CPUs, another CPU could potentially seize the address bus after the current `inc` instruction reads the value of `v`, and read the value of `v` itself. At this point, when the current CPU modifies `v` and writes it back to memory, it can lead to memory inconsistency because the value held by the other CPU is no longer the true value. The purpose of `LOCK` is to make an instruction, such as `incl`, atomic on the address bus as well. This means the instruction will continuously occupy the address bus until the value of `v` is written to memory. When the address bus is locked, other CPUs cannot access it at all. This ensures atomicity by monopolizing the bus.
+
+It is indeed possible for an interrupt to occur between `decl` and `sete`. However, it's important to understand that this instruction only indicates whether the result of the current operation is 1, not whether the value of variable `v` is 0. If you need to perform operations based on this value, then the function's result does not represent the true current value of variable `v`.
+
+(2) Example analysis is as follows:
+
+**Function:** mmdrop() _(include/linux/sched.h)_
+
+```c
+765 static inline void mmdrop(struct mm_struct * mm)
+766 {
+767 if (atomic_dec_and_test(&mm->mm_count))
+768 __mmdrop(mm);
+769 }
+```
+When `mmdrop` is executed, the `decl` instruction decrements the value of `(&mm->count)->counter` from 2 to 1. Since it's non-zero, EFLAGS is 0. At this point, an interrupt occurs, the context is saved (CPU register state is pushed onto the stack, etc.). The interrupt handler calls `mmdrop`, and the `decl` instruction decrements `(&mm->count)->counter` from 1 to 0. EFLAGS is 0, and `atomic_dec_and_test` returns 1, so `__mmdrop` is called and `mm` is freed. Upon interrupt return, the interrupt context is restored (register states at the time of interruption are popped from the stack, etc.). `sete` is called, assigning `c=0`, and `atomic_dec_and_test` returns 0, so `mmdrop` is not called.
+
+(3) Summary:
+
+The atomicity here only guarantees the atomicity of the `decl` instruction's execution, not the atomicity of the entire atomic operation function. The significance of this function is to ensure that after decrementing the operand by 1, its result is checked to see if it's 0 (checking only the value after the decrement operation). Following this logic, regardless of whether an interrupt later changes this value, it has no logical relation to this check, so the caller still receives the correct result.
+
+### 2. Analysis of `volatile`
+
+Each time a variable `i` declared with the `volatile` keyword is accessed, the execution unit will fetch the value of `i` from its corresponding memory location.
+
+For example:
+
+```c
+volatile i;
+
+int main()
+{
+    i = 8;
+    printf("%d", i);
+    printf("%d", i);
+    return 0;
+}
+```
+
+Disassembly:
+
+```assembly
+804837e:        a1 90 95 04 08          mov     0x8049590,%eax  ; Fetch variable value from memory into register
+8048383:        50                      push    %eax            ; Push this value onto the stack as the second argument for printf
+8048384:        68 84 84 04 08          push    $0x8048484      ; Push the starting address of the format string onto the stack
+8048389:        e8 22 ff ff ff          call    80482b0 <printf@plt> ; Call printf
+804838e:        58                      pop     %eax
+804838f:        5a                      pop     %edx
+8048390:        a1 90 95 04 08          mov     0x8049590,%eax  ; Fetch variable value from memory into register
+8048395:        50                      push    %eax            ; Push this value onto the stack as the second argument for printf
+8048396:        68 84 84 04 08          push    $0x8048484
+804839b:        e8 10 ff ff ff          call    80482b0 <printf@plt>
+```
+It can be seen that `volatile` only guarantees that the variable is fetched from memory every time before it is used. It's possible that immediately after `mov` fetches the variable value as 8, an interrupt occurs before it's used. The interrupt routine modifies this variable in memory to 9. Upon interrupt return, `push` continues to push the variable value 8, which was present before the interrupt. Therefore, `volatile` can only ensure that the user is informed of the updated value of the variable as early as possible, but it cannot guarantee

@@ -1,0 +1,134 @@
+---
+title: "Memory Space Divisions: Code Segment, Data Segment, Stack, Heap (Collected and Compiled)"
+date: "2011-09-10"
+slug: "6766567"
+tags: ["#exe", "#Compiler", "#Storage", "#StorageSystem", "#Language", "#Buffer"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6766567"
+originalTitle: "内存空间分几部分：代码段、数据段，栈，堆  (收集整理）"
+---
+
+1. Function code is stored in the code segment. If a declared class is never used, it will be optimized away during compilation, and its member functions will not occupy space in the code segment.
+
+   Global variables or static variables are placed in the data segment.
+   Local variables are placed on the stack.
+   Objects created with `new` are placed on the heap.
+
+Memory is divided into 4 sections: stack area, heap area, code area, global variable area.
+
+BSS Segment: The BSS segment (Block Started by Symbol) typically refers to a memory region used to store uninitialized global variables in a program. BSS is an abbreviation for Block Started by Symbol. The BSS segment belongs to static memory allocation.
+
+2. Code segment, data segment, and stack are CPU-level logical concepts, while the heap is a language-level logical concept.
+
+3. There is also a constant area, where the content cannot be modified.
+   For example, `char *p = "hello";` the "hello" literal is stored in the constant area.
+
+4. As mentioned in the first point, it's not entirely appropriate to list code segment, data segment, stack, and heap as parallel concepts.
+   Code segment, data segment, stack segment — this is one concept.
+   Heap, stack, global area, constant area — this is another concept.
+
+5. STACK: Temporary local
+   HEAP: Dynamic
+   RW (Read/Write): Global
+   RO (Read-Only): Code
+   `Char* s=”Hello,World”;` The 'H' in 'Hello,World' is stored in the RO memory and cannot be modified.
+
+6. CPU Registers: CPU registers are essentially where instructions and data for the code segment and data segment are controlled and read. Of course, the CPU also has its own place to store data, which is the data register within the general-purpose registers, typically the EDX register. In C language, there's the `register` keyword, which places data in such a register, making data access extremely fast because it avoids searching memory, thus eliminating the overhead of addressing and data transfer. There are also registers that indicate the current position of the code segment, data segment, stack segment, etc. (Note that these only store the memory addresses of the corresponding code or data, not the actual values; the actual values are fetched from memory via the address bus and data bus using these addresses). Otherwise, where would instructions and data be fetched from during code execution? Haha... It also contains flag registers to indicate various status bits, such as arithmetic overflow, etc.
+
+————————————————————————————————————————————————————————————————
+
+Memory Segmentation (Notes)
+
+In the Von Neumann architecture, there must be: code segment, stack segment, data segment.
+Because the Von Neumann architecture is essentially a process of fetching and executing.
+
+Compilers and systems allocate variables starting from high addresses.
+Global variables and function parameters are stored in memory from low addresses to high addresses.
+Why are function parameters placed in the heap area?
+This is because our functions are called dynamically during program execution.
+During the compilation phase of a function, it's impossible to determine how many times it will be called or how much memory it will require.
+Even if it could be determined, allocating memory for variables at that time would be a waste.
+Therefore, the compiler chooses dynamic allocation for function parameters, meaning space is dynamically allocated for them each time the function is called.
+
+####################################################
+
+Memory is divided into 4 sections: stack area, heap area, code area, global variable area.
+
+BSS Segment: The BSS segment (Block Started by Symbol) typically refers to a memory region used to store uninitialized global variables in a program. BSS is an abbreviation for Block Started by Symbol. The BSS segment belongs to static memory allocation.
+
+Data Segment: The data segment typically refers to a memory region used to store initialized global variables in a program. The data segment belongs to static memory allocation.
+
+Code Segment: The code segment (or text segment) typically refers to a memory region used to store the executable code of a program.
+The size of this region is determined before the program runs, and the memory region is usually read-only. Some architectures also allow the code segment to be writable, meaning program modification is permitted.
+The code segment may also contain some read-only constant variables, such as string literals. The code segment stores program code data. If multiple processes on a machine run the same program, they can share the same code segment.
+
+Heap: The heap is used to store dynamically allocated memory segments during process execution. Its size is not fixed and can dynamically expand or shrink. When a process calls functions like `malloc` to allocate memory, the newly allocated memory is dynamically added to the heap (the heap expands); when functions like `free` are used to release memory, the released memory is removed from the heap (the heap shrinks).
+
+Stack: The stack is also known as a call stack. It is used by the user to store temporarily created local variables in a program, meaning variables defined within function braces "{}" (but not variables declared with `static`, as `static` implies storing variables in the data segment).
+In addition, when a function is called, its parameters are pushed onto the calling process's stack, and after the call ends, the function's return value is also stored back on the stack.
+Due to the stack's Last-In, First-Out (LIFO) characteristic, it is particularly convenient for saving/restoring the call context. In this sense, we can view the stack as a memory area for registering and exchanging temporary data.
+
+(1) Memory segmentation, like memory paging, is a memory management technique. Segmentation: permission protection; Paging: virtual memory.
+
+(2) After segmentation, programmers can define their own segments, and each segment has an independent address space, similar to how process address spaces are independent of each other.
+
+(3) Instances of the same class are allocated within a single segment, and only methods of that class can access them. If methods from other classes attempt to access them, an error will occur due to segment protection. This allows for hardware-level data protection and hiding for classes.
+
+####################################################################
+
+Benefits of Segmentation:
+
+Segment registers in the CPU ------- segment base address and the upper limit of the offset value.
+Segment address: In the effective address, if the effective address is greater than the limit, an exception will be triggered. This restricts a program from accessing data outside its current segment and from accessing data of other programs.
+Benefit of Object-Oriented Programming: An object is a block of contiguous data in memory.
+
+Registers are a special form of memory embedded within the processor.
+
+Each process needs to access its own region in memory. Therefore, memory can be divided into small segments and distributed to processes as needed.
+Registers are used to store and track the segments currently maintained by a process. Offset Registers are used to track the position of critical data within a segment.
+
+When a process is loaded into memory, it is essentially split into many small sections. We are primarily concerned with 6 main sections:
+
+(1) .text section
+
+The .text section is essentially equivalent to the .text part of a binary executable file, containing machine instructions to accomplish program tasks.
+This section is marked as read-only; if a write operation occurs, it will cause a segmentation fault. The size of this section is fixed from when the process is initially loaded into memory.
+
+(2) .data section
+
+The .data section is used to store initialized variables, such as `int a = 0;`. The size of this section is fixed at runtime.
+
+(3) .bss section
+
+The .bss section (below stack section) is used to store uninitialized variables, such as `int a;`. The size of this section is fixed at runtime.
+
+(4) Heap section
+
+The heap section is used to store dynamically allocated variables, growing from lower memory addresses to higher addresses. Memory allocation and deallocation are controlled by `malloc()` and `free()` functions.
+
+(5) Stack section
+
+The stack section is used to track function calls (potentially recursive), growing from higher memory addresses to lower addresses on most systems.
+This growth pattern of the stack also leads to the possibility of buffer overflows.
+
+(6) Environment/Arguments section
+
+The environment/arguments section stores a copy of system environment variables that a process might need during runtime. For example, a running process can access information like path, shell name, hostname, etc., through environment variables.
+This section is writable, making it usable in format string and buffer overflow attacks. Additionally, command-line arguments are also kept in this area.
+
+################################################################################
+
+Taking a Win32 program as an example.
+When a program executes, the operating system maps the .exe file into memory. The .exe file format consists of header data and various section data.
+The header data describes the attributes and execution environment of the .exe file, and the section data is further divided into data segments, code segments, resource segments, etc. The number and location of these segments are specified by the header data.
+In other words, it's not just code and data segments. These segments are controlled by different compilation environments and parameters, and the compiler automatically generates the .exe's segments and file format.
+When the operating system executes an .exe, it dynamically creates a stack segment, which is dynamic and belongs to the operating system's execution environment.
+This means that one mapping of the program in memory is the .exe file mapping, including data segments, code segments, etc., which is immutable.
+The other is the stack segment, which changes dynamically as the program runs.
+
+1. The compiler converts source code into separate object code (.o or .obj) files. The code in these files is already executable machine code or intermediate code.
+   However, the addresses of variables and other entities within them are merely symbols.
+2. Next, the linker processes these object codes. The main purpose is to link the separate object codes into a complete executable code and replace the address symbols with relative addresses. If an error occurs at this point, we get a list of address symbols, not a list of variables.
+3. When executing the program, the operating system allocates sufficient memory space, establishes the system support structure, and then reads the binary executable code into memory.
+   During this loading process, the starting memory address becomes the program's "absolute address" (though it's still a relative address within the operating system).
+   Thus, the variable's address is obtained by adding the absolute address and the relative address (which is the offset).
+   Therefore, the value of CS (Code Segment register) is filled in by the system, while the values of other segment registers (S registers) are calculated based on additional information in the program code.

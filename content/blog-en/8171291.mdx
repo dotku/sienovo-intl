@@ -1,0 +1,32 @@
+---
+title: "C Perspective (Part 1) - Any C Program Can Be Understood as a Pointer Pointing to a Character, Followed by Character Matching"
+date: "2012-11-11"
+slug: "8171291"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/8171291"
+originalTitle: "C角度（一）——任何C程序，可理解为指针指向某一个字符，然后字符匹配"
+---
+
+C Perspective - Any C program can be understood as a pointer pointing to a character, followed by character matching.
+
+1) History of Character Matching
+
+2) Character Matching Algorithms
+
+3) Program Implementation
+
+4) Applications and Interview Question Analysis
+
+**I. Simple Matching Algorithm**
+
+For example: To search for T=”abcabd” in string S=”abcabcabdabba” (we can assume 0-based indexing): first compare S[0] and T[0], then S[1] and T[1]... We find that they are equal until S[5] and T[5] are compared and found to be unequal. As shown in the figure:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/8171291/01_9e2d7a511327402bbc7959c84ebd6f98.jpg)
+
+When such a mismatch occurs, the T index must backtrack to the beginning, the S index backtracks to the start of the current comparison, then increments by 1, and the comparison restarts. As shown in the figure:
+
+This time, a mismatch occurred immediately, the T index again backtracked to the beginning, the S index incremented by 1, and the comparison restarted.
+
+The worst-case scenario for the simple matching algorithm is as follows: assuming the source string S has m characters and the target string T has n characters, the worst case involves (m-n)*n comparisons, which occurs when a match is found at the very end of the source string. How can we propose a more "intelligent" and "memory-efficient" algorithm? Let's look at the renowned KMP algorithm proposed by D.E.K. and others.
+
+II. KMP Algorithm

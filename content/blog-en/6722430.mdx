@@ -1,0 +1,43 @@
+---
+title: "Summary of Array Search Methods"
+date: "2011-08-26"
+slug: "6722430"
+tags: ["#Programming", "#C"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6722430"
+originalTitle: "数组检索方法汇总"
+---
+
+**I. Introduction**
+
+The following explanation is based on a function that converts zone codes to Unicode in a Chinese character set.
+
+1.
+
+```cpp
+DWORD Unicode2GBQuWei(WORD wUnicode){    DWORD dwQuNum;    DWORD dwWeiNum;    DWORD i,dwResult = 0;        for(i = 0; i < MAXUNICODENUM; i++)  // Simplest and most straightforward search implementation    {        if(wUnicode == Unicode[i])        {            dwResult = 0;                        if(GBQuWei[i] != DNULL)            {                dwQuNum = (DWORD)GBQuWei[i];    // Following four lines apply conversion rules                                dwWeiNum = (DWORD)GBQuWei[i];                                dwQuNum = (dwQuNum & 0xff00) >> 8;                                dwWeiNum = dwWeiNum & 0x00ff;                                if(dwQuNum < 0x58)                {                                    dwDispAddQuWeiChinese(dwQuNum,dwWeiNum);                }                else                {                    // The required Chinese character is not present in the dot matrix font library                    dwDispAddQuWeiChinese(4, 1);                }            }            else            {                // The required Chinese character is not present in the dot matrix font library                dwDispAddQuWeiChinese(4, 2);            }                        return dwResult;        }        else        {            dwResult = 1;        }    }        if(dwResult == 1)    {        dwDispAddQuWeiChinese(4, 3);    }        return dwResult;}
+```
+2.
+
+```cpp
+DWORD GBQuWei2Unicode(DWORD dwQuNum, DWORD dwWeiNum){    DWORD i,dwResult = 0;    WORD wQuWeiNum;        wQuWeiNum = (WORD)(dwQuNum << 8) + (WORD)dwWeiNum;           for(i = 0; i < MAXUNICODENUM; i++)    {        if(wQuWeiNum == GBQuWei[i])        {            dwResult = (DWORD)Unicode[i];                        return dwResult;        }        else        {            dwResult = 0;        }    }        return dwResult;}
+```
+
+**II. Debugging**
+
+1. Segmentation fault
+
+What could be causing this? Is it due to overflow or insufficient memory? But why do other programs run successfully?
+
+**III. MIT Practices**
+
+1. Steps for learning new content:
+
+1) Resolve terminology first.
+
+2) Start with applications. As Linus said, learn to use it first. Once you've used it, curiosity arises, and following that interest becomes a motivating and enjoyable learning path (interest is the best teacher).
+
+2. Observe, identify patterns, and cultivate patience.
+
+For example, Newton's observations of light.
+
+3. In complex problems, unfamiliarity with C syntax can become a significant issue. To reduce error probability and lower problem complexity, mastering C syntax, common programming patterns, and typical issues is a wise choice.

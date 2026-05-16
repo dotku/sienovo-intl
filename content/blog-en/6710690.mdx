@@ -1,0 +1,108 @@
+---
+title: "LCD Screen Driver Analysis (Part 1): How to Draw Points and Lines on an LCD Screen"
+date: "2011-08-23"
+slug: "6710690"
+tags: ["#Makefile", "#Byte", "#ChemicalEngineering", "#Programming", "#Testing", "#Work"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6710690"
+originalTitle: "LCD屏幕驱动解析（一）如何在LCD屏幕上画出点和线"
+---
+
+\=============  Objective  =====================
+
+How to draw points and lines on an LCD screen
+
+\=======================================
+
+**I. Learning Insights**
+
+1. How to write a test program? How to integrate it with a Makefile to compile a program (only include what's necessary—create your own project)  
+   1) `LCDSetColor(WHITE,UNSET);` // Setting color is a fundamental task, including line color, font color, and background color  
+   2) `DispSetPointDirect(6, 10);` // Set position  
+   3) `LCDSetLine()`  
+2. I need to create a Makefile and a main.c file.  
+   The key is the initialization process—understanding the correct initialization sequence.  
+3. Random trial and error won't work anymore. I need to understand and experiment purposefully.  
+   Right now, I want to understand `xadd()` and `yadd()`.  
+4. Actually, I still don't grasp how it works internally.
+
+5. Finally realized: At the beginning, things shouldn't be too complex—three-dimensional arrays <drawing points and lines, Chinese character font, BMP images> 【simplify】. Combining these three forms a complete screen driver. For beginners, it's better to break it down.
+
+Learning approach: Set a clear goal (e.g., implement point and line drawing, enable Chinese text display), achieve it as quickly as possible (via targeted searching, prioritizing speed over completeness) + ensure theoretical understanding in mind.
+
+  
+
+**II. Question Collection:**
+
+```cpp
+1. // LightAdjust color adjustment, value range -16 (to ColorR) ~ +16 (to ColorL), 0 means original color. void LCDSetColorAdjust(char *cBGRPix,int ColorAdjust) What's the meaning of ±16 here?
+2. void Lcd_Test(void){
+   int i;   
+   Xadd(0x00,0x7F);                        // Does Xadd(startx,endx) mean drawing a line from startx to endx?
+                                                // Need to verify through programming
+   Yadd(0x00,0x7F);
+   LCDCOM_MASTER(0x2C);    
+   for(i=0;i<128*128;i++)                 // Why 128*128 instead of using nested for-loops?
+  	{                                  // Does it automatically wrap lines?
+	    LCDDATA_MASTER(0x00);
+	    LCDDATA_MASTER(0x1f);   
+  	}
+}
+【Question】: How do I call lcd_test in the main program main.c?
+
+3. LCDSetButton(0,16,128,112,0,TRANSB);  // What is this function for? I don't see any button on the screen.
+
+4. void Xadd(char startx,char endx)      // Should this be understood as defining a line between two points, or as a single coordinate point?
+{
+    LCDCOM_MASTER(0x2A);
+    LCDDATA_MASTER(startx);
+    LCDDATA_MASTER(endx);
+}
+
+void Yadd(char starty, char endy)
+{
+    LCDCOM_MASTER(0x2B);
+    LCDDATA_MASTER(starty);                   // This function needs further study—it should be one of the few
+    LCDDATA_MASTER(endy);                     // functions directly interacting with hardware. Data is written directly, then hardware takes over?
+}
+
+5. What do colorl, colorm, colorr mean?
+```
+
+```cpp
+6. BYTE cDispBatCap[MAXBATCAPNUM][32]        // What is its purpose? Defined in disp.c
+   BYTE cDispSigValue[MAXSIGNUM][32]
+
+7. What does LCDDATA_MASTER(0) mean?
+```
+
+Welcome to discuss!
+
+1. \*Append a 16x16 character\*/
+```cpp
+void DispAddChinesCharFuSe(DWORD dwQuNum,DWORD dwWeiNum) // What does "Fuse" mean? What do "qu" and "wei" mean?
+{ 
+   // What is GBquwei[] used for?
+   unsigned int uiCurrentXY,i; 
+   DWORD dwPotsIndex; 
+   if(dwQuNum > 15) 
+   { 
+       dwPotsIndex = ((dwQuNum - 2) * 94 + dwWeiNum - 1) * 32; // Where does this index calculation formula come from?
+   } 
+   else 
+   { 
+       dwPotsIndex = ((dwQuNum - 1) * 94 + dwWeiNum - 1) * 32; 
+   } 
+   for(i = 0; i < 32; i++) 
+   { 
+       cChineseFuSe[i] = ~(hanzi1616[dwPotsIndex + i]); // Also refers to char16*8fuse[]
+   } 
+   uiCurrentXY = LCDdisplay1616((BYTE)(dwDispCurrentX),(BYTE)(dwDispCurrentY),cChineseFuSe); 
+   dwDispCurrentY = (DWORD)(uiCurrentXY & 0xff); // Why extract the lower 8 bits?
+   dwDispCurrentX = ((DWORD)(uiCurrentXY >> 8) & 0xff); // Why shift left and then mask?
+}
+```
+
+2. Position calculation related functions, common numeric operations:  
+   `dwDispCurrentY -= 2;`  
+   `dwDispCurrentX = 112;`  
+   `setpoint()`

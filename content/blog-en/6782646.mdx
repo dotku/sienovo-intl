@@ -1,0 +1,192 @@
+---
+title: "Custom Application Layer Communication Protocol"
+date: "2011-09-16"
+slug: "6782646"
+tags: ["#Testing", "#NetworkProtocol", "#Login", "#Primitive", "#Language", "#String"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6782646"
+originalTitle: "自定义应用层通信协议"
+---
+
+**1. Concept and Elements of Communication Protocols**
+
+In the OSI open systems interconnection reference model, data units between peer entities are encapsulated layer by layer at the sender and parsed layer by layer at the receiver. The packet that an N-th layer entity receives from the (N+1)-th layer is called a Service Data Unit (SDU). The N-th layer entity treats the SDU merely as data requiring service from this layer, encapsulating it into a Protocol Data Unit (PDU) that can be understood by the peer entity. This encapsulation process essentially adds Protocol Control Information (PCI)—agreed-upon control information between peer entities—to the SDU.
+
+To ensure functional independence across network layers and to facilitate implementation and maintenance, protocols are typically divided into multiple sub-protocols arranged in a hierarchical structure. The collection of these sub-protocols is commonly referred to as a protocol suite.
+
+Protocol layering helps break down complex problems into simpler ones, enabling a divide-and-conquer approach. Each layer’s protocol is implemented by corresponding entities; peer entities on both sides of communication that perform identical protocol functions at the same layer are called peer entities. These peer entities communicate according to the protocol, meaning the protocol represents a horizontal relationship between peer layers. Strictly speaking, a protocol is the set of rules and agreements jointly followed by peer entities.
+
+A communication protocol precisely defines how control information is formatted and interpreted during communication: the sender packages specific information (text, images, audio, video) into data packets of a specified format according to the protocol, ultimately transmitting them as serialized bitstreams over the network; upon receiving the packets, the receiver parses the bitstream back into native data based on the protocol, thereby retrieving the original information sent by the other party.
+
+A communication protocol consists of three key elements:
+
+(1) **Syntax**: Defines the structure and format of the information;  
+(2) **Semantics**: Specifies the meaning or content being conveyed;  
+(3) **Synchronization**: Governs the interaction rules and sequence of events between parties.
+
+The implementation of an entire computer network is essentially the realization of its protocols. The TCP/IP protocol suite is the core protocol of the Internet.
+
+**2. Steps in Communication Protocol Development**
+
+(1) Protocol development mainly includes protocol design, formal protocol description, protocol implementation, and protocol conformance testing. The development process and steps are illustrated in Figure 1.
+
+![](http://blog.pfan.cn/upfile/200907/20090711221213.jpg)
+
+    Figure 1: Protocol Development Process and Steps
+
+(2) The packet transmission and reception model during protocol design is shown in Figure 2.
+
+![](http://blog.pfan.cn/upfile/200907/20090711221239.jpg)
+
+Figure 2: Packet Transmission and Reception Model in Protocol Design
+
+(3) Protocol Conformance Testing
+
+Protocol conformance testing verifies whether the protocol can achieve correct communication according to the intended control strategy. This is primarily reflected in the ability of the destination (receiver) to correctly parse the original information from the bitstream after data packets are transmitted from source to destination through a channel.
+
+Protocol conformance testing setup is shown in Figure 3.
+
+![](http://blog.pfan.cn/upfile/200907/20090711221332.jpg)
+
+Figure 3: Protocol Conformance Testing Environment
+
+Based on the test environment, conformance testing can be classified into local testing and distributed testing, as shown in Figure 4.
+
+![](http://blog.pfan.cn/upfile/200907/2009071122148.jpg)
+
+Figure 4: Local Testing Method and Distributed Testing Method
+
+**3. Packets and Datagrams**
+
+To facilitate the description of custom protocols, the terms "packet" and "datagram" are reused here to describe encapsulated data units and transmitted data units, respectively. However, the meanings of "packet" and "datagram" used here are entirely different from the concepts of Packet and Datagram in the TCP/IP architecture.
+
+In this context, a *packet* refers to the basic encapsulation unit, which uses the TLV (Type-Length-Value) format to encapsulate fundamental message units. A *datagram* (referred to as "Package") is the basic transmission unit, with a header containing sequence numbers and command information. The receiving end identifies event types based on the command information and performs corresponding parsing. The message payload consists of a linked list of multiple TLV packets.
+
+**4. TLV Packet Design**
+
+From the application-layer HTTP protocol, to Hypertext Markup Language (HTML), and further to Extensible Markup Language (XML), these technologies provide specifications for formatted data storage, transmission, and display—forming the foundation of network communication. However, the essence of HTTP, HTML, and XML lies in defining a set of tags to serialize data, which the receiver then parses and reconstructs.
+
+The key to designing a custom communication protocol lies in the proper construction and accurate parsing of data packets—that is, defining encoding and decoding rules.
+
+Abstract Syntax Notation (ASN) Basic Encoding Rules (BER) use a definite-length encoding method composed of three parts: Identifier octets, Length octets, and Contents octets. This is essentially a TLV (Type-Length-Value) model: the Type (or Tag) field contains information about the tag and encoding format; the Length field defines the size of the value; and the Value field holds the actual data.
+
+Thus, an encoded value is also known as a TLV triplet. Encoding can be either primitive or constructed: if it represents a complete, explicitly valued simple type, the encoding is primitive; if the value has a nested structure, the encoding is constructed.
+
+TLV encoding refers to encoding the Type (Tag), Length, and Value fields into a bitstream data packet; decoding is the reverse process—parsing and reconstructing the original data from the bitstream buffer.
+
+A TLV protocol class is designed using the C++ programming language. Its class diagram is shown in Figure 5.
+
+![](http://blog.pfan.cn/upfile/200907/20090711222956.jpg)
+
+Figure 5: CTLV Class Diagram
+
+Currently, only two interfaces are provided: `setValue_Int` for setting integer values (int type) and `setValue_Cstring` for setting string values (C_String type).
+
+The TLV encapsulation format is shown in Table 1.
+
+Table 1: TLV Packet Format
+
+TLV Packet
+
+Header
+
+Payload
+
+m_dwTag
+
+m_nLen
+
+m_pValue
+
+ 
+
+ 
+
+ 
+
+TLV Interface Description:
+
+(1) The internal auxiliary enumeration variable `m_vtTag` (value type tag) is determined based on the service type tag `m_dwTag` passed during TLV construction.  
+(2) `TLV::m_nLen` is determined when a specific value is assigned to the TLV.  
+(3) TLV Packet Encapsulation:  
+ 1) After creating a TLV object with a Tag parameter, call `TLV::setValue_*` methods to populate the TLV with actual data;  
+ 2) Call `TLV::toBuffer` to pack the TLV into a buffer (`streamBuffer`).  
+(4) TLV Packet Parsing: After creating a TLV object, call `TLV::fromBuffer` to parse the TLV from the `streamBuffer`.  
+(5) Encapsulation and parsing involve conversion between host byte order and network byte order.  
+(6) When populating a TLV via `TLV::setValue_*`, the byte boundary is uniformly aligned to 4 bytes.
+
+**5. Package Datagram Design**
+
+Unlike low-level packets/datagrams that only handle hierarchical data encapsulation and parsing, real-world applications are typically event-driven. Therefore, different signaling messages (event type tags) must be registered and embedded into the datagram. The receiving end processes corresponding events based on the signaling.
+
+For example, in a client/server (C/S) communication system, the client often needs to log in first and pass server-side authentication before further communication can proceed. Thus, after startup, the client must construct and send a datagram containing a LOGIN signal along with the username string `strUserName` and password string `strPassWord`. Upon receiving and parsing the LOGIN signal, the server performs authentication and returns a response datagram containing a LOGIN_RESPONSE signal and the authentication result.
+
+A Package class is designed using C++. Its class diagram is shown in Figure 6.
+
+![](http://blog.pfan.cn/upfile/200907/20090711223129.jpg)
+
+Figure 6: CPackage Class Diagram
+
+The Package class encapsulates TLVs into the format shown in Table 2.
+
+Table 2: Package Datagram Format
+
+Package Datagram
+
+Header
+
+Sequence Number
+
+Payload
+
+m_nCmdLen
+
+m_dwCmdID
+
+m_dwCmdState
+
+m_nSeqNo
+
+Count*TLV
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+Package Interface Description:
+
+(1) `Package::m_nCmdLen` represents the total length of the entire Package. Placing it as the first field allows the receiver to control the read state when transmitting large packets, enabling batch reception of large data units.  
+(2) `Package::m_nCmdLen` is initialized to 16 in the constructor and increases as the payload is populated via the `Package::addTLV` method.  
+(3) Package Encapsulation:  
+ 1) After creating a Package object, call `Package::setHeader` to populate the header signaling;  
+ 2) Create TLV objects, populate them with data, and call `Package::addTLV` to add them to the payload;  
+ 3) Call `Package::toBuffer` to pack the entire Package into the `streamBuffer`.  
+(4) Package Parsing:  
+ 1) First, create a Package object and call `Package::fromBuffer` to parse the header and sequence number from `streamBuffer`, then parse the TLVs from the remaining buffer and serialize them into a linked list.  
+ 2) Use `Package::getTLV` to locate a specific TLV by Tag from the list, then call `TLV::getValue` to retrieve the actual value.  
+(5) The `Package::toBuffer` and `Package::fromBuffer` methods primarily iterate through the `Package::m_TLV_List`, invoking `TLV::toBuffer` and `TLV::fromBuffer` to encode and decode TLV data units.
+
+**Functional Testing of TLV Packets (Local Testing)**
+
+Since actual communication data is eventually converted into bitstreams, testing focuses only on string-type variables to verify whether the protocol can correctly package and parse data. Other common data types can be converted into strings for transmission. Ultimately, the receiver determines the value type (`m_vtTag`) based on `m_dwTag` and parses the actual value accordingly.
+
+Testing the `TLV::setValue_C_String` method requires consideration of byte alignment. For C-style strings whose lengths are multiples of 4 bytes, the trailing null terminator `'\0'` is omitted during packing. Both strings with lengths that are multiples of 4 and those that are not must be tested.
+
+Local testing confirms that calling `TLV::setValue_Int` and `TLV::setValue_C_String` correctly encapsulates and parses integer and string data.
+
+**Functional Testing of Package Datagrams**
+
+This primarily involves combining TLVs into a Package, adding signaling, and completing specific communication tasks. Tests for LOGIN and SUBMIT_SM message sending demonstrate that the Package protocol correctly encapsulates and parses data.
+
+In practical projects using the Package communication protocol, careful control of the reading process is required for larger data blocks to ensure complete and intact packet reception.
+
+**References:**
+
+*Computer Network Protocols and Implementation Technologies* by Lu Shiwen
+
+Reprinted from [http://blog.csdn.net/zhanghefu/article/details/5163963](http://blog.csdn.net/zhanghefu/article/details/5163963)

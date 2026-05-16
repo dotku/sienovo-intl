@@ -1,0 +1,68 @@
+---
+title: "Prospects and Application Survey of DSP+FPGA"
+date: "2019-01-31"
+slug: "86716179"
+tags: ["#2048AICommunity", "#JoinCommunity"]
+source: "https://blog.csdn.net/yeyuangen/article/details/86716179"
+originalTitle: "DSP+FPGA的前景及应用调研"
+---
+
+DSP+FPGA processing systems are widely used in complex signal processing fields. In areas such as radar signal processing and digital image processing, the real-time performance of signal processing is crucial. Due to the advantages of FPGA chips in processing large volumes of low-level algorithms and DSP chips in handling complex algorithms, the application of DSP+FPGA real-time signal processing systems is becoming increasingly widespread.
+
+The main advantages of DSP are programmability, low cost, and a large pool of available talent.
+
+FPGA's advantages include high performance, but this comes at a high cost. Furthermore, hardware design involves long cycles and a limited number of skilled professionals.
+
+A common advantage of DSP/FPGA is their real-time signal processing capability.
+
+Main application areas: complex signal processing, such as video processing, radar and sonar processing.
+
+Software-defined radio, Beidou satellite signal synthesis.
+
+DSP+FPGA is used to generate digital intermediate frequency signals, which are then modulated with a carrier module to produce radio frequency signals.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/86716179/01_7832f8b7782752c472c6f7faee3abe25.png)
+
+There are many types of embedded processors: MCU, DSP, FPGA, SoC, FPGA+SoC, DSP+SoC, etc. For embedded vision, the best hardware platform is still FPGA+SoC, such as the Zynq Z7000 series or Altera's Cyclone V series (though seemingly less commonly used). This allows for simple pre-processing using the FPGA, while also running Linux on the SoC and leveraging many existing machine vision libraries like OpenCV, Halcon, etc. Indeed! Standing on the shoulders of giants. Furthermore, there's a very popular deep learning compute stick, Movidius, which supports Linux and x86 platforms and provides APIs to accelerate image recognition processes.
+
+Let's talk about DSP architecture characteristics. TI launched ImgLib, compatible with OpenCV, and its function interfaces are consistent. DSP put a lot of effort into this, but personally, I feel its utility is limited. This is because OpenCV continuously integrates the latest algorithms, while TI's ImgLib seems to update more slowly. Moreover, TI's DaVinci processors, after being popular for a while, eventually fell silent due to overly cumbersome development processes.
+
+As for FPGAs, they are actually well-suited for simple pre-processing tasks, such as gamma correction. If one were to implement image traversal algorithms using soft cores on an FPGA, the process would be quite long; in this regard, an FPGA combined with a DSP or ARM would be better.
+
+DSP Advantages:
+
+*   In communication systems, DSPs are still widely used due to their faster speed in multiplier Fourier transforms.
+
+**II. Comparison of ZYNQ and DSP**
+
+*   **Advantages of ZYNQ**
+
+Embedded computing? Devices like ZYNQ7000 are likely to phase out many DSPs. With two ARM cores plus ample programmable logic resources, and at a very competitive price, DSPs face a complete defeat across performance, power consumption, price, and flexibility. Regarding development difficulty, they come with LINUX, HLS, and MPSOC out of the box, which isn't necessarily harder than writing parallel assembly.
+
+DSPs are becoming increasingly awkward. It's only due to inertia that they still have many applications today.
+
+*   **Software Acceleration for DSP Functions with Zynq-7000 SoC**
+
+[https://china.xilinx.com/video/hardware/software-acceleration-dsp-functions-with-zynq-7000.html](https://china.xilinx.com/video/hardware/software-acceleration-dsp-functions-with-zynq-7000.html)
+
+This demonstration introduces the Zynq-7000 SoC and its ability to achieve software acceleration using the NEON engine or hardware acceleration features. Please observe the flexibility advantages of the Zynq-7000 SoC in a single-chip reference design for data acquisition and accelerated digital signal processing (DSP), which not only accelerates software but also fully utilizes the **low-latency and high-performance data transfer** capabilities between the processor and programmable logic.
+
+*   ## FPGA in Zynq is nearly 10 times faster than ARM CPU in Edge Computing
+
+This year, at the Embedded Vision Summit in Santa Clara, California, a 4-camera ADAS model based on Aldec's TySOM-2-7Z100 prototype board was demonstrated, as shown in Fig. 1. TySOM's performance is excellent, mainly because its core processing unit is a Xilinx Zynq Z-7100 SoC. If captured images are processed by an ARM CPU, only 3 frames per second can be handled, whereas an FPGA can process 27.5 frames per second. This demonstrates the crucial role of the FPGA within Zynq.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/86716179/02_9bbe9e6467782752c472c6f7faee3abe25.png)
+
+ARM offers high cost-effectiveness, flexible development, and increased performance with each additional investment, covering a wide range of applications from low-end control to high-end displays;
+
+DSP offers moderate cost-effectiveness, with functionality largely equivalent to ARM, but with appropriately enhanced computing power and real-time performance, primarily used in signal processing and mid-to-high-end control fields;
+
+FPGA has low cost-effectiveness, but infinite functional potential, suitable for specialized algorithms, low-latency and high real-time computing, multi-interface management, and other fields.
+
+**(II) Don't Underestimate DSP's Soft Power!**
+DSP covers fields such as control, audio/video image processing, and pattern recognition. While hardware advantages are one aspect, Texas Instruments (TI) also **provides a wealth of extremely high-performance algorithms**. The sheer number of algorithms, especially for video and audio processing, might be hard to believe, with large amounts of R&D funds allocated to algorithm research annually. Of course, using these algorithms often incurs high costs. This is also thanks to DSPs supporting C and assembly, and their excellent compilers. In doing so, TI has branded DSPs as broadly applicable across various computational domains, including control, digital video, digital imaging, audio, and artificial intelligence processing, giving DSPs a wide applicability. I believe this, to some extent, provides a stable guarantee for DSP's position.
+
+**DSPs are relatively better than ARM for real-time signal processing**, whereas x86 and ARM don't have a strong advantage in real-time performance. This is because the processing speed of general-purpose CPU instruction and data sequences is uncertain, making real-time guarantees difficult, possibly requiring special mathematical techniques to ensure real-time performance.
+
+**(III) The Plight of FPGA Software.**
+FPGAs from Xilinx and others, with their sufficient performance and parallel processing mechanisms, seem to threaten DSP's position. However, they have an inherent drawback: **HDL and Verilog languages are far less flexible than C, making high-end complex algorithms "willing but unable" (having the power but lacking the heart/means)**. Even if such algorithms are painstakingly developed, the development cost and resource investment are unimaginable, and portability is very poor. FPGA companies have long coveted DSP's position, but what troubles them is the incompleteness of algorithm development in various fields. From DSP's perspective, FPGAs truly have a long, long way to go: how to address HDL's inflexibility; how to develop diverse mathematical algorithms integrated with engineering domains; how to optimize; how to enrich algorithm libraries; how to solve portability issues; how to perfectly combine computation and parallel mechanisms; how to surpass DSP in computational efficiency. Even assuming FPGAs devise an excellent solution for algorithmic flexibility, how long would it take to enrich algorithm libraries across various domains? After enrichment, what would be the efficiency, user experience, and user base like? Would the investment be recouped? DSP's journey from its inception to today has not been easy, requiring accumulation over time, refinement, and countless individuals to grasp market direction, take risks, and ponder. Commonly used algorithms have undergone practice, optimization feedback, and further optimization and feedback by countless people. Does FPGA not need to go through these processes? And would DSP simply stop developing during this period, sitting there waiting for FPGAs to catch up before comparing their progress? Of course not; DSPs are also continuously evolving. Therefore, **DSPs have certain hardware advantages, and they also possess soft power.**

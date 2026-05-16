@@ -1,0 +1,250 @@
+---
+title: "TCP/IP Socket File Transfer under Linux"
+date: "2011-09-15"
+slug: "6778704"
+tags: ["#socket", "#linux", "#buffer", "#server", "#stream", "#server"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6778704"
+originalTitle: "Linux下的TCP/IP socket 文件传输"
+---
+
+////////////////////////////////////  
+// Server code  
+///////////////////////////////////  
+// This file contains the server code  
+#include <netinet/in.h>    // for sockaddr_in  
+#include <sys/types.h>    // for socket  
+  
+#include <sys/socket.h>    // for socket  
+#include <stdio.h>        // for printf  
+#include <stdlib.h>        // for exit  
+#include <string.h>        // for bzero  
+#include <time.h>                // for time_t and time  
+  
+#define HELLO_WORLD_SERVER_PORT 7754  
+#define LENGTH_OF_LISTEN_QUEUE 20  
+#define BUFFER_SIZE 1024  
+  
+int main(int argc, char **argv)  
+{  
+    // Set up a socket address structure server_addr, representing the server's internet address and port  
+    struct sockaddr_in server_addr;  
+    bzero(&server_addr, sizeof(server_addr)); // Set memory block contents to zero  
+    server_addr.sin_family = AF_INET;  
+    server_addr.sin_addr.s_addr = htons(INADDR_ANY);  
+    server_addr.sin_port = htons(HELLO_WORLD_SERVER_PORT);  
+    // time_t now;  
+    FILE *stream;  
+  
+    // Create a stream socket (TCP) for internet communication, represented by server_socket  
+    int server_socket = socket(AF_INET, SOCK_STREAM, 0);  
+    if (server_socket < 0)  
+    {  
+        printf("Create Socket Failed!");  
+        exit(1);  
+    }  
+  
+    // Bind the socket to the socket address structure  
+    if (bind(server_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)))  
+    {  
+        printf("Server Bind Port : %d Failed!", HELLO_WORLD_SERVER_PORT);  
+        exit(1);  
+    }  
+  
+    // Start listening on server_socket  
+    if (listen(server_socket, LENGTH_OF_LISTEN_QUEUE))  
+    {  
+        printf("Server Listen Failed!");  
+        exit(1);  
+    }  
+  
+    while (1) // Server runs continuously  
+    {  
+        struct sockaddr_in client_addr;  
+        socklen_t length = sizeof(client_addr);  
+  
+        int new_server_socket = accept(server_socket, (struct sockaddr*)&client_addr, &length);  
+        if (new_server_socket < 0)  
+        {  
+            printf("Server Accept Failed!\n");  
+            break;  
+        }  
+  
+        char buffer[BUFFER_SIZE];  
+        bzero(buffer, BUFFER_SIZE);  
+  
+        strcpy(buffer, "Hello,World! From server!");  
+        strcat(buffer, "\n"); // String concatenation in C  
+  
+        send(new_server_socket, buffer, BUFFER_SIZE, 0);  
+  
+        bzero(buffer, BUFFER_SIZE);  
+        // Receive data sent by client into buffer  
+        length = recv(new_server_socket, buffer, BUFFER_SIZE, 0);  
+  
+        if (length < 0)  
+        {  
+            printf("Server Recieve Data Failed!\n");  
+            exit(1);  
+        }  
+        printf("\n%s", buffer);  
+  
+        if ((stream = fopen("data1", "r")) == NULL)  
+        {  
+            printf("The file 'data1' was not opened! \n");  
+            exit(1);  
+        }  
+        else  
+            printf("The file 'filename' was opened! \n");  
+        bzero(buffer, BUFFER_SIZE);  
+  
+        int lengsize = 0;  
+        while ((lengsize = fread(buffer, 1, 1024, stream)) > 0)  
+        {  
+            printf("lengsize = %d\n", lengsize);  
+  
+            if (send(new_server_socket, buffer, lengsize, 0) < 0)  
+            {  
+                printf("Send File is Failed\n");  
+                break;  
+            }  
+  
+            bzero(buffer, BUFFER_SIZE);  
+        }  
+        if (fclose(stream))  
+            printf("The file 'data' was not closed! \n");  
+        exit(1);  
+  
+        // Close connection with client  
+        close(new_server_socket);  
+    }  
+    // Close listening socket  
+    close(server_socket);  
+    return 0;  
+}  
+  
+////////////////////////////////////  
+// Client code  
+///////////////////////////////////  
+  
+// This file contains the client code  
+#include <netinet/in.h>    // for sockaddr_in  
+#include <sys/types.h>    // for socket  
+#include <sys/socket.h>    // for socket  
+#include <stdio.h>        // for printf  
+#include <stdlib.h>        // for exit  
+#include <string.h>        // for bzero  
+#include <time.h>                // for time_t and time  
+#include <arpa/inet.h>  
+  
+#define HELLO_WORLD_SERVER_PORT    7754  
+#define BUFFER_SIZE 1024  
+  
+int main(int argc, char **argv)  
+{  
+    if (argc != 2)  
+    {  
+        printf("Usage: ./%s ServerIPAddress\n", argv[0]);  
+        exit(1);  
+    }  
+  
+    // time_t now;  
+    FILE *stream;  
+  
+    // Set up a socket address structure client_addr, representing the client's internet address and port  
+    struct sockaddr_in client_addr;  
+    bzero(&client_addr, sizeof(client_addr)); // Set memory block contents to zero  
+    client_addr.sin_family = AF_INET;    // Internet protocol family  
+    client_addr.sin_addr.s_addr = htons(INADDR_ANY); // INADDR_ANY means automatically get local machine address  
+    client_addr.sin_port = htons(0);    // 0 means let system automatically assign an available port  
+  
+    // Create a stream socket (TCP) for internet communication, represented by client_socket  
+    int client_socket = socket(AF_INET, SOCK_STREAM, 0);  
+    if (client_socket < 0)  
+    {  
+        printf("Create Socket Failed!\n");  
+        exit(1);  
+    }  
+  
+    // Bind client socket to client socket address structure  
+    if (bind(client_socket, (struct sockaddr*)&client_addr, sizeof(client_addr)))  
+    {  
+        printf("Client Bind Port Failed!\n");  
+        exit(1);  
+    }  
+  
+    // Set up a socket address structure server_addr, representing the server's internet address and port  
+    struct sockaddr_in server_addr;  
+    bzero(&server_addr, sizeof(server_addr));  
+    server_addr.sin_family = AF_INET;  
+    if (inet_aton(argv[1], &server_addr.sin_addr) == 0) // Server IP address comes from program argument  
+    {  
+        printf("Server IP Address Error!\n");  
+        exit(1);  
+    }  
+    server_addr.sin_port = htons(HELLO_WORLD_SERVER_PORT);  
+    socklen_t server_addr_length = sizeof(server_addr);  
+  
+    // Initiate connection to server; upon success, client_socket represents the connection  
+    if (connect(client_socket, (struct sockaddr*)&server_addr, server_addr_length) < 0)  
+    {  
+        printf("Can Not Connect To %s!\n", argv[1]);  
+        exit(1);  
+    }  
+  
+    char buffer[BUFFER_SIZE];  
+    bzero(buffer, BUFFER_SIZE);  
+  
+    // Receive data from server into buffer  
+    int length = recv(client_socket, buffer, BUFFER_SIZE, 0);  
+  
+    if (length < 0)  
+    {  
+        printf("Recieve Data From Server %s Failed!\n", argv[1]);  
+        exit(1);  
+    }  
+  
+    printf("\n%s\n", buffer);  
+  
+    bzero(buffer, BUFFER_SIZE);  
+  
+    bzero(buffer, BUFFER_SIZE);  
+    strcpy(buffer, "Hello, World! From Client\n");  
+    // Send data in buffer to server  
+    send(client_socket, buffer, BUFFER_SIZE, 0);  
+  
+    if ((stream = fopen("data", "w+t")) == NULL)  
+    {  
+        printf("The file 'data' was not opened! \n");  
+    }  
+    else  
+        bzero(buffer, BUFFER_SIZE);  
+    length = 0;  
+    while (length = recv(client_socket, buffer, BUFFER_SIZE, 0))  
+    {  
+        if (length < 0)  
+        {  
+            printf("Recieve Data From Server %s Failed!\n", argv[1]);  
+            break;  
+        }  
+  
+        int write_length = fwrite(buffer, sizeof(char), length, stream);  
+        if (write_length < length)  
+        {  
+            printf("File is Write Failed\n");  
+            break;  
+        }  
+        bzero(buffer, BUFFER_SIZE);  
+    }  
+    printf("Recieve File From Server[%s] Finished\n", argv[1]);  
+  
+    // Close file  
+    fclose(stream);  
+  
+    // Close socket  
+    close(client_socket);  
+    return 0;  
+}  
+  
+  
+This article was originally published on Linux Community (www.linuxidc.com)  
+Original link: http://www.linuxidc.com/Linux/2010-12/30816.htm

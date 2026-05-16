@@ -1,0 +1,88 @@
+---
+title: "Enumerated Types (enum) in C/C++"
+date: "2011-09-19"
+slug: "6790256"
+tags: ["#Compiler", "#C"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6790256"
+originalTitle: "C/C++中枚举类型(enum)"
+---
+
+If a variable needs to hold several possible values, it can be defined as an enumerated type. The reason it's called 'enumeration' is that it lists all possible states or values that a variable or object might have.
+
+Let's illustrate with an example to make it clearer. Imagine a pencil case containing a pen. Before opening it, you don't know what kind of pen it is; it could be a pencil or a fountain pen. Since there are two possibilities, you can define an enumerated type to represent it!
+
+```c
+enum box{pencil,pen};// Here, you've defined an enumerated type called 'box'. This enum contains two elements, also known as enumerators, which are 'pencil' and 'pen', representing a pencil and a fountain pen, respectively.
+```
+
+It's worth noting that if you want to define two variables of the same enumerated type, you can do so in the following two ways:
+
+```c
+enum box{pencil,pen};  
+  
+enum box box2;// Or simply 'box box2;'
+```
+
+Another way is to define them simultaneously during declaration.
+
+```c
+enum {pencil,pen}box,box2; // Defined simultaneously with the declaration!
+```
+
+The enumerators within an enum type are treated as constants by the system, hence they are called **enumeration constants**. They cannot be assigned values using regular arithmetic assignment (e.g., `pencil=1;` is incorrect). However, you can assign values during declaration!
+
+```c
+enum box{pencil=1,pen=2};
+```
+
+However, it's crucial to note here that if you don't explicitly assign values to the elements, the system will automatically assign values starting from 0 and incrementing by 1. Regarding automatic assignment, if you only define the first element, the system will assign the next element a value equal to the previous element's value plus 1. For example,
+
+```c
+enum box{pencil=3,pen};// Here, 'pen' will automatically be assigned the value 4 by the system, i.e., pen=4!
+```
+
+Having covered all that, here's a complete example. You can gain a more comprehensive understanding by studying the following code!
+
+```cpp
+#include <iostream>  
+using namespace std;  
+  
+void main(void)  
+{  
+    enum egg {a,b,c};  
+    enum egg test; // You can shorten this to 'egg test;' here.  
+  
+    test = c; // Assigning an enumerator to the enum variable 'test'. The reason this is called "assigning an enumerator" and not "assigning a value" is to clarify that enum variables cannot be directly assigned numerical values. For example, operations like (test=1;) are not accepted by the compiler. The correct way is to first perform a type cast, such as (test = (enum egg) 0;)!  
+  
+    if (test==c)  
+    {  
+        cout <<"Enum variable check: The enumerator corresponding to 'test' is 'c'" << endl;  
+    }  
+  
+    if (test==2)  
+    {  
+        cout <<"Enum variable check: The value of 'test' enumerator is 2" << endl;  
+    }  
+  
+    cout << a << "|" << b << "|" << test <<endl;  
+  
+    test = (enum egg) 0; // Type casting  
+    cout << "Enum variable 'test' value changed to: " << test <<endl;  
+    cin.get();  
+}
+```
+
+Finally, one last point to mention here is that enumerators (or enumeration constants) within an enum variable can be automatically promoted to arithmetic types in special cases!
+
+```cpp
+#include <iostream>  
+using namespace std;  
+  
+void main(void)  
+{  
+    enum test {a,b};  
+    int c=1+b; // Automatically promoted to an arithmetic type  
+    cout << c <<endl;  
+    cin.get();  
+}
+```

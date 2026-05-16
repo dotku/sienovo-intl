@@ -1,0 +1,97 @@
+---
+title: "Driving and Displaying on an LCD Screen Using GPIO — mini2440"
+date: "2011-08-22"
+slug: "6707902"
+tags: ["#Class", "#Dialog", "#Byte", "#Manager", "#Command", "#MFC"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6707902"
+originalTitle: "用GPIO口驱动与显示LCD屏幕——mini2440"
+---
+
+———————————————————————————————————————————
+
+Objective: LCD screen driving and display.
+
+Understand GPIO control methods and independently write a simple menu test program (including display of colored Chinese characters and static graphics).
+
+———————————————————————————————————————————
+
+**1. Terminology Q&A**
+
+1. What is a GPIO port? What related resources are available on the mini2440?
+
+Answer:
+
+2. Chip documentation (data sheet interpretation) for GPIO ports on S3C2416/S3C2440
+
+**2. Source Code Analysis**
+
+1. sys/ioctl.h
+
+2. IOR, IOW
+
+3. Identify the code architecture and its meaning.
+
+4. Purpose of `#include <afxext.h>`
+
+Answer:
+
+```cpp
+Defines MFC extensions and related classes, including:  
+// Classes declared in this file  
+//CObject  
+//CCmdTarget;  
+//CWnd  
+//CButton  
+class CBitmapButton;    // Bitmap button (self-draw)  
+class CControlBar;      // control bar  
+class CStatusBar;       // status bar  
+class CToolBar;         // toolbar  
+class CDialogBar;       // dialog as control bar  
+class CReBar;           // ie40 dock bar  
+class CSplitterWnd;     // splitter manager  
+//CView  
+//CScrollView  
+class CFormView;        // view with a dialog template  
+class CEditView;        // simple text editor view  
+//CDC  
+class CMetaFileDC;      // a metafile with proxy  
+class CRectTracker;     // tracker for rectangle objects
+```
+
+5. Usage of `extern` variables
+
+`extern` can be placed before a variable or function to indicate that its definition resides in another file, instructing the compiler to look for the definition in other modules when encountering such variables or functions.  
+Additionally, `extern` can also be used for linkage specification.
+
+**3. LCD Driver Analysis**
+
+1. `mmap((void*)target, length, PROT_READ|PROT_WRITE, MAP_SHARED, fd, target)`  
+   // Detailed explanation of parameters? Especially `target`
+
+2. `volatile BYTE *lcdcmdadr`  
+   // What does this mean?
+
+3.
+
+```cpp
+void Xadd(char startx,char endx){  
+    LCDCOM_MASTER(0x2A);             // Understand the meaning of these addresses  
+    LCDDATA_MASTER(startx);  
+    LCDDATA_MASTER(endx);  
+}
+```
+
+4.
+
+```cpp
+// Map user space memory address to kernel space memory address  
+lcdcmdadr = (BYTE *)mapDirectIoRegister(LCD_COMMAND, MAP_SIZE);
+```
+
+5.
+
+```cpp
+LCD_RST_LOW;    usleep(100000);  
+LCD_RST_HIG;    usleep(100000);     // Simulate a square wave  
+LCD_ON;
+```

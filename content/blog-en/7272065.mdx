@@ -1,0 +1,117 @@
+---
+title: "VXWORKS Kernel Analysis"
+date: "2012-02-19"
+slug: "7272065"
+tags: ["#Task", "#DataStructure", "#Algorithm", "#PerformanceOptimization", "#Extension", "#Unix"]
+source: "https://blog.csdn.net/yeyuangen/article/details/7272065"
+originalTitle: "VXWORKS内核分析"
+---
+
+**VXWORKS Kernel Analysis**
+
+1.  Structure of Real-time Operating Systems
+
+    The most primitive structural form of operating systems developed in the early days of computing was a monolithic entity. In such systems, modules providing different functionalities, such as processor management, memory management, and input/output, were typically independent. However, they did not consider other modules in use during their execution, and each module ran with the same time granularity.
+
+    As modern real-time environments require many different functionalities, and due to the asynchrony and non-determinism caused by concurrent activities in such environments, operating systems have become more complex. Therefore, the monolithic structure of early operating systems has been superseded by more precise internal structures.
+
+    The Starting Point of Hierarchical Structure - The Kernel
+
+    The best internal structural model for an operating system is a hierarchical one, with the kernel at the lowest layer. These layers can be seen as an inverted pyramid, with each layer building upon the functionalities of the lower layers. The kernel contains only the most important low-level functions executed by an operating system. Like a monolithic operating system, the kernel provides an abstraction layer between high-level software and low-level hardware. However, the kernel only provides a minimal set of operations required to construct the other parts of the operating system.
+
+    Requirements for a Real-time Kernel
+
+    A real-time operating system kernel must satisfy several fundamental requirements imposed by specific real-time environments. These include:
+
+    Multitasking: Due to the asynchronous nature of real-world events, it is crucial to be able to run many concurrent processes or tasks. Multitasking provides a better match to the real world because it allows multithreaded execution corresponding to many external events. The system kernel allocates the CPU to these tasks to achieve concurrency.
+
+    Preemptive Scheduling: Real-world events have inherent priorities, and these priorities must be considered when allocating the CPU. With priority-based preemptive scheduling, tasks are assigned priorities, and among the tasks that are ready to execute (not suspended or waiting for resources), the highest-priority task is allocated CPU resources. In other words, when a higher-priority task becomes executable, it immediately preempts the currently running lower-priority task.
+
+    Fast and Flexible Inter-task Communication and Synchronization: In a real-time system, many tasks may execute as part of an application. The system must provide fast and powerful communication mechanisms between these tasks. The kernel must also provide synchronization mechanisms required for efficiently sharing non-preemptable resources or critical sections.
+
+    Convenient Communication Between Tasks and Interrupts: Although real-world events often arrive as interrupts, to provide effective queuing, prioritization, and reduced interrupt latency, it is often desirable to handle the corresponding work at the task level. Therefore, communication between the task level and the interrupt level is necessary.
+
+    Performance Bounds: A real-time kernel must provide worst-case performance optimization, rather than throughput optimization. We prefer a system that can consistently execute a function in 50 microseconds over one that executes it in 10 microseconds on average but occasionally takes 75 microseconds.
+
+    Special Considerations: As the requirements for real-time kernels increase, the need for the kernel to support increasingly complex functionalities must be considered. This includes multiprocessing, Ada, and support for newer, more powerful processor architectures like RISC.
+
+    Kernels with Other Names
+
+    Many commercial kernels support far more functionality than the requirements listed above. In this respect, they are not true kernels but more like small monolithic operating systems, as they include simple memory allocation, clock management, and even some input/output system calls.
+
+    This classification is not merely a semantic argument; later sections of this article will illustrate the importance of limiting kernel functionality and optimizing these functions.
+
+2.  VxWorks Kernel: Wind
+
+    The VxWorks operating system is one of the most fully-featured, processor-independent real-time systems available today. However, VxWorks is a hierarchical structure with a relatively small, true microkernel. The kernel only provides a multitasking environment, inter-process communication, and synchronization functions. These functional modules are sufficient to support the rich performance requirements provided by VxWorks at higher levels. Kernel operations are typically invisible to the user. Applications use system calls to implement task management and synchronization that require kernel involvement, but the processing of these calls is invisible to the calling task. Applications simply link the appropriate VxWorks routines (often using VxWorks' dynamic linking capability) and issue system calls as if calling subroutines. This interface is not like some systems that require a clumsy jump table interface where the user specifies a kernel function call via an integer.
+
+    Multitasking
+
+    The fundamental function of the kernel is to provide a multitasking environment. Multitasking makes many programs appear to execute concurrently, while in fact, the kernel executes them in segments according to basic scheduling algorithms. Each seemingly independent program is called a task. Each task has its own context, which includes the CPU environment and system resources it sees when the kernel schedules it for execution.
+
+    Task States
+
+    The kernel maintains the current state of each task in the system. State transitions occur when an application calls a kernel function service. The Wind kernel states are defined as follows:
+
+    Ready state – A task is not waiting for any resources other than the CPU.
+    Blocked state – A task is blocked because some resource is unavailable.
+    Delayed state – A task is sleeping for a specified period.
+    Suspended state – An auxiliary state primarily used for debugging; suspension prevents task execution.
+
+    A task enters the suspended state after creation. Specific operations are required to move the created task into the ready state. This operation is very fast, allowing applications to create tasks in advance and activate them quickly.
+
+    Scheduling Control
+
+    Multitasking requires a scheduling algorithm to allocate the CPU to ready tasks. The default scheduling algorithm in VxWorks is priority-based preemptive scheduling, but applications can also choose to use round-robin scheduling.
+
+    Priority-based Preemptive Scheduling: With priority-based preemptive scheduling, each task is assigned a priority, and the kernel allocates the CPU to the highest-priority task in the ready state. Scheduling is preemptive because when a task with a higher priority than the current task becomes ready, the kernel immediately saves the current task's context and switches to the higher-priority task's context. VxWorks has 256 priorities, from 0 to 255. Tasks are assigned a priority at creation, and this priority can be dynamically modified during task execution to track real-world event priorities. External interrupts are assigned a priority higher than any task, allowing them to preempt a task at any time.
+
+    Round-Robin: Priority-based preemptive scheduling can be extended with round-robin scheduling. Round-robin scheduling allows ready tasks of the same priority to share the CPU fairly. Without round-robin scheduling, when multiple tasks share the processor at the same priority, one task might monopolize the CPU, not being blocked until preempted by a higher-priority task, and not giving other tasks of the same priority a chance to run. If round-robin is enabled, the execution time counter for the running task increments with each clock tick. When the specified time slice expires, the counter is reset, and the task is placed at the end of the queue for tasks of the same priority. New tasks joining a specific priority group are placed at the end of that group's queue, and their run counter is initialized to zero.
+
+    Basic Task Functions
+
+    Basic task functions for state control include task creation, deletion, suspension, and resumption. A task can also put itself to sleep for a specific interval.
+    Many other task routines provide state information obtained from the task context. These routines include access to a task's current processor register control.
+
+    Task Deletion Issues
+
+    The Wind kernel provides mechanisms to prevent tasks from being accidentally deleted. Typically, a task executing in a critical section or accessing a critical resource needs special protection. Consider the following scenario: a task obtains exclusive access to some data structure, and while it is executing within the critical section, it is deleted by another task. Since the task cannot complete its operation on the critical section, the data structure may be left in a corrupted or inconsistent state. Moreover, if the task has no opportunity to release the resource, then no other task can now acquire that resource; the resource is frozen.
+
+    Any task attempting to delete or terminate a task that has set deletion protection will be blocked. When the protected task completes its critical section operation, it will cancel deletion protection to allow itself to be deleted, thereby unblocking the deleting task.
+
+    As shown above, task deletion protection is often accompanied by mutual exclusion operations.
+    Thus, for convenience and efficiency, mutex semaphores include a deletion protection option. (See "Mutex Semaphores")
+
+    Inter-task Communication
+
+    To provide full multitasking system functionality, the Wind kernel offers a rich set of inter-task communication and synchronization mechanisms. These communication functions enable individual tasks within an application to coordinate their activities.
+
+    Shared Address Space
+
+    The basis of the Wind kernel's inter-task communication mechanism is the shared address space where all tasks reside. Through a shared address space, tasks can communicate freely using pointers to shared data structures. Pipes do not require mapping a memory region into the address spaces of two communicating tasks.
+
+    Unfortunately, while shared address space offers the aforementioned advantages, it introduces the risk of unprotected reentrant access to memory. UNIX operating systems provide such protection by isolating processes, but this comes with a significant performance penalty for real-time operating systems.
+
+    Mutual Exclusion Operations
+
+    While a shared address space simplifies data exchange, it becomes necessary to avoid resource contention through mutually exclusive access. Many mechanisms used to achieve mutually exclusive access to a resource differ only in the scope of their mutual exclusion. Methods for achieving mutual exclusion include interrupt disabling, task preemption disabling, and resource locking via semaphores.
+
+    Interrupt Disabling: The strongest mutual exclusion method is masking interrupts. Such a lock guarantees exclusive access to the CPU. While this method can certainly solve the mutual exclusion problem, it is inappropriate for real-time systems because it prevents the system from responding to external events during the lock. Long interrupt latencies are unacceptable for applications requiring deterministic response times.
+
+    Preemption Disabling: Disabling preemption provides a weaker form of mutual exclusion. Other tasks are not allowed to preempt the current task while it is running, but interrupt service routines (ISRs) can execute. This can also lead to poor real-time responsiveness, similar to interrupt disabling, as blocked tasks may experience significant preemption latency, and ready high-priority tasks may be forced to wait an unacceptable amount of time before they can execute. To avoid this, semaphores should be used for mutual exclusion whenever possible.
+
+    Mutex Semaphores: Semaphores are the fundamental way to lock access to shared resources. Unlike disabling interrupts or preemption, semaphores limit mutual exclusion operations to only the relevant resources. A semaphore is created to protect a resource. VxWorks semaphores follow Dijkstra's P() and V() operation model.
+
+    When a task requests a semaphore, P(), two things can happen, depending on the set or cleared state of the semaphore at the time of the call. If the semaphore is in the set state, it is cleared, and the task immediately continues execution. If the semaphore is in the cleared state, the task is blocked to wait for the semaphore.
+
+    When a task releases a semaphore, V(), several things can happen. If the semaphore is already in the set state, releasing it has no effect. If the semaphore is in the cleared state and no tasks are waiting for it, the semaphore is simply set. If the semaphore is in the cleared state and one or more tasks are waiting for it, the highest-priority task is unblocked, and the semaphore remains in the cleared state.
+
+    By associating resources with semaphores, mutual exclusion operations can be achieved. When a task wants to operate on a resource, it must first acquire the semaphore. As long as the task owns the semaphore, all other tasks requesting that semaphore are blocked. When a task finishes using the resource, it releases the semaphore, allowing another task waiting for the semaphore to access the resource.
+
+    The Wind kernel provides binary semaphores to address problems caused by mutual exclusion operations. These problems include deletion protection for resource owners and priority inversion caused by resource contention.
+
+    Deletion Protection – One problem caused by mutual exclusion involves task deletion. In a critical section protected by a semaphore, it is necessary to prevent the executing task from being accidentally deleted. Deleting a task executing in a critical section is catastrophic. The resource will be corrupted, and the semaphore protecting the resource will become unavailable, making the resource inaccessible. Deletion protection is usually provided in conjunction with mutual exclusion operations. For this reason, mutex semaphores often provide options to implicitly offer the task deletion protection mechanisms mentioned earlier.
+
+    Priority Inversion / Priority Inheritance – Priority inversion occurs when a high-priority task is forced to wait for an indefinite period for a lower-priority task to complete execution. Consider the following hypothesis:
+
+    T1, T2, and T3 are high, medium, and low priority tasks, respectively. T3 acquires a related resource by owning a semaphore. When T1 preempts T3 and requests the same

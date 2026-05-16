@@ -1,0 +1,251 @@
+---
+title: "Linux Socket Implementation of a Network Chat Room (Part 2): Independent Message Sending and Receiving Using Threads"
+date: "2011-09-01"
+slug: "6738206"
+tags: ["#Socket", "#Linux", "#Chat", "#Networking", "#Struct", "#Null"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6738206"
+originalTitle: "linux socket实现网络聊天室（二）：使用线程独立收发消息"
+---
+
+## 1. Introduction
+
+## 2. Code Implementation
+
+### 1. Server Side
+
+```cpp
+/*tcpserver.c  2011.9.1 by yyg*/
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <string.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/wait.h>
+#include <pthread.h> 
+
+#define MYPORT 3490  // Define port
+#define BACKLOG 10
+#define MAXDATASIZE 1024 
+
+int sockfd, new_fd;
+pthread_t accthread, recthread;
+
+void recmessage(void) {  // Function to receive client messages
+    while(1) {
+        int numbytes;
+        char buf[MAXDATASIZE];
+        if ((numbytes = recv(new_fd, buf, MAXDATASIZE, 0)) == -1) {
+            perror("recv");
+            exit(1);
+        }
+        buf[numbytes] = '\0';
+        if (strcmp(buf, "exit") == 0) {  // If received message is "exit", terminate communication
+            printf("Client is closed\n");
+            close(new_fd);
+            close(sockfd);
+            exit(1);
+        }
+        printf("client:%s\n", buf);
+    } /*while*/
+}
+
+void acceptconnect(void) {  // Function to accept client connection requests
+    struct sockaddr_in their_addr;
+    int sin_size;
+    sin_size = sizeof(struct sockaddr_in);
+    if ((new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size)) == -1) {
+        perror("accept");
+        exit(1);
+    }
+    printf("server: got connection from %s\n", inet_ntoa(their_addr.sin_addr));
+    /* Create child thread for receiving messages */
+    if ((pthread_create(&recthread, NULL, (void*)recmessage, NULL)) != 0) {
+        printf("create thread error!\r\n");
+        exit(1);
+    }
+}
+
+int main(void) {
+    struct sockaddr_in my_addr;
+
+    /* Create socket */
+    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+        perror("socket");
+        exit(1);
+    }
+
+    /* Initialize parameters in sockaddr_in structure */
+    my_addr.sin_family = AF_INET;
+    my_addr.sin_port = htons(MYPORT);
+    my_addr.sin_addr.s_addr = INADDR_ANY;
+    bzero(&(my_addr.sin_zero), 8);
+
+    /* Bind port and socket */
+    if (bind(sockfd, (struct sockaddr*)&my_addr, sizeof(struct sockaddr)) == -1) {
+        perror("bind");
+        exit(1);
+    }
+
+    /* Listen for client socket connections */
+    if (listen(sockfd, BACKLOG) == -1) {
+        perror("listen");
+        exit(1);
+    }
+    printf("listening...\n");
+
+    /* Create child thread to accept connections */
+    if ((pthread_create(&accthread, NULL, (void*)acceptconnect, NULL)) != 0) {
+        printf("create thread error!\n");
+        exit(1);
+    }
+
+    while(1) {
+        char msg[MAXDATASIZE];
+        scanf("%s", msg);
+        if (send(new_fd, msg, strlen(msg), 0) == -1) {  // Send message to communicate with client
+            perror("send");
+            exit(1);
+        }
+        if (strcmp(msg, "exit") == 0) {
+            printf("byebye\n");
+            close(new_fd);
+            close(sockfd);
+            exit(1);
+        }
+    } /*while*/
+
+    return 0;
+} /*main*/
+```
+
+### 2. Client Side
+
+```cpp
+/*tcpclient.c    2010.9.1 by yyg*/
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <string.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/wait.h>
+#include <pthread.h>
+#include <netdb.h> 
+
+#define PORT 3490
+#define BACKLOG 10
+#define MAXDATASIZE 1024 
+
+int sockfd;
+pthread_t recthread;
+
+/* Function to receive messages */
+void recmessage(void) {
+    while(1) {
+        int numbytes;
+        char buf[MAXDATASIZE];
+
+        if ((numbytes = recv(sockfd, buf, MAXDATASIZE, 0)) == -1) {
+            perror("recv");
+            exit(1);
+        }
+        buf[numbytes] = '\0';
+        if (strcmp(buf, "exit") == 0) {
+            printf("Server is closed\n");
+            close(sockfd);
+            exit(1);
+        }
+        printf("Server:%s\n", buf);
+    } /*while*/
+}
+
+int main(int argc, char *argv[]) {
+    struct hostent *he;
+    struct sockaddr_in their_addr;
+
+    /* Client input format: ./client 172.31.100.236
+       If IP address is not provided, an error will be shown */
+    if (argc != 2) {
+        fprintf(stderr, "usage: client hostname\n");
+        exit(1);
+    }
+
+    /* Get host IP address */
+    if ((he = gethostbyname(argv[1])) == NULL) {
+        herror("gethostbyname");
+        exit(1);
+    }
+
+    /* Create socket */
+    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+        perror("socket");
+        exit(1);
+    }
+
+    /* Initialize sockaddr_in structure */
+    their_addr.sin_family = AF_INET;
+    their_addr.sin_port = htons(PORT);
+    their_addr.sin_addr = *((struct in_addr *)he->h_addr);
+    bzero(&(their_addr.sin_zero), 8);
+
+    /* Send connection request to server */
+    if (connect(sockfd, (struct sockaddr *)&their_addr, sizeof(struct sockaddr)) == -1) {
+        perror("connect");
+        exit(1);
+    }
+
+    /* Create child thread for receiving messages */
+    if ((pthread_create(&recthread, NULL, (void*)recmessage, NULL)) != 0) {
+        printf("create thread error!\r\n");
+        exit(1);
+    }
+
+    /* Send messages. The same socket (sockfd) is used for both sending and receiving */
+    while(1) {
+        char msg[MAXDATASIZE];
+        scanf("%s", msg);
+        if (send(sockfd, msg, strlen(msg), 0) == -1) {
+            perror("send");
+            exit(1);
+        }
+        if (strcmp(msg, "exit") == 0) {
+            printf("byebye\n");
+            close(sockfd);
+            exit(1);
+        }
+    } /*while*/
+
+    return 0;
+}
+```
+
+### Execution Results:
+
+**Terminal 1:**
+
+```cpp
+[root@localhost net]# ./tcpserver
+server:got connection from 172.31.100.236
+Hello,World!
+client:hello
+client:xiaolian
+client:iou
+ok
+exit
+byebye
+```
+
+**Terminal 2:**
+
+```cpp
+[root@localhost net]# ./tcpclient 172.31.100.236
+Server:Hello,World!
+hello
+xiaolian 
+iou
+Server:ok
+Server is closed
+```

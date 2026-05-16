@@ -1,0 +1,33 @@
+---
+title: "The Role of dup and dup2"
+date: "2011-10-08"
+slug: "6852682"
+tags: ["#CGI", "#Terminal", "#DataStructures", "#Scripting", "#Server", "#SoftwareDev"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6852682"
+originalTitle: "dup 与 dup2 的作用"
+---
+
+#### The Role of dup and dup2
+
+dup and dup2 are two very useful system calls, both used to duplicate a file descriptor. They are often used to redirect a process's stdin, stdout, and stderr. The prototypes for these two functions are as follows:
+#include <unistd.h>
+    int dup( int oldfd );
+    int dup2( int oldfd, int targetfd )
+    Using the dup function, we can duplicate a descriptor. When passed an existing descriptor, it returns a new descriptor, which is a copy of the one passed to it. This means that these two descriptors share the same
+\[url=http://www.pcdog.com/special/1002/index.html\]data structure\[/url\]
+. For example, if we perform an lseek operation on one file descriptor, the position of the first file will be the same as the second. Below is a code snippet illustrating the use of the dup function:
+    int fd1, fd2;
+    ...
+fd2 = dup( fd1 );
+    It's important to note that we can establish a descriptor before calling fork, which has the same effect as establishing a descriptor with dup; the child process will also receive a duplicated descriptor.
+    
+The dup2 function is similar to dup, but dup2 allows the caller to specify a valid descriptor and the ID of the target descriptor. When dup2 returns successfully, the target descriptor (the second argument to dup2) will become a duplicate of the source descriptor (the first argument to dup2). In other words, both file descriptors now point to the same file, specifically the file pointed to by the first argument. Let's illustrate this with a code snippet:
+     int oldfd;
+    oldfd = open("app\_log", (O\_RDWR | O\_CREAT), 0644 );
+    dup2( oldfd, 1 );
+    close( oldfd );
+    
+In this example, we open a new file called “app\_log” and receive a file descriptor, oldfd. We call the dup2 function with oldfd and 1 as arguments. This causes the file descriptor represented by 1 (i.e., stdout, because the standard output file ID is 1) to be replaced by our newly opened file descriptor. Anything written to stdout will now be written to the file named “app\_log”. It's important to note that after dup2 duplicates oldfd, it immediately closes oldfd, but it does not close the newly opened file descriptor, because file descriptor 1 now also points to it.
+    Next, let's look at a more in-depth code example. Recall the command-line pipe discussed earlier in this article, where we connected the standard output of the 'ls -1' command as standard input to the 'wc -l' command. Now, we will use a C program to illustrate the implementation of this process. The code is shown in Example Code 3 below.
+    
+In Example Code 3, a pipe is first established on line 9, and then the application is divided into two processes: a child process (lines 13–16) and a parent process (lines 20–23). Next, in the child process, the stdout descriptor is first closed (line 13). Then, the functionality of the 'ls -1' command is provided, but instead of writing to stdout (line 13), it writes to the input end of the pipe we created. This redirection is accomplished using the dup2 function on line 14, where stdout is redirected to the pipe (

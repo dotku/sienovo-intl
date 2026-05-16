@@ -1,0 +1,73 @@
+---
+title: "Makefile Example Explained (Fully Annotated)"
+date: "2011-08-19"
+slug: "6701143"
+tags: ["#Makefile", "#Wildcard"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6701143"
+originalTitle: "Makefile实例解析（完全注释）"
+---
+
+\#   For 2416 Project  
+\#   Written by lx-gzjp-2011-7-19  
+  
+  
+#\*\*\*\*\*\*\*\*\*\*\* setting \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+CC := gcc  
+OUTDIR := obj  
+OUTBINNAME := go  
+SRC\_DIR := ./ 2416def/ bmp/ lcddriver/ disp/ zklib/ gps/ usb/ timer/ anet/ omc/  
+#\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+  
+  
+LINK := $(CC) -o  
+LINETHREAD := -lpthread -lm  
+CFLAG := -c -O2 -o  
+SRC\_SUFFIX := .c  
+OBJSUFFIX := .o  
+SRCS := $(foreach n, $(SRC\_DIR), $(wildcard $(n)*$(SRC\_SUFFIX)))  
+OBJECTS := $(patsubst $(SRC\_SUFFIX), $(OUTDIR)/$(OBJ\_SUFFIX), $(notdir $(SRCS)))  
+  
+  
+all     : $(OUTDIR) $(OUTDIR)/$(OUTBINNAME)  
+  
+  
+
+.PHONY : all
+
+$(OUTDIR):  
+	mkdir $(OUTDIR)  
+	@  
+  
+  
+  
+  
+$(OUTDIR)/$(OUTBINNAME): $(OBJECTS)  
+	$(LINK) $@ $(OBJECTS) $(LINETHREAD)  
+	@echo "Finished!"  
+	@echo "Bin file is $(OUTDIR)/$(OUTBINNAME)!"  
+  
+  
+$(OUTDIR)/main.o: main.c  
+	$(CC) $(CFLAG) $<  
+  
+  
+$(OUTDIR)/%.o: %.c  
+	$(CC) $(CFLAG) $< -o $@  
+  
+  
+clean:  
+	@rm -rf obj  
+	@echo "$(OUTDIR) has been deleted!"  
+
+  
+
+\=======================     Understanding Makefile      =========================================================
+
+edit (final target) : main.o kbd.o command.o display.o insert.o search.o files.o utils.o (intermediate object files are dependencies of final target)  
+    cc -o edit main.o kbd.o command.o display.o insert.o search.o files.o utils.o    // generate final executable from multiple .o files  
+main.o : main.c defs.h  
+    cc -c main.c                            // no explicit output? This follows implicit rules where .o is directly derived from the source  
+
+  
+
+\================================================================================================

@@ -1,0 +1,82 @@
+---
+title: "Differences Among memset, memcpy, and strcpy"
+date: "2011-09-16"
+slug: "6782101"
+tags: ["#Struct"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6782101"
+originalTitle: "memset ,memcpy 和strcpy 区别"
+---
+
+**memset** is used to set all bytes in a specified memory block to a particular character. It is commonly used to initialize strings to `' '` or `'\\0'`.
+
+Example:  
+`char a[100]; memset(a, '\\0', sizeof(a));`
+
+memset can also conveniently clear a structure-type variable or array.
+
+For example:
+
+```c
+struct sample_struct  
+{  
+    char   csName[16];  
+    int    iSeq;  
+    int    iType;  
+};
+```
+
+For the variable:  
+`struct sample_struct stTest;`
+
+Typically, clearing `stTest` would require:
+
+```c
+stTest.csName[0] = '\\0';  
+stTest.iSeq = 0;  
+stTest.iType = 0;
+```
+
+With `memset`, this becomes much simpler:  
+`memset(&stTest, 0, sizeof(struct sample_struct));`
+
+For an array:
+
+```c
+struct sample_struct TEST[10];
+```
+
+Then use:  
+`memset(TEST, 0, sizeof(struct sample_struct) * 10);`
+
+**memcpy** is used for memory copying. It can copy any data type and allows you to specify the number of bytes to copy.
+
+Example:  
+`char a[100], b[50]; memcpy(b, a, sizeof(b));`  
+Note: Using `sizeof(a)` here could cause a buffer overflow in `b`.
+
+**strcpy** can only copy strings and stops copying when it encounters a `'\\0'`.
+
+Example:  
+`char a[100], b[50]; strcpy(a, b);`  
+If using `strcpy(b, a)`, ensure the string length in `a` (before the first `'\\0'`) does not exceed 50 characters, otherwise it will cause a buffer overflow in `b`.
+
+`strcpy` also has a safer variant with a length parameter: `strncpy(a, b, n)`.
+
+\========================================================
+
+In summary:  
+- `memset` is mainly used to initialize a memory block.  
+- `memcpy` is used to copy data from a source memory block to a destination block.  
+- `strcpy` is used specifically for string copying and stops when it encounters `'\\0'`.
+
+Understanding these differences helps clarify their proper usage. For instance, using `memcpy` to initialize memory may seem awkward or incorrect. Consider:
+
+```c
+int m[100];
+```
+
+Correct usage:  
+`memset((void*)m, 0x00, sizeof(int) * 100); // Ok!`
+
+Wrong approach:  
+`memcpy((void*)m, "\\0\\0\\0\\0....", sizeof(int) * 100); // It's wrong.`

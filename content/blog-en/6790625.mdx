@@ -1,0 +1,22 @@
+---
+title: "Does a Parent Thread Continue Executing Its Own Code After Creating a Child Thread? (Compilation)"
+date: "2011-09-19"
+slug: "6790625"
+tags: ["#MultiThreading", "#Thread"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6790625"
+originalTitle: "父线程 在创建了子线程后，是不是继续执行自己的代码 ？（收集整理）"
+---
+
+1. A parent thread must terminate after its child threads. This is because child threads belong to the parent thread, and if the parent thread ends, all its child threads will also terminate.
+
+2. If the parent thread ends before the child thread, the child thread will be forced to terminate simultaneously with the parent thread. The `Thread.Join()` method makes the parent thread wait until the child thread finishes. The `Abort()` method results in an irreversible termination of the thread.
+
+3. The initial thread can be referred to as the main thread. If all foreground threads stop, the main thread can terminate, and all background threads will terminate unconditionally. The only difference between background threads and foreground threads is that background threads do not prevent the program from terminating. Once all foreground threads in a process have terminated, the CLR will completely terminate the process by calling the `Abort()` method on any remaining live background threads.
+
+5. Suspending and sleeping (both can be called blocking or pausing) are different. Unlike `Thread.Sleep`, `Thread.Suspend` does not immediately stop a thread's execution. It can only suspend the thread after it reaches a safe point. If a thread has not yet started or has already stopped, it cannot be suspended. Calling `Thread.Resume` will cause another thread to exit the suspended state and resume execution. One thread cannot call `Sleep` on another thread, but one thread can call `Suspend` on another thread. Many other ways can also be used to block threads. For example, a thread can wait for another thread (a child thread) to stop by calling `Thread.Join`. `Monitor.Wait` can be used to make a thread wait to access a synchronized object.
+
+6. The `lock` keyword can define a block of code as a critical section, which allows only one thread to enter and execute at a time, while other threads must wait. When multiple threads share an object, the `lock` keyword should not be used. Instead, `Monitor` provides a solution for threads to share resources. The `Monitor` class can lock an object, and a thread can only operate on that object after acquiring the lock. For example: `Monitor.Enter(obj); // Now the oQueue object can only be manipulated by the current thread Monitor.Exit(obj);`
+
+7. When a process starts, it will have at least one main thread (i.e., the main execution instance), which is the primary execution flow created when the system loads your program. Message queues are associated with threads. On Windows 2000-like systems, a thread has one and only one message queue corresponding to it. When are message queues generated? On Windows 2000-like systems, they exist from the moment a thread is created. A thread can create multiple forms. All messages sent to these windows are uniformly sent to the same message queue. Fortunately, the message structure includes `msg.hwnd` to indicate which window the message is related to, and the `DispatchMessage()` function ensures automated and error-free message dispatching based on this.
+
+8. Each form belongs to the thread that created it. Directly or indirectly accessing a form from another thread within a thread will lead to a runtime error (VS2005). Solution: Use the `Control.Invoke(Delegate)` method, which forms inherit from `Control`. This method will execute the method pointed to by the delegate on the thread that created the form. Note: Under VS2003, you could directly or indirectly call methods of a form in another thread without causing a runtime error.

@@ -1,0 +1,77 @@
+---
+title: "Ten Good Habits of Excellent Programmers, Summarized from \"The Art of Unix Programming\""
+date: "2011-09-30"
+slug: "6837279"
+tags: ["#Unix", "#Programming", "#API", "#DataStructures", "#Algorithms", "#Documentation"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6837279"
+originalTitle: "《unix编程艺术》总结的出色程序员十大好习惯"
+---
+
+Reviewing the ten good habits of excellent programmers, as summarized from *The Art of Unix Programming*.
+
+1) Easy to understand and composable.  
+2) "Do one thing well."  
+3) Think carefully about code composition and how to build your own set of APIs. (Gain a deeper understanding of real-world system states. Refactor.)  
+4) [Currently in short supply]: The ability to formally and clearly describe and understand systems, and to express them in flowcharts or pseudocode. (Once you reach this stage, writing code becomes a technical task—something you can accomplish by consulting references, experimenting, trying, and asking others.)
+
+1) Modules, encapsulation, and optimal module size  
+Strong cohesion and loose coupling: Minimize dependencies on other components when solving small problems.  
+Modules shouldn't be too large:  
+Modules shouldn't be too small: Otherwise, you'll need to write many interfaces and pass numerous parameters, increasing cognitive load and code volume.
+
+2) First define the function name, parameters, return value, and return type; then write comments for the function's API. The process of writing comments often helps clarify your thinking.
+
+3) Compactness: A well-designed API or module should be easily held in the human mind. If you can understand a function without referring to documentation, that's ideal. Think in terms of an API *system*, not isolated functions. As implemented in `list.h`, just seeing the names gives you a general idea of the program. You can look up details as needed without mastering the entire system. Easy to understand, easy to compose.
+
+4) Naming matters greatly, as it affects understandability and categorization. Good categorization has a significant impact on future work.
+
+5) Orthogonality: Each operation (API) changes only one thing and doesn't affect others. There should be exactly one way to modify each attribute.
+
+"Doing one thing well"  
+6) Refactoring (eliminating duplication): Modify internal code without changing the external behavior of functions.  
+"Don't repeat yourself, single point of truth": Duplication leads to inconsistencies and bugs, as changes are often made to only part of the duplicated code. This usually indicates unclear code organization.  
+Refactor to remove duplication; if you have大量 boilerplate code, consider whether a higher-level representation can generate these code patterns, with different configurations producing specific instances? [Code generators]
+
+7) SPOT principle (Single Point of Truth). Design data structures so that the model's state corresponds one-to-one with the real-world system state.  
+"No confusion": A clearly defined real-world state must be represented with equal clarity in the model.  
+"No garbage": Data structures (models) shouldn't be overly generic—they should fit the purpose.  
+"Solve a well-defined problem": Strong central focus.  
+"Formal methods", "heuristics"
+
+8) Simplicity: Lean, Zen-like simplicity.  
+Zen teaches: Attachment leads to suffering;  
+Unix says: Separation creates value.
+
+9) Is a single function within a module too large? This relates to both line count and internal complexity. Criterion: If you can't describe the contract between a function and its caller in one sentence, the function may be too large.  
+Personally, if there are too many local variables, I tend to split it into subroutines.  
+*Does the code have internal APIs? A good API should be self-explanatory—understandable without inspecting its implementation. Be cautious with deeply nested function calls.  
+"Transparency and visibility checklist"
+
+10) Immediately after writing a function prototype, write a comment line—do this for every function. (*The Elements of Programming Style*)
+
+11) Collaborative processes: Break complex applications into several cooperating processes that communicate via an application-specific command set or protocol.
+
+\==========================  
+**6 Transparency: Let There Be Light**  
+\=========================  
+1) Beauty plays a more important role in computer science than in any other engineering discipline, because software is inherently complex. Beauty is the ultimate weapon against complexity.  
+2) Visibility: For users, good documentation improves visibility; for programmers, good variable and function names improve visibility. In software, merely being "not obscure" is not enough—you must actively strive to be "helpful."  
+*If program design makes internal data flow very easy to understand.  
+3) Elegant code: Elegant code is not only correct, but obviously correct; it conveys the algorithm to the machine and also insight and confidence to the human reader.  
+By pursuing elegance, we write better code. Learning to write transparent code is the first—and hardest—step toward writing elegant code.
+
+\==============================================
+
+**Reflections Category Two: New Thoughts and Terminology on Complexity**
+
+\==============================================  
+1) The problem itself is complex.  
+2) Learning APUE through routines is relatively simple, intuitive, motivating, and gives a sense of achievement.  
+3) What increases problem complexity? What principles are involved?  
+Combinatorial diversity;  
+Shallow thinking, structural impact;  
+4) What tasks does prototype development involve? Done sequentially? Iteratively or recursively?  
+Analyze the business (what needs to be done, constraints, required functionality), define a set of API function names and parameters, implement and test one by one;  
+5) Complexity comes at a cost—spare no effort in minimizing it.  
+6) Specific clarity: Clear. Explicit. Concise. Ordered. Examine. Observe.  
+7) Flexibly apply these APIs and reflect on why they are designed this way. Understand from both kernel and application perspectives. Don't be all talk and no action. I earn my living from the latter, while the former brings the thrill. Hehe.

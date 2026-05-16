@@ -1,0 +1,131 @@
+---
+title: "EXPORT_SYMBOL Meaning and Usage"
+date: "2012-02-29"
+slug: "7307320"
+tags: ["#Module", "#Shell"]
+source: "https://blog.csdn.net/yeyuangen/article/details/7307320"
+originalTitle: "EXPORT_SYMBOL含义及用法"
+---
+
+Define a function `func1` in module `mod1`; define a function `func2` in another module `mod2`, where `func2` calls `func1`.
+In module `mod1`, use `EXPORT_SYMBOL(func1);`
+In module `mod2`, declare `extern int func1();`
+Then `func1` can be called from `mod2`.
+
+References:
+http://topic.csdn.net/u/20070910/09/ee2cff13-9179-41e3-9292-4fd73261f709.html
+http://www.dev-archive.com/msdn-archive/524/kernel-driver-5244619.shtm
+
+mod1.c
+```c
+#include<linux/init.h>
+#include<linux/module.h>
+#include<linux/kernel.h>
+
+static int func1(void)
+{
+        printk("In Func: %s.../n",__func__);
+        return 0;
+}
+
+EXPORT_SYMBOL(func1);
+
+static int __init hello_init(void)
+{
+        printk("Module 1,Init!/n");
+        return 0;
+}
+
+static void __exit hello_exit(void)
+{
+        printk("Module 1,Exit!/n");
+}
+
+module_init(hello_init);
+module_exit(hello_exit);
+```
+
+#############################################################
+mod2.c
+```c
+#include<linux/init.h>
+#include<linux/kernel.h>
+#include<linux/module.h>
+
+static int func2(void)
+{
+        extern int func1(void);
+        func1();
+        printk("In Func: %s.../n",__func__);
+        return 0;
+}
+
+static int __init hello_init(void)
+{
+        printk("Module 2,Init!/n");
+        func2();
+        return 0;
+}
+
+static void __exit hello_exit(void)
+{
+        printk("Module 2,Exit!/n");
+}
+
+module_init(hello_init);
+module_exit(hello_exit);
+```
+
+################################################################
+Makefile
+```makefile
+ifneq ($(KERNELRELEASE),)
+obj-m   := XXXX.o
+else
+KDIR    := /lib/modules/$(shell uname -r)/build
+PWD             := $(shell pwd)
+
+default:
+        $(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules
+
+clean:
+        rm -rf Module.symvers *.ko *.o *.mod.c .*.cmd .tmp_versions
+
+endif
+```
+
+################################################################
+
+```bash
+#insmod ./mod1.ko
+#insmod ./mod2.ko
+#rmmod mod2
+#rmmod mod1
+```
+
+```
+Jan 11 11:59:17 wangyao-desktop kernel: [ 9886.801010] Module 2,Exit!
+Jan 11 11:59:21 wangyao-desktop kernel: [ 9891.450214] Module 1,Exit!
+Jan 11 12:05:29 wangyao-desktop kernel: [10258.385014] Module 1,Init!
+Jan 11 12:05:38 wangyao-desktop kernel: [10267.465923] Module 2,Init!
+Jan 11 12:05:38 wangyao-desktop kernel: [10267.465928] In Func: func1...
+Jan 11 12:05:38 wangyao-desktop kernel: [10267.465930] In Func: func2...
+Jan 11 12:05:50 wangyao-desktop kernel: [10280.091755] Module 2,Exit!
+Jan 11 12:05:57 wangyao-desktop kernel: [10287.332596] Module 1,Exit!
+```
+
+It can be seen that the `func2` function in `mod2` successfully called the `func1` function in `mod1`.
+
+Note:
+When compiling `mod2`, a WARNING appeared:
+```bash
+root@wangyao-desktop:~/modules/export_symbol/mod2# make
+make -C /lib/modules/2.6.22-14-generic/build SUBDIRS=/root/modules/export_symbol/mod2 modules
+make[1]: Entering directory `/usr/src/linux-headers-2.6.22-14-generic'
+  Building modules, stage 2.
+  MODPOST 1 modules
+WARNING: "func1" [/root/modules/export_symbol/mod2/mod2.ko] undefined!
+make[1]: Leaving directory `/usr/src/linux-headers-2.6.22-14-generic'
+```
+
+This is mainly because the kernel is not involved during the compilation and linking phase, so the symbol cannot be found. However, since you are generating a kernel module, `ld` does not report an error but rather a warning, hoping that the kernel will link this symbol during `insmod`.

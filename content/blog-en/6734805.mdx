@@ -1,0 +1,26 @@
+---
+title: "Configuring Vim Auto-Indentation, 4-Space Tabs, and Line Numbers"
+date: "2011-08-31"
+slug: "6734805"
+tags: ["#Vim", "#CentOS"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6734805"
+originalTitle: "设置vim的自动缩进，tab四格和显示行号"
+---
+
+Open /etc/vimrc with vim  
+vi /etc/vimrc  
+Add the following lines at the end:  
+set number  
+set tabstop=4  
+If  
+set ai  
+already exists in the vimrc file but is commented out with double quotes, simply remove the double quotes.  
+If set ai does not exist, add it at the end.
+
+I'm using CentOS 5.3. After applying the above settings, I found that Vim for regular users was properly configured. However, when the root user used the vi command, it launched vi instead of vim, so auto-indentation and line numbers were not enabled. Here's how to fix it:  
+Open the root user's .bashrc file  
+vi /root/.bashrc  
+Add the following line:  
+alias vi=vim  
+Save the file, log out of the root account, then log back in, and the issue will be resolved.  
+Article source: Feinuo Network (www.diybl.com): http://www.diybl.com/course/6_system/linux/Linuxjs/20090426/165430.html

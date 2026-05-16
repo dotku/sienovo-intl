@@ -1,0 +1,83 @@
+---
+title: "Meaning of SYSCALL_DEFINE"
+date: "2012-03-01"
+slug: "7309692"
+tags: ["#Assembly", "#User", "#Table", "#2010", "#C"]
+source: "https://blog.csdn.net/yeyuangen/article/details/7309692"
+originalTitle: "SYSCALL_DEFINE含义"
+---
+
+CVE-2010-3301 is one such example. The root cause of this vulnerability is that when a 32-bit system call is executed on a 64-bit kernel, the higher 32 bits of %rax, which passes the system call number, are not cleared. Furthermore, %eax is used directly for comparison, causing the higher 32 bits to be ignored:
+
+```
+cmpl $(IA32_NR_syscalls-1),%eax ja ia32_badsys ia32_do_call: IA32_ARG_FIXUP call *ia32_sys_call_table(,%rax,8)
+```
+
+This way, a carefully crafted %rax can jump to the desired location! In [this exploit](http://blog.chinaunix.net/link.php?url=http://sota.gen.nz%2Fcompat2%2Frobert_you_suck.c), ptrace() is used to trace system calls, passing a calculated offset of the desired jump address into %rax, and then executing pre-placed code to escalate privileges!
+
+The fix is simple: either clear the higher bits of %rax, or use %rax for comparison. The commits that fixed this issue are:
+
+http://git.kernel.org/linus/36d001c70d8a0144ac1d038f6876c484849a74de
+
+http://git.kernel.org/linus/eefdca043e8391dcd719711716492063030b55ac
+
+A similar, but more severe, issue had appeared before, CVE-2009-0029, affecting many system calls. The difference was that this involved a 64-bit kernel and 64-bit user space. The higher 32 bits of registers used to pass system call parameters from user space were also not cleared. System calls with 32-bit parameters (like `int`) would then have problems, as kernel code would only check the lower 32 bits that were relevant to it, ignoring the higher 32 bits which were then passed directly, leading to issues.
+
+The solution to the problem is also simple: clear the higher bits of these registers. Easier said than done. If handled directly with assembly as above, parameter type information would be lost, because assembly cannot distinguish between 32-bit and 64-bit. If handled with C, there are so many system calls, would you process them one by one? That's not Linus's style! How did he do it? With macros! And by using type casting, declaring all 32-bit parameters as `long`, and then casting them back to their actual types, such as `int`. Just look at the definitions of `__SC_CASTx()` and `__SC_LONGx()`:
+
+[PLAIN TEXT](http://blog.chinaunix.net/space.php?uid=9185047&do=blog&id=445212#)
+
+```c
+C:
+1.  #define __SC_CAST1(t1, a1)       (t1) a1
+    
+2.  #define __SC_LONG1(t1, a1)       long a1
+    
+
+4.  #define __SYSCALL_DEFINEx(x, name, ...)                                  \
+    
+5.          asmlinkage   long   sys ##name(__SC_DECL##x(__VA_ARGS__));         \
+    
+6.           static   inline   long   SYSC ##name(__SC_DECL##x(__VA_ARGS__));      \
+    
+7.          asmlinkage   long   SyS ##name(__SC_LONG##x(__VA_ARGS__))           \
+    
+8.            {                                                                 \
+    
+9.                    __SC_TEST ##x(__VA_ARGS__);                               \
+    
+10.                    return   ( long )   SYSC ##name(__SC_CAST##x(__VA_ARGS__));   \
+     
+11.            }                                                                 \
+     
+12.          SYSCALL_ALIAS (sys ##name, SyS##name);                             \
+     
+13.            static   inline   long   SYSC ##name(__SC_DECL##x(__VA_ARGS__))
+```
+
+It's clear to see how masterfully Linus used macros. :-) This is also why you see system calls in the kernel defined using `SYSCALL_DEFINEx()`.
+
+```
+#define SYSCALL_DEFINE3(name, ...) SYSCALL_DEFINEx(3, _##name, __VA_ARGS__)
+  
+#define SYSCALL_DEFINEx(x, sname, ...)                                   \
+        __SYSCALL_DEFINEx(x, sname, __VA_ARGS__)
+  
+#define __SYSCALL_DEFINEx(x, name, ...)                                          \
+        asmlinkage long sys##name(__SC_DECL##x(__VA_ARGS__))
+```
+
+```
+#define SYSCALL_DEFINE1(name, ...) SYSCALL_DEFINEx(1, _##name, __VA_ARGS__)  
+#define SYSCALL_DEFINE2(name, ...) SYSCALL_DEFINEx(2, _##name, __VA_ARGS__)  
+#define SYSCALL_DEFINE3(name, ...) SYSCALL_DEFINEx(3, _##name, __VA_ARGS__)  
+#define SYSCALL_DEFINE4(name, ...) SYSCALL_DEFINEx(4, _##name, __VA_ARGS__)  
+#define SYSCALL_DEFINE5(name, ...) SYSCALL_DEFINEx(5, _##name, __VA_ARGS__)  
+#define SYSCALL_DEFINE6(name, ...) SYSCALL_DEFINEx(6, _##name, __VA_ARGS__)
+```
+
+Looking at this more directly, kernel 2.6.35 contains such macro definitions:
+
+mount system call
+In fs/namespace.c, there is:
+SYSCALL\_DEFINE5(mount, char \_\_user \*, dev\_name, char \_\_user \*, dir\_name,

@@ -1,0 +1,58 @@
+---
+title: "The Role of Subnet Masks"
+date: "2011-09-04"
+slug: "6746773"
+tags: ["#Networking", "#Communication"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6746773"
+originalTitle: "子网掩码的作用"
+---
+
+A subnet mask uses the same addressing format as an IP address. The portions of the subnet mask set to 1 correspond to the network and subnet parts of the IP address, while the portions set to 0 correspond to the host part of the IP address. When a subnet mask and an IP address are combined using a bitwise AND operation, the host portion of the IP address is discarded, leaving only the network and subnet addresses. For example, if the destination IP address of an IP packet is 10.2.2.1 and the subnet mask is 255.255.255.0, performing the AND operation yields 10.2.2.0. Network devices then interpret 10.2.2.0 as the network and subnet identifier for that IP address. The subnet mask is the basis for determining whether the IP addresses of any two computers belong to the same subnetwork.
+
+The simplest way to understand this is: if two computers perform a bitwise AND operation between their respective IP addresses and subnet mask, and the results are identical, the two computers are on the same subnetwork and can communicate directly. That's all there is to it.
+
+Please see the following examples:
+
+Example 1:  
+IP Address　192.168.0.1  
+Subnet Mask　255.255.255.0  
+AND Operation  
+
+Convert to binary for calculation:  
+IP Address　11010000.10101000.00000000.00000001  
+Subnet Mask　11111111.11111111.11111111.00000000  
+AND Operation  
+　　　　　　11000000.10101000.00000000.00000000  
+
+Convert result back to decimal:  
+192.168.0.0
+
+Example 2:  
+IP Address　192.168.0.254  
+Subnet Mask　255.255.255.0  
+AND Operation  
+
+Convert to binary for calculation:  
+IP Address　11010000.10101000.00000000.11111110  
+Subnet Mask　11111111.11111111.11111111.00000000  
+AND Operation  
+　　　　　　11000000.10101000.00000000.00000000  
+
+Convert result back to decimal:  
+192.168.0.0
+
+Example 3:  
+IP Address　192.168.0.4  
+Subnet Mask　255.255.255.0  
+AND Operation  
+
+Convert to binary for calculation:  
+IP Address　11010000.10101000.00000000.00000100  
+Subnet Mask　11111111.11111111.11111111.00000000  
+AND Operation  
+　　　　　　11000000.10101000.00000000.00000000  
+
+Convert result back to decimal:  
+192.168.0.0
+
+From the above bitwise AND operations on three sets of IP addresses and subnet masks, we can see that the results are identical—192.168.0.0 in all cases. Therefore, the computers will recognize these three devices as being on the same subnetwork and enable direct communication between them.

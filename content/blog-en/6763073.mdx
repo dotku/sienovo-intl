@@ -1,0 +1,145 @@
+---
+title: "Linux Process Switching and Return Values of Kernel Threads"
+date: "2011-09-09"
+slug: "6763073"
+tags: ["#Linux", "#Struct", "#Thread", "#Embedded", "#Assembly", "#Null"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6763073"
+originalTitle: "Linux进程切换以及内核线程的返回值"
+---
+
+The process in Linux is a fundamental concept. A process has two starting points when transitioning from the run queue to execution: one is label 1 in the `switch_to` macro: `"1:\t"`, and the other is `ret_from_fork`. Almost all processes that are not newly created start from label 1 mentioned above. The `switch_to` macro is a mandatory path for all processes except the kernel itself to go through in order to run. Thus, although the Linux process system and scheduling mechanism are highly complex, the overall structure resembles an hourglass, with the `switch_to` macro representing the narrowest point in the middle. To move from one end to the other, every process must pass through this point. For non-newly-created processes, execution always begins at label 1. Let's first examine how this works:
+
+```c
+#define switch_to(prev,next,last) do {                            \
+         unsigned long esi,edi;                                   \
+         asm volatile("pushfl\n\t"                                 \
+                     "pushl %%ebp\n\t"                            \
+                     "movl %%esp,%0\n\t"        /* save ESP */    \
+                     "movl %5,%%esp\n\t"        /* restore ESP */ \
+                     /* Note: the kernel stack has now switched. Hence, local variables on the original stack become invalid. To preserve their values, they must be saved. For efficiency, 'prev' is stored in a register for later use */ \
+                     "movl $1f,%1\n\t"          /* save EIP */    \
+                     /* Here, any process previously switched out will return with label 1 as its eip */ \
+                     "pushl %6\n\t"             /* restore EIP */ \
+                     /* Push the new process's eip onto the stack. Since the next instruction is a jmp, and the called function ends with a return, the return semantics allow eip to be popped from the stack into the eip register. In fact, this jmp to __switch_to acts like a manual call — a clever trick */ \
+                     "jmp __switch_to\n"                          \
+                     "1:\t"                                       \
+                     /* The instruction at label 1 is simple, yet this simplicity enables architectural elegance */ \
+                     "popl %%ebp\n\t"                             \
+                     "popfl"                                      \
+                     :"=m" (prev->thread.esp),"=m" (prev->thread.eip), \
+                      "=a" (last),"=S" (esi),"=D" (edi)            \
+                     :"m" (next->thread.esp),"m" (next->thread.eip), \
+                      "2" (prev), "d" (next));                    \
+} while (0)
+```
+
+Linux implements this single-point switching mechanism to reduce complexity. In fact, many operating system kernels adopt a similar approach. The "single point" here does not refer solely to the `switch_to` macro, but specifically to saving and restoring the `eip` register, ensuring that all processes resume execution from the same location upon rescheduling. However, there is a minor imperfection: Linux does not make *all* processes start from label 1 when transitioning from ready to running. Examining the implementation of `do_fork` reveals that newly created processes do not follow this rule — their `eip` is set to `ret_from_fork`, not label 1. Why is this?
+
+When creating a new process, a starting address must be manually specified — after all, execution must begin somewhere. But where should this starting point be? (Do not confuse this with `regs.eip`, which represents the normal execution `eip` of a process. `regs.eip` belongs to the process state saved during a system call, whereas the starting point here is used by the kernel for process management and is unrelated to the process or kernel thread itself.) Ideally, the new process should be made to appear as if it were resuming like any other existing process — promoting uniformity and simplifying management. In that case, why not set this starting address to label 1?
+
+But where exactly is label 1 located? Is the embedded assembly macro making the address of label 1 difficult to obtain? If so, the label could simply be moved outside the macro into a standalone location, allowing both existing and newly created processes to begin execution from that fixed address. Surely the kernel designers are not less intelligent than I am. However, such an indirection would incur extra instruction-fetching overhead in time and space — direct use of an inline assembly label is more efficient. Moreover, using `ret_from_fork` achieves the same effect as starting from label 1. Let's examine the design of the process switch function.
+
+Existing processes enter `switch_to` via `schedule`, eventually reaching label 1. After `switch_to`, only `finish_task_switch` and a check for the rescheduling flag remain. Now consider `ret_from_fork`:
+
+```asm
+ENTRY(ret_from_fork)
+        pushl %eax      // Note: returning from __switch_to called by switch_to, which returns 'prev' in %eax. This push passes 'prev' as the argument to schedule_tail.
+        call schedule_tail
+        GET_THREAD_INFO(%ebp)
+        popl %eax
+        jmp syscall_exit
+```
+
+As seen above, `ret_from_fork` calls `schedule_tail` with the outgoing process (`prev`) as the argument. `schedule_tail` immediately calls `finish_task_switch`, aligning the logic with what follows `switch_to` in `schedule`. The parameter handling is also correct. What about the logic after `finish_task_switch`, such as checking the reschedule flag? That is handled in `syscall_exit` called by `ret_from_fork`, which checks whether rescheduling is needed and enters the normal `schedule` flow if so — perfectly correct.
+
+In fact, the need for `finish_task_switch` cleanup complicates things slightly, but its design is quite clever. It checks whether the previous process still needs to exist. If it's already dead, `finish_task_switch` releases its `task_struct`. The value of `prev` must be preserved because `prev` is a local variable in `schedule`, stored on the previous process's kernel stack. After switching to the new kernel stack (note that `schedule` uses two kernel stacks), `prev` becomes inaccessible. Hence, it must be saved.
+
+Even if a process being exited has no remaining references, its `task_struct` cannot be freed immediately in `do_exit`. Linux lacks a dedicated scheduler manager that could detect this and automatically switch to another process. Ultimately, the exiting process must call `schedule` itself. When it does, it becomes `current`, which then becomes `prev`. The entire switching process depends on the exiting process's `task_struct`. Only after switching to the new process can the now-unused `task_struct` of the exiting process be safely freed.
+
+This design of process exit is elegant. Although the absence of a dedicated scheduling management thread may seem inelegant at first glance, Linux is not a microkernel. The monolithic kernel's advantage lies in efficiency. Letting the process that needs to switch call the switch code directly, and having other ready processes signal the currently running process to initiate scheduling, is clearly the most efficient approach. Introducing a scheduling management thread would require sending notifications for every scheduling event, making many switches inefficient — albeit more aesthetically pleasing. In this respect, Linux's scheduling is a harmonious, self-organized, preemptive collaboration, whereas kernels with a scheduler manager enforce rigid control.
+
+```c
+asmlinkage void schedule_tail(task_t *prev)
+{
+        finish_task_switch(prev);
+        if (current->set_child_tid)
+                put_user(current->pid, current->set_child_tid);
+}
+```
+
+At this point, Linux process switching is still within the kernel's process management code and has not yet begun user-process-related actions. That is, the registers saved in `regs` have not yet taken effect. Only when the kernel determines that all internal tasks are complete and nothing is left will it begin the actual work of the process — the logic of `RESTORE_ALL`.
+
+Newly created processes use loosely structured code to align with the compact logic of `schedule`. Once such a process starts, it enters the large Linux process-switching hourglass and follows the standard single-point switching flow.
+
+Finally, let's examine the return value of kernel threads — specifically, the return value of `kernel_thread`. One could argue that kernel threads should not have been designed this way at all. The implementation of `kernel_thread` shows that the kernel essentially reuses the mechanism for creating user processes to create kernel threads. In user space, process creation uses copy-on-write semantics, but kernel threads do not. Moreover, Unix process creation involves duplicating the parent's address space without any special strategy for the child. Special behaviors must be set later via `exec` or other means. How a child process runs is determined in the parent's source code by checking the return value of the `fork` function.
+
+The return value of the user-space `fork` function is crucial because parent and child share an address space (with copy-on-write), and the return value distinguishes between them. Although kernel threads are also implemented via `do_fork`, the child's execution function — its behavioral strategy — is specified from the start. Thus, the return value of `do_fork` becomes less important. In fact, when creating a kernel thread in the kernel, it never returns 0, nor is there a concept of "returning 0 means child process." Even in user space, the 0 returned by `fork` is not from `do_fork` — `do_fork` only returns the new process's PID. The 0 is instead popped into `eax` during `RESTORE_ALL`, just before returning to user space from `ret_from_fork`. The library implementation of `fork` then uses `eax` as the return value. In reality, the child process never passes through `do_fork` when entering user space. Its `thread.eip` is set to `ret_from_fork`, so as soon as the child begins running, `switch_to` executes `ret_from_fork`, which proceeds directly to `RESTORE_ALL` and then returns to user space.
+
+For kernel threads, there is no concept of a "child process return." The newly created kernel thread simply runs and exits when done. This is because its execution strategy is already defined at creation time, eliminating the need to return to a common point and use return values to distinguish parent from child. However, kernel threads are indeed created using the same mechanism as user processes — the child is still duplicated from the parent in `copy_process`, with no difference in that aspect. So how can it avoid returning to the origin?
+
+Linux uses a trick: it fabricates a parent process context when creating a kernel thread:
+
+```c
+int kernel_thread(int (*fn)(void *), void * arg, unsigned long flags)
+{
+        struct pt_regs regs;                // Fabricated parent context, filled according to kernel mechanisms below
+        memset(&regs, 0, sizeof(regs));
+        regs.ebx = (unsigned long) fn;      // Execution behavior for the child (i.e., the kernel thread)
+        regs.edx = (unsigned long) arg;     // Arguments
+        ...
+        regs.eip = (unsigned long) kernel_thread_helper;     // This function manages the child's execution and exit
+        ...
+        return do_fork(flags | CLONE_VM | CLONE_UNTRACED, 0, &regs, 0, NULL, NULL);  // Actually create the child process
+}
+```
+
+```asm
+__asm__(".section .text\n"
+        ".align 4\n"
+        "kernel_thread_helper:\n\t"   // This label function manages the kernel child process
+        "movl %edx,%eax\n\t"          // Overwrites the eax set to 0 in copy_thread — shows eax is not kept 0 like in user process creation
+        "pushl %edx\n\t"              // edx holds the kernel thread function's argument
+        "call *%ebx\n\t"              // ebx holds the kernel thread function pointer
+        "pushl %eax\n\t"              // Push the return value of the kernel thread function
+        "call do_exit\n"              // Call do_exit with the function's return value as argument
+        ".previous");
+```
+
+There is a reason why, when creating a kernel thread, the fabricated `regs.eip` is set to `kernel_thread_helper` instead of directly to the target function. Overall, `kernel_thread_helper` provides the kernel child process with a complete execution environment and lifecycle, including proper exit handling. If the target function were called directly, it would have to handle its own exit. Process creation and termination are part of the execution mechanism, which should not be the responsibility of the creator — the creator should only define the policy. The mechanism must be provided by the kernel framework.
+
+Additionally, note the `CLONE_VM` flag in `do_fork`. Do kernel threads have an address space? Actually, they do not. This flag is set purely for efficiency. Examining the code shows that Linux avoids switching the `cr3` register when switching `task_struct` for tasks sharing VM (on x86). Since kernel threads lack an `mm_struct`, they use an `active_mm` field to borrow the `mm` of the previous process. All kernel-space memory mappings are identical across processes, and kernel threads only use kernel-space mappings. Thus, `cr3` switching is avoided. The processor then enters lazy mode: only when the borrowed process's TLB is flushed is `cr3` switched to the physical address of `swapper_pg_dir`. In fact, `swapper_pg_dir` is the page directory that kernel threads should naturally use. In this sense, all kernel threads can be viewed as belonging to a single kernel process — the one using `swapper_pg_dir` as its page directory. Indeed, a process is essentially a thread of execution with its own page directory. For efficiency, kernel threads borrow the `mm_struct` of user-space processes. Apart from `swapper_pg_dir`, which is the standard page directory for kernel threads, no new PGD should be allocated. Hence, the `CLONE_VM` flag ensures no `mm_struct` (and thus no PGD) is allocated, avoiding duplication. The issue of sharing the parent's `mm` can be resolved by releasing the old `mm` and switching to `init_mm`. Furthermore, as discussed next, because kernel memory mappings are identical, borrowing any process's `mm` makes kernel operations more efficient.
+
+The TLB lazy mode is described in my article "Lazy Mode of TLB Flush." Briefly, on a single CPU, TLB flush is an active process and thus straightforward — active processes usually have deterministic behavior. However, on SMP systems, it becomes more complex. Consider the following:
+
+```c
+static inline task_t * context_switch(runqueue_t *rq, task_t *prev, task_t *next)
+{
+        struct mm_struct *mm = next->mm;
+        struct mm_struct *oldmm = prev->active_mm;
+        if (unlikely(!mm)) {             // Kernel thread
+                next->active_mm = oldmm;
+                atomic_inc(&oldmm->mm_count);
+                enter_lazy_tlb(oldmm, next);  // Does nothing on uniprocessor
+        } else
+                switch_mm(oldmm, mm, next);   // Perform switch
+        if (unlikely(!prev->mm)) {
+                prev->active_mm = NULL;
+                WARN_ON(rq->prev_mm);
+                rq->prev_mm = oldmm;
+        }
+        ...
+}
+```
+
+```c
+static inline void enter_lazy_tlb(struct mm_struct *mm, struct task_struct *tsk)
+{
+#ifdef CONFIG_SMP
+        unsigned cpu = smp_processor_id();
+        if (per_cpu(cpu_tlbstate, cpu).state == TLBSTATE_OK)
+                per_cpu(cpu_tlbstate, cpu).state = TLBSTATE_LAZY;   // Set this CPU's cpu_tlbstate to lazy mode
+#endif
+}
+```
+
+On SMP systems, flushing the TLB requires sending inter-processor interrupts (IPIs) to all processors. When a CPU in lazy mode receives a TLB-flush IPI, it removes itself from the `cpu_vm_mask` of `active_mm` in `cpu_tlbstate`, indicating that it should no longer receive TLB-flush IPIs. This is because CPUs in lazy mode are currently running kernel threads, and all processes share identical kernel-space mappings — so using any `mm` is acceptable. However, this is not entirely safe. For example, if a kernel thread is using a borrowed `mm` and the original process (and its `mm`) is freed on another CPU, even though `atomic_inc(&oldmm->mm_count)` delays the release, it's still suboptimal. Why use someone else's `mm` when `swapper_pg_dir` — which is always safe and never freed — is available? Using borrowed `mm` only consumes memory. Therefore, when a CPU in lazy mode receives its first TLB-flush IPI, it should load its page directory with a safe value (i.e., `swapper_pg_dir`) before declaring it will no longer accept TLB-flush IPIs. Remember: once a non-kernel thread begins execution, the CPU must resume accepting TLB-flush IPIs — that is, exit lazy mode.

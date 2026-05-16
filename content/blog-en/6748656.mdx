@@ -1,0 +1,83 @@
+---
+title: "\"Thoroughly Master C Pointers\" Part 3 -- Pointers and Array Names"
+date: "2011-09-05"
+slug: "6748656"
+tags: ["#C"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6748656"
+originalTitle: "《彻底搞定C指针》第3篇--指针与数组名"
+---
+
+**1. Accessing Array Elements via Array Name**
+
+Consider the following code:
+```c
+int i,a[]={3,4,5,6,7,3,7,4,4,6};
+for (i=0;i<=9;i++)
+{
+   printf ( “%d”, a[i] );
+}
+```
+Clearly, this displays the values of each element in array `a`.
+
+We can also access elements like this:
+```c
+int i,a[]={3,4,5,6,7,3,7,4,4,6};
+for (i=0;i<=9;i++)
+{
+   printf ( “%d”,  *(a+i) );
+}
+```
+Its result and effect are exactly the same.
+
+**2. Accessing Array Elements via Pointers**
+```c
+int i,*pa,a[]={3,4,5,6,7,3,7,4,4,6};
+pa =a  ;// Note that array name 'a' is directly assigned to pointer 'pa'
+for (i=0;i<=9;i++)
+{
+   printf ( “%d”, pa[i] );
+}
+```
+Clearly, this also displays the values of each element in array `a`.
+
+Additionally, similar to using the array name, it can also be done as follows:
+```c
+int i,*pa,a[]={3,4,5,6,7,3,7,4,4,6};
+pa =a;
+for (i=0;i<=9;i++)
+{
+   printf ( “%d”, *(pa+i) );
+}
+```
+Looking at `pa=a` (assigning the array name to a pointer) and the forms of accessing elements via array name and pointer, there seems to be no difference. From this, it appears that an array name is essentially a pointer. Are there really no differences? Yes, please continue.
+
+**3. Differences Between Array Names and Pointer Variables**
+Consider the following code:
+```c
+int i,*pa,a[]={3,4,5,6,7,3,7,4,4,6};
+pa =a;
+for (i=0;i<=9;i++)
+{
+   printf ( “%d”, *pa );
+    pa++ ;  // Note here, the pointer value is modified
+}
+```
+It can be seen that this code also outputs the values of each array element. However, try changing `pa` to `a` inside the `{}`. You will find that the program fails to compile. It seems pointers and array names are still different. In fact, the pointer above is a pointer variable, while an array name is merely a pointer constant. The difference between this code and the previous ones is that the value of pointer `pa` continuously increments throughout the loop; that is, the pointer's value is modified. An array name is a pointer constant, and its value cannot be modified, so operations like `a++` are not allowed. In the previous sections (referring to `pa[i]` and `*(pa+i)`), the value of pointer `pa` remained unchanged. Therefore, the pointer variable `pa` and the array name `a` can be interchanged in those contexts.
+
+**4. Declaring Pointer Constants**
+Now consider the following code:
+```c
+int i, a[]={3,4,5,6,7,3,7,4,4,6};
+int * const pa=a;// Note the position of const: it's not const int * pa,
+for (i=0;i<=9;i++)
+{
+   printf ( “%d”, *pa );
+    pa++ ;  // Note here, the pointer value is modified
+}
+```
+Will this code compile successfully? No. Because the pointer `pa` has been defined as a constant pointer. At this point, there is no difference from the array name `a`. This further illustrates that an array name is a constant pointer. However...
+```c
+int * const a={3,4,5,6,7,3,7,4,4,6};// Not allowed
+int a[]={3,4,5,6,7,3,7,4,4,6};// Allowed, so arrays must be initialized this way.
+```
+All the above experiments were conducted on VC6.0.

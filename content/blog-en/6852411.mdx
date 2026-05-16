@@ -1,0 +1,22 @@
+---
+title: "sng, png, Text Format Conversion"
+date: "2011-10-08"
+slug: "6852411"
+tags: ["#Tools", "#Encryption", "#Terminal"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6852411"
+originalTitle: "sng,png,文本格式转换"
+---
+
+[sng](http://sng.sourceforge.net/) can be described as a rather fascinating tool. When applied to a PNG image, it generates a corresponding text file that records information about the PNG image. Conversely, when applied to a text file formatted in a way sng can recognize, it can generate the corresponding PNG image.
+
+You might be wondering, what's the use of this tool? Isn't it just a gimmick? That's not true. As long as it can convert binary files into formatted text files, this software has its uses. sng's features allow it to process images in a text terminal. I can use `sed` to change all #0000ff (pure blue) colors in an image to #00ff00 (pure green). For example:
+
+```
+    $ sng sample-pic.png
+    $ sed 's/0000ff/00ff00/g' sample-pic.sng > sample-pic2.sng
+    $ sng sample-pic2.sng
+```
+
+Alright, this way, the pure blue in the image can be changed to pure green.
+
+Not only that, you can also manipulate the text file converted by sng as you wish. Just like in my graduation project, through sng's two-step conversion and intermediate text processing, an image was encrypted into a noise image, and only by using a key and sng's two-step conversion could the original image be viewed. (This way, you could secretly hide some photo albums, hehe)

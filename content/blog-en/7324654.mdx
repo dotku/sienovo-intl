@@ -1,0 +1,55 @@
+---
+title: "What is \"asmlinkage\"?"
+date: "2012-03-06"
+slug: "7324654"
+tags: ["#system", "#assembly", "#function", "#optimization", "#gcc", "#compiler"]
+source: "https://blog.csdn.net/yeyuangen/article/details/7324654"
+originalTitle: "什么是 \"
+---
+
+**What is "asmlinkage"?**
+
+I believe everyone who has looked at the Linux source code has noticed the `asmlinkage` macro. What is it used for?
+
+The asmlinkage tag is one other thing that we should observe about this simple function. This is a #define for some gcc magic that tells the compiler that the function should not expect to find any of its arguments in registers (a common optimization), but only on the CPU's stack. Recall our earlier assertion that system_call consumes its first argument, the system call number, and allows up to four more arguments that are passed along to the real system call. system_call achieves this feat simply by leaving its other arguments (which were passed to it in registers) on the stack. All system calls are marked with the asmlinkage tag, so they all look to the stack for arguments. Of course, in sys_ni_syscall's case, this doesn't make any difference, because sys_ni_syscall doesn't take any arguments, but it's an issue for most other system calls.
+
+Let's look at the definition in `/usr/include/asm/linkage.h`:  
+#define asmlinkage CPP_ASMLINKAGE __attribute__((regparm(0)))  
+`__attribute__` is a keyword, a GCC C language extension, and `regparm(0)` indicates that parameters are not passed via registers.
+
+If it were `__attribute__((regparm(3)))`, then when calling the function, parameters would not be passed via the stack but directly placed into registers, and the called function would retrieve parameters directly from registers.
+
+Another case is:
+
+#define fastcall __attribute__((regparm(3)))   
+#define asmlinkage __attribute__((regparm(0)))   
+Adding the `asmlinkage` macro before a function definition indicates that these functions pass parameters via the stack rather than registers.   
+When the GCC compiler calls C language functions during assembly, there are two ways to pass parameters: one is via the stack, and the other is via registers. By default, registers are used. If you want to call a C language function in your assembly process and wish to pass parameters via the stack, you must add the `asmlinkage` macro before your C function definition.
+
+asmlinkage long sys_nice(int increment)  
+`asmlinkage` is a very important GCC tag in the i386 system call implementation.  
+When the system call handler needs to call the corresponding system call routine, it pushes the values from general-purpose registers onto the stack. Therefore, the system call routine must read the parameters passed by the system call handler from the stack. This is the purpose of the `asmlinkage` tag.
+
+The system call handler is assembly code, and the system call routine (e.g., `sys_nice`) is C code. When assembly code calls a C function and passes parameters via the stack, `asmlinkage` must be added before the C function's prototype.  
+After adding `asmlinkage`, the C function will retrieve parameters from the stack instead of from registers (which might happen after code optimization).
+
+Further explanation...  
+80x86 assembly has 2 methods for passing parameters:  
+1. Register method  
+2. Stack method  
+The register method mostly uses general-purpose registers to pass parameters. The advantage of this method is its simplicity and speed. Another way to pass parameters is using the stack. The assembly code pattern is as follows:  
+push number1  
+push number2  
+push number3  
+call sum  
+The simplest way to retrieve values in the 'sum' procedure is:  
+pop ax   
+pop ax  
+pop bx  
+pop cx  
+The Stack Top holds the IP, and the parameters we pass to the sum procedure are read starting from the entry after the IP on the stack.
+
+Other information about asmlinkage  
+1. `asmlinkage` is a definition.  
+2. `asmlinkage` is defined in `/usr/include/linux/linkage.h`.  
+3. If you look at `linkage.h`, you will find the `__attribute__` syntax, which is GCC's syntax for defining function attributes.

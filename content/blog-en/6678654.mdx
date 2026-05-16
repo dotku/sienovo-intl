@@ -1,0 +1,34 @@
+---
+title: "How to Install a Cross-Compiler Toolchain (Successfully Compiled)"
+date: "2011-08-11"
+slug: "6678654"
+tags: ["#Tools", "#Path", "#Compiler", "#Linux", "#C"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6678654"
+originalTitle: "如何安装交叉工具链（编译通过）"
+---
+
+First, copy the file arm-linux-gcc-4.3.2.tgz from the CD directory linux\\ to a local directory such as tmp\\, then
+
+navigate into that directory and execute the extraction command:  
+#cd /tmp  
+#tar xvzf arm-linux-gcc-4.3.2.tgz –C /  
+Note: There is a space after –C, and C must be uppercase. It stands for the word "Change", meaning to change the target directory.  
+Executing this command will install arm-linux-gcc into the /usr/local/arm/4.3.2 directory.  
+
+Second, add the compiler path to the system environment variables by running:  
+#gedit /root/.bashrc  
+Edit the /root/.bashrc file, and add the following line at the end:  
+export PATH=$PATH:/usr/local/arm/4.3.2/bin  
+Save the file and exit, as shown in the figure.  
+
+Third, log back into the system (no need to reboot—just log out via Start -> Logout) to activate the above settings. Then type the following command in the terminal:  
+arm-linux-gcc –v  
+If you see output similar to the one shown below, the cross-compilation environment has been successfully installed.
+
+——————————————————————————————————————————————————————————————————
+
+The key point in the above installation process is identifying the directory where the arm-linux-gcc executable resides after extracting the package (you must manually verify its presence—otherwise, you'll waste time guessing).
+
+Once you locate the command, use the `pwd` command to display the current path, then copy this path into the /root/.bashrc file.  
+
+——————————————————————————————————————————————————————————————————

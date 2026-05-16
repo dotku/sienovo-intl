@@ -1,0 +1,48 @@
+---
+title: "Multithreading: Using Mutex Locks to Handle Mutual Exclusion of Global Variables"
+date: "2011-09-20"
+slug: "6793407"
+tags: ["#Multithreading", "#Unix", "#Signal", "#Programming", "#Networking", "#Linux"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6793407"
+originalTitle: "多线程：利用互斥锁来处理全局变量的互斥问题"
+---
+
+Multiple threads share certain resources from the process's static data segment, such as global variables defined in the main thread. These are naturally accessible by other threads as well.
+
+On Unix and Linux platforms, we use mutex locks to handle mutual exclusion issues related to global variables.
+
+Consider a mutex variable, which is specifically associated with a particular variable.
+
+Data type: pthread\_mutex\_t
+
+Initialization: pthread\_mutex\_t macPIB\_mutex = PTHREAD\_MUTEX\_INITIALIZER;
+
+Operations:
+
+int pthread\_mutex\_lock(pthread\_mutex\_t \*mutex) // Locking function. If the mutex is already locked, this function blocks the program until the lock is released.
+
+int pthread\_mutex\_unlock(pthread\_mutex\_t \*mutex) // Unlocking function
+
+Mutex variables are suitable for preventing concurrent access to a shared variable. However, when we need to wait for a certain condition to occur, we prefer to sleep rather than continuously poll. In such cases, we can use condition variables.
+
+Consider condition variables:
+
+Data type: pthread\_cond\_t
+
+Initialization: pthread\_cond\_t count\_cond = PTHREAD\_COND\_INITIALIZER;
+
+Operations:
+
+int pthread\_cond\_wait (pthread\_cond\_t \*condptr, pthread\_mutex\_t \*mutexptr)
+
+int pthread\_cond\_signal (pthread\_cond\_t \*condptr)
+
+Note that we associate a single global variable with both a mutex lock and a condition variable.
+
+When calling pthread\_cond\_wait, if the mutex is already locked, the thread will sleep and simultaneously release the mutexptr lock.
+
+For detailed explanations, refer to pages 604–606 of *UNIX Network Programming*.
+
+The above covers mutual exclusion issues when multiple threads access shared variables.
+
+When creating a thread, the main thread often needs to pass parameters to the thread function. Be cautious: do not pass pointers. Instead, pass by value (which is supported via C function call parameter copying), or dynamically allocate memory before passing. See pages 588–589 of *UNIX Network Programming* for concrete examples.

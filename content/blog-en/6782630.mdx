@@ -1,0 +1,191 @@
+---
+title: "Microcontroller Communication Protocol Design"
+date: "2011-09-16"
+slug: "6782630"
+tags: ["#Windows", "#Character", "#API", "#Programming", "#String", "#Input"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6782630"
+originalTitle: "单片机通信协议设计"
+---
+
+Most modern instruments require operation through host computer software for convenient debugging and ease of use. This inherently involves communication. Based on several devices he has developed, the author has summarized a general approach to writing communication programs, covering both host and slave ends.
+
+  
+
+　　1. Custom Data Communication Protocol  
+  
+　　The data protocol discussed here refers to the format of communication data packets built upon the physical layer. The physical layer of communication refers to common methods such as RS232, RS485, infrared, fiber optic, wireless, and so on. At this layer, the low-level software provides two basic operations: sending a byte of data and receiving a byte of data. All data protocols are built upon these two operations.  
+Data in communication is often transmitted in the form of data packets, which we refer to as a data frame. Similar to TCP/IP protocols in network communication, a relatively reliable communication protocol typically includes the following components: frame header, address information, data type, data length, data block, checksum, and frame tail.  
+  
+　 　The frame header and frame tail are used to determine the completeness of the data packet. They usually consist of a fixed length of specific bytes. The requirement is that the bit error rate for identifying data packets in the entire data link should be as low as possible. This means minimizing the chance of matching the characteristic bytes of the frame header and frame tail within the entire data stream. There are generally two approaches: first, reduce the probability of matching characteristic bytes; second, increase the length of characteristic bytes. The first method is usually chosen when the data in the entire data link is not random and is predictable, allowing the characteristic words for the frame header and frame tail to be artificially selected to avoid matches, thereby reducing the probability of matching characteristic bytes. The second method is more general and suitable for situations where data is random. Increasing the length of characteristic bytes reduces the matching probability, and although it cannot completely avoid matching, it significantly lowers the chances. If a match does occur, it can also be detected by the checksum. Therefore, this approach is quite reliable in most cases.
+
+  
+　　Address information is primarily used in multi-device communication to identify different communication terminals based on their unique addresses. In a one-to-many communication system, it may only include destination address information. Including both source and destination addresses is suitable for many-to-many communication systems.  
+  
+　　Data type, data length, and data block constitute the main data part. The data type identifies whether the subsequent data is a command or actual data. The data length indicates the number of valid data bytes.  
+  
+　　The checksum is used to verify the integrity and correctness of the data. It is typically derived from calculations involving the data type, data length, and data block. The simplest approach is to perform a cumulative sum on the data segment, while more complex methods might involve CRC calculations, etc., chosen based on requirements for calculation speed, fault tolerance, and other factors.  
+
+　　2. Data Transmission in Host and Slave  
+  
+　　The physical communication layer provides two basic operational functions, and sending a single byte of data forms the basis of data transmission. Sending a data packet simply involves transmitting all bytes within the packet one by one in sequence. Of course, there are different methods for transmission.  
+  
+　 　In microcontroller systems, a common method is to directly call a serial function that sends a single byte of data. The disadvantage of this method is that the processor needs to be fully involved throughout the transmission process. The advantage is that the data to be sent appears immediately on the communication line and can be received by the receiving end without delay. Another method is to use interrupt-driven transmission, where all data to be sent is placed into a buffer, and a transmit interrupt sends the data from the buffer. The advantage of this method is that it consumes fewer processor resources, but there might be a slight delay before the data is actually sent, though this delay is usually very small. For 51-series microcontrollers, direct transmission is often preferred, as interrupt-driven transmission consumes more RAM resources and doesn't offer significant advantages over direct transmission. Below is a function for sending a single byte in a 51-series microcontroller.  
+
+```c
+void SendByte(unsigned char ch)  
+{  
+     SBUF = ch;  
+     while(TI == 0);  
+     TI = 0;  
+}  
+```
+　 　There are also various methods for serial communication on the host computer. This refers not to whether data is buffered, but to different ways of operating the serial port, as data transmission on a PC is almost always buffered before sending. For programming, there are three ways to operate a serial port: First, use the serial communication controls built into the Windows system. This method is relatively simple, but attention must be paid to blocking handling during reception and threading mechanisms. Second, use system APIs directly to read serial data. In Windows and Linux systems, devices are virtualized as files, and serial data can be sent and received using the API functions provided by the system. Third, use a serial port class for serial operations. Here, we will only introduce programming with a serial port class in a Windows environment.  
+  
+　　`CSerialPort` is a commonly used serial port class. It provides the following serial port operation method:  
+  
+　　`void WriteToPort(char* string, int len);`  
+  
+　　After the serial port is successfully initialized, this function can be called to send data to the serial port. To avoid delays caused by serial port buffering, the serial port's flush mechanism can be enabled.
+
+　　3. Data Reception and Protocol Parsing in Slave  
+  
+　　There are also two ways for the slave to receive data: first, wait for reception, where the processor continuously queries the serial port status to determine if data has been received; second, interrupt-driven reception. The advantages and disadvantages of these two methods were discussed in detail in a previous article on serial communication. The conclusion was that interrupt-driven reception is generally better.  
+  
+　 　The data packet parsing process can be placed in different locations. If the protocol is simple and the entire system only handles simple commands, the data packet parsing process can be directly integrated into the interrupt service routine. When a correct data packet is received, the corresponding flag is set, and the main program then processes the command. If the protocol is slightly more complex, a better approach is to store the received data in a buffer, and the main program reads and parses the data later. There are also hybrid approaches, for example, in a one-to-many system, the "connect" command is first parsed in the receive interrupt. After the connect command is received, the main program enters a setup state and uses polling to parse the remaining protocols.  
+  
+　　A specific example is provided below. In this system, the serial port commands are very simple. All protocols are handled within the serial interrupt. The data packet format is as follows:  
+  
+　　`0x55, 0xAA, 0x7E, 0x12, 0xF0, 0x02, 0x23, 0x45, SUM, XOR, 0x0D`  
+  
+　　Here, `0x55, 0xAA, 0x7E` are the frame header, `0x0D` is the frame tail, `0x12` is the device's destination address, `0xF0` is the source address, `0x02` is the data length, followed by two data bytes `0x23, 0x45`. The cumulative sum and XOR checksum are calculated starting from the destination address and ending at the last data byte.  
+　　The purpose of protocol parsing is first to determine the completeness and correctness of the data packet, then to extract data type, data, and other information, and store it for processing by the main program. The code is as follows:  
+  
+```c
+if(state_machine == 0)       // Protocol parsing state machine  
+{  
+      if(rcvdat == 0x55)      // Received first byte of frame header  
+          state_machine = 1;  
+      else  
+          state_machine = 0;      // Reset state machine  
+}  
+else if(state_machine == 1)  
+{  
+      if(rcvdat == 0xAA)      // Received second byte of frame header  
+          state_machine = 2;  
+      else  
+          state_machine = 0;      // Reset state machine  
+}  
+else if(state_machine == 2)  
+{  
+      if(rcvdat == 0x7E)      // Received third byte of frame header  
+          state_machine = 3;  
+     else  
+          state_machine = 0;      // Reset state machine  
+}  
+else if(state_machine == 3)  
+{  
+      sumchkm = rcvdat;      // Start calculating cumulative sum and XOR checksum  
+      xorchkm = rcvdat;  
+      if(rcvdat == m_SrcAdr)      // Check if destination address is correct  
+          state_machine = 4;  
+      else  
+          state_machine = 0;  
+}  
+else if(state_machine == 4)  
+{  
+      sumchkm += rcvdat;  
+      xorchkm ^= rcvdat;  
+      if(rcvdat == m_DstAdr)      // Check if source address is correct  
+          state_machine = 5;  
+      else  
+          state_machine = 0;  
+   }  
+else if(state_machine == 5)  
+{  
+      lencnt = 0;             // Data reception counter  
+      rcvcount = rcvdat;          // Received data length  
+      sumchkm += rcvdat;  
+      xorchkm ^= rcvdat;  
+      state_machine = 6;  
+}  
+else if(state_machine == 6 || state_machine == 7)  
+{  
+      m_ucData[lencnt++] = rcvdat;    // Save data  
+      sumchkm += rcvdat;  
+      xorchkm ^= rcvdat;  
+      if(lencnt == rcvcount)      // Check if data reception is complete  
+          state_machine = 8;  
+      else  
+          state_machine = 7;  
+}  
+else if(state_machine == 8)  
+{  
+      if(sumchkm == rcvdat)      // Check if cumulative sum matches  
+          state_machine = 9;  
+      else  
+          state_machine = 0;  
+}  
+else if(state_machine == 9)  
+{  
+      if(xorchkm == rcvdat)      // Check if XOR checksum matches  
+          state_machine = 10;  
+      else  
+          state_machine = 0;  
+}  
+else if(state_machine == 10)  
+{  
+      if(0x0D == rcvdat)          // Check if frame tail terminator is received  
+      {  
+          retval = 0xaa;      // Set flag, indicating a data packet is received  
+      }  
+      state_machine = 0;        // Reset state machine  
+}  
+```
+  
+  
+　 　During this process, a variable `state_machine` is used as the protocol state machine's transition state to determine which part of a data frame the current byte belongs to. Simultaneously, checksum calculation and processing are performed automatically during reception. When the data packet reception is complete, the checksums are compared. Therefore, when the frame tail terminator is received, it indicates that a data frame has been fully received and validated, and the key data has been saved to the buffer. The main program can then use the `retval` flag to proceed with protocol parsing.  
+  
+　　During reception, if the data received at any step is not the expected value, the state machine is immediately reset to prepare for the next data frame. This significantly reduces the occurrence of state deadlocks, making the system relatively stable. If data packets are lost, the host can re-send commands, though the author has not encountered such a situation.  
+  
+　　The process for protocol handling in the main program is similar. The main program continuously reads data from the serial buffer in its loop, and this data is then fed into the protocol processing routine within the main loop. The code is exactly the same as described above.  
+
+　　4. Data Reception and Command Processing in Host  
+  
+　　The data reception process on the host can be entirely consistent with that on the slave, though there are differences depending on the serial port operation method. For blocking serial read functions, such as direct API operations or calling Windows serial communication controls, it is best to start a dedicated thread to monitor serial data reception. Each time a data byte is received, a message can be sent to the system. The `CSerialPort` class, commonly used by the author, handles this process in a similar way. After `CSerialPort` opens the serial port, it starts a thread to monitor serial data reception, saves the received data to a buffer, and sends a data reception message to the parent process. The data is sent along with the message to the parent process. The parent process enables the message handling function, and after obtaining serial data from it, the code described above can be copied and used.  
+  
+　　The message ID sent by `CSerialPort` to the parent class is as follows:  
+  
+　　`#define WM_COMM_RXCHAR WM_USER+7 // A character was received and placed in the input buffer.`  
+　　Therefore, a response function for this message needs to be manually added:  
+  
+　　`afx_msg LONG OnCommunication(WPARAM ch, LPARAM port);`  
+　　`ON_MESSAGE(WM_COMM_RXCHAR, OnCommunication)`  
+  
+　　The specific code for the response function is as follows:  
+  
+```c
+LONG CWellInfoView::OnCommunication(WPARAM ch, LPARAM port)  
+{   
+     int retval = 0;  
+     rcvdat = (BYTE)ch;
+
+     if(state_machine == 0)      // Protocol parsing state machine  
+    {  
+        if(rcvdat == 0x55)      // Received first byte of frame header  
+            state_machine = 1;  
+        else  
+            state_machine = 0;      // Reset state machine  
+    }  
+    else if(state_machine == 1)  
+    {  
+        if(rcvdat == 0xAA)      // Received second byte of frame header  
+            state_machine = 2;  
+        else  
+            state_machine = 0;      // Reset state machine  
+    }  
+    ......  
+```
+　
+
+　　5. Conclusion  
+　　The above provides a basic prototype for how a communication system operates. Although simple, it is feasible. Actual communication systems have more complex protocols and involve a series of issues such as data packet responses, command errors, and delays. Building upon this foundation, these difficulties can be overcome to achieve a more stable and reliable system.

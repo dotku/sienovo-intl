@@ -1,0 +1,12 @@
+---
+title: "TI AM5728 SDK Upgrade: Linux Device Tree Parsing, Taking the Network Port CPSW as an Example"
+date: "2019-02-09"
+slug: "86761811"
+tags: ["#DTS", "#DTB", "#AM5728", "#DeviceTree"]
+source: "https://blog.csdn.net/yeyuangen/article/details/86761811"
+originalTitle: "TI AM5728 SDK升级之 linux设备树解析，以网口cpsw为例"
+---
+
+If a node describes a device with an address, then `@unit-address` should be provided. Multiple device nodes of the same type can have the same `name`, as long as their `unit-address` differs. For example, this example contains nodes with the same name like `cpu@0`, `cpu@1`, and `serial@101f0000` and `serial@101f2000`.
+
+From a software perspective, the `model` property merely represents a name and has no further function. The `compatible` property, however, is different; it determines how software matches and initializes hardware. In the attributes section, we mentioned that the `compatible` property is a string array, ordered from most specific to most general, with each string representing a match type. The `compatible` property of the root node indicates how the platform should be matched. For example, `'compatible = "samsung,smdk5420", "samsung,exynos5420", "samsung,exynos5"'` means the software should first try to match `'samsung,smdk5420'`, which is a specific development board. If it cannot match, it then tries to match `"samsung,exynos5420"`,

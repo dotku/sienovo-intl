@@ -1,0 +1,75 @@
+---
+title: "Pointers, References, and Handles"
+date: "2011-11-14"
+slug: "6969277"
+tags: ["#Windows", "#Null", "#Storage", "#Language", "#C"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6969277"
+originalTitle: "指针、引用与句柄"
+---
+
+## [Pointers, References, and Handles](http://www.cnblogs.com/cjyang/archive/2010/06/14/1758339.html)
+
+(1) A pointer is the memory address of an object;
+
+(2) A reference is an alias for an object, essentially a pointer with restricted functionality but higher safety;
+
+(3) A handle is a pointer to a pointer. A handle is essentially a piece of data, a Long (long integer) type of data. A handle is an identifier used to identify objects or items, much like our names. Windows is an operating system based on virtual memory. In such an environment, the Windows memory manager frequently moves objects around in memory to satisfy the memory needs of various applications. When an object is moved, its address changes. If addresses are constantly changing, how do we find the object? To solve this problem, the Windows operating system reserves some memory addresses for applications, specifically to record changes in the memory addresses of application objects. This reserved address (the location of the storage unit) itself remains constant. After the Windows memory manager moves an object in memory, it informs this handle address of the object's new address for storage.
+
+Reference FAQ:
+
+http://www.sunistudio.com/cppfaq/references.html
+
+Differences between References and Pointers:
+People often ask about the differences between references and pointers, perhaps due to their functional similarities, leading to confusion between the two concepts.
+Here's a summary of their differences, hoping to clarify the fundamental distinctions between these two concepts:
+A reference is an alias for a variable. Why introduce an alias? The reason is that we want to define a variable that shares the memory space of another variable, and using an alias is undoubtedly a good choice. What is a variable? It's a name for a memory space. If we give this memory space another name, then that name can share the same memory. This is where references (aliases) come from.
+A pointer is a variable that points to another memory space. We can use it to index the content of another memory space, and it has its own memory space.
+The differences are: (1) A reference accesses a variable directly, while a pointer accesses it indirectly.
+(2) A reference is an alias for a variable and does not allocate its own separate memory space, whereas a pointer has its own memory space.
+(3) A reference is bound to a memory space at the time of its initialization (it must be initialized at the start), so it can only be the name for that specific memory space and cannot be changed to refer to another. Of course, the value in that memory space can be changed.
+For example:
+```cpp
+int i = 3,j = 4;
+int &x = i; // x becomes an alias for i
+x = j; // It cannot be denied that x still refers to i; it has not become an alias for j. It merely modifies the value in the memory space shared by x and j.
+```
+This differs from pointers, which can change their target at any time.
+==========================================================================================
+
+You cannot separate a reference from its referent.
+
+Unlike pointers, once a reference is bound to an object, it cannot be re-pointed to another object. A reference itself is not an object (it has no identity; when you try to get the address of a reference, you will get the address of its referent; remember: a reference *is* its referent).
+
+In a sense, a reference is similar to a `const` pointer like `int* const p` (not like `const int* p`, which is a pointer to a constant). Regardless of their similarities, do not confuse references and pointers; they are completely different.
+
+\[8.6\] When should you use references, and when should you use pointers?
+
+Use references whenever possible; use pointers when necessary.
+
+References are generally preferred over pointers when you don't need 'reseating'. This often means references are more useful in the public interface of a class. References typically appear on the 'surface' of an object, while pointers are used internally within an object.
+
+An exception to the above is when a function parameter or return value requires a 'critical' reference. In such cases, it's usually best to return/obtain a pointer and use a `NULL` pointer to fulfill that special mission. (A reference should always be an alias for an object, not a dereferenced `NULL` pointer).
+
+Note: Traditional C programmers sometimes dislike references because they don't provide clear reference semantics at the caller's code. However, with some C++ experience, you'll quickly realize that this is a form of information hiding, which is beneficial rather than harmful. Just as programmers should write code for the problem to be solved, not for the machine itself.
+
+References and Pointers
+
+★ Similarities:
+1. Both are concepts of addresses;
+A pointer points to a block of memory, and its content is the address of the memory it points to; a reference is an alias for a block of memory.
+
+★ Differences:
+1. A pointer is an entity, while a reference is merely an alias;
+2. References do not require dereferencing (`*`) when used, while pointers do;
+3. A reference can only be initialized once at definition and cannot be changed afterward; a pointer is mutable;
+A reference is "faithful to the end" ^_^
+4. References do not have `const` (in the sense of a `const` reference itself), while pointers can be `const` (e.g., `const` pointer cannot be changed);
+5. A reference cannot be null, while a pointer can be null;
+6. `sizeof` a reference yields the size of the variable (object) it refers to, whereas `sizeof` a pointer yields the size of the pointer itself (the address of the variable or object it points to);
+`typeid(T) == typeid(T&)` is always true, and `sizeof(T) == sizeof(T&)` is always true.
+However, when a reference is a member, its occupied space is the same as a pointer (no standard specification found).
+7. The meaning of the increment (`++`) operator for pointers and references is different;
+
+★ Relationship
+1. References are implemented internally using pointers in the language (how are they implemented?).
+2. For general applications, understanding a reference as a pointer will not lead to serious semantic errors. A reference is a pointer with restricted operations (only content access is allowed).

@@ -1,0 +1,132 @@
+---
+title: "Understanding the Essence Through Questions: What Exactly Is a Socket?"
+date: "2011-09-22"
+slug: "6799575"
+tags: ["#Socket", "#DataStructure", "#Server", "#Networking", "#Server", "#Unix"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6799575"
+originalTitle: "从问题看本质：socket到底是什么？"
+---
+
+**I. Introduction — The Purpose of Sockets: Solving Inter-Process Communication Between Computers**
+
+**_1. Relationship Between Socket and Process_**
+
+1). Relationship between socket and process: Sockets enable communication between processes (IPC), and the socket interface consists of API functions for the TCP/IP network.
+
+2). Inter-process communication (on the same machine)
+
+Inter-process communication (across different computers, requiring network connectivity)
+
+  
+
+**_2. Relationship Between Socket and File — How to Understand That a Socket Is a Special Type of I/O?_**
+
+1) Sockets were first introduced in Unix operating systems. If you understand Unix I/O, understanding sockets becomes much easier, because socket data transmission is essentially a special form of I/O.
+
+2) File operations can be performed on sockets.
+
+3) Sockets have file descriptors. A file descriptor is fundamentally a non-negative integer used for identification. Similar concepts include process IDs.
+
+**_3. Relationship Between Server Port and Number of Connections_**  
+1) The server listens on port 8088 and creates a new socket for communication with each client. (Note: The server's listening port remains unchanged, but new socket connections can be continuously created—one thread per socket.)  
+At any given moment, a single port can handle only one connection.  
+However, while listening on one port, the server maintains a waiting queue. Each incoming client connection request is placed into this queue, and the server uses a scheduling algorithm to process these requests. Thus, a single port can effectively handle multiple connection requests. If too many connections arrive simultaneously, the server’s response time per connection increases, leading to slower performance.  
+2) QQ's implementation works as follows: Upon login, the client notifies the server. When sending a message, the client first sends a packet to the server, which checks whether the recipient is online. If online, the server replies confirming availability, and the sender establishes a direct connection to deliver the message. If offline, the server forwards the message on behalf of the sender.  
+3) Matching the number of network I/O threads to the number of CPU cores is generally optimal (considering that multi-threading or multi-processing improves efficiency).  
+There is no need to assign a separate port for each client—it would be a pointless waste of resources. 
+
+  
+**_4. How Many Clients Can Simultaneously Connect to a Socket Listening on One Port?_**   
+1) The `listen()` function has a parameter that determines the maximum number of concurrent client connections.  
+2) *"The maximum length of the queue of pending connections. If this value is SOMAXCONN, then the underlying service provider responsible for socket s will set the backlog to a maximum 'reasonable' value. There is no standard provision to find out the actual backlog value."*  
+3) Under Linux 2.4, up to 1024 socket connections are supported.  
+4) The number of simultaneous connection *requests* is typically 5 (not active connections); the theoretical maximum number of established connections is 65,535 (due to the 16-bit port number in the socket address).
+
+3. A socket is one endpoint of a two-way communication link between two programs running over a network. It can both receive and send requests, making it convenient for writing applications that transfer data across networks.
+
+**_5. Question: Can a server establish a socket connection with a client if it only knows the client's IP address but not the port number? If so, how? Is there any sample code?_**  
+Answer: Client (C) and Server (S) are relative roles. The side initiating the connection is the client; the side listening on a port and accepting connections is the server. If the client doesn't know the server's listening port, it cannot initiate a connection.  
+Moreover, for the server, the port number identifies specific services. Connecting with an incorrect port will not yield the intended service.  
+**The client does not need to specify its own port. The server binds to a port and listens. The client establishes a socket connection using the server’s IP address and port number.**
+
+**6. Insightful Q&A**
+
+**Q: I read an article stating: "Each network communication flows in and out of the host's TCP application layer. It is uniquely identified by two connected numbers. Together, these two numbers are called a socket. These two numbers consist of the machine's IP address and the port number used by the TCP software."  
+It also says: "A socket can be created using the socket() function, then bound to a port number..."  
+So where exactly does the concept of a socket end? Is it limited to just the file descriptor returned by socket()? Or is it the combination of IP address and port number? If so, what is the role of the socket descriptor created by socket()? What is the relationship among the socket descriptor, IP address, and port number?  
+Thank you for your help.**  
+**A:** A socket handle represents a pair of addresses: *"local IP:port" — "remote IP:port"*
+
+**Q:** Then where exactly does the concept of a socket end? For example, socket() generates a socket handle, but before bind() or connect(), it's just a file descriptor—no different from other file descriptors in Linux.  
+If a socket represents an address pair, is the handle merely a marker used after bind() or connect() to distinguish such pairs? Only then does it become associated with networking concepts. In that case, does "socket" mean the pair of IP addresses and port numbers of the communicating parties, described via a file descriptor? (And is the file descriptor just a tag to distinguish these address pairs?)  
+**A:** A socket is a kernel object, maintained by the operating system kernel, which manages its buffers, reference counts, and allows sharing across multiple processes.  
+Whether called a "handle" or "file descriptor," it's essentially just an integer exposed by the kernel for use by user processes.
+
+Q: Thanks. My confusion wasn't about the terms "handle" or "file descriptor."  
+I'm trying to clarify the relationship between the handle and IP/port. Let me check if my understanding is correct:  
+1. Each socket essentially refers to an IP address and port pair.  
+2. File descriptors are used to manipulate such address pairs.  
+3. The socket() function only creates an ordinary file descriptor. Before bind() or connect(), it cannot be considered a network communication socket.  
+4. Only after bind() or connect() is a socket truly established.  
+**A:** The socket() function creates a socket kernel object.  
+Only after accept() or connect() can the socket handle be read from or written to, because only then are the IP and port fields within the socket kernel object properly configured.
+
+**II. Understanding Sockets and Ports**
+
+A socket handle represents a pair of addresses: *"local IP:port" — "remote IP:port"*  
+In Windows, it's called a handle; in Linux, a file descriptor.  
+A socket is a kernel object maintained by the OS kernel, managing buffers, reference counts, and usable across multiple processes. Whether called a "handle" or "file descriptor," they refer to the same underlying concept.  
+I assume the reader is already familiar with the socket connection establishment process and state transitions, as this document aims to clarify concepts, not introduce them.  
+
+In socket programming, we know that a connection must be established before network communication. This connection setup involves several steps:  
+1) Create a socket.  
+2) Assign an address to the socket (not a typical network address).  
+3) Establish the socket connection.  
+
+1. **Creating a Socket**  
+When creating a socket, we are actually creating a data structure. The most important information in this structure specifies the type of connection and the protocol used, along with some fields related to connection queue operations (which we won't cover here).  
+Upon successful invocation of the `socket()` function, an integer file descriptor is returned, pointing to the socket data structure maintained in the kernel. All operations are performed through this descriptor, acting on the underlying data structure—just like file operations go through a file descriptor rather than directly manipulating the inode structure. I use file descriptors as an analogy because the socket data structure is closely related to the inode structure; it resides within a VFS inode and is not independent in the kernel. Thus, some abstract characteristics can be loosely compared to file operations for better understanding.  
+As mentioned, after creating a socket, we obtain a socket descriptor similar to a file descriptor. Just as we write to a file to transfer data, we can write to a socket to send data to a specified destination—either a remote host or the local host. You could even use socket mechanisms to implement IPC, although it's less efficient—worth trying for learning (though I haven't personally tried it).
+
+2. **Assigning an Address to the Socket**  
+Depending on the socket's role, there are two ways to assign an address: servers use `bind()`, clients use `connect()`.
+
+**bind():**  
+We know that an IP address and port number together uniquely identify a TCP/IP connection (this refers to a communication channel; to distinguish specific host-to-host connections, a third attribute like hostname may be needed).  
+The `bind()` function assigns a communication address and port to a socket used in a server application.  
+Here, the combination of IP address and port is called a socket address. The process of assigning a specific IP and port combination to a socket is known as assigning an address to that socket.  
+To specify a socket address, we use the `struct sockaddr` data structure. I won't go into usage details, as this document focuses on conceptual clarity. The role of `bind()` is to associate this socket address structure with the socket—i.e., assign an address to the socket. However, the exact internal mechanism of this association is beyond the scope of this discussion.  
+The lifetime of a socket's assigned address spans from successful `bind()` to connection teardown. You can create both the socket data structure and the socket address structure independently, but they are unrelated until `bind()` is called. After binding, they are associated until the connection ends. At disconnection, both structures may still exist, but their association is broken. To reuse the socket for a new connection on the same address, you must re-bind them. Again, note that this refers to a communication channel, not a specific host-to-host connection.  
+The IP specified in `bind()` is typically the local IP (often unspecified using `INADDR_ANY`). The primary purpose is to specify the port. After `bind()`, the server uses `listen()` to prepare for incoming connections on that socket address.
+
+**connect():**  
+Clients typically do not use `bind()` (though possible, it's usually unnecessary). Instead, they use `connect()` to establish a relationship between the socket and the target server's socket address. While establishing this relationship, `connect()` also attempts to set up the remote connection.
+
+3. **Establishing the Socket Connection**  
+To establish a connection:  
+- The server performs two steps: `bind()`, `listen()`  
+- The client performs one step: `connect()`  
+When the server `accept()`s a client's `connect()` request, and the client receives confirmation, the connection is established.
+
+**III. Understanding the Client/Server Model**
+
+The client/server model operates on an active request basis:
+
+The server must start first and provide services based on incoming requests:
+
+1. Open a communication channel and notify the local host that it is willing to accept client requests on a well-known address (well-known port, e.g., FTP uses port 21);
+2. Wait for client requests to arrive at this port;
+3. Upon receiving a service request, process it and send a response. For concurrent requests, activate a new process to handle each (e.g., using `fork()` and `exec()` in Unix). This new process handles the client's request without affecting responses to other clients. After service completion, close the communication link with the client and terminate the process.
+4. Return to step 2 and wait for the next client request.
+5. Shut down the server.
+
+Client side:
+
+1. Open a communication channel and connect to the specific port on the server's host;
+2. Send a service request message, wait for and receive a response; continue sending requests...
+3. Close the communication channel and terminate after all requests are completed.
+
+From the above description, we can conclude:
+
+1. The roles of client and server processes are asymmetric, hence their code differs.
+2. The server process is typically started in anticipation of client requests. As long as the system is running, the server process remains active until terminated normally or forcibly.

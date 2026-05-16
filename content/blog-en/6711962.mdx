@@ -1,0 +1,147 @@
+---
+title: "LCD Driver (Part 2): Adding Chinese Character Font Library"
+date: "2011-08-23"
+slug: "6711962"
+tags: ["#Programming", "#Sports", "#API", "#Tools"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6711962"
+originalTitle: "LCD驱动（二）：添加汉字库"
+---
+
+\=================== ======= Goals ==================================
+
+1. Familiarize oneself with the method for writing Unicode Chinese character font libraries.
+
+2. Be able to write Chinese characters at specified positions, including horizontal and vertical alignment. Font size and color can be changed.
+
+3. Requirement: Be able to add and use font libraries from scratch.
+
+\=================================================================
+
+**I. Problems**
+
+**1. What's the deal with Chinese character font library region codes? What about Unicode? How to programmatically retrieve the desired Chinese character.**
+
+Answer: 1) The Unicode of a Chinese character is its hexadecimal representation.
+
+2) Unicode encoding uses 2 bytes to represent a character.
+
+3) Unicode [b1][b2] = char
+For example, GB2312 region code: 94 regions, 94 characters per region. Region code = b1 - 0xbf, position code = b1 - 0xa0, which corresponds to Unicode.
+Ah = \ub0a1. 0xb0 - 0xbf = 0xf = 16 = region code. 0xa1 - 0xa0 = 1 = position code. This generally follows this pattern.
+
+**2. For the Chinese characters I write, how do I know if the library supports them? How does the library locate them? That is, when I write the four characters "我爱琼英" (wǒ ài qióng yīng), how do I know where "我" is located in the font library?**
+
+Answer: This question is probably not important in programming; it's automatically recognized.
+
+**3. Matrix arrangement method in font library programming**
+
+Answer:
+
+**4. There are various font systems. For example, symbols, Chinese characters, letters, etc. Hence, sizes like 0808, 0816, 1608, 1616, 2424, 1632, 3232, etc., appear. So how do I know the size of symbols and Chinese characters? How do I switch font sizes?**
+
+Answer: Chinese characters are 16x16.
+
+256 ASCII codes, dot matrix is 08x16 or 0808.
+
+Numbers, dot matrix is
+
+5. Figure out how that damn dot matrix is divided into regions.
+
+Answer: It's in lcddriver.c, disp.c, and omc.c. Looks like I need to go full throttle.
+
+5. What are the rules for arranging subroutines (APIs)?
+
+6. What is the essence of Chinese characters? Is it just lighting up dots and drawing lines? Hehe.
+
+7. Why is it that with this library, plus those seemingly simple dozens of library functions, Chinese character invocation and display can be achieved?
+
+8. Basic operation: How to blank out a character?
+
+9. How to wrap lines?
+
+10.
+
+\==================
+
+              Dot Matrix
+
+\==================
+
+1. The essence of a screen is a dot matrix. From a microscopic perspective, writing and drawing are all represented by dot matrices. Similar to large LED advertising screens at sports centers. Described by pixels and resolution.
+
+2. The principle of character display is that within a certain matrix, some dots are displayed and some are not, thus visually forming Chinese characters and letters. Chinese character font library encoding is created based on this principle.
+
+**3. Array computation and processing**
+
+Answer: This is crucial in dot matrix processing.
+
+4.
+
+\==================
+
+              Color
+
+\==================
+
+\==================
+
+**II. Error Debugging**
+
+1.
+
+```cpp
+[root@Industech /]# ./goSegmentation fault              //Segmentation fault, segment fault?
+```
+Possible causes:
+
+1) Is it because drawing lines or writing characters caused overlapping?
+
+Answer: Line overlapping is not an issue.
+
+2) Is it because the number of characters doesn't match?
+
+Answer: Yes, that's the problem.
+
+3) Is it exceeding the boundary?
+
+Answer: No. It will automatically wrap lines.
+
+4) Is it exceeding the boundary? Try exceeding the boundary to see what prompts appear.
+
+Answer:
+
+_Interim conclusion: It has nothing to do with color or anything else, only with position and font library._
+
+**III. Learning Insights**
+
+1. First, modify and successfully run someone else's code. Then, create your own project and try adding, trimming, and combining code. This leaves a deeper impression.
+
+2. Transition from extensive to intensive cultivation. Be meticulous, meticulous, and even more meticulous; focus on key points, key points, and even more key points. Clear hierarchy/structure.
+
+3. Under the premise of successful execution, interpret each subroutine one by one (currently, this method can be applied to lcddriver.c). If you don't understand, ask questions. Investigate thoroughly, don't let anything go.
+
+4. When reading and studying code, include active guessing and reasoning. Otherwise, you will always feel intimidated by the code.
+
+**IV. Code Questions and Comments**
+
+**V. References**
+
+1. Useful links
+
+2. Source code. How to provide download?
+
+\==============================================
+
+MIT: The Thinking Method of the World's Top Technical University
+
+\==============================================
+
+1. Think, conduct experiments with purpose, don't just try blindly.
+
+**_2. Tools: Serial port debugging is really damn inconvenient. Are there better methods? Hardware design considerations._**
+
+3. Experimentation techniques: How to experiment more efficiently?
+
+4. Pinpointing the range of erroneous code (a good habit).
+
+5. Spelling errors, the most tragic thing. Develop meticulous habits. Machines are unforgiving.

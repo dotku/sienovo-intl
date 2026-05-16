@@ -1,0 +1,138 @@
+---
+title: "Smart Pointers (auto_ptr and shared_ptr)"
+date: "2013-06-26"
+slug: "9177185"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/9177185"
+originalTitle: "智能指针(auto_ptr 和 shared_ptr)"
+---
+
+### [Smart Pointers (auto_ptr and shared_ptr)](http://www.cppblog.com/expter/archive/2009/03/29/78270.html)
+
+This is a summary of my reading and coding this week:
+    
+    In STL, auto_ptr is just one of many possible smart pointers. What auto_ptr does is dynamically allocate objects and automatically perform cleanup when the objects are no longer needed.
+    Here's a simple code example without auto_ptr:
+      
+   
+
+ 1 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/29_None.gif) void ProcessAdoption(istream &data)  
+ 2 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/30_ExpandedBlockStart.gif) {  
+ 3![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/37_InBlock.gif)   
+ 4![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/37_InBlock.gif)    while (data)                            // If there is still data  
+ 5![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/33_ExpandedSubBlockStart.gif)    {  
+ 6![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/37_InBlock.gif)        ALA   \*pa = readALAData(data);      // Get the next data item  
+ 7![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/37_InBlock.gif)        pa->DealProcessAdoption(data);        // Process  
+ 8![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/37_InBlock.gif)   
+ 9![](https://pub-048dcb96257f4766997b113fcb5939cb9.r2.dev/blog/9177185/37_InBlock.gif)        delete pa;                          // Release resources  
+10![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/36_ExpandedSubBlockEnd.gif)    }  
+11![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/37_InBlock.gif)    return;  
+12![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/38_ExpandedBlockEnd.gif)}
+
+  
+     What happens if an exception occurs in DealProcessAdoption? Since ProcessAdoption cannot catch it, this code is very dangerous. The code after DealProcessAdoption might be skipped, leading to a memory leak.  
+If you use try-catch to handle it, the code becomes messy and lacks elegance.
+
+Therefore, STL provides a smart pointer to solve this problem. We can first simulate a smart pointer class implementation.  
+
+ 1 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/29_None.gif) // Definition of a smart pointer  
+ 2 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/29_None.gif)template<typename Type>  
+ 3 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/29_None.gif) class auto\_ptr  
+ 4 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/30_ExpandedBlockStart.gif) {  
+ 5![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/37_InBlock.gif)public:  
+ 6![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/37_InBlock.gif)    auto\_ptr(T \*p =NULL) :Ptr(p)  
+ 7![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/33_ExpandedSubBlockStart.gif)    {     }  
+ 8![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/37_InBlock.gif)    ~auto\_ptr()  
+ 9![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/33_ExpandedSubBlockStart.gif)    {  
+10![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/37_InBlock.gif)        delete Ptr;  
+11![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/36_ExpandedSubBlockEnd.gif)    }  
+12![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/37_InBlock.gif)private:  
+13![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/37_InBlock.gif)    Type \*Ptr;  
+14![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/38_ExpandedBlockEnd.gif)};  
+15 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/29_None.gif)  
+16 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/29_None.gif)  
+17 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/29_None.gif) void ProcessAdoption(istream &data)  
+18 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/30_ExpandedBlockStart.gif) {  
+19![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/37_InBlock.gif)  
+20![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/37_InBlock.gif)    while (data)                            // If there is still data  
+21![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/33_ExpandedSubBlockStart.gif)    {  
+22![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/37_InBlock.gif)        auto\_ptr<ALA> pa(readALADara(data));  
+23![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/37_InBlock.gif)        pa->DealProcessAdoption(data);  
+24![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/36_ExpandedSubBlockEnd.gif)    }  
+25![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/37_InBlock.gif)    return;  
+26![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/9177185/38_ExpandedBlockEnd.gif)}
+
+  
+There are only two differences between this version and the original version:  
+First, 'pa' is a smart pointer object, not an ALA*  
+Second, you don't need to manually call delete to release resources.
+
+Then I saw the item in Effective STL:  
+8: Never create containers of auto_ptr  
+For more on this, refer to Item 8 of Effective STL.
+
+Because auto_ptr is not perfect. It is indeed convenient, but it also has flaws that should be avoided when using it. First, do not use auto_ptr objects as elements in STL containers. The C++ standard explicitly prohibits this, otherwise, unpredictable results may occur.
+
+Another flaw of auto_ptr is passing an array as an auto_ptr parameter: auto_ptr<char>  pstr (new char\[12\] ); // Array; undefined behavior  
+Then, when releasing resources, it's unclear whether to use 'delete pstr' or 'delete[] pstr';
+
+Here are several precautions regarding auto_ptr:  
+1. auto_ptr cannot share ownership.  
+2. auto_ptr cannot point to arrays.  
+3. auto_ptr cannot be a member of a container.  
+4. auto_ptr cannot be initialized via assignment.  
+std::auto_ptr<int> p(new int(42));     //OK  
+std::auto_ptr<int> p = new int(42);    //ERROR  
+This is because auto_ptr's constructor is defined as explicit.  
+5. Do not put auto_ptr into containers.
+
+The author then recommends Boost's shared_ptr. After reading the introduction and examples of shared_ptr regarding smart pointers.  
+The following are 5 types of pointers that address the shortcomings of auto_ptr. For detailed understanding, refer to the relevant documentation and test new code.  
+
+**scoped_ptr**
+
+<boost/scoped_ptr.hpp>
+
+Simple unique ownership of a single object. Non-copyable.
+
+**scoped_array**
+
+<boost/scoped_array.hpp>
+
+Simple unique ownership of an array. Non-copyable.
+
+**shared_ptr**
+
+<boost/shared_ptr.hpp>
+
+Shared ownership of an object among multiple pointers.
+
+**shared_array**
+
+<boost/shared_array.hpp>
+
+Shared ownership of an array among multiple pointers.
+
+**weak_ptr**
+
+<boost/weak_ptr.hpp>
+
+A non-owning observer of an object managed by **shared_ptr**.
+
+**intrusive_ptr**
+
+<boost/intrusive_ptr.hpp>
+
+Shared ownership of an object with an intrusive reference count.
+
+  
+1. shared_ptr is a smart pointer implementation provided by the Boost library. shared_ptr aims to address the limitations of auto_ptr regarding object ownership (auto_ptr is exclusive) by providing a smart pointer that allows shared ownership using a reference counting mechanism.  
+2. shared_ptr is safer than auto_ptr.  
+3. shared_ptr is copyable and assignable, its copy behavior is equivalent, and it can be compared. This means it can be placed in standard library general containers (vector, list) and associative containers (map).
+
+The usage of shared_ptr is actually similar to auto_ptr, with differences mainly in implementation. I won't post the code for shared_ptr's definition here, as it's open source and can be found online.  
+1. shared_ptr<T> p(new Y);
+
+  
+To learn more about auto_ptr, refer to Item 28 on page 158 of More Effective C++.  
+To learn about shared_ptr class template information, refer to the Boost 1.37.0 Chinese documentation, which also covers the shared_array class template that supports arrays.

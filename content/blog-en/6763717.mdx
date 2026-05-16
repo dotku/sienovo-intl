@@ -1,0 +1,21 @@
+---
+title: "memset Function Usage"
+date: "2011-09-09"
+slug: "6763717"
+tags: ["#Programming"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6763717"
+originalTitle: "memset函数用法"
+---
+
+The author hopes to initialize an array using the library function `memset()` and needs to understand its working principle. The `memset()` library function operates on bytes, where the value of the second parameter is assigned to every byte starting from the memory address pointed to by the first parameter. Therefore, this type of initialization has limitations, and consequently, it is primarily used for clearing array contents, among other things.
+
+For example: Assume i=0, 1, 2,...
+`memset(a,0,sizeof(a));` // at this point, a[i]=0x00000000
+
+`memset(a,-1,sizeof(a));` // at this point, a[i]=0xffffffff
+
+`memset(a,0x0f,sizeof(a));` // at this point, a[i]=0x0f0f0f0f=252645135
+
+Since 500=0x1f4 and 400=0x190, therefore, if `memset(a,0x190,sizeof(a))` is used; // at this point, a[i]=0x90909090
+
+Therefore, it is still recommended to use a loop for the initialization process.

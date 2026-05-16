@@ -1,0 +1,132 @@
+---
+title: "Socket Functions: read, write, send, and recv - A Summary"
+date: "2011-09-16"
+slug: "6781266"
+tags: ["#Socket", "#Struct", "#Buffer", "#Network", "#Sockets", "#Windows"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6781266"
+originalTitle: "socket函数read write send和recv  收集整理"
+---
+
+1. `send` and `recv` are functions for socket-oriented file descriptors.
+`read` and `write` require file descriptors.
+
+`read` and `write` can also operate on socket FDs because Linux treats sockets as a special type of file descriptor.
+The two are consistent on BSD 4.4, ultimately calling the same kernel handling function, except that `recv` and `send` have additional options (flags).
+
+What is the difference between read() and recv()?
+From Andrew Gierth (andrew@erlenstar.demon.co.uk):
+
+read() is equivalent to recv() with a flags parameter of 0. Other values for the flags parameter change the behaviour of recv(). Similarly, write() is equivalent to send() with flags == 0.
+
+It is unlikely that send()/recv() would be dropped; perhaps someone with a copy of the POSIX drafts for socket calls can check...
+
+Portability note: non-unix systems may not allow read()/write() on sockets, but recv()/send() are usually ok. This is true on Windows and OS/2, for example.
+
+=================================================================================================================
+
+Once a TCP connection is established, we can use the obtained FD as a file descriptor.
+
+Therefore, the most basic functions in network programming are `read` and `write`.
+`ssize_t write(int fd, const void*buf,size_t nbytes);`
+The `write` function writes `nbytes` bytes from `buf` to the file descriptor `fd`. On success, it returns the number of bytes written. On failure, it returns -1 and sets the `errno` variable. In network programming, when writing to a socket file descriptor, there are two possibilities:
+1) If the return value of `write` is greater than 0, it indicates that some or all of the data has been written. In this case, we use a `while` loop to continuously write, but the `buf` and `nbyte` parameters in the loop must be updated by us. This means that network write functions are not responsible for writing all data before returning.
+2) If the return value is less than 0, an error has occurred. We need to handle it according to the error type.
+If the error is `EINTR`, it indicates an interrupt error occurred during writing.
+If it is `EPIPE`, it indicates a network connection issue (the peer has closed the connection).
+To handle the above situations, we write our own `write` function to handle these cases.
+
+```c
+int my_write(int fd,void *buffer,int length)
+{
+int bytes_left;
+int written_bytes;
+char *ptr;
+
+ptr=buffer;
+bytes_left=length;
+while(bytes_left>0)
+{
+        /* Start writing */
+        written_bytes=write(fd,ptr,bytes_left);
+        if(written_bytes<=0) /* An error occurred */
+        {
+                if(errno==EINTR) /* Interrupted error, we continue writing */
+                        written_bytes=0;
+                else             /* Other errors, no choice but to retreat */
+                        return(-1);
+        }
+        bytes_left-=written_bytes;
+        ptr+=written_bytes;     /* Continue writing from the remaining part */
+}
+return(0);
+}
+```
+Read function `read`
+`ssize_t read(int fd,void *buf,size_t nbyte)`
+The `read` function is responsible for reading content from `fd`. On successful read, `read` returns the actual number of bytes read. If the return value is 0, it indicates the end of the file has been reached. If less than 0, an error has occurred. If the error is `EINTR`, it means the read was interrupted. If it's `ECONNRESET`, it indicates a network connection issue. Similar to above, we also write our own `read` function.
+
+```c
+int my_read(int fd,void *buffer,int length)
+{
+int bytes_left;
+int bytes_read;
+char *ptr;
+
+bytes_left=length;
+while(bytes_left>0)
+{
+bytes_read=read(fd,ptr,bytes_read);
+if(bytes_read<0)
+{
+if(errno==EINTR)
+bytes_read=0;
+else
+return(-1);
+}
+else if(bytes_read==0)
+break;
+    bytes_left-=bytes_read;
+    ptr+=bytes_read;
+}
+return(length-bytes_left);
+}
+```
+
+Data Transfer
+With the two functions above, we can transfer data to clients or servers. For example, if we want to transfer a structure, we can use the following method:
+
+```c
+/* Client writes to server */
+
+struct my_struct my_struct_client;
+write(fd,(void *)&my_struct_client,sizeof(struct my_struct);
+
+/* Server reads */
+char buffer[sizeof(struct my_struct)];
+struct *my_struct_server;
+read(fd,(void *)buffer,sizeof(struct my_struct));
+my_struct_server=(struct my_struct *)buffer;
+```
+
+When transferring data over a network, we generally convert the data to `char` type for transmission. The same applies to receiving. It's important to note that there's no need to transmit pointers over the network (because transmitting pointers is meaningless; we must transmit the content pointed to by the pointer).
+
+6.1 `recv` and `send`
+The `recv` and `send` functions provide similar functionality to `read` and `write`. However, they provide a fourth parameter to control read/write operations.
+
+`int recv(int sockfd,void *buf,int len,int flags)`
+`int send(int sockfd,void *buf,int len,int flags)`
+
+The first three parameters are the same as for `read` and `write`. The fourth parameter can be 0 or a combination of the following:
+________________________________________________________________
+| MSG_DONTROUTE | Do not use routing table |
+| MSG_OOB | Receive or send out-of-band data |
+| MSG_PEEK | Peek at data, do not remove from system buffer |
+| MSG_WAITALL | Wait for all data |
+|--------------------------------------------------------------|
+
+`MSG_DONTROUTE`: This flag is used by the `send` function. It tells IP that the destination host is on the local network, so there's no need to consult the routing table. This flag is generally used in network diagnostics and routing programs.
+`MSG_OOB`: Indicates that out-of-band data can be received and sent. We will explain out-of-band data later.
+
+`MSG_PEEK`: This flag is used by the `recv` function. It means to read content from the system buffer without removing it from the buffer. Thus, the next read will retrieve the same content. This flag is generally used when multiple processes are reading/writing data.
+
+`MSG_WAITALL`: This flag is used by the `recv` function. It means to return only when all data has arrived. When this flag is used, `recv` will block until the specified conditions are met or an error occurs. 1) When the specified number of bytes has been read, the function returns normally. The return value equals `len`. 2) When the end of the file is reached, the function returns normally. The return value is less than `len`. 3) When an operation error occurs, it returns -1 and sets `errno` to the corresponding error number.

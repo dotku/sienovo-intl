@@ -1,0 +1,188 @@
+---
+title: "What Role Does an Iterator Play in Programming? — A Summary"
+date: "2011-12-14"
+slug: "7069044"
+tags: ["#iterator", "#class", "#algorithm", "#null", "#delete", "#C++"]
+source: "https://blog.csdn.net/yeyuangen/article/details/7069044"
+originalTitle: "迭代器iterator在程序到底起什么作用？  ——整理"
+---
+
+1. Similar to a pointer, but not actually a pointer.  
+2. Within a container, an iterator acts like a pointer to an element, but its implementation is not a pointer—it is an object.  
+3. On a broader level, iterators serve as a glue between containers and algorithms.  
+On a more granular level, they resemble smart pointers.  
+
+Try using the `copy` algorithm to deepen your understanding.  
+:)  
+4. An iterator is essentially a pointer type for a container, allowing you to define an object that sequentially accesses each element within the container.  
+5. You'll quickly understand by looking at the source code. I was confused for a while too, but in practice, it's essentially a pointer implemented via `typedef`.  
+
+```cpp
+template <class T> class XXX
+{
+    ...
+    ...
+    typedef T* iterator;
+    typedef const T* const_iterator;
+};
+```
+
+Suggestion: Refer to *C++ Primer* for deeper understanding.  
+Source code reference:
+
+```cpp
+Implementation: 1) Iterator.h
+#ifndef ITERATOR_H
+#define ITERATOR_H
+
+typedef int DATA;
+
+class Iterater; // Abstract base class for container
+class Aggregate
+{
+public:
+    virtual ~Aggregate(){}
+    virtual Iterater* CreateIterater(Aggregate *pAggregate) = 0;
+    virtual int GetSize() = 0;
+    virtual DATA GetItem(int nIndex) = 0;
+};
+
+// Abstract base class for iterator
+class Iterater
+{
+public:
+    virtual ~Iterater(){}
+    virtual void First()        = 0;
+    virtual void Next()         = 0;
+    virtual bool IsDone()       = 0;
+    virtual DATA CurrentItem()  = 0;
+private:
+};
+
+// A concrete container class, implemented using an array
+class ConcreateAggregate : public Aggregate
+{
+public:
+    ConcreateAggregate(int nSize);
+    virtual ~ConcreateAggregate();
+
+    virtual Iterater* CreateIterater(Aggregate *pAggregate);
+    virtual int GetSize();
+    virtual DATA GetItem(int nIndex);
+
+private:
+    int m_nSize;
+    DATA *m_pData;
+};
+
+// Iterator class for traversing ConcreateAggregate
+class ConcreateIterater : public Iterater
+{
+public:
+    ConcreateIterater(Aggregate* pAggregate);
+    virtual ~ConcreateIterater(){}
+
+    virtual void First();
+    virtual void Next();
+    virtual bool IsDone();
+    virtual DATA CurrentItem();
+
+private:
+    Aggregate* m_pConcreateAggregate;
+    int        m_nIndex;
+};
+
+#endif
+// End of code
+
+2) Iterator.cpp
+#include <iostream>
+#include "Iterator.h"
+
+ConcreateAggregate::ConcreateAggregate(int nSize)
+    : m_nSize(nSize)
+    , m_pData(NULL)
+{
+    m_pData = new DATA[m_nSize];
+
+    for (int i = 0; i < nSize; ++i)
+    {
+        m_pData[i] = i;
+    }
+}
+
+ConcreateAggregate::~ConcreateAggregate()
+{
+    delete [] m_pData;
+    m_pData = NULL;
+}
+
+Iterater* ConcreateAggregate::CreateIterater(Aggregate *pAggregate)
+{
+    return new ConcreateIterater(this);
+}
+
+int ConcreateAggregate::GetSize()
+{
+    return m_nSize;
+}
+
+DATA ConcreateAggregate::GetItem(int nIndex)
+{
+    if (nIndex < m_nSize)
+    {
+        return m_pData[nIndex];
+    }
+    else
+    {
+        return -1;
+    }
+}
+
+ConcreateIterater::ConcreateIterater(Aggregate* pAggregate)
+    : m_pConcreateAggregate(pAggregate)
+    , m_nIndex(0)
+{ }
+
+void ConcreateIterater::First()
+{
+    m_nIndex = 0;
+}
+
+void ConcreateIterater::Next()
+{
+    if (m_nIndex < m_pConcreateAggregate->GetSize())
+    {
+        ++m_nIndex;
+    }
+}
+
+bool ConcreateIterater::IsDone()
+{
+    return m_nIndex == m_pConcreateAggregate->GetSize();
+}
+
+DATA ConcreateIterater::CurrentItem()
+{
+    return m_pConcreateAggregate->GetItem(m_nIndex);
+}
+// End of code
+
+3) Main.cpp
+#include "Iterator.h"
+#include <iostream>
+
+int main()
+{
+    Aggregate* pAggregate = new ConcreateAggregate(4);
+    Iterater*  pIterater  = new ConcreateIterater(pAggregate);
+
+    for (; false == pIterater->IsDone(); pIterater->Next())
+    {
+        std::cout << pIterater->CurrentItem() << std::endl;
+    }
+
+    return 0;
+}
+// End of code
+```

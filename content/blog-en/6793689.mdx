@@ -1,0 +1,94 @@
+---
+title: "Initialization of C++ Struct and Class Instances"
+date: "2011-09-20"
+slug: "6793689"
+tags: ["#C++", "#OS", "#Struct", "#Compiler", "#C"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6793689"
+originalTitle: "C++结构体实例和类实例的初始化"
+---
+
+I. If all data members of a class or struct are public, initialization can be performed using the brace-enclosed form as follows.
+
+Note:
+
+① Regardless of the number of values, curly braces must be used for delimitation.
+
+② Data members for which no value is specified will be automatically initialized to their default values by the compiler.
+
+③ This method of object initialization requires all data members to be public.
+
+④ This method of object initialization requires that no constructors be written in the class.
+
+```cpp
+struct S {  // class S has the same effect
+    int           x;
+    unsigned short y;
+};
+
+S testS1={100,123};
+S testS2={200};// Data members for which no value is specified are initialized to default values; here, os2.y=0;
+S TestS[4]={ {100,10},
+             {200,20},
+             {300} };// Unspecified values are initialized to default values, e.g., os[2].y, os[3].x, os[3].y.
+```
+
+II. If data members are private or protected, or if constructors are provided, initialization must be performed using constructors.
+
+```cpp
+struct S {  // You can experiment with class S; the result will be the same
+    private:
+        int x;
+    public:
+        double y;
+        S(void){}
+        S(int idemo,double ddemo) {x=idemo;y=ddemo;}
+        void show(void) {cout<<x<<'\t'<<y<<endl;}
+};
+
+S os1;// The default constructor (no-argument constructor) will be called.
+S os2(1000,2.345);
+S os3=S(2000,4.567);
+S os[4]={S(10,1.234),S(20,2.234)};// Uninitialized elements will call the default constructor. If no default constructor exists at this point, an error will occur.
+```
+
+Important Notes:
+
+① In the statement `S os3=S(2000,4.567);`, because `os3` is declared and initialized, the `S(int,double)` constructor will be called to initialize `os3`.
+
+② `S os3(2000,4.567);` is equivalent to `S os3=S(2000,4.567);`
+
+③ However, if `os3` already exists, e.g., `S os3(100,1.234); os3=S(2000,4.567);`, this means a temporary object is assigned to `os3`, which will call `operator=`. The system then releases this temporary object. The system's default `=` operation copies the values of the source object's data members to the target object's data members.
+
+III. Constructors that accept a single argument allow objects to be initialized using assignment syntax.
+
+The illustrative code is as follows:
+
+```cpp
+#include <iostream>
+
+using namespace std;
+
+class C {
+    private:
+        int x;
+    public:
+        C(int idemo) {x=idemo;}
+        void show(void) {cout<<x<<endl;}
+};
+
+struct S {
+    private:
+        int x;
+    public:
+        S(int idemo) {x=idemo;}
+        void show(void) {cout<<x<<endl;}
+};
+
+int main(int argc, char *argv[]){
+    C oc=1000;// Do not attempt to add curly braces here.
+    oc.show();
+    S os=2000;// Do not attempt to add curly braces here.
+    os.show();
+    return EXIT_SUCCESS;
+}
+```

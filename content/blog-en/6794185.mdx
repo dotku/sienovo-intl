@@ -1,0 +1,78 @@
+---
+title: "Summary of Type Casting in C Language"
+date: "2011-09-20"
+slug: "6794185"
+tags: ["#Language", "#C", "#Float", "#Storage", "#Assembly"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6794185"
+originalTitle: "C语言中强制类型转换总结"
+---
+
+● The value of a character variable is essentially an 8-bit integer, so its range is generally -128 to 127. A char variable can also be modified with `unsigned`, in which case the range of an `unsigned char` is 0 to 255 (some systems treat `char` as `unsigned char` by default, giving it a range of 0 to 255).
+
+● If the operands on both sides of an operator are of different types, they must first be converted to the same type—lower types are converted to higher types—before the operation proceeds. The conversion rules are illustrated below:
+
+```
+double ←── float  Higher
+↑
+long
+↑
+unsigned
+↑
+int ←── char, short  Lower
+```
+
+● The horizontal arrows indicate required conversions. For example, when two `float` values are used in an operation, even though they are of the same type, they are first promoted to `double` before the operation, and the result is also of type `double`. The vertical arrows indicate conversions when operands are of different types. For instance, when a `long` and an `int` are used together in an operation, the `int` is first converted to `long`, and then the operation is performed, yielding a `long` result. All these conversions are performed automatically by the system. You only need to be aware of the resulting type. While these conversions are automatic, C also provides explicit mechanisms for forcing type conversions.
+
+● When converting from a lower type to a higher type, the change is generally only in form and does not affect the actual data content. However, when converting from a higher type to a lower type, some data loss may occur.
+
+**Type Conversion in Assignment**
+
+When the types of the operands on either side of an assignment operator differ, type conversion occurs. The rule is: the type of the expression on the right side of the assignment operator is converted to the type of the variable on the left. Specific conversions are as follows:
+
+(1) Floating-point and Integer Types  
+● When converting a floating-point number (single or double precision) to an integer, the fractional part is discarded and only the integer part is retained.  
+● When assigning an integer value to a floating-point variable, the numeric value remains unchanged; only the form is converted to floating-point, i.e., with several zeros after the decimal point. Note: Type conversion during assignment is actually a forced conversion.
+
+(2) Single and Double Precision Floating-Point  
+● Since floating-point values in C are always represented in double precision, a `float` value is extended to `double` by padding with zeros at the end before computation, then directly assigned. When converting a `double` to `float`, the mantissa is truncated, with rounding applied before truncation.
+
+(3) `char` and `int` Types  
+● When assigning an `int` value to a `char` variable, only the lowest 8 bits are retained, and the higher bits are discarded.  
+● When assigning a `char` value to an `int` variable, some compilers always treat it as a positive number regardless of its value, while others treat it as a negative number if the `char` value is greater than 127. From the user's perspective, if the original `char` value is positive, it remains positive after conversion; if the original `char` value can be positive or negative, the converted value still maintains its original value, though the internal representation may differ.
+
+(4) `int` and `long` Types  
+● When assigning a `long` value to an `int` variable, the lower 16 bits are assigned to the `int` variable, and the upper 16 bits are truncated and discarded (assuming `int` occupies two bytes).  
+● When assigning an `int` value to a `long` variable, the external value remains unchanged, but the internal representation is modified.
+
+(5) Unsigned Integers  
+● When assigning an `unsigned` value to an integer variable of the same storage size (e.g., `unsigned` → `int`, `unsigned long` → `long`, `unsigned short` → `short`), the value is assigned as-is, and the internal storage format remains unchanged, though the external value may differ.  
+● When assigning a non-`unsigned` integer to an `unsigned` variable of the same size, the internal storage format remains unchanged, but the external representation is always treated as unsigned.
+
+```c
+/* Example: Assignment operator usage */
+main()
+{ 
+    unsigned a, b;
+    int i, j;
+    a = 65535;
+    i = -1;
+    j = a;
+    b = i;
+    printf("(unsigned)%u→(int)%d ", a, j);
+    printf("(int)%d→(unsigned)%u ", i, b);
+}
+```
+
+Output:
+```
+(unsigned)65535→(int)-1
+(int)-1→(unsigned)65535
+```
+
+● Data in computers are represented in two's complement form. For `int` variables, the highest bit is the sign bit: 1 indicates a negative value, 0 indicates a positive value. If an unsigned number is less than 32768, its highest bit is 0, and when assigned to an `int` variable, it results in a positive value. If the unsigned number is greater than or equal to 32768, the highest bit is 1, and assigning it to an `int` variable results in a negative value. Conversely, assigning a negative integer to an `unsigned` variable yields an unsigned value greater than 32768.
+
+● This automatic type conversion during assignment in C may seem imprecise and non-strict, as the system automatically converts the expression's value to the type of the variable on the left side of the assignment operator, regardless of the original value.
+
+● The resulting data may differ, and without careful attention, this can lead to errors. This is indeed a drawback and has been criticized by many. However, it's important to remember that C was originally designed to replace assembly language, so type conversions are relatively flexible. Still, using explicit type casting is a good practice, as it clearly indicates the programmer's intent in the code.
+
+**Originally published on ChinaUnix blog. To view the original article, click:** [http://blog.chinaunix.net/u2/69984/showart_1003663.html](http://blog.chinaunix.net/u2/69984/showart_1003663.html)

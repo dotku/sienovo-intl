@@ -1,0 +1,24 @@
+---
+title: "Why does Linux extensively use the `static` keyword to modify function and struct definitions?"
+date: "2011-09-22"
+slug: "6800410"
+tags: ["#Linux", "#Language", "#Multithreading", "#Struct", "#C", "#2010"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6800410"
+originalTitle: "linux大量使用了static关键字用来修饰函数和结构体定义，为何？"
+---
+
+Q: Why does Linux extensively use the `static` keyword to modify function and struct definitions?
+The Linux kernel code heavily uses the `static` keyword; it's seen everywhere, whether for functions or struct definitions. What is the purpose of doing this? And how should multi-threaded data sharing and thread-specific data content be considered?
+
+A:
+
+1.
+I personally believe it's because Linux is written in C, and its codebase is enormous, making name conflicts prone to occur. Therefore, `static` is used to reduce the incidence of such conflicts.
+Using `static` reduces the scope of functions or variables.
+The access scope for `static` functions is file-level, whereas ordinary functions have project-level scope.
+The C language doesn't have namespaces, so `static` is probably used to mitigate conflicts.
+
+2. Similar to the two previous points, `static` can reduce the usage of functions, thereby facilitating maintenance (avoiding modifications in multiple places simultaneously). However, this also compromises the structural integrity of classes, and my boss has always discouraged me from using `static` interfaces.
+I've always felt that C++ is a language that emphasizes structure. While performance is crucial, C++ places more importance on interface usage, where good design leads to good performance and extensibility. This is somewhat different from the C language, isn't it?
+
+[http://topic.csdn.net/u/20101222/11/1659f4d6-36cc-4477-97a0-dba64f79f173.html](http://topic.csdn.net/u/20101222/11/1659f4d6-36cc-4477-97a0-dba64f79f173.html)

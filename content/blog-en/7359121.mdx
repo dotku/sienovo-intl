@@ -1,0 +1,64 @@
+---
+title: "Swapping Left and Right Children in a Binary Tree (Recursive and Iterative Methods)"
+date: "2012-03-15"
+slug: "7359121"
+tags: ["#null", "#Algorithm"]
+source: "https://blog.csdn.net/yeyuangen/article/details/7359121"
+originalTitle: "将二叉树的两个孩子换位置，即左变右，右变左。（递规与非递规两种方法）"
+---
+
+Swapping the left and right children of a binary tree (using recursive and non-recursive methods).
+
+2011-10-14 8:35
+
+Swapping the left and right children of a binary tree (using recursive and non-recursive methods).
+
+Recursive version:
+
+```c++
+void change( BTree * pTree )  
+{  
+if( NULL == pTree )  
+return;  
+BTree * pTemp = pTree->left;  
+pTree-> left = pTree-> right;  
+pTree-> right= pTemp;  
+change( pTree-> left );  
+change( pTree-> right );  
+}
+```
+===================== Using a Queue =====================
+
+Algorithm idea:
+
+1.  Enqueue the root node, i.e., add it to the end of the queue.
+2.  Dequeue a node, i.e., remove an element from the front of the queue.
+3.  Swap the left and right children of the dequeued node, then enqueue them sequentially.
+4.  If the queue is not empty, repeat steps 2 and 3.
+
+Author: Liu Huaxi
+
+The iterative version is as follows, using a queue:
+```c++
+void change( BTree * pTree )  
+{  
+if( NULL == pTree )  
+return;  
+queue <BTree*> qu;  
+qu.push(pTree);  
+BTree*pTree2 = null;  
+while(!qu.empty()){  
+pTree2= qu.front( );  
+qu.pop();  
+BTree * pTemp = pTree2-> left;  
+pTree2-> left = pTree2-> right;  
+pTree2-> right= pTemp;  
+if(pTree2-> left!=null)  
+qu.push(pTree2-> left);  
+if(pTree2-> right!=null)  
+qu.push(pTree2-> right);  
+  
+}  
+  
+}
+```

@@ -1,0 +1,29 @@
+---
+title: "Important Data Structures in Linux C Development — Structures"
+date: "2011-09-22"
+slug: "6800443"
+tags: ["#DataStructures", "#Linux", "#C", "#Struct"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6800443"
+originalTitle: "linux C 开发中重要的数据结构——结构体"
+---
+
+In Linux driver development, the most commonly used and important data structure is the structure (struct), which is also the one most likely to cause confusion. To master structures, it's essential to first understand operator precedence:
+
+Among all operators, the following four have the highest precedence: the structure member access operator "." and "->", the function call operator "()", and the subscript operator "[]". As a result, they bind most tightly to their operands.
+
+For example, given:
+
+struct {
+int len;
+char *str;
+}*p;
+
+The expressions are interpreted as follows:
+
+++p->len: increments the value of len; the implied parentheses are ++(p->len)  
+(++p)->len: first increments p by 1, then accesses the value of len  
+(p++)->len: first accesses the value of len, then increments p by 1  
+*p->str: retrieves the value pointed to by the pointer str  
+*p->str++: first retrieves the value pointed to by str, then increments the pointer str by 1  
+(*p->str)++: first retrieves the value pointed to by str, then increments that value by 1  
+*p++->str: first retrieves the value pointed to by str, then increments p by 1

@@ -1,0 +1,121 @@
+---
+title: "Linux Chat Room: 50 Questions"
+date: "2011-09-01"
+slug: "6739193"
+tags: ["#Chat", "#Linux", "#Socket", "#Server", "#Sockets", "#Thread"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6739193"
+originalTitle: "LINUX聊天室50问"
+---
+
+====================================
+       Linux Chat Room: 50 Questions
+\====================================
+
+1. Question: How to implement multiple terminals? And listening?
+
+2. What steps does a chat room application typically break down into?
+
+3. Open a Socket, bind it to another port, and continuously listen on this port.
+
+4. Does a server need many Sockets, or one Socket with many ports?
+Answer: It has many sockets, managed by an array.
+
+5. Server (Socket Array): Basically multi-threaded: one thread listens, and after `Accept`, creates a thread to handle the request.
+
+————————————————————————————————————
+Ideas:
+1: The server has a Listener thread for listening.
+2: The server also has a server socket thread for connecting with clients.
+3: When a client connection is detected, a server socket thread is created to connect with that client independently.
+4: The server needs a structure to store client information. You can write a class to encapsulate this, such as user IP, etc.
+——————————————————————————————————————
+
+6. When a client connection is detected, a server socket thread is created to connect with that client independently. This implies that sockets can be created dynamically.
+
+7. There is a pairing relationship between listening and connecting.
+
+8. What about `bind`? Socket and port with `bind`?
+Answer: It's likely binding the created socket to the local IP.
+
+9. Think about QQ, with hundreds of millions of users, how is it managed? How does it speed up QQ login? I want to ask, is there a limit to the number of clients a terminal can listen to? Does the program's processing speed slow down as more clients connect and more threads are opened? I need to connect at least 500 clients for data interaction; will there be issues? Pushing this question again~~
+
+10. ServerSocket.vb
+Responsible for listening for client connections and opening threads to accept client Sockets.
+
+————————————————————————————————————
+        Public   Svr   As   IPEndPoint                   'Server address family
+        Public   SvrListenSocket   As   Socket   'Server listening socket
+        Public   SvrListener   As   Socket           'Represents the state of an asynchronous operation
+        Public   SvrListenThread   As   Thread   'Server listening thread
+        Public   Done   As   New   ManualResetEvent(True)   'Notifies one or more waiting threads that an event has occurred
+Public   alsock   As   New   ArrayList       'Queue for sockets
+——————————————————————————————————————
+
+11.   'Listen for 50 clients and start threads
+ 'Initiate an asynchronous operation to accept an incoming connection attempt
+                                SvrListenSocket.BeginAccept(New   AsyncCallback(AddressOf   AcceptCallback),   SvrListenSocket)
+
+12. After a connection is found, a thread is established to handle it, and when another comes, it's recreated!
+public   sealed   class   Sockets
+{
+      private   Sockets()
+      {
+              // Connections can be established here
+      }
+
+      public   static   Sockets   GetInstance(IPEndPoint   point)
+      {
+              // Threads and connections can be established here
+      }
+}
+
+13. Is my example program using processes or threads for communication? I don't know. It's sockets. But?
+
+14. Creating multiple threads is fine. Create a thread for each connection to handle it.
+      while (true)
+            {
+                // Get the socket containing client information
+                Socket client = server.Accept();
+
+                // Create a message service thread object
+                ClientThread newclient = new ClientThread(client);
+
+                // Delegate the ClientService method of the ClientThread class to the thread
+                Thread newthread = new Thread(new ThreadStart(newclient.ClientService));
+
+                // Start the message service thread
+                newthread.Start();
+            }
+
+15. When communicating, the client needs to know the server's IP address. It is the active party.
+16. The client requests a temporary port from the server (system), releases it after use, and disconnects. It reconnects when needed. So, when QQ opens a window, is it continuously connected? (It should be. If no window is open, there's no connection. It's just connected to the server.)
+
+17. The server, during communication, is generally the passive party and does not know the client's IP and port information.
+
+18. Use `connect` to bind and connect the client socket to a specific server address.
+
+19. Connect the socket to a remote host (client.c) or local IP (server.c).
+
+20. Receive and send data via socket as required.
+
+21. Port addresses are allocated per process. Sending and receiving must use the same port.
+
+22. Why do processes block when a server handles multiple clients, but threads do not? Each client corresponds to two threads (one for sending, one for receiving); as for the client itself, it only needs two.
+
+23. Request Sending Process
+1) Use `gethostbyname()` to obtain host information.
+2) Initialize the socket port.
+3) Use the `connect` function to send its IP address and other information to the host, waiting for the host to call the `accept` function to accept the request.
+
+24. Host receives request and performs data communication
+1) The host uses `accept` to receive the request.
+2) Create a child thread and display a welcome message.
+3) Receive return information and display connection success.
+4) Close the client socket.
+5) Close the server socket and terminate the child thread.
+
+24. What is the purpose of `define BACKLOG 10`?
+
+25. So, my `Listen` can only listen to one? What about multiple clients? How can concurrent listening be achieved?
+
+To be continued...

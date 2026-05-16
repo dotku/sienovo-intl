@@ -1,0 +1,21 @@
+---
+title: "Why Unix Prefers Processes Over Threads"
+date: "2011-10-08"
+slug: "6852269"
+tags: ["#Unix", "#Task", "#Programming", "#API", "#Storage"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6852269"
+originalTitle: "unix为什么喜欢进程不喜欢线程"
+---
+
+Threads — Intimidation or Threat?  
+Although Unix developers have long been accustomed to computation through multiple cooperating processes, they have never developed a spontaneous tradition of using threads. The fact that threads were only recently imported from other systems is no accident — Unix developers' aversion to threads is by no means a mere historical coincidence.  
+
+From the perspective of complexity control, threads are a poor alternative compared to lightweight processes with independent address spaces: threads are a concept native to operating systems where process creation is expensive and IPC (Inter-Process Communication) capabilities are weak.  
+
+By definition, while sub-threads within a process typically have their own private stack for local variables, they share the same global memory space. Managing race conditions and critical sections within this shared address space is notoriously difficult and becomes a breeding ground for increased complexity and bugs. It's possible to make it work, but as locking mechanisms grow more complex, so too do the chances of unintended interactions leading to race conditions and deadlocks.  
+
+Threads foster bugs precisely because they make it too easy for components to know too much about each other's internal state. Unlike processes, which have isolated address spaces and must communicate explicitly via IPC, threads lack automatic encapsulation. As a result, thread-based programs not only suffer from conventional race conditions but also introduce a new class of bugs — timing dependencies — which are extremely difficult to reproduce, let alone fix.  
+
+Thread developers have become aware of these issues. Recent thread implementations and standards show increasing emphasis on providing thread-local storage, aiming to mitigate problems caused by shared global address spaces. As thread APIs evolve in this direction, thread programming is gradually becoming more like a constrained application of shared memory.  
+
+Threads often hinder abstraction. To prevent deadlocks, one frequently needs to know whether and how libraries use threads — knowledge that should ideally be unnecessary. Similarly, using threads within a library may be affected by how threads are used at the application level. — David Korn

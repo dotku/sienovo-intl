@@ -1,0 +1,82 @@
+---
+title: "Linux Compression and Decompression Commands"
+date: "2011-08-10"
+slug: "6675256"
+tags: ["#Linux"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6675256"
+originalTitle: "linux解压缩命令"
+---
+
+tar
+
+\-c: Create a compressed archive  
+\-x: Extract  
+\-t: List contents  
+\-r: Append files to the end of the archive  
+\-u: Update files in the original archive
+
+These five options are standalone commands; one of them must be used for either compression or extraction. They can be combined with other options, but only one of these five may be used at a time. The following options are optional and can be used as needed during compression or extraction.
+
+\-z: Use gzip compression  
+\-j: Use bzip2 compression  
+\-Z: Use compress compression  
+\-v: Display all process details  
+\-O: Extract files to standard output
+
+The following option, -f, is required:
+
+\-f: Specify the archive file name. Remember, this option must be the last one in the command line, and only the archive filename should follow it.
+
+\# tar -cf all.tar \*.jpg  
+This command packages all .jpg files into an archive named all.tar. -c indicates creating a new archive, and -f specifies the archive filename.
+
+\# tar -rf all.tar \*.gif  
+This command adds all .gif files to the all.tar archive. -r means to append files.  
+\# tar -uf all.tar logo.gif  
+This command updates the logo.gif file in the existing all.tar archive. -u indicates updating files.
+
+\# tar -tf all.tar  
+This command lists all files in the all.tar archive. -t means to list the archive contents.
+
+\# tar -xf all.tar  
+This command extracts all files from the all.tar archive. -x means to extract.
+
+**Compression**
+
+tar –cvf jpg.tar \*.jpg // Packages all jpg files in the directory into a file named jpg.tar
+
+tar –czf jpg.tar.gz \*.jpg   // Packages all jpg files into jpg.tar and compresses it with gzip, generating a gzip-compressed package named jpg.tar.gz
+
+tar –cjf jpg.tar.bz2 \*.jpg // Packages all jpg files into jpg.tar and compresses it with bzip2, generating a bzip2-compressed package named jpg.tar.bz2
+
+tar –cZf jpg.tar.Z \*.jpg   // Packages all jpg files into jpg.tar and compresses it with compress, generating a compress-compressed package named jpg.tar.Z
+
+rar a jpg.rar \*.jpg // Compresses files into rar format; requires installing rar for Linux
+
+zip jpg.zip \*.jpg // Compresses files into zip format; requires installing zip for Linux
+
+**Decompression**
+
+tar –xvf file.tar // Extracts a .tar file
+
+tar -xzvf file.tar.gz // Extracts a .tar.gz file
+
+tar -xjvf file.tar.bz2   // Extracts a .tar.bz2 file
+
+tar –xZvf file.tar.Z   // Extracts a .tar.Z file
+
+unrar e file.rar // Extracts a .rar file
+
+unzip file.zip // Extracts a .zip file
+
+**Summary**
+
+1. \*.tar: use `tar –xvf` to extract  
+2. \*.gz: use `gzip -d` or `gunzip` to extract  
+3. \*.tar.gz and \*.tgz: use `tar –xzf` to extract  
+4. \*.bz2: use `bzip2 -d` or `bunzip2` to extract  
+5. \*.tar.bz2: use `tar –xjf` to extract  
+6. \*.Z: use `uncompress` to extract  
+7. \*.tar.Z: use `tar –xZf` to extract  
+8. \*.rar: use `unrar e` to extract  
+9. \*.zip: use `unzip` to extract

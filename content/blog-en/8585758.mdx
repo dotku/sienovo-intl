@@ -1,0 +1,441 @@
+---
+title: "POSIX Thread-Specific Data"
+date: "2013-02-17"
+slug: "8585758"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/8585758"
+originalTitle: "Posix线程私有数据"
+---
+
+Original sources:
+
+[http://baike.baidu.com/view/974776.htm](http://baike.baidu.com/view/974776.htm)
+
+[http://www.blogjava.net/tinysun/archive/2010/05/29/322210.html](http://www.blogjava.net/tinysun/archive/2010/05/29/322210.html)
+
+In single-threaded programs, functions often use global or static variables without affecting program correctness. However, if functions called by threads use global or static variables, it can easily lead to programming errors, because the global and static variables used by these functions cannot store their respective values for different threads. Problems can arise when different threads within the same process call such functions almost simultaneously. One way to solve this problem is to use thread-specific data (TSD).
+
+Thread-specific data employs a technique known as 'one key, multiple values,' meaning a single key corresponds to multiple values. When accessing data, it's always done via the key, appearing as if a single variable is being accessed, but in reality, different data is being accessed. When using thread-specific data, an associated key must first be created for each piece of thread data. Within each thread, this common key is used to refer to the thread data, but in different threads, the data represented by this key is distinct.
+
+In Java, thread-specific data is implemented using `ThreadLocal`. In POSIX, thread-specific data operations are primarily achieved through the following four functions: `pthread_key_create` (creates a key), `pthread_setspecific` (sets thread-specific data for a key), `pthread_getspecific` (reads thread-specific data from a key), `pthread_key_delete` (deletes a key). The declarations for these functions are as follows:
+
+```c
+#include <pthread.h>
+
+int  pthread_key_create (pthread_key_t *key,void (*destr_function)(void *));
+
+int  pthread_setspecific (pthread_key_t key,const void *pointer));
+
+void  *pthread_getspecific (pthread_key_t key);
+
+int  pthread_key_delete (pthread_key_t key);
+```
+
+`pthread_key_create`: Allocates an item from the Linux TSD pool, assigns its value to `key` for future access. Its first parameter, `key`, is a pointer to the key value. The second parameter is a function pointer; if not null, `destr_function()` will be called with the data associated with `key` as an argument when the thread exits, releasing the allocated buffer.
+
+Once a key is created, all threads can access it, but each thread can store different values into the key according to its needs. This is equivalent to providing a global variable with the same name but different values, achieving 'one key, multiple values'. This 'one key, multiple values' mechanism relies on a critical data structure array, the TSD pool, whose structure is as follows:
+
+```c
+static struct pthread_key_struct pthread_keys[PTHREAD_KEYS_MAX] ={{0,NULL}};
+```
+
+Creating a TSD is equivalent to setting an item in the structure array to 'in_use', returning its index to `*key`, and then setting the destructor function `destr_function`.
+
+`pthread_setspecific`: This function associates the value (not the content) of `pointer` with `key`. When using `pthread_setspecific` to assign new thread data to a key, the thread must first release the original thread data to reclaim space.
+
+`pthread_getspecific`: This function retrieves the data associated with `key`.
+
+`pthread_key_delete`: This function deletes a key, and the memory occupied by the key will be released. It's important to note that while the memory occupied by the key is released, the memory occupied by the thread data associated with that key is not. Therefore, the release of thread data must be completed before the key is released.
+
+POSIX requires POSIX-compliant systems to maintain an array of structures, referred to as 'Keys,' for each process. Each structure in this array is called a thread-specific data element. POSIX mandates that the Key structure array implemented by the system must contain no fewer than 128 thread-specific data elements. Each thread-specific data element must contain at least two items: a usage flag and a destructor function pointer. The usage flag in a thread-specific data element indicates whether this array element is currently in use, with an initial value of 'not in use'. We will discuss the destructor function pointer in thread-specific data elements later. In the following discussion, we assume the Key structure array contains 128 elements.
+
+The index (0-127) of each element in the Key structure array is called an index key (key). When a thread calls `pthread_key_create` to create a new thread-specific data key, the system searches the Key structure array of its process, finds the first unused element, and returns its index key.
+
+The `keyptr` parameter is a pointer to a `pthread_key_t` variable, used to store the obtained index key value. The `destructor` parameter is a pointer to the specified destructor function. In addition to the Key structure array, the system also maintains various information about each thread within the process. This thread-specific information is stored in a structure called `Pthread`. The `Pthread` structure contains a pointer array named `pkey`, with a length of 128 and an initial value of null. These 128 pointers correspond one-to-one with the 128 thread-specific data elements in the Key structure array. After calling `pthread_key_create` to obtain a key, each thread can use this key to operate on the corresponding pointer in its `pkey` pointer array to set and retrieve thread-specific data, which is achieved through the `pthread_getspecific` and `pthread_setspecific` functions.
+
+`pthread_getspecific` returns the pointer to the current thread-specific data in `pkey` corresponding to `key`, while `pthread_setspecific` sets the pointer in `pkey` corresponding to `key` to `value`, i.e., sets the pointer to the current thread-specific data corresponding to `key`. The purpose of using the thread-specific data mechanism is to allow functions within a thread to share some data. If we obtain a block of memory in a thread via `malloc` and then set the pointer to this memory block into the `pkey` pointer array at the position corresponding to `key` using `pthread_setspecific`, then functions called within the thread can obtain this pointer via `pthread_getspecific`, thereby achieving sharing of internal thread data among various functions. When a thread terminates, the system scans that thread's `pkey` array and calls the corresponding destructor function for each non-null `pkey` pointer. Therefore, by passing a pointer to the cleanup function as an argument when calling `pthread_key_create`, the allocated memory region can be automatically reclaimed when the thread terminates.
+
+Example 1
+
+```c
+     #include
+     
+     <stdio.h>
+    
+
+    
+
+     #include
+     
+     <string.h>
+    
+
+    
+
+     #include
+     
+     <pthread.h>
+    
+
+    
+
+    
+
+     pthread_key_t
+      key
+     ;
+    
+
+    
+
+    
+
+     void
+     
+     *
+      thread2
+     (
+     void
+     
+     *
+     arg
+     )
+    
+
+    
+
+     {
+    
+
+    
+
+     int
+     tsd 
+     =
+     
+     5
+     ;
+    
+
+    
+
+     printf
+     (
+     "thread %d is running\n"
+     ,
+     pthread_self
+     ());
+    
+
+    
+
+     pthread_setspecific
+     (
+     key
+     ,(
+     void
+     
+     *)
+     tsd
+     );
+    
+
+    
+
+     printf
+     (
+     "thread %d returns %d\n"
+     ,
+     pthread_self
+     (),
+     pthread_getspecific
+     (
+     key
+     ));
+    
+
+    
+
+     }
+    
+
+    
+
+    
+
+     void
+     
+     *
+      thread1
+     (
+     void
+     
+     *
+     arg
+     )
+    
+
+    
+
+     {
+    
+
+    
+
+     int
+     tsd 
+     =
+     
+     0
+     ;
+    
+
+    
+
+     pthread_t
+      thid2
+     ;
+    
+
+    
+
+    
+
+     printf
+     (
+     "thread %d is running\n"
+     ,
+     pthread_self
+     ());
+    
+
+    
+
+     pthread_setspecific
+     (
+     key
+     ,(
+     void
+     
+     *)
+     tsd
+     );
+    
+
+    
+
+     pthread_create
+     (&
+     thid2
+     ,
+     NULL
+     ,
+     thread2
+     ,
+     NULL
+     );
+    
+
+    
+
+     sleep
+     (
+     2
+     );
+    
+
+    
+
+     printf
+     (
+     "thread %d return %d\n"
+     ,
+     pthread_self
+     (),
+     pthread_getspecific
+     (
+     key
+     ));
+    
+
+    
+
+     }
+    
+
+    
+
+    
+
+     int
+      main
+     (
+     void
+     )
+    
+
+    
+
+     {
+    
+
+    
+
+     pthread_t
+      thid1
+     ;
+    
+
+    
+
+     printf
+     (
+     "main thread begins running\n"
+     );
+    
+
+    
+
+     pthread_key_create
+     (&
+     key
+     ,
+     NULL
+     );
+    
+
+    
+
+     pthread_create
+     (&
+     thid1
+     ,
+     NULL
+     ,
+     thread1
+     ,
+     NULL
+     );
+    
+
+    
+
+     sleep
+     (
+     5
+     );
+    
+
+    
+
+     pthread_key_delete
+     (
+     key
+     );
+    
+
+    
+
+     printf
+     (
+     "main thread exit\n"
+     );
+    
+
+    
+
+     return
+     
+     0
+     ;
+    
+
+    
+
+     }
+```
+
+Compile and execute, the results are as follows:
+
+```bash
+     $ gcc 
+     -
+     o 
+     8
+     -
+     4
+     
+     8
+     -
+     4.c
+     
+     -
+     g 
+     -
+     l pthread
+    
+
+    
+
+     $ 
+     ./
+     8
+     -
+     4
+    
+
+    
+
+     main
+      thread begins running
+    
+
+    
+
+     thread 
+     -
+     1209746544
+     
+     is
+      running
+    
+
+    
+
+     thread 
+     -
+     1218139248
+     
+     is
+      running
+    
+
+    
+
+     thread 
+     -
+     1218139248
+     returns 
+     5
+    
+
+    
+
+     thread
+     
+     -
+     1209746544
+     
+     return
+     
+     0
+    
+
+    
+
+     main
+     thread 
+     exit
+```
+
+Program explanation: In the program, the main thread creates `thread1`, and `thread1` creates `thread2`. Both threads use `tsd` as thread-specific data. From the program's output, it can be seen that modifications to `tsd` by the two threads do not interfere with each other. It can be observed that `thread2` finishes before `thread1`. After creating `thread2`, `thread1` sleeps for 2 seconds, waiting for `thread2` to complete. The main thread sleeps for 5 seconds, waiting for `thread1` to finish. It can be seen that `thread2`'s modification of `tsd` did not affect the value of `tsd` in `thread1`.

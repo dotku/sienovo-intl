@@ -1,0 +1,264 @@
+---
+title: "LCD Driver (Part 3): Methods for Displaying BMP Images"
+date: "2011-08-23"
+slug: "6711973"
+tags: ["#Byte", "#Visio", "#Baidu", "#C", "#Storage", "#Expansion"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6711973"
+originalTitle: "LCD驱动(三)：bmp图片的显示方法"
+---
+
+====================== Objective ======================
+
+Display a BMP image on an LCD screen.
+
+==================================================
+
+**1. Q&A**
+
+1. How are images represented in computers? What kind of encoding is used?
+
+Answer: Hexadecimal encoding.
+
+2. How do you load an image?
+
+Use a pointer to locate where the image data is stored. The encoded image data is essentially an array. Retrieve pixel data and display it accordingly. Refer to the code examples below.
+
+3. Static vs. Dynamic Display
+
+Answer: Static display has been implemented. It's similar to displaying Chinese characters using dot matrices, or how LED segment displays work — you've probably worked with those before.
+
+Dynamic display has not yet been implemented.
+
+4. Image as Background and Other Uses
+
+Answer: Usage as background, foreground, transparency, solid fill, etc., is still unclear.
+
+5. Where is the BMP image? Has it been converted into encoded data?
+
+Answer: Yes, a DOS-based tool can convert a BMP image into hexadecimal format. See the partial example below:
+
+```cpp
+#include "bmp.h"
+char cPicStart[MAXPIX128X128]={
+0xAB,0x42,0x34,0xAB,0x42,0x34,0xAA,0x41,0x33,0xA9,0x40,0x32,0xA9,0x40,0x32,0xA9,0x40,0x32,
+0xAA,0x41,0x33,0xAA,0x41,0x33,0xA9,0x40,0x32,0xA9,0x40,0x32,0xA9,0x40,0x32,0xA9,0x40,0x32,
+0xA9,0x40,0x32,0xA9,0x40,0x32,0xA9,0x40,0x32,0xA9,0x42,0x2F,0xAA,0x44,0x2D,0xAC,0x48,0x2C,
+0xAD,0x48,0x2F,0xAE,0x49,0x30,0xAD,0x47,0x31,0xAD,0x47,0x31,0xAF,0x48,0x35,0xB0,0x49,0x36,
+0xAE,0x47,0x34,0xAB,0x44,0x31,0xAA,0x44,0x2E,0xAD,0x47,0x30,0xAC,0x46,0x2F,0xAA,0x45,0x2C,
+0xAE,0x4A,0x2E,0xB5,0x51,0x34,0xAF,0x4D,0x2F,0xB6,0x57,0x36,0xBC,0x5F,0x40,0xB7,0x5C,0x3D,
+0xAC,0x50,0x33,0xA4,0x46,0x29,0xA3,0x42,0x28,0xA8,0x43,0x2A,0xB8,0x4C,0x34,0xBD,0x4F,0x37,
+0xC2,0x54,0x3A,0xC5,0x5A,0x3F,0xC7,0x63,0x47,0xCA,0x6C,0x4F,0xCA,0x70,0x51,0xC9,0x6F,0x50,
+0xC2,0x5D,0x3D,0xC4,0x5D,0x3D,0xC8,0x60,0x43,0xC7,0x63,0x46,0xBE,0x5D,0x43,0xB3,0x56,0x3C,
+0xB2,0x5A,0x42,0xB8,0x63,0x4D,0xB5,0x66,0x51,0xBF,0x73,0x60,0xCE,0x86,0x75,0xD5,0x90,0x7F,
+0xCE,0x8D,0x7F,0xC8,0x8B,0x7D,0xD6,0x98,0x8D,0xE5,0xAA,0xA0,0xEC,0xAF,0xAB,0xE9,0xB2,0xAF,
+0xE8,0xBB,0xB8,0xE6,0xC3,0xBF,0xDC,0xC3,0xBF,0xD0,0xC2,0xBC,0xD3,0xC8,0xC4,0xDC,0xD4,0xCD,
+0xE2,0xD6,0xD0,0xE4,0xCF,0xC7,0xCC,0xA8,0xA0,0xD2,0x9F,0x95,0xF3,0xAB,0xA3,0xD7,0x82,0x78,
+0xAD,0x4B,0x43,0xB6,0x4E,0x41,0xAE,0x47,0x34,0xAF,0x47,0x30,0xAD,0x45,0x2E,0xAB,0x43,0x2C,
+0xAA,0x42,0x2B,0xAA,0x42,0x2B,0xAB,0x43,0x2C,0xAB,0x43,0x2C,0xAE,0x47,0x2E,0xAE,0x47,0x2E,
+0xAE,0x47,0x2E,0xAD,0x46,0x2D,0xAD,0x46,0x2D,0xAC,0x45,0x2C,
+```
+
+6. How can you write an image using a plain text (.txt) file (i.e., write image encoding in a .txt file and save it as a .bmp)? How do you convert a BMP image into a text file?
+
+Answer: Refer to "Introduction to BMP Images" — a quick Baidu search will yield many results explaining file formats, header structures, color palettes, etc.
+
+7. What encoding method does a .txt file use? How is indexing performed? What is the method (operation) for displaying dot matrix data?
+
+8.  
+
+**2. Code Comments**
+
+1) BMP images are stored in BGR888 format. To display them on an LCD, they must be converted to RGB565 format. The conversion function is as follows:
+
+// Convert BGR888 format to RGB565 format, with ColorAdjust for color adjustment  
+// uctype specifies the color type: 0 for foreground, 1 for background  
+// lx-2011-7-19  
+```cpp
+void BGR888TRGB565(char *cBGR888, int ColorAdjust, BYTE uctype)  
+{  
+    LCDSetColorAdjust(cBGR888, ColorAdjust);  
+    if(uctype == 0)  
+    {  
+        ucFrontColorSet1 = (cBGR888[2] + RedAdjust) & 0xf8;  
+        ucFrontColorSet1 += (cBGR888[1] + GreenAdjust) >> 5;  
+        ucFrontColorSet2 = (cBGR888[0] + BlueAdjust) >> 3;  
+        ucFrontColorSet2 += ((cBGR888[1] + GreenAdjust) & 0x1c) << 3;  
+    }  
+    else if(uctype == 1)  
+    {  
+        ucBackColorSet1 = (cBGR888[2] + RedAdjust) & 0xf8;   // Bit shift: take the top 5 bits of BGR888[2] (RED) as the R bits in RGB565 byte set1  
+        ucBackColorSet1 += (cBGR888[1] + GreenAdjust) >> 5;  
+        ucBackColorSet2 = (cBGR888[0] + BlueAdjust) >> 3;  
+        ucBackColorSet2 += ((cBGR888[1] + GreenAdjust) & 0x1c) << 3;  
+    }  
+}
+```
+
+Thought: I find it hard to express this clearly in words — I should install Visio next week. One diagram would make everything clear.
+
+2)
+```cpp
+// LightAdjust: color adjustment, range -16 (to ColorR) ~ +16 (to ColorL), 0 means original color  
+void LCDSetColorAdjust(char *cBGRPix, int ColorAdjust)  
+{  
+    if(ColorAdjust > 0)  
+    {  
+        RedAdjust = ColorAdjust * (ColorL[2] - cBGRPix[2]) / 16;  
+        GreenAdjust = ColorAdjust * (ColorL[1] - cBGRPix[1]) / 16;  
+        BlueAdjust = ColorAdjust * (ColorL[0] - cBGRPix[0]) / 16;  
+    }  
+    else if(ColorAdjust < 0)  
+    {  
+        RedAdjust = ColorAdjust * (cBGRPix[2] - ColorR[2]) / 16;  
+        GreenAdjust = ColorAdjust * (cBGRPix[1] - ColorR[1]) / 16;  
+        BlueAdjust = ColorAdjust * (cBGRPix[0] - ColorR[0]) / 16;  
+    }  
+    else if(ColorAdjust == 0)  
+    {  
+        RedAdjust = 0;  
+        GreenAdjust = 0;  
+        BlueAdjust = 0;  
+    }  
+}
+```
+
+3) When reading code, analyzing concrete assignment examples is a good method — it reduces abstraction. Consider the following code:
+
+```cpp
+/* Static image loading with color gradient effect */
+void LCDSetButton(BYTE ucStartx, BYTE ucStarty, BYTE ucLen, BYTE ucWidth, int ColorAdjust, BYTE ucType)
+{
+    int i, k, step;
+    if(ucType == TRANS)
+    {
+        LCDShowPic(cPicmy1Start, ucStartx, ucStarty, ucLen, ucWidth, ColorAdjust);
+    }
+    else if(ucType == TRANSA)   // Horizontal transparent gradient
+    {
+        LCDSetAdjustColorScop(BLACK, BLUED, BLACK);
+        step = ucLen / 32;
+        if(step >= 1)
+            AColorAdjust = 16;
+        else                    // if ucLen < 32, set gradient factor to 8, otherwise 16
+        {
+            step = 1;
+            AColorAdjust = 8;
+        }
+        for(i = 0; i < ucLen; i++)
+        {
+            LCDShowPic(cPicBackGround, ucStartx + i, ucStarty, 1, ucWidth, AColorAdjust); // Adjust color factor based on uc = 32 boundary
+            if(i % step == 0)   // This line is hard to analyze theoretically due to step = ucLen / 32; but becomes clear if ucLen = 112
+            {
+                k++;
+                if(AColorAdjust > -16)
+                    AColorAdjust--;
+            }
+        }
+        LCDSetDefaultAdjustColor();
+    }
+    else if(ucType == TRANSB)   // Vertical transparent gradient
+    {
+        LCDSetAdjustColorScop(BLACK, BLUED, BLACK);
+        step = ucWidth / 32;
+        if(step >= 1)
+            AColorAdjust = 16;
+        else
+        {
+            step = 1;
+            AColorAdjust = 8;
+        }
+        for(i = 0; i < ucWidth; i++)
+        {
+            LCDShowPic(cPicmy1Start, ucStartx, ucStarty + i, ucLen, 1, AColorAdjust);
+            if(i % step == 0)
+            {
+                if(AColorAdjust > -14)
+                    AColorAdjust--;
+            }
+        }
+        LCDSetDefaultAdjustColor();
+    }
+    else if(ucType == SOLIDA)   // Horizontal non-transparent gradient
+    {
+        LCDSetAdjustColorScop(BLACK, ORANGE, BLACK);
+        step = ucLen / 16;
+        AColorAdjust = 8;
+        for(i = 0; i < ucLen; i++)
+        {
+            LCDSetLine(ucStartx + i, ucStarty, ucWidth, LIGHTCHANGE, 1);
+            if(i % step == 0)
+            {
+                k++;
+                AColorAdjust--;
+            }
+        }
+        LCDSetDefaultAdjustColor();
+    }
+    else if(ucType == SOLIDB)   // Vertical non-transparent gradient
+    {
+        LCDSetAdjustColorScop(WHITE, BLUED, BLACK);
+        step = ucWidth / 16;
+        AColorAdjust = 8;
+        for(i = 0; i < ucWidth; i++)
+        {
+            LCDSetLine(ucStartx, ucStarty + i, ucLen, LIGHTCHANGE, 0);
+            if(i % step == 0)
+            {
+                AColorAdjust--;
+            }
+        }
+        LCDSetDefaultAdjustColor();
+    }
+}
+```
+
+4)
+```cpp
+void LCDShowPic(char *cpBmp, BYTE ucStartx, BYTE ucStarty, BYTE ucLen, BYTE ucWidth, int ColorAdjust)
+// Function to display static BMP images
+{
+    DWORD dwStartPix = 0;
+    int i, j;
+
+    for(i = 0; i < ucWidth; i++)
+    {
+        dwStartPix = ((127 - ucStarty - i) * 128 + ucStartx) * 3;
+        // Formula — the indexing logic is unclear. Please clarify if understood.
+        // Multiply by 3 because BGR888 format reads 3 bytes per pixel.
+        for(j = 0; j < ucLen; j++)
+        {
+            BGR888TRGB565(&cpBmp[dwStartPix], ColorAdjust, 0);
+            Xadd(ucStartx + j, ucStartx + j);
+            Yadd(ucStarty + i, ucStarty + i);
+            LCDCOM_MASTER(0x2C);
+            LCDDATA_MASTER(ucFrontColorSet1);
+            LCDDATA_MASTER(ucFrontColorSet2);
+            dwStartPix += 3;
+        }
+    }
+}
+```
+
+**4. MIT Method Practice**
+
+1. Damn it, I'm tired of deleting code. **Can we create classes in C? Otherwise, extending or refactoring becomes chaotic, which often leads to loss of confidence. Any experts out there — how do you manage code organization? The goal is easier debugging, but after debugging, I don't want to keep unnecessary commented code.**
+
+**==================================================**
+
+**Disorganization kills confidence — that's the most dangerous part.**
+
+**==================================================**
+
+2. How do you write stress-free, healthy, robust programs? Clean and tidy code? Programs that are easy to trim and extend? Is C++ the answer? How can this be achieved in C? (Study Linux kernel source — see how professionals do it?)
+
+3. Understand the underlying principles (enough to be functional), debug with clear visualization.
+
+4. How to make code easy to modify and maintain? Otherwise, it's exhausting and unsustainable. Good organization makes your work progressively easier. Without management or systems, you'll quickly hit a learning plateau.
+
+5. Array indexing: linear algebra — go back and review MIT lectures (search Baidu, learn from that Baidu senior from SCUT — she earns 200k annually!).
+
+Abstraction: offset calculation.
+
+**_Mathematical techniques (geometry, algebra) make programming more concise and effortless._**
+
+**_6. Think thoroughly and meticulously (get it right the first time, improve efficiency). Simulate execution mentally before jumping into debugging._**

@@ -1,0 +1,16 @@
+---
+title: "Usage of extern in C Language"
+date: "2011-09-22"
+slug: "6800525"
+tags: ["#Language", "#C", "#Fun"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6800525"
+originalTitle: "C语言中extern的用法"
+---
+
+In the C language, the `extern` specifier is used before the declaration of a variable or function to indicate that "this variable/function is defined elsewhere and needs to be referenced here."
+
+1. `extern` for variable declarations. For example, if file `a.c` needs to reference the variable `int v` from `b.c`, you can declare `extern int v` in `a.c`, and then you can reference `v`. It's important to note that the linkage property of the referenced variable `v` must be external. This means that for `a.c` to reference `v`, it doesn't just depend on declaring `extern int v` in `a.c`, but also on `v` itself being accessible. This touches upon another topic in C language — variable scope. Variables that can be referenced by other modules using the `extern` specifier are usually global variables. Another very important point is that `extern int v` can be placed anywhere in `a.c`. For instance, you can declare `extern int v` at the beginning of the `fun` function definition in `a.c`, and then `v` can be referenced, though only within the scope of the `fun` function. This is still a matter of variable scope. Many people have concerns about this, as if `extern` declarations can only be used at file scope.
+
+2. `extern` for function declarations. Essentially, there is no difference between variables and functions. A function name is a pointer to the beginning of the function's binary block. If file `a.c` needs to reference a function from `b.c`, for example, if its prototype in `b.c` is `int fun(int mu)`, then you can declare `extern int fun(int mu)` in `a.c`, and then use `fun` for anything. Just like variable declarations, `extern int fun(int mu)` can be placed anywhere in `a.c`, not necessarily only within the file scope of `a.c`. The most common way to reference functions from other modules is to include header files containing their declarations. What's the difference between using `extern` and including header files to reference functions? The `extern` method of referencing is much more concise than including header files! The usage of `extern` is straightforward: declare whichever function you want to reference with `extern`. This is probably an embodiment of the KISS principle! A clear advantage of doing this is that it speeds up the compilation (more precisely, the pre-processing) process, saving time. In the compilation of large C programs, this difference is very noticeable.
+
+3. Furthermore, the `extern` specifier can be used to indicate the calling convention for C or C++ functions. For example, when calling C library functions in C++, you need to declare the functions to be referenced using `extern "C"` in the C++ program. This is for the linker, telling it to use the C function calling convention during linking. The main reason is that C++ and C programs have different naming conventions in the object code after compilation.

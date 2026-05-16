@@ -1,0 +1,69 @@
+---
+title: "Common VxWorks Commands"
+date: "2012-02-04"
+slug: "7233501"
+tags: ["#Statistics", "#Task", "#Function", "#Network", "#String", "#Internet"]
+source: "https://blog.csdn.net/yeyuangen/article/details/7233501"
+originalTitle: "vxworks 常用命令"
+---
+
+1. Task-Related Commands
+sp function,[arg1],...,[arg9]
+- Starts a task, accepts up to 9 arguments, default priority 100, stack 20000 bytes.
+
+period n,function,[arg1],...,[arg8]
+- Creates a task that periodically calls 'function' every 'n' seconds, accepts up to 8 arguments.
+
+repeat m,function,[arg1],...,[arg8]
+- Creates a task that repeatedly calls 'function' 'm' times. If m=0, it calls indefinitely. Accepts up to 8 arguments.
+
+ts tidX - Suspends a task
+tr tidX - Resumes a suspended task
+td tidX - Deletes a task
+i tidX - Displays basic task information. If the parameter is 0, displays all tasks.
+ti tidX - Displays detailed task information, including registers, stack, etc.
+tt tidX - Displays the task's function call relationships.
+checkStack tidX - Displays historical statistics of task stack usage. If the parameter is 0, displays all tasks.
+[tidX can be either the task ID or the task name]
+
+2. System Information
+
+lkup ["string"] - Searches and lists functions and global variables containing "string" in the system symbol table. There are two special parameters:
+0, provides symbol table statistics; "" (empty string), lists all symbols.
+
+lkAddr addr - Displays the symbol table near address 'addr'.
+
+l addr,[n] - Displays the disassembly of 'n' instructions starting from address 'addr'. If 'n' is omitted, it defaults to 10 instructions.
+
+h [n] - If 'n' is 0, lists recently executed shell commands (defaults to 20). If 'n' is non-zero, sets the number of historical commands recorded by the shell.
+
+d [addr,[number],[width]]
+- Displays the content of 'number' units starting from address 'addr'. 'width' customizes the width of each unit, which can be 1, 2, 4, or 8.
+
+m addr,[width] - Modifies the content at address 'addr' with 'width' as the unit size. 'width' can be 1, 2, 4, or 8.
+
+memShow 1 - Displays the total free and allocated space on system partitions, etc.
+
+printErrno value - Prints the macro for system-defined error codes.
+
+3. Network-Related Commands
+
+ifShow ["ifname"] - show info about network interfaces
+inetstatShow - show all Internet protocol sockets
+tcpstatShow - show statistics for TCP
+udpstatShow - show statistics for UDP
+ipstatShow - show statistics for IP
+icmpstatShow - show statistics for ICMP
+arpShow - show a list of known ARP entries
+mbufShow - show network stack data pool statistics
+netStackSysPoolShow - show network stack system pool statistics
+
+routeShow - display all IP routes (summary information)
+mRouteShow - display all IP routes (verbose information)
+routestatShow - display routing statistics
+routeAdd "destaddr","gateaddr" - add route to route table
+routeDelete "destaddr","gateaddr" - delete route from route table
+
+Note: Most of the commands above can be found in `help` and `netHelp`.
+
+http://blog.myspace.cn/e/401761251.htm

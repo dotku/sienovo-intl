@@ -1,0 +1,30 @@
+---
+title: "Meaning of `__read_mostly` Variables (LINUX)"
+date: "2012-02-29"
+slug: "7307326"
+tags: ["#Linux", "#LinuxKernel", "#Cache", "#Platform"]
+source: "https://blog.csdn.net/yeyuangen/article/details/7307326"
+originalTitle: "__read_mostly变量含义（LINUX)"
+---
+
+The `__read_mostly` primitive is defined to be stored in the `.data.read_mostly` section.
+
+  include/asm/cache.h
+
+#define __read_mostly __attribute__((__section__(".data.read_mostly")))  
+
+   From this, it can be seen that we can define frequently accessed data as `__read_mostly` type. When the Linux kernel is loaded, this data will automatically be stored in the Cache, thereby improving the overall system's execution efficiency.
+
+   On the other hand, if the platform does not have a Cache, or if it has a Cache but does not provide an interface for storing data (i.e., it does not allow manual placement of data in the Cache), then data defined as `__read_mostly` type cannot be stored in the Linux kernel. It may even fail to be loaded into system memory for execution, leading to Linux kernel boot failure.
+
+   There are two solutions:
+
+   Modify the `__read_mostly` definition in `include/asm/cache.h` to:
+
+   #define __read_mostly
+
+   Or modify `arch/xxx/kernel/vmlinux.S`
+
+   Modify the location of the `.data.read_mostly` section to actual memory space, for example, placing it after the `.data` section, and so on.
+
+  Original URL:   [http://blog.chinaunix.net/u2/85263/showart_1743693.html](http://blog.chinaunix.net/u2/85263/showart_1743693.html)

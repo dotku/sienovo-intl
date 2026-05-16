@@ -1,0 +1,88 @@
+---
+title: "DSP No-Boot Mode Startup Debugging"
+date: "2019-05-12"
+slug: "90146559"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/90146559"
+originalTitle: "DSP no boot模式启动调试"
+---
+
+### 1 Introduction to JTAG Debugging for ARM/DSP/FPGA Chips
+
+On the periphery of the CPU, the processor internally incorporates a hardware implementation of JTAG, providing an external interface through four pins: TMS, TCK, TDI, and TDO.
+
+*   TCK: Clock signal, providing an independent, fundamental clock signal for TAP operations.
+*   TMS: Mode Select signal, used to control the state transitions of the TAP state machine.
+*   TDI: Data Input signal.
+*   TDO: Data Output signal.
+*   TRST: Reset signal, used to reset (initialize) the TAP Controller. This signal interface is not mandatory in the IEEE 1149.1 standard, as the TAP Controller can also be reset via TMS.
+*   STCK: Clock Return signal, not mandatory in the IEEE 1149.1 standard.
+
+![JTAGåç](http://www.veryarm.com/wp-content/uploads/6a3658a0575286c0d9bbc5dd9989f603.jpg)
+
+We know that the CPU communicates with peripherals via pins, and all data is input or output through these pins. JTAG achieves chip testing by monitoring the signals on these pins. The Boundary Scan Chain is a component located on the pins, as shown below:
+
+![边界扫描链位置](http://www.veryarm.com/wp-content/uploads/4635e932934f0d29dcf628186c0c9bf3.jpg)
+
+Boundary Scan Chain Location
+
+Through the Boundary Scan Chain, when a signal is input, it can be captured. Similarly, when the CPU needs to output a signal, the Boundary Scan Chain can also capture the signal to be output. Furthermore, signals can also be directly output externally via the Boundary Scan Chain.
+
+Whether capturing or outputting signals, an interface is needed to store them. TDI and TDO perform these functions, as shown:
+
+![JTAG TDI TDO示意图](http://www.veryarm.com/wp-content/uploads/d749c1b2c2acac7dde890413f7c20db2.jpg)
+
+JTAG TDI TDO Schematic Diagram
+
+The Boundary Scan Chain originally stores the signals on the pins. When we input our own signals via the TDI pin, a shift operation occurs along the direction of the red line shown above.
+
+**TDI ——〉 Boundary Scan Chain —— 〉 TDO**
+
+Simply put, PC debugging of the target board is achieved by accessing the relevant **Data Registers (DR)** and **Instruction Registers (IR)** via the TAP interface.
+
+After system power-up, the TAP Controller first enters the **Test-LogicReset** state, then sequentially enters the **Run-Test/Idle, Select-DR-Scan, Select-IR-Scan, Capture-IR, Shift-IR, Exit1-IR, Update-IR** states, and finally returns to the **Run-Test/Idle** state. During this process, state transitions are driven by the TCK signal (rising edge), and the TAP state is selected and transitioned via the TMS signal. Specifically,
+
+In the Capture-IR state, a specific logical sequence is loaded into the Instruction Register;
+
+In the Shift-IR state, a specific instruction can be shifted into the Instruction Register;
+
+In the Update-IR state, the instruction just input into the Instruction Register will be used to update the Instruction Register.
+
+Finally, the system returns to the Run-Test/Idle state, the instruction takes effect, and the access to the Instruction Register is completed.
+
+After the system returns to the Run-Test/Idle state, the required Data Register is selected based on the content of the previous Instruction Register, and operations on the Data Register begin. Its basic principle is exactly the same as accessing the Instruction Register, sequentially entering **Select-DR-Scan, Capture-DR, Shift-DR, Exit1-DR, Update-DR**, and finally returning to the **Run-Test/Idle** state. Through TDI and TDO, new data can be loaded into the Data Register. After one cycle, the data in the Data Register can be captured, completing the data update for the chip pins connected to each register unit of the Data Register, and also completing the access to the Data Register.
+
+### 2 DSP Bootloader
+
+1.  The BootLoader is a program located in the on-chip boot ROM that executes after reset, with the reset vector located at 0x3FFFC0.
+2.  The boot mode is determined by GPIOF2, GPIOF3, GPIOF4, and GPIOF12.
+
+TI supports many boot methods, including internal RAM (SARAM), Flash, SCI, SPI, etc. However, all boot methods follow the process below:
+
+The steps in this process, such as reset, initboot, call selectbootmode, read i/o state, and call boot loader, are all executed by programs hard-coded within the chip itself. This means these codes are already present in the TI chip at the time of manufacturing. In the 28335, this is an 8k*16 read-only memory segment, with addresses located from 0x3fe000 to 0x3fffff, as shown below:
+
+Based on the flowchart and ROM distribution map above, let's explain the process in detail:
+
+1.  The address range 0x3FFFC0 to 0x3FFFFF is where the interrupt vector table is located. When the system powers on, it naturally enters the reset interrupt, thus directly jumping to the reset location (0x3FFFC0) for execution. These two bytes at this location contain only one instruction: a jump to the initboot function, which is the address 0x3FF34C, to execute the boot load.
+
+2.  In the bootloader operation at 0x3FF34C, the status of external GPIO pins is checked to determine the boot mode:
+
+3.  Then, based on the determined boot mode, it jumps to the corresponding entry address: for example, Flash boot is 0x33FFF6, and internal SARAM boot is 0x0.
+
+4.  The entry address here is the 'begin' section defined in the CMD file. Therefore, the definition of 'begin' is different for Flash boot and RAM boot: for Flash boot, 'begin' is 0x33FFF6, and for RAM boot, 'begin' is 0x0. This 2-word interval is where the first instruction of our program (usually code_start) is placed. Since CSM_PWL is located at 0x33FFF8, there are only 2 words of space available for the jump instruction. A long jump instruction (LB) conveniently occupies two bytes (this is clearly a deliberate design by TI).
+
+### 3 JTAG Cannot Recognize DSP
+
+If JTAG cannot recognize TI's DSP, there may be several reasons:
+1.  The emulator has a problem;
+2.  The emulator driver has a problem;
+3.  The target board has a problem;
+    Here, we will only discuss scenarios where the emulator is fine and its drivers are correctly installed, but JTAG connection fails due to issues with the target board:
+1.  Check if the DSP's power supply (Core voltage, IO voltage) is correct. Are the ripples within requirements? Is the power-up sequence correct?
+2.  Check if the DSP's power supply clock is correct. Are the voltage levels within requirements?
+3.  Check if the DSP's system reset signal is normal. Is the NMI pin connected correctly? Are all DSP-related input pins connected correctly?
+4.  Measure if the DSP's CLKOUT is correct. When powering up, does the DSP attempt to chip-select the boot-Flash?
+5.  Measure the DSP's EMIF bus; ensure no short circuits or incorrect connections between any two data or address lines. If possible, disconnect loads on the EMIF bus before performing JTAG connection tests.
+6.  If there is an FPGA device on the DSP's EMIF bus, the FPGA program needs to be downloaded first. All FPGA signals related to the DSP can be defined as inputs.
+7.  Set up CCS correctly. After opening CCS, if no errors occur after clicking "reset" in debug mode, then the drivers are generally fine.
+8.  Manually reset the DSP multiple times before attempting to connect, or restart CCS and the computer after a failed connection.

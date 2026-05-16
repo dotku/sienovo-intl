@@ -1,0 +1,51 @@
+---
+title: "Using rz and sx Commands — Downloading Files to Target Board via Serial Terminal"
+date: "2011-08-18"
+slug: "6698501"
+tags: ["#Terminal", "#Makefile", "#Compiler", "#Windows", "#Linux", "#Testing"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6698501"
+originalTitle: "rz命令与sx等命令——串口终端下载文件到目标板"
+---
+
+The newly downloaded Linux source code does not include the super terminal commands by default and must be added manually. After adding them, the development board can transfer files from a PC through a serial port.
+
+Steps:
+
+1. Download the software rzsz-3.48.tar.gz from [http://freeware.sgi.com/source/rzsz/rzsz-3.48.tar.gz](http://freeware.sgi.com/source/rzsz/rzsz-3.48.tar.gz).
+
+2. Extract: `tar zxvf rzsz-3.48.tar.gz`
+
+3. Install:  
+   `cd src`  
+   `vi Makefile`  
+   Modify `CC=arm-linux-gcc`  
+   Save and exit  
+   Run `make posix`
+
+   Note: This software installation differs from standard GNU software — there is no configure step or `make install` process.  
+   I'm using an S3C2410 cross-compiler; for different platforms, only the cross-compiler needs to be changed.
+
+   After running `make posix`, if the compilation succeeds, run the `ls` command and you will see many new files:
+
+   ```
+   COPYING   gz         minirb.c    rc      rz.c    sz       undos.doc  zmodem.h
+   crc.c     mailer.rz  minirb.doc  README  rz.doc  sz.c     zcommand   zmr.c
+   crc.doc   Makefile   rb          rx      sb      sz.doc   zcommandi  zupl.t
+   crctab.c  Makefile~  rbsb.c      rz      sx      undos.c  zm.c
+   ```
+
+   Copy `rb`, `rx`, `rc`, `rz`, `sb`, `sx`, `sz`, `zcommand`, and `zcommandi` to the `bin` directory of your root file system. Then copy the following libraries from your cross-compilation toolchain — `ld-2.5.so`, `libc-2.5.so`, `libcrypt.so.1`, `libgcc_s.so.1`, `libm.so.6`, `ld-linux.so.3`, `libcrypt-2.5.so`, `libc.so.6`, `libm-2.5.so` (the version numbers may differ, but as long as these files are present, it's acceptable) — into the `lib` directory of the root file system. Rebuild the root file system, download it to the development board, reboot, and test the `rz` and `sz` commands.
+
+Command Usage:
+
+   `sz /filename` — Open Windows HyperTerminal, right-click and select "Receive File", set the destination directory, and confirm.
+
+   `rz` — In HyperTerminal, right-click and select "Send File" to transmit the file.
+
+In my actual operation, I used the `ldd` command to check the dynamic libraries that `rz` and similar commands depend on. I found that they did not depend on any dynamic libraries. I only checked `rz` and `sx`; I'm not sure about the others. Therefore, when building the file system, I did not copy the aforementioned dynamic libraries into the `lib` directory.
+
+Finally, testing with the `rz` command worked successfully.
+
+Note:
+
+   If a command does not work, use the `ldd` command to check whether it depends on any dynamic libraries, and then port those libraries to the file system. Then it should work~~haha~~

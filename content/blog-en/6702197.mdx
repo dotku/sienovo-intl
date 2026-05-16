@@ -1,0 +1,238 @@
+---
+title: "My Makefile Learning Notes"
+date: "2011-08-19"
+slug: "6702197"
+tags: ["#Makefile", "#Wildcard", "#Expansion", "#List", "#Filter", "#Emacs"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6702197"
+originalTitle: "跟我一起makefile学习笔记"
+---
+
+**1. Terminology Explanation**
+
+**1. Automatic Variables**
+
+$<: The entire dependency set. Expands to the first dependency file in the dependency list.
+
+$@: All files corresponding to the rule's target. Expands to the name of the current rule's target file. Note: $(OBJECTS) represents the collection of all targets. [Clarification needed: what is the essential difference?]
+
+$?:
+
+$^: Expands to the full list of dependencies (with duplicate filenames removed).
+
+@ expands to the name of the current rule's target file. $< expands to the first dependency in the dependency list (e.g., for `foo.o : foo.c foo.h bar.h`, $< represents `foo.c`), while $^ expands to the entire dependency list (with duplicates removed). Using these variables, we can rewrite the above makefile as:
+
+```cpp
+===   makefile   start   === OBJS   =   foo.o   bar.o CC   =   gcc CFLAGS   =   -Wall   -O   -g myprog   :   $(OBJS)     $(CC)   $^   -o   $@              // Here, $^ represents the full dependency list, foo.c, bar.c (implicit rules)? $@ represents myprog foo.o   :   foo.c   foo.h   bar.h     $(CC)   $(CFLAGS)   -c   $<   -o   $@        //{1}lt; represents foo.c, $@ represents foo.o bar.o   :   bar.c   bar.h     $(CC)   $(CFLAGS)   -c   $<   -o   $@ ===   makefile   end   === 
+```
+
+$@ represents a set of targets (a distinguishing feature: multiple targets), which can be understood as an array in C, where targets are taken one by one and commands executed accordingly.
+
+See Example 2:
+
+```cpp
+bigoutput littleoutput : text.g  generate text.g -$(subst output,,$@)// This rule is equivalent to: bigoutput : text.g  generate text.g -big > bigoutput littleoutput : text.g  generate text.g -little > littleoutput 
+```
+
+**2. Keywords**
+
+1) wildcard:
+
+Comparison:  
+objects = \*.o  // Not expanded  
+objects := $(wildcard \*.o) // Expanded. Makes objects hold a list of all .o files.
+
+In GNU Make, there is a function called 'wildcard' that takes one parameter and expands into a space-separated list of all files matching the pattern described by its argument. You can use it as shown below:  
+SOURCES = $(wildcard \*.c)  
+This line generates a list of all files ending in ".c" and stores it in the variable SOURCES. Of course, you don't have to store the result in a variable.
+
+**3. Phony Targets: .PHONY, clean, all**
+
+all : $(OUTDIR)/$(OUTBINNAME)  
+.PHONY : all
+
+\=============================== Tip: Phony Targets =======================================
+
+```cpp
+all : prog1 prog2 prog3 .PHONY : all prog1 : prog1.o utils.o  cc -o prog1 prog1.o utils.o prog2 : prog2.o  cc -o prog2 prog2.o prog3 : prog3.o sort.o utils.o  cc -o prog3 prog3.o sort.o utils.o 
+```
+
+Due to the nature of phony targets, they are always executed. Thus, all, prog1, prog2, and prog3 are treated as executable targets.
+
+\====================================================================================
+
+**3. Labels**
+
+**4. .PHONY : clean**  // Indicates that clean is a phony target
+
+**5. Environment Variable MAKEFILES:** It is recommended not to use it, as it behaves like a global variable and affects all your Makefiles. If your makefile behaves unexpectedly, check whether this environment variable is set.
+
+**6. -M Option:** Automatically generates dependencies and includes header files.
+
+For example, running: `cc -M main.c`  
+Output: `main.o : main.c defs.h`
+
+7. Executable files, e.g., exec:
+
+## 2. Variable Definitions
+
+These variables are similar to macro definitions in C.
+
+```cpp
+# Method 1: Multi-line variable definition
+define variable
+value
+value
+endef
+
+# Method 2:
+variable = value
+
+# Method 3:
+variable := value
+
+# Method 4:
+variable += value
+
+# Method 5:
+variable ?= value
+```
+```cpp
+=   : Defined from back to front; later values determine the final value. Use with caution. It's better to use :=. However, = is acceptable in simple cases.
+:=  : Immediate assignment
++=  : Append
+?=  : Assign only if not already defined
+```
+
+```cpp
+
+```
+**3. Wildcards**
+
+```cpp
+* ? ... ~ %
+```
+
+Note: If a literal * appears in a file path, escape it with \*
+
+\===========     Example Analysis     ==============
+
+1) Are \*.c and %.c synonymous?
+
+\===================================
+
+**4. Using Functions**
+
+**1. $(subst <from>,<to>,<text>)**  
+Replaces occurrences of `from` with `to` in the string `text`.
+
+**2. $(patsubst <pattern>,<replacement>,<text>)**  
+Pattern string replacement function: `pattern` (pattern)
+
+Example: `$(patsubst %.c,%.o,x.c.c bar.c)` replaces files matching pattern `%.c` in `x.c.c bar.c` with `%.o`, resulting in `x.c.o bar.o`.
+
+**3. filter function**
+
+```cpp
+files = foo.elc bar.o lose.o $(filter %.o,$(files)): %.o: %.c   // filter extracts files with suffix %.o from the files collection $(CC) -c $(CFLAGS) $< -o $@ $(filter %.elc,$(files)): %.elc: %.el  emacs -f batch-byte-compile $< 
+```
+
+**4. foreach function**
+
+The foreach function is very different from other functions because it is used for looping. The foreach function in Makefile is modeled after the `for` statement in Unix standard shell (/bin/sh) or the `foreach` statement in C-Shell (/bin/csh). Its syntax is:  
+$(foreach <var>,<list>,<text>)
+
+This function means: take each word from <list> and assign it to the variable specified by <var>, then execute the expression in <text>. Each execution of <text> returns a string. During the loop, the returned strings are separated by spaces. When the loop ends, the concatenated string (space-separated) of all returned values becomes the return value of the foreach function.  
+Thus, <var> should preferably be a variable name, <list> can be an expression, and <text> typically uses <var> to iterate over the words in <list>. Example:
+
+```cpp
+names := a b c d
+files := $(foreach n,$(names),$(n).o)
+```
+
+In this example, words from $(names) are taken one by one and stored in the variable "n". "$(n).o" is computed each time based on "$(n)", and the results are space-separated and returned by the foreach function. Therefore, $(files) becomes "a.o b.o c.o d.o".
+
+Note: The <var> parameter in foreach is a temporary local variable. After foreach completes, <var> no longer exists—its scope is limited to within the foreach function.
+
+**5. Static Pattern Rules**
+
+**6. Makefile Rules**
+
+target ... : prerequisites ...  
+          command  
+
+target: a target file, which can be an object file (multiple files), an executable, or a label.
+
+prerequisites: files or targets required to generate the target.
+
+\======================  Tip  ===============================
+
+```cpp
+edit : main.o kbd.o command.o display.o insert.o search.o files.o utils.o  cc -o edit main.o kbd.o command.o display.o  insert.o search.o files.o utils.o             // Carefully observe: here CC is followed by -o and then edit, main.o, etc. Below, CC is followed by -c and then .c files
+main.o : main.c defs.h  cc -c main.c 
+```
+
+\==============================================================
+
+**7. Letting make perform implicit inference**
+
+1. As long as makefile sees a .o file, it automatically infers the corresponding .c file needed to generate it.
+
+Automatic inference of files and their dependent commands.
+
+**8. Miscellaneous**
+
+**1. File Search**
+
+1)
+
+```cpp
+VPATH = src:../headers
+```
+
+The above directive specifies two directories: "src" and "../headers". Note that the current directory is always searched first. Directories are separated by ":".
+
+2)
+
+```cpp
+vpath %.c foo
+vpath %.c blish
+vpath %.c bar
+```
+
+The above directives mean that .c files are first searched in the foo directory, then in blish, and finally in bar.
+
+3)
+
+vpath %.h ../headers
+
+This is pattern-based search.
+
+**9. Example Analysis**
+
+```cpp
+[root@localhost new2416]# make CC=arm-linux-gcc
+mkdir   obj
+arm-linux-gcc -c -O2 -o  obj/main.o main.c
+arm-linux-gcc -c -O2 -o  obj/bmp.o bmp/bmp.c
+arm-linux-gcc -c -O2 -o  obj/lcddriver.o lcddriver/lcddriver.c
+arm-linux-gcc -c -O2 -o  obj/disp.o disp/disp.c
+arm-linux-gcc -c -O2 -o  obj/zklib.o zklib/zklib.c
+arm-linux-gcc -c -O2 -o  obj/gps.o gps/gps.c
+arm-linux-gcc -c -O2 -o  obj/usb.o usb/usb.c
+arm-linux-gcc -c -O2 -o  obj/timer.o timer/timer.c
+arm-linux-gcc -c -O2 -o  obj/anet.o anet/anet.c
+arm-linux-gcc -c -O2 -o  obj/omc.o omc/omc.c
+arm-linux-gcc -o  obj/go obj/main.o  obj/bmp.o  obj/lcddriver.o  obj/disp.o  obj/zklib.o  obj/gps.o  obj/usb.o  obj/timer.o  obj/anet.o  obj/omc.o  -lpthread  -lm
+Finished!
+Binfile is obj/go!
+```
+
+A key challenge in the above example is locating the .c files from their respective directories to generate the .o files.
+
+**10. Implicit Rules**
+
+1. $(objects) : defs.h
+
+**11. Notes**
+
+1. Commands must start with a Tab character, otherwise they will not be executed.

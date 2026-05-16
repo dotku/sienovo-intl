@@ -1,0 +1,133 @@
+---
+title: "Understanding A::A() : _b(XXX,XXX) in C++"
+date: "2011-09-19"
+slug: "6790026"
+tags: ["#Class", "#Compiler", "#Variables", "#Access", "#Integer", "#Nested"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6790026"
+originalTitle: "A::A() : _b(XXX,XXX)解析"
+---
+
+1) A::A() : \_b(XXX,XXX); The colon denotes member initialization, meaning the values XXX, XXX are passed to initialize the member variable \_b of type B.
+
+2) This is called a member initializer list.
+
+3) \_b is a member variable of class A.  
+During the construction of A, the variable \_b is initialized.  
+You should review the syntax of constructors to better understand this.
+
+4) This is initialization; for example, constants must be initialized this way.
+
+5) A() indicates the constructor of class A, specifying its scope; : \_b(XXX,XXX); refers to initializing the member variable.
+
+\===============================================================================================
+
+[C++ Scope Resolution Operator (::) Explained](http://blog.csdn.net/lychee007/article/details/5386039 "C++中双冒号作用域解析符的含义") (Reprinted)  
+
+[http://blog.csdn.net/lychee007/article/details/5386039](http://blog.csdn.net/lychee007/article/details/5386039)  
+
+First, here are explanations from various sources — their meanings are essentially the same.
+
+**Visual C++ Language Reference**
+
+Scope Resolution Operator:  **::**
+
+You can tell the compiler to use the global identifier instead of the local one by prefixing the identifier with ::, the scope resolution operator.
+
+[view plain](http://blog.csdn.net/lychee007/article/details/5386039# "view plain")
+
+1.  :: identifier  
+2.  class\-name :: identifier  
+3.  namespace :: identifier  
+
+**Remarks** The identifier can be either a variable or a function.
+
+If there are nested local scopes, the scope resolution operator does not grant access to identifiers in the immediately outer scope. It only provides access to global identifiers.
+
+**Example** This example declares two variables named amount. The first is global and holds the value 123. The second is local to the main function. The scope resolution operator tells the compiler to use the global amount instead of the local one.
+
+[view plain](http://blog.csdn.net/lychee007/article/details/5386039# "view plain")
+
+1.  // expre\_ScopeResolutionOperator.cpp  
+2.  // compile with: /EHsc  
+3.  // Demonstrate scope resolution operator  
+4.  #include <iostream>  
+
+6.  using namespace std;  
+
+8.  int amount = 123;   // A global variable  
+
+10.  int main() {  
+11.     int amount = 456;   // A local variable  
+12.     cout  << ::amount << endl   // Print the global variable  
+13.           << amount << endl;    // Print the local variable  
+14.  }  
+
+  
+
+**IBM XL C/C++ for AIX, V10.1**
+
+Scope resolution operator :: (C++ only)
+
+The :: (scope resolution) operator is used to qualify hidden names so that you can still use them. You can use the unary scope operator when a name in namespace or global scope is hidden by a declaration of the same name within a block or class. For example:
+
+[view plain](http://blog.csdn.net/lychee007/article/details/5386039# "view plain")
+
+1.  int count = 0;  
+
+3.  int main(void)   
+4.  {  
+5.    int count = 0;  
+6.    ::count = 1;  // set global count to 1  
+7.    count = 2;    // set local count to 2  
+8.    return 0;  
+9.  }  
+
+The declaration of count inside the main function hides the global variable count. The statement ::count = 1 accesses the global variable named count.
+
+You can also use the class scope operator to qualify class names or class member names. If a class member name is hidden, you can access it by qualifying it with its class name and the scope resolution operator.
+
+In the following example, the declaration of the variable X hides the class type X, but you can still access the static class member count by qualifying it with the class name X and the scope resolution operator.
+
+[view plain](http://blog.csdn.net/lychee007/article/details/5386039# "view plain")
+
+1.  #include <iostream>  
+2.  using namespace std;  
+
+4.  class X  
+5.  {  
+6.  public:  
+7.        static int count;  
+8.  };  
+9.  int X::count = 10;                // define static data member  
+
+11.  int main ()  
+12.  {  
+13.        int X = 0;                  // hides class type X  
+14.        cout << X::count << endl;   // use static member of class X  
+15.  }  
+
+**Sun Studio 12: dbx**  
+C++ Scope Resolution Operator (::)  
+The double colon operator (::) can be used to qualify C++ member functions, top-level functions, or variables with global scope in the following cases:
+
+*   Overloaded names (same name used with different parameter types)
+    
+*   Ambiguous names (same name used in different classes)
+    
+
+**Wiki:**
+
+[view plain](http://blog.csdn.net/lychee007/article/details/5386039# "view plain")
+
+1.  #include <iostream>  
+
+3.  using namespace std;  
+
+5.  int n = 12;   // A global variable  
+
+7.  int main()   
+8.  {  
+9.     int n = 13;   // A local variable  
+10.     cout  << ::n << endl;  // Print the global variable: 12  
+11.     cout  << n   << endl;  // Print the local variable: 13  
+12.  }

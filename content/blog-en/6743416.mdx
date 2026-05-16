@@ -1,0 +1,45 @@
+---
+title: "fflush(stdin) and fflush(stdout)"
+date: "2011-09-02"
+slug: "6743416"
+tags: ["#Input", "#Multithreading", "#Platform", "#Windows", "#Programming", "#Networking"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6743416"
+originalTitle: "fflush(stdin)和fflush(stdout)"
+---
+
+`fflush(stdin)` is relatively easy to understand: it clears the standard input stream, discarding any excess data that has not yet been processed.
+
+For example, consider this small program:
+
+```c++
+void main()
+{
+    int a;
+    char str[10];
+    cin>>a;
+    cout<<a<<endl;
+    cin>>str;
+    cout<<str<<endl;
+}
+```
+
+The goal is simple: get an integer from `stdin` into `a` and print it immediately; then get a string from `stdin` into `str` and print it immediately. However, the following scenario might require special consideration: if two integers are entered on the first line, after `cin>>a`, there's still an integer left in the `stdin` buffer that hasn't been read. Subsequently, without waiting for string input, this extra number might be directly stored into `str` and printed.
+
+To some extent, this is caused by non-standard operation, but a program should be robust, and programmers should anticipate such non-standard operations. One could prompt the user with "Please enter 1 integer" on the program interface, and sometimes even persistent emphasis and warnings are necessary. Of course, for simplicity, this example doesn't focus on UI friendliness. In such cases, `fflush(stdin)` can be inserted before the `cin>>str` statement to clear any excess data in the standard input buffer.
+
+`fflush(stdout)` is similar to `fflush(stdin)` in that it clears the standard output stream, but it doesn't discard data; instead, it prints the data to the screen immediately. To better understand this, one needs to know a fact: standard output is typically performed "line by line," meaning data is printed to the screen only when a `\n` is encountered. This can cause delays, as shown in these lines of code:
+
+```c
+int a;
+printf_s("input one number:");
+fflush(stdout);\\\\#1
+scanf_s("%d",&a);
+```
+
+Without line `#1` (the `fflush(stdout)` call), on some platforms, "input one number:" might not appear on the screen for a while because there's no carriage return. In this situation, `fflush(stdout)` plays the role of forcing immediate output.
+
+However, on Windows platforms, there seems to be no noticeable difference. This suggests that MSFT has already made `stdout` output effective immediately.
+
+The `fflush` function is widely used in message processing for multithreading and network programming.
+
+`fflush(stdout)`: Clears the output buffer and outputs its contents.

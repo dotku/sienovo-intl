@@ -1,0 +1,130 @@
+---
+title: "Implementing High-Speed Data Communication between AM5728 and FPGA via GPMC Interface"
+date: "2019-02-28"
+slug: "88045541"
+tags: ["#AM5728", "#GPMC", "#FPGA", "#DSP+ARM+FPGA"]
+source: "https://blog.csdn.net/yeyuangen/article/details/88045541"
+originalTitle: "AM5728通过GPMC接口与FPGA高速数据通信实现"
+---
+
+Hardware: AM5728 Development Board; Artix-7 Development Board
+Software: Linux am57xx-evm 4.4.19; Vivado 2015.2
+Author: Hangzhou Shizhi Information Technology Co., Ltd.
+Email: admin@sysjoint.com
+
+The AM5728 has rich peripheral interfaces, such as V-PORT, PCIe, GPMC, USB, UART, etc. For high-speed data communication with an FPGA, V-PORT, PCIe, or GPMC are typically chosen. Here, we use GPMC, which is the simplest to implement, to achieve high-speed data transfer from the FPGA to the AM5728.
+
+The ARM core of the AM5728 runs the Linux 4.4 kernel operating system. It uses DMA via the GPMC interface to read data from the FPGA. Reading 32KB of data took approximately 540us, achieving a speed of about 60MB/s. In practice, by configuring the GPMC interface's timing parameters and operating mode, even faster speeds can be achieved.
+
+*   GPMC Interface Introduction
+
+GPMC stands for General-Purpose Memory Controller. It is an interface used by TI's Sitara series processors, such as the AM5728, to communicate with external memory devices like NOR FLASH, NAND FLASH, SRAM, and so on. This interface is not unique to the AM5728; similar interfaces are also found on chips like the BeagleBone Black and AM33XX.
+
+1.1 Hardware Connection Method
+
+Referring to SPRUHZ6I 15.4.6.1.2, the GPMC interface in the AM5728 is configured in asynchronous mode with NOR FLASH, non-address data line multiplexing mode for communication with the FPGA. However, only 16 data lines are used, without address lines, meaning it communicates with the FPGA in a FIFO-like manner. Currently, only the following I/O ports are actually used, and the signal directions are shown in the figure below.
+
+GPMC_D[15:0]: 16-bit data lines
+GPMC_nCS: Chip Select signal
+GPMC_nOE: Output Enable signal
+FPGA_nRST: Used to notify the FPGA to reset read/write pointers
+FPGA_nIRQ: Used to notify the ARM to read a block of data
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/88045541/01_68d10d585cf29358194cc4ec02c4575a.png)
+
+1.2 Hardware Interface Protocol
+
+Asynchronous reading is used, meaning GPMC_CLK is not utilized. The FPGA sends out data on the falling edge of GPMC_nOE.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/88045541/02_9aa0226293245cf0be248581acf0de6.png)
+
+For the GPMC interface in this operating mode, we only need to consider the following timings:
+
+Namely, CS active time, OE active time, GPMC data read time, and GPMC single read cycle.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/88045541/03_6b46e0c73c7917951b32eb04c32a9800.png)
+
+*   Linux Driver Implementation
+
+The Linux 4.4 kernel uses the Device Tree (DTS) method for driver development, which differs significantly from the 2.6 kernel. In the 4.4 kernel, APIs related to the GPMC interface are almost entirely unexported, making direct API manipulation unfeasible. Therefore, the Device Tree method must be used.
+
+AM5728 DTS file path: linux-4.4.19-g5e4091a-v1.3\\arch\\arm\\boot\\dts
+The kernel's GPMC driver implementation is located at: linux-4.4.19-g5e4091a-v1.3\\drivers\\memory\\omap-gpmc.c
+
+For DTS programming methods, refer to:
+
+[https://learn.adafruit.com/introduction-to-the-beaglebone-black-device-tree/overview](https://learn.adafruit.com/introduction-to-the-beaglebone-black-device-tree/overview)
+
+and read the documentation under the Linux kernel directory:
+
+Documentation\\devicetree\\bindings\\mtd\\gpmc-nor.txt
+
+Configuration primarily involves the 7 GPMC-related configuration registers CONFIG1-CONFIG7, GPMC port initialization, and so on.
+
+(1) First, ensure that the GPMC controller is included in the `dra7.dtsi` file, as shown below:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/88045541/04_bb36003e8867085e5b8f4e0d32ff08bf.png)
+
+(2) Next, add the GPMC pin initialization configuration to `am57xx-beagle-x15-common.dtsi`
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/88045541/05_22bb5c4a52a6dfb496136179bd9423b4.png)
+
+(3) Finally, implement your own GPMC device node. The key timing parameters are as follows: here, we set the GPMC chip select CS6 address to 0x10000000, with a size of 16MB, and a single GPMC read cycle of 30ns.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/88045541/06_b786ebb39089c3a0053dd7262192a0f9.png)
+
+*   Using DMA Transfer
+
+The AM5728 features System DMA and Enhanced DMA. After Linux 4.4, EDMA-related APIs are no longer exported in the kernel. Therefore, for now, only generic DMA API operations can be used to achieve DMA transfer.
+
+It's important to note that all addresses configured in DMA are physical addresses. That is, the source address for DMA transfer is the peripheral's physical address (i.e., the GPMC's physical address), and the destination address is the physical address of the allocated memory space.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/88045541/07_3bd158cf82e7612a3336443eaacd4eec.png)
+
+*   Experimental Verification
+
+(1) Reading GPMC Port Data using memread
+
+In `memread`, the `mmap` method is used to map the GPMC's physical address 0x10000000 to user space. In user space, the CPU reads GPMC port data. The waveforms for CS6n and OEn are captured below. Currently, no DMA transfer is used; data is simply read in a loop in Linux. It can be seen that the chip select signal CS6n remains high for a long period in each cycle, and a single GPMC read cycle is approximately 200ns.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/88045541/08_dfa8f41df3d1d4119cc72ff4543aa341.png)
+
+Channel 1 is the chip select signal CS6n, Channel 2 is the output enable signal OEn
+
+This rate is approximately 16bit / 200ns = 10MB/s
+
+(2) Using DMA Transfer
+
+Compile and load the DMA driver `edmatest.ko` using the `insmod` tool. The waveforms for CS6n and OEn are captured below. With DMA transfer, the read cycle is significantly shorter, approximately 30ns, which perfectly matches the GPMC parameters. Reading 32KB of data took approximately 540us, achieving a speed of about 60MB/s. In practice, by configuring the GPMC interface's timing parameters and operating mode, even faster speeds can be achieved.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/88045541/09_3a8601e52817e65db11112f79b992e66.png)
+
+(3) Corresponding FPGA-side code: The FPGA-side code simply implements sending 16-bit data to the GPMC_DATA port on each falling edge of the OEn signal, and then increments it.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/88045541/10_13cebdf562b6ad5993d062293c8da684.png)
+
+(4) Linux-side Data Reading and Verification
+
+Verification passed, indicating correct data consistency! Thus, high-speed data transfer between AM5728 and FPGA via the GPMC interface using DMA is verified as feasible!
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/88045541/11_bb8c684071773e9bcaeb24568802b531.png)
+
+*   Source Code Download
+
+Device Tree files: [http://sysjoint.com/files/dts.zip](http://sysjoint.com/files/dts.zip)
+Linux `memread` reference code: [http://sysjoint.com/files/memread.zip](http://sysjoint.com/files/memread.zip)
+Linux `edmatest` reference code: [http://sysjoint.com/files/edmatest.zip](http://sysjoint.com/files/edmatest.zip)
+
+The corresponding FPGA-side code is relatively simple and will not be uploaded.
+
+Many details were involved throughout this experiment. Please feel free to point out any errors!
+
+References:
+
+[https://e2e.ti.com/support/arm/sitara\_arm/f/791/t/512464](https://e2e.ti.com/support/arm/sitara_arm/f/791/t/512464)
+
+[https://e2e.ti.com/support/arm/sitara\_arm/f/791/p/315716/1530903#pi316653=1](https://e2e.ti.com/support/arm/sitara_arm/f/791/p/315716/1530903#pi316653=1)
+
+[https://github.com/fpga-logi/logi-kernel/commit/42066f774425afb196dc0f8f1ad40f450da34115](https://github.com/fpga-logi/logi-kernel/commit/42066f774425afb196dc0f8f1ad40f450da34115)
+
+[http://valentfx.com/wiki/index.php?title=LOGI_-_BBB_GPMC_Bus-_HW](http://valentfx.com/wiki/index.php?title=LOGI_-_BBB_GPMC_Bus-_HW)

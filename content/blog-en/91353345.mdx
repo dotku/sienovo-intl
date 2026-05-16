@@ -1,0 +1,37 @@
+---
+title: "AM5728-based High-Speed Image Processing Platform for Machine Vision"
+date: "2019-06-09"
+slug: "91353345"
+tags: ["#AM5728", "#DSP+ARM", "#HighSpeedImageProcessing", "#StereoCamera"]
+source: "https://blog.csdn.net/yeyuangen/article/details/91353345"
+originalTitle: "基于AM5728机器视觉高速图像处理平台"
+---
+
+Machine vision involves using machines to simulate human vision, performing measurements and judgments on images. It is an effective way to achieve precise control, intelligence, and automation in instrumentation and equipment. Machine vision can accomplish many tasks that humans cannot, while also helping to improve product quality and production efficiency. Research into machine vision systems holds significant importance and broad market prospects. High speed, integration, and personalization are the future directions for machine vision systems, necessitating an embedded general-purpose high-speed image acquisition and processing hardware platform to adapt to its development. Currently, domestic machine vision manufacturers primarily act as agents for foreign products, including hardware, especially for high-speed, high-resolution applications in high-end scenarios. Domestic machine vision manufacturers have recognized the need to develop their own products, and some research institutions are indeed studying image processing hardware, but mainly for low-end applications. Therefore, this paper focuses on researching high-speed image acquisition and processing hardware platforms within machine vision systems, designing an embedded general high-speed image acquisition and processing platform (EGHIAPP) based on FPGA+DSP, and investigating key common issues such as high-speed image acquisition, compression, and storage.
+
+The evaluation board used is Sienovo XM5728-IDK-V3.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb2.r2.dev/blog/91353345/01_a9a5af0514eccafd3b51d08b964aebe8.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb2.r2.dev/blog/91353345/02_78570ae1fda09188c43baf456786f1c7.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb2.r2.dev/blog/91353345/03_ab6f8930b4271c1052b0da6d7f053cb2.png)
+
+Evaluation Board Overview:
+
+*   Based on TI AM5728 floating-point dual DSP C66x + dual ARM Cortex-A15 industrial control and high-performance audio/video processor;
+*   Multi-core heterogeneous CPU, integrating dual-core Cortex-A15, dual-core C66x floating-point DSP, dual-core PRU-ICSS, dual-core Cortex-M4 IPU, dual-core GPU, and other processing units, supporting OpenCL, OpenMP, and SysLink IPC multi-core development;
+*   Powerful video encoding and decoding capabilities, supporting 1-channel 1080P60 or 2-channel 720P60 or 4-channel 720P30 hardware video encoding/decoding, and H.265 software video decoding;
+*   Supports up to 1-channel 1080P60 Full HD video input and 1-channel LCD + 1-channel HDMI 1.4a output;
+*   Dual-core PRU-ICSS industrial real-time control subsystem, supporting industrial protocols such as EtherCAT, EtherNet/IP, and PROFIBUS;
+*   High-performance GPU, dual-core SGX544 3D accelerator and GC320 2D graphics acceleration engine, supporting OpenGL ES2.0;
+*   Rich peripheral interfaces, integrating dual Gigabit Ethernet, PCIe, GPMC, USB 2.0, UART, SPI, QSPI, SATA 2.0, I2C, DCAN and other industrial control buses and interfaces, supporting high-speed USB 3.0 interface;
+*   The development board breaks out V-PORT video interface, allowing flexible connection to video input modules;
+*   Extremely small size, only 86.5mm*60.5mm;
+*   Industrial-grade precision B2B connectors, 0.5mm pitch, stable, easy to plug and unplug, anti-reverse insertion, high-speed connectors used for critical big data interfaces to ensure signal integrity.
+
+Platforms based on the DSP+FPGA framework offer flexible structures and strong versatility, making them suitable for modular design. This significantly enhances image processing stability, shortens development cycles, and facilitates expansion and upgrades. In this hardware platform, simpler low-level algorithms, system management, task allocation, and logical control are well-suited for implementation using FPGA processors, while complex core image algorithms are best realized with DSP processors, which offer high computational speed and flexible addressing. The two technologies achieve significant complementary advantages.
+
+We designed a general-purpose image processing platform based on AM5728 DSP and FPGA architecture. FPGA is used for microprocessor interface design and simple image data pre-processing, while DSP handles complex image processing algorithms and logical control, achieving high-speed transmission and real-time processing of image data. The system can be applied to chip inspection in pick-and-place machines, and performance evaluation experiments were conducted. The main research contents of this paper are as follows: 1. Based on the development trends of machine vision, the required functionalities for high-speed image processing platforms in machine vision applications were proposed, and a general-purpose high-speed image processing hardware platform based on FPGA+DSP was designed accordingly. 2. Research was conducted on image acquisition for AM5728 Camera Link and GigE cameras. The detailed engineering implementation and challenges of image data acquisition for both interface types were designed, and high-speed image acquisition was ultimately achieved for two typical cameras, MC1362 and piA2400, respectively. 3. Research was conducted on JPEG compression for real-time acquired high-speed images, addressing speed issues in high-speed compression and the need for large buffers in traditional solutions. Multi-channel parallel compression methods were also investigated, enabling a single FPGA chip to perform real-time JPEG compression of 5-megapixel high-resolution color images from piA2400 and ultra-high-speed 500 frames/second grayscale images from MC1362. 4. Research was conducted on real-time mass storage of images. FPGA was used to implement SATA hard drive data read/write functions. Factors affecting hard drive speed were analyzed, and direct sequential read/write of hard drive sectors was adopted to improve storage speed. Parallel storage technology for multiple hard drives was also investigated, providing a parallel storage solution using two hard drives as an example. 5. Two typical applications in machine vision systems were completed using AM5728, demonstrating the platform's excellent versatility.
+
+Other Applications: To improve the imaging quality and real-time performance requirements of infrared focal plane arrays, an infrared focal plane real-time image digital processing system centered on a high-speed signal processor was proposed.

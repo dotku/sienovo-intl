@@ -1,0 +1,44 @@
+---
+title: "Kernel Porting (Including LCD Screen, OTG-USB)"
+date: "2011-08-15"
+slug: "6688258"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/6688258"
+originalTitle: "内核移植（包括LCD液晶屏、OTG-usb)"
+---
+
+_________________________
+
+(1) Kernel Compilation into Image File
+
+————————————————————————
+
+1. An error occurred, related to PCI failing to compile. You can go to make menuconfig->drivers-> and uncheck the PCI driver option.
+
+2.
+
+  
+
+——————————
+
+(2) LCD Driver Porting
+
+——————————
+
+1. Statically Load LCD Driver
+  　　Place the written LCD driver program lcd.c into the arm/linux/drivers/char directory. Modify the arm/linux/drivers/char/config.in file, adding the line: Bool LCD driver support CONFIG_LCD. Modify the arm/linux/drivers/char/Makefile file, adding the line: obj-$(CONFIG_LCD)+=lcd.o.
+  　　This way, when you run `make xconfig` again, you will have the option to compile the LCD driver into the kernel. The same method can also be applied to other devices.
+  
+  
+  
+  
+
+  
+
+——————————————
+
+(3) USB-OTG Driver Porting
+
+——————————————
+
+1.

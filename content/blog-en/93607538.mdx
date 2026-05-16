@@ -1,0 +1,116 @@
+---
+title: "AM5728 High-Performance Computing (Parallel Computing) OpenCL/OpenMP Introduction and Testing"
+date: "2019-06-25"
+slug: "93607538"
+tags: ["#AM5728", "#OpenCl", "#OpenMP", "#Opencv", "#HeterogeneousComputing"]
+source: "https://blog.csdn.net/yeyuangen/article/details/93607538"
+originalTitle: "AM5728 高性能计算（并行计算）OpenCL/OpenMP简介及测试"
+---
+
+### I. OpenCL/OpenMP Introduction
+
+**OpenCL** (Open Computing Language) is a framework for writing programs for heterogeneous platforms. It is an API, similar to the OpenGL architecture, and this heterogeneous platform can consist of CPUs, GPUs, or other types of processors.
+
+Recently, I spent some time briefly reviewing technologies related to high-performance computing, such as [OpenMP](http://openmp.org/wp/), [OpenCL](http://www.khronos.org/opencl/), and MPI (with various implementations like [Open MPI](http://www.open-mpi.org/)). I'm documenting a few things I learned from this quick overview here. These summaries and notes are somewhat superficial and require deeper learning and research.
+
+       **First**, GPU computing is becoming increasingly popular, and with China's Tianjin supercomputer claiming the top spot in international computing power, it demands attention. Existing technologies, categorized by vendor, include NVIDIA's [CUDA](http://developer.nvidia.com/object/cuda_3_2_downloads.html) and AMD(ATI)'s [Stream](http://developer.amd.com/gpu/atistreamsdk/pages/default.aspx). There is also an open standard: [OpenCL](http://www.khronos.org/opencl/). I am quite optimistic about OpenCL because it supports simultaneous optimization and acceleration for different brands, different core CPUs, and GPUs, making it particularly suitable for heterogeneous environments. Its basic principle is that the system has a built-in compiler-like component, similar to LLVM or an API. The code written in software is only finally compiled when it is executed on the hardware. This compilation process seems to occur through the hardware drivers within the system, which currently still require separate installation. SDKs provided by [Intel](http://software.intel.com/en-us/articles/intel-opencl-sdk/), [NVIDIA](http://developer.nvidia.com/object/opencl-download.html), and [AMD](http://developer.amd.com/gpu/atistreamsdk/pages/default.aspx) each include their own drivers for execution. Therefore, the main thread of an OpenCL program determines which driver to pass the generated worker thread code to for compilation and execution, based on the number of cores in the multi-core CPU, the CPU architecture (ARM or x86), and the presence and type of GPU in the system. The system automatically saves the compiled binary code for future use. This process appears to be similar to a dynamic language, but in reality, OpenCL is still primarily written in a low-level, extended C language. The drivers for different hardware act as the runtime.
+
+       Multiple hardware manufacturers like Intel, NVIDIA, and AMD support OpenCL, but they also have their own proprietary interests. For example, NVIDIA's CUDA offers more features specific to its hardware, and its functions are reportedly more advanced. Therefore, if development is specifically for a particular hardware environment, such as developing scientific programs with large computational loads, it is best to use the GPU acceleration SDK provided by that specific hardware. OpenCL development is only preferred when generality is required, such as in commercial software.
+
+      **Second**, OpenMP and MPI are both widely used parallel programming libraries. Their difference is: OpenMP is for multi-core processors and uses a shared-memory parallel approach, which can be described as more thread-oriented; MPI is for scenarios involving multiple symmetric parallel CPUs or clustered servers, where the memory sharing method is mixed, making it more process-oriented.
+
+       From a certain perspective, OpenCL has the potential and trend to replace OpenMP, as it will include handling for multi-core CPUs. However, in the current environment, OpenMP is still more suitable—it can directly leverage the capabilities of multi-core processors without requiring knowledge of graphics development. [Here](http://blog.jackpien.com/?p=244) is an article on OpenMP and OpenCL performance testing.
+
+    Current parallel development primarily involves MPI + OpenMP. The former is responsible for distributing computations across different CPUs on different servers via processes, while the latter is responsible for effectively utilizing the performance of each core within a CPU through multi-threading.
+
+       **Third**, some articles indicate that to maximize thread efficiency, under the same algorithmic conditions, [it is best for the number of threads used by the program to match the maximum number of threads provided by the CPU](http://www.ibm.com/developerworks/cn/linux/l-cn-optimization/index.html), and [it is best to bind program execution threads to CPU cores](http://blog.chinaunix.net/u4/120880/showart_2380539.html). GPUs are particularly effective at accelerating certain computations and offer good efficiency, but since they must be scheduled by the CPU via PCI, [the latency of this communication process must be considered](http://tech.it168.com/a2010/0723/1081/000001081479_all.shtml) during actual program design.
+
+       **Finally**, several existing parallel computing technologies include:
+
+1. System level: Using process migration technology to enable parallelism for all multi-process-supported programs, such as openMosix, which requires a patched operating system.
+
+2. Hardware level: GPU acceleration technologies like OpenCL, which require corresponding hardware support.
+
+3. Development language level: Dynamic languages like [Erlang](http://www.erlang.org/) now provide support for clustered environments, automatically distributing computation processes to servers joining the cluster. [Google Go](http://golang.org/) language might be similar.
+
+II. AM5728 OpenCL/OpenMP Testing
+
+### ******2 OpenMP Example Compilation******
+
+Execute the following command in Ubuntu to install `gawk`, a text search and replace tool:
+
+****Host****\# sudo apt-get install gawk
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/93607538/01_95937abd530a5c47d060dc99be40354e.png)
+
+Figure 1
+
+Enter Y to confirm installation. The successful installation is shown in the figure below:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/93607538/02_59a50a72eca6ba8ec1fb777f2a174ed7.png)
+
+Figure 2
+
+Confirm that the corresponding version of the Linux Processor-SDK package is correctly installed. Navigate to the SDK installation root directory and execute the following command to compile the OpenMP examples:
+
+Host# make openmpacc-examples
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/93607538/03_f40089ad959cf8ec05290813686d04bc.png)
+
+Figure 3
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/93607538/04_a928e6875dad5d6619ad281f6d0153cf.png)
+
+Figure 4
+
+Copy the compiled executable files to the development board's file system. For customer testing convenience, Sienovo provides verified OpenMP executables located at "CD Demo\\OpenMP\\bin\\openmp.tar.gz". Copy this file to the development board's file system. Navigate to the file's location in the file system and execute the following command to decompress it:
+
+****Target****\#  tar xvf openmp.tar.gz
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/93607538/05_28085b3ab2cd9011effa2be9a65a5cc5.png)
+
+Figure 5
+
+3 OpenMP Example Testing
+
+3.1 dspheap Example
+
+This example demonstrates how to create and use heaps on the DSP within an OpenMP target region. DSP built-in functions are used to create user-defined heaps that operate in MSMC, DDR, and local memory regions. These heaps are persistent as long as their underlying memory is allocated. In this example, buffers are created from contiguous shared memory regions to provide underlying memory storage. Heaps are active and persistent from their initialization until the buffers are deallocated.
+
+Execute the following commands in the development board's file system to run this example:
+
+****Target****#   cd openmp/dspheap/
+
+****Target****#  ./dspheap
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/93607538/06_e9a604f69508081d71a660353595b6cf.png)
+
+Figure 6
+
+3.2 vecadd Vector Addition Example
+
+This example uses OpenMP for parallel addition of two 8K-element one-dimensional vectors. Execute the following commands in the development board's file system to run this example:
+
+****Target****\#  cd openmp/vecadd/
+
+****Target****\#  ./vecadd
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/93607538/07_9762609ca09cb54aee33c4b996a47fab.png)
+
+Figure 7
+
+3.3 vecadd_complex Example
+
+This example uses OpenMP for parallel addition of two 8K-element complex vectors. Execute the following commands in the development board's file system to run this example:
+
+****Target****\#  cd openmp/vecadd\_complex/
+
+****Target****\#  ./vecadd\_complex
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/93607538/08_ce9eb52ed46d02fb1db7a7d3ce98c34c.png)
+
+Figure 8
+
+3.4 Other Example Testing Instructions
+
+The testing method for other programs is the same as above. The specific program functionalities can be found in the comments of the source .C files, located in the Linux Processor-SDK installation package root directory at "/example-applications/openmpacc-examples-1.4.0.2/".

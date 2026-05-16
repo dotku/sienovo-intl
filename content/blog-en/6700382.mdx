@@ -1,0 +1,147 @@
+---
+title: "Makefile Terminology Glossary"
+date: "2011-08-19"
+slug: "6700382"
+tags: ["#Makefile", "#Wildcard", "#Expansion", "#Object", "#GCC", "#Language"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6700382"
+originalTitle: "Makefile术语一览表"
+---
+
+**I. Terminology Analysis**
+
+**1. Automatic Variables**
+
+$<: All dependencies, e.g., fs.c, pipe.c. Expands to the first prerequisite in the dependency list.
+
+$@: All files corresponding to the rule's target. Expands to the target filename of the current rule. Note: `$(OBJECTS)` refers to the collection of all targets.
+
+$?:
+
+$^: Expands to the entire list of prerequisites (removing all duplicate filenames).
+
+The `@` expands to the target filename of the current rule, `<` expands to the first prerequisite in the dependency list (e.g., for `foo.o : foo.c foo.h bar.h`, `<` represents `foo.c`), and `^` expands to the entire list of prerequisites (removing all duplicate filenames). Using these variables, we can write the above makefile as:
+
+```cpp
+===   makefile   Start   === OBJS   =   foo.o   bar.o CC   =   gcc CFLAGS   =   -Wall   -O   -g  myprog   :   $(OBJS)     $(CC)   $^   -o   $@              // Here, $^ represents the entire list of prerequisites, which are foo.c, bar.c (implicit rule)??? $@ represents myprog, right? foo.o   :   foo.c   foo.h   bar.h     $(CC)   $(CFLAGS)   -c   $ <   -o   $@        // $< represents foo.c, $@ represents foo.o bar.o   :   bar.c   bar.h     $(CC)   $(CFLAGS)   -c   $ <   -o   $@ ===   makefile   End   ===
+```
+
+**2. Keywords**
+
+1) wildcard:
+
+Comparison: `objects = *.o` // Does not expand
+
+`objects := $(wildcard *.o)` // Expands. Makes `objects` a collection of all .o files.
+
+2) foreach n
+
+**3. Phony Targets: .PHONY, clean, all**
+
+`all : $(OUTDIR)/$(OUTBINNAME)`
+`.PHONY : all`
+
+===============================Friendly Reminder: Phony Targets=======================================
+
+```cpp
+all : prog1 prog2 prog3 .PHONY : all prog1 : prog1.o utils.o  cc -o prog1 prog1.o utils.o prog2 : prog2.o  cc -o prog2 prog2.o prog3 : prog3.o sort.o utils.o  cc -o prog3 prog3.o sort.o utils.o
+```
+====================================================================================
+
+**3. Label**
+
+**4. .PHONY : clean // Indicates that clean is a phony target file**
+
+**5. Environment Variable MAKEFILES:** It is recommended not to use it, as it is similar to a global variable and will affect all your Makefiles. If your makefile behaves strangely, you can check if it exists in your environment variables.
+
+6.
+
+## II. Variable Definition
+
+Variables here are like macro definitions in C language.
+
+```cpp
+#Method 1: Define multi-line variablesdefine variablevaluevalueendef#Method 2:variable = value#Method 3:variable := value#Method 4:variable += value#Method 5:variable ?= value
+```
+**III. Wildcards**
+
+\*
+
+?
+
+...
+
+~
+
+%
+
+Note: If a filename contains `*`, you can add an escape character `\`\*.
+
+=========== Example Analysis ==============
+
+1) Are `*.c` and `%.c` synonymous?
+
+===================================
+
+**IV. Using Functions**
+
+**1. $(subst <from>,<to>,<text>)**
+
+Replaces `from` with `to` in the string `text`.
+
+**2. $(patsubst <pattern>,<replacement>,<text>)**
+
+Pattern string substitution function: `pattern`
+
+Example:
+`$(patsubst %.c,%.o,x.c.c bar.c)`
+replaces `%.c` with `%.o` in `x.c.c bar.c`. The result is `x.c.o bar.o`.
+
+3.
+
+**V. Others**
+
+**1. File Search**
+
+1)
+
+```cpp
+VPATH = src:../headers
+```
+
+The above command specifies two directories, 'src' and '../headers'. Of course, the current directory is always searched first. Directories are separated by ':'.
+
+2)
+
+```cpp
+   vpath %.c foo    vpath %.c blish    vpath %.c bar
+```
+
+The above commands indicate that .c files are first searched in the `foo` directory, then sequentially in the `blish` directory, and then the `bar` directory.
+
+3)
+
+`vpath %.h ../headers`
+
+The above is pattern search.
+
+**VI. Makefile Rules**
+
+`target ... : prerequisites ... command`
+
+`target`: is a target file, which can be an object file (multiple files), an executable file, or a label.
+
+`prerequisites`: are the files or targets required to generate `target`.
+
+====================== Friendly Reminder ===============================
+
+```cpp
+edit : main.o kbd.o command.o display.o insert.o search.o files.o utils.o  cc -o edit main.o kbd.o command.o display.o  insert.o search.o files.o utils.o             // Carefully observe and compare: here `cc` is followed by `-o`, then `edit`, `main.o`, etc. Below, `cc` is followed by `-c`, then `.c`.main.o : main.c defs.h  cc -c main.c
+```
+
+==============================================================
+
+**VII. Let make Deduce Automatically**
+
+1. As long as makefile sees a .o file, it will automatically deduce and find the corresponding .c file to generate it.
+
+Automatic deduction of files and their dependent commands.

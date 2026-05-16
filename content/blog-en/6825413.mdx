@@ -1,0 +1,227 @@
+---
+title: "A Detailed Introduction and Usage of Linux Core Dumps"
+date: "2011-09-27"
+slug: "6825413"
+tags: ["#Linux", "#Function", "#Unix", "#File", "#Work", "#Storage"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6825413"
+originalTitle: "Linux core dump的祥细介绍和使用"
+---
+
+===============================================================
+
+                        **A Detailed Introduction and Usage of Linux Core Dumps**  
+
+===============================================================
+
+When developing (or using) a program, the most frustrating situation is when it crashes unexpectedly. Although the system itself remains unaffected, we might encounter the same issue again later. At such times, the operating system dumps the memory contents of the crashed program, providing valuable information for us or a debugger to analyze. This process is known as a *core dump*.
+
+1. What is "core"?  
+Before semiconductors were used as memory materials, humans used magnetic coils for memory storage (invented by An Wang). These coils were called "core," and memory built from them was known as *core memory*. Today, with the rapid development of the semiconductor industry, core memory is obsolete. However, in many contexts, people still refer to memory as "core."
+
+2. What is a Linux core dump?  
+When developing (or using) a program, unexpected crashes are the worst-case scenario. Even though the system remains stable, the same problem may recur. To assist in debugging, the operating system dumps the program's memory state at the time of the crash—typically saved into a file named *core*. This allows developers or debuggers to analyze the crash cause. This mechanism is known as a *Linux core dump*.
+
+3. Why does a Linux core dump occur?  
+As mentioned earlier, core dumps happen when a program crashes due to errors. In C/C++ programming, pointer-related issues are the most common source of such errors. You can use the core file along with a debugger to identify the root cause (for instructions on using core files in a debugger, refer to the `gdb` manual via `man gdb`).
+
+4. Can I delete the core file?  
+If you are unable or unwilling to fix the program, feel free to delete the core file. To prevent core files from being generated, you can adjust shell settings. For `tcsh`, add the following line to `.tcshrc`:
+```
+limit coredumpsize 0
+```
+For `bash`, add or modify the following line in `/etc/profile`:
+```
+ulimit -c 0
+```
+
+5. A useful trick to maximize the value of core files  
+Run `gdb -c core`, then enter the `where` command. This will show exactly which line of code caused the crash, the function in which the crash occurred, the call chain leading to that function, and so on—tracing all the way back to `main()`. This information alone can help identify 50–60% of bugs, and it's proven reliable over time. However, a prerequisite is that you must compile your program with debug information enabled (e.g., using the `-g` flag). Otherwise, you'll see unreadable memory addresses instead of meaningful source code.
+
+---
+
+                        **In-Depth Guide to Linux Core Dumps**  
+
+===============================================================
+
+1. Introduction  
+Some programs compile successfully but crash at runtime with a *Segmentation fault* (segfault), typically caused by pointer errors. Unlike compile-time errors that point directly to the file and line number, runtime segfaults provide no immediate clues, making debugging particularly challenging.
+
+2. Using GDB  
+One approach is to step through the code using GDB. While feasible for small programs, stepping through tens of thousands of lines is impractical and turns development into tedious debugging. A better solution is using *core files*.
+
+3. Configuring `ulimit`  
+To enable core file generation when a program crashes due to a signal, configure your shell as follows:
+```bash
+# Set core file size to unlimited
+ulimit -c unlimited
+# Set file size limit to unlimited
+ulimit -f unlimited
+```
+These commands require root privileges. On Ubuntu, you need to re-run the first command (`ulimit -c unlimited`) in each new terminal session to maintain the setting.
+
+4. Inspecting core files with GDB  
+Once core dumps are enabled, they will be generated upon crash. After a core dump, use GDB to inspect the file and locate the problematic line:
+```
+gdb [executable] [core file]
+```
+For example:
+```
+gdb ./test test.core
+```
+Inside GDB, use the `bt` (backtrace) command to see where the program was executing when it crashed, helping you trace the error back to the specific file and line.
+
+---
+
+When a program crashes, the kernel may write its memory image to a *core file*, enabling developers to pinpoint the cause of failure. The most common—and hardest to debug—error among C programmers is the *segmentation fault*. Below, we analyze how core files are generated and how to use them effectively to locate crash points.
+
+**What is a core file?**  
+When a program crashes, a *core* file in the process’s current working directory contains a snapshot of its memory image. A core file is essentially a memory dump (often including debug symbols) used primarily for debugging purposes.
+
+Core files are generated when a program receives any of the following UNIX signals:
+
+| Name     | Description                     | ANSI C / POSIX.1 | SVR4 / 4.3+BSD | Default Action     |
+|----------|----------------------------------|------------------|----------------|--------------------|
+| SIGABRT  | Abort signal from abort()        | .                | .              | Terminate (w/core) |
+| SIGBUS   | Hardware fault                   |                  | .              | Terminate (w/core) |
+| SIGEMT   | Hardware fault                   | .                |                | Terminate (w/core) |
+| SIGFPE   | Arithmetic error                 | .                | .              | Terminate (w/core) |
+| SIGILL   | Illegal instruction              | .                | .              | Terminate (w/core) |
+| SIGIOT   | Hardware fault                   | .                |                | Terminate (w/core) |
+| SIGQUIT  | Terminal quit signal (Ctrl-\)    |                  | .              | Terminate (w/core) |
+| SIGSEGV  | Invalid memory access            | .                | .              | Terminate (w/core) |
+| SIGSYS   | Bad system call                  | .                |                | Terminate (w/core) |
+| SIGTRAP  | Hardware fault                   | .                |                | Terminate (w/core) |
+| SIGXCPU  | CPU time limit exceeded          | .                |                | Terminate (w/core) |
+| SIGXFSZ  | File size limit exceeded         | .                |                | Terminate (w/core) |
+
+In the "Default Action" column, "Terminate (w/core)" means the process's memory image is saved to a file named *core* in the current working directory. This functionality has been part of UNIX systems for decades. Most UNIX debuggers use core files to inspect a process's state at termination.
+
+Core file generation is not part of POSIX.1 but is a feature implemented in many UNIX variants. Early UNIX Version 6 did not enforce conditions (a) and (b) below and included this note in its source: “If you are looking for protection signals, a large number may occur when a set-user-ID program is executed.” 4.3+BSD generates files named `core.prog`, where `prog` is the first 16 characters of the program name, adding a useful identifier—an improvement over the basic core file.
+
+The term "hardware fault" refers to implementation-defined hardware errors. Many signal names originate from early UNIX implementations on the PDP-11. Consult your system's manual for precise mappings of these signals to specific error types.
+
+Detailed explanations of the signals:
+
+- **SIGABRT**: Generated when the `abort()` function is called, causing abnormal process termination.
+- **SIGBUS**: Indicates an implementation-defined hardware fault.
+- **SIGEMT**: Indicates a hardware fault. The name comes from the PDP-11's *emulator trap* instruction.
+- **SIGFPE**: Indicates an arithmetic error, such as division by zero or floating-point overflow.
+- **SIGILL**: Indicates execution of an illegal hardware instruction. In 4.3BSD, `abort()` used to generate this; now `SIGABRT` is used instead.
+- **SIGIOT**: Indicates a hardware fault. The name comes from PDP-11's *input/output TRAP* instruction. Early System V used this for `abort()`; now `SIGABRT` is used.
+- **SIGQUIT**: Generated when the user types the quit character (typically Ctrl-\) on the terminal, sent to all processes in the foreground process group. Unlike `SIGINT`, it also generates a core file.
+- **SIGSEGV**: Indicates an invalid memory access. "SEGV" stands for *segmentation violation*.
+- **SIGSYS**: Indicates an invalid system call. The process executed a system call instruction, but the system call number was invalid.
+- **SIGTRAP**: Indicates a hardware fault. The name comes from the PDP-11's *TRAP* instruction.
+- **SIGXCPU**: Generated when a process exceeds its soft CPU time limit (supported in SVR4 and 4.3+BSD).
+- **SIGXFSZ**: Generated when a process exceeds its soft file size limit (supported in SVR4 and 4.3+BSD).
+
+— Adapted from *Advanced Programming in the UNIX Environment*, Chapter 10: Signals.
+
+**Debugging with Core Files**
+
+Consider the following example:
+
+```c
+/* core_dump_test.c */
+#include <stdio.h>
+const char *str = "test";
+void core_test(){
+    str[1] = 'T';
+}
+
+int main(){
+    core_test();
+    return 0;
+}
+```
+
+**Compilation:**  
+```bash
+gcc -g core_dump_test.c -o core_dump_test
+```
+
+Include the `-g` flag when compiling if you plan to debug, as it embeds debug information, making it easier to locate errors in the core file.
+
+**Execution:**  
+```bash
+./core_dump_test
+Segmentation fault
+```
+
+The program crashes with a segmentation fault but does not generate a core file. This is because the system defaults to a core file size limit of 0. Use `ulimit` to check and modify this limit:
+
+```bash
+ulimit -c 0
+ulimit -c 1000
+```
+
+The `-c` option sets the core file size limit. You can also remove the limit entirely:
+
+```bash
+ulimit -c unlimited
+```
+
+To make this change permanent, update configuration files such as `.bash_profile`, `/etc/profile`, or `/etc/security/limits.conf`.
+
+**Run again:**  
+```bash
+./core_dump_test
+Segmentation fault (core dumped)
+ls core.*
+core.6133
+```
+
+A file named `core.6133` has been created, where `6133` is the process ID of the `core_dump_test` program.
+
+**Debugging the core file**  
+Core files are binary and require tools like GDB for analysis.
+
+```bash
+file core.6133
+```
+Output:
+```
+core.6133: ELF 32-bit LSB core file Intel 80386, version 1 (SYSV), SVR4-style, from 'core_dump_test'
+```
+
+Use GDB to inspect the core file:
+```bash
+gdb core_dump_test core.6133
+```
+
+Sample GDB output:
+```
+GNU gdb Red Hat Linux (5.3post-0.20021129.18rh)
+Copyright 2003 Free Software Foundation, Inc.
+GDB is free software, covered by the GNU General Public License, and you are
+welcome to change it and/or distribute copies of it under certain conditions.
+Type "show copying" to see the conditions.
+There is absolutely no warranty for GDB.  Type "show warranty" for details.
+This GDB was configured as "i386-redhat-linux-gnu"...
+Core was generated by `./core_dump_test'.
+Program terminated with signal 11, Segmentation fault.
+Reading symbols from /lib/tls/libc.so.6...done.
+Loaded symbols for /lib/tls/libc.so.6
+Reading symbols from /lib/ld-linux.so.2...done.
+Loaded symbols for /lib/ld-linux.so.2
+#0  0x080482fd in core_test () at core_dump_test.c:7
+7           str[1] = 'T';
+(gdb) where
+#0  0x080482fd in core_test () at core_dump_test.c:7
+#1  0x08048317 in main () at core_dump_test.c:12
+#2  0x42015574 in __libc_start_main () from /lib/tls/libc.so.6
+```
+
+By entering `where` in GDB, you see the stack trace—showing all function calls leading to the crash, including the current function. Here, it's clear the crash occurred at line 7 of `core_dump_test.c`. Note: Always compile with the `-g` flag. You can also explore other GDB commands like `frame` and `list`. For full details, consult the GDB documentation.
+
+**Where is the core file created?**  
+Core files are created in the process's current working directory—usually the same directory as the executable. However, if the program calls `chdir()`, the current directory changes, and the core file will be created in the new path. This is why many developers fail to locate core files after a crash. Note that not all crashes result in core file generation.
+
+**When are core files not generated?**  
+Core files are not created under the following conditions:  
+(a) The process has set-user-ID, and the current user is not the owner of the program file;  
+(b) The process has set-group-ID, and the current user is not in the program file's group;  
+(c) The user lacks write permission in the current working directory;  
+(d) The file would be too large. Core file permissions (if the file didn't previously exist) are typically set to user read/write, group read, and others read.
+
+With GDB and core files, you no longer need to be helpless when your program crashes.

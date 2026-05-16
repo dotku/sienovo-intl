@@ -1,0 +1,110 @@
+---
+title: "Reverse Linked List"
+date: "2012-03-15"
+slug: "7359099"
+tags: ["#null", "#list", "#Test", "#QQ"]
+source: "https://blog.csdn.net/yeyuangen/article/details/7359099"
+originalTitle: "链表逆序"
+---
+
+Define the linked list node as:
+
+**\[cpp\]**  [view plain](http://blog.csdn.net/niuer09/article/details/5961004# "view plain") [copy](http://blog.csdn.net/niuer09/article/details/5961004# "copy")
+
+1.  typedef struct tagListNode{  
+2.      int data;  
+3.      struct tagListNode\* next;  
+4.  }ListNode, \*List;  
+
+The requirement is to reverse a singly linked list with a head node `List head`.
+
+Analysis:
+
+  1). If the linked list is empty or contains only one element, return directly;
+
+  2). Set up two adjacent pointers, `p` and `q`. The node pointed to by `p` will become the successor of the node pointed to by `q`;
+
+  3). Repeat step 2) until `q` is null.
+
+  4). Adjust the head and tail of the linked list.
+
+Example: Taking A->B->C->D as an example for reversal, the diagram is as follows:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/7359099/01_0_1287825676duab.gif)
+
+The implementation and test code are as follows:
+
+**\[cpp:nogutter\]**  [view plain](http://blog.csdn.net/niuer09/article/details/5961004# "view plain") [copy](http://blog.csdn.net/niuer09/article/details/5961004# "copy")
+
+1.  #include <stdio.h>  
+2.  #include <stdlib.h>  
+
+4.  typedef struct tagListNode{  
+5.      int data;  
+6.      struct tagListNode\* next;  
+7.  }ListNode, \*List;  
+
+9.  void PrintList(List head);  
+10.  List ReverseList(List head);  
+
+12.  int main()  
+13.  {  
+14.      //Allocate head node for the linked list  
+15.      ListNode \*head;  
+16.      head = (ListNode\*)malloc(sizeof(ListNode));  
+17.      head->next = NULL;  
+18.      head->data = -1;  
+
+20.      //Add [1,10] to the linked list  
+21.      int i;  
+22.      ListNode \*p, \*q;  
+23.      p = head;  
+24.      for(int i = 1; i <= 10; i++)  
+25.      {  
+26.          q = (ListNode \*)malloc(sizeof(ListNode));  
+27.          q->data = i;  
+28.          q->next = NULL;  
+29.          p->next = q;  
+30.          p = q;          
+31.      }  
+
+33.      PrintList(head);           /* Output original linked list */  
+34.      head = ReverseList(head);  /* Reverse linked list */  
+35.      PrintList(head);           /* Output reversed linked list */  
+36.      return 0;  
+37.  }  
+
+39.  List ReverseList(List head)  
+40.  {  
+41.      if(head->next == NULL || head->next->next == NULL)    
+42.      {  
+43.         return head;   /* If the linked list is empty or has only one element, return directly */  
+44.      }  
+
+46.      ListNode \*t = NULL,  
+47.               \*p = head->next,  
+48.               \*q = head->next->next;  
+49.      while(q != NULL)  
+50.      {          
+51.        t = q->next;  
+52.        q->next = p;  
+53.        p = q;  
+54.        q = t;  
+55.      }  
+
+57.      /* At this point, q points to the last element of the original list, which is also the head element of the reversed list */  
+58.      head->next->next = NULL;  /* Set the linked list tail */  
+59.      head->next = p;           /* Adjust the linked list head */  
+60.      return head;  
+61.  }  
+
+63.  void PrintList(List head)  
+64.  {  
+65.      ListNode\* p = head->next;  
+66.      while(p != NULL)  
+67.      {  
+68.          printf("%d ", p->data);  
+69.          p = p->next;  
+70.      }  
+71.      printf("/n");  
+72.  }

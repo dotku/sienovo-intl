@@ -1,0 +1,276 @@
+---
+title: "Causes and Debugging Methods for Segmentation Faults in Linux"
+date: "2011-09-26"
+slug: "6822004"
+tags: ["#Linux", "#Signal", "#Function", "#Library", "#Cmd", "#Compiler"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6822004"
+originalTitle: "Linux下的段错误（segmentation fault）产生的原因及调试方法"
+---
+
+In short, a segmentation fault occurs when a program accesses an invalid memory segment—typically one it has no permission to access, or that does not even have corresponding physical memory. The most common case is accessing address 0.
+
+Generally, a segmentation fault happens when memory access exceeds the memory space allocated by the system to the process. This limit is usually stored in the GDTR register, a 48-bit register where 32 bits hold a pointer to the GDT (Global Descriptor Table), 13 bits store the GDT index, and the final 3 bits indicate whether the program is loaded in memory and its CPU execution privilege level. The GDT itself consists of 64-bit entries, each storing information such as the starting address and segment limit of code and data segments, page swapping settings, execution privilege level, and memory granularity. When a program attempts to access memory beyond its permitted bounds, the CPU triggers a protection exception, resulting in a segmentation fault.
+
+In programming, the following practices often lead to segmentation faults—most of which stem from incorrect pointer usage:
+
+1) Accessing system data areas, especially writing data to memory addresses protected by the system  
+   The most common case is assigning a pointer to address 0  
+2) Memory out-of-bounds access (e.g., array overflow, type mismatches) that reaches memory regions not belonging to the process
+
+Solutions
+
+When writing programs in C/C++, we are responsible for most memory management tasks. In fact, memory management is a tedious job. No matter how skilled or experienced you are, it's easy to make small mistakes here—though these errors are often superficial and easy to fix. However, manual debugging ("bug hunting") is usually inefficient and tedious. This article discusses how to quickly locate the statements causing "segmentation faults"—a type of memory access violation.
+
+Below, we'll introduce several debugging methods using the following program that contains a segmentation fault:
+
+```c
+1  dummy_function (void)
+2  {
+3      unsigned char *ptr = 0x00;
+4      *ptr = 0x00;
+5  }
+6
+7  int main (void)
+8  {
+9      dummy_function ();
+10
+11      return 0;
+12  }
+```
+
+As an experienced C/C++ programmer, the bug in the above code should be obvious: it attempts to write to memory address 0, a region typically inaccessible and protected. Let's compile and run it:
+
+```
+xiaosuo@gentux test $ gcc -g -rdynamic d.c
+xiaosuo@gentux test $ ./a.out
+Segmentation fault
+```
+
+As expected, it crashes and exits.
+
+1. Using gdb to step-by-step locate the segmentation fault:  
+This method is widely known and commonly used. First, we need an executable compiled with debug information, so we add the `-g -rdynamic` flags. Then, we use gdb to debug and run the newly compiled program. The steps are as follows:
+
+```
+xiaosuo@gentux test $ gcc -g -rdynamic d.c
+xiaosuo@gentux test $ gdb ./a.out
+GNU gdb 6.5
+Copyright (C) 2006 Free Software Foundation, Inc.
+GDB is free software, covered by the GNU General Public License, and you are
+welcome to change it and/or distribute copies of it under certain conditions.
+Type "show copying" to see the conditions.
+There is absolutely no warranty for GDB.  Type "show warranty" for details.
+This GDB was configured as "i686-pc-linux-gnu"...Using host libthread_db library "/lib/libthread_db.so.1".
+
+(gdb) r
+Starting program: /home/xiaosuo/test/a.out
+
+Program received signal SIGSEGV, Segmentation fault.
+0x08048524 in dummy_function () at d.c:4
+4               *ptr = 0x00;
+(gdb)
+```
+
+Oh?! It seems we've already found the error location—line 4 in d.c—without even stepping through. It really is that simple.
+
+We also see that the process terminated due to receiving the SIGSEGV signal. Further查阅 of the documentation (`man 7 signal`) reveals that the default action for SIGSEGV is to print a "segmentation fault" message and generate a core dump file. This leads us to method two.
+
+2. Analyzing the Core File:  
+What is a core file?
+
+> The default action of certain signals is to cause a process to terminate and produce a core dump file, a disk file containing an image of the process's memory at the time of termination. A list of the signals which cause a process to dump core can be found in signal(7).
+
+The above is excerpted from the man page (`man 5 core`). However, strangely, I couldn't find a core file on my system. Then I remembered that, to reduce the number of junk files (I'm a bit of a perfectionist, one reason I like Gentoo), I had disabled core dump generation. A check confirmed this—the system's core file size limit was set to 512K. Let's adjust it and try again:
+
+```
+xiaosuo@gentux test $ ulimit -c 0
+xiaosuo@gentux test $ ulimit -c 1000
+xiaosuo@gentux test $ ./a.out
+Segmentation fault (core dumped)
+xiaosuo@gentux test $ ls
+a.out  core  d.c  f.c  g.c  pango.c  testiconv.c  testregex.c
+```
+
+The core file is finally generated. Let's debug it with gdb:
+
+```
+xiaosuo@gentux test $ gdb ./a.out core
+GNU gdb 6.5
+Copyright (C) 2006 Free Software Foundation, Inc.
+GDB is free software, covered by the GNU General Public License, and you are
+welcome to change it and/or distribute copies of it under certain conditions.
+Type "show copying" to see the conditions.
+There is absolutely no warranty for GDB.  Type "show warranty" for details.
+This GDB was configured as "i686-pc-linux-gnu"...Using host libthread_db library "/lib/libthread_db.so.1".
+
+warning: Can't read pathname for load map: Input/output error.
+Reading symbols from /lib/libc.so.6...done.
+Loaded symbols for /lib/libc.so.6
+Reading symbols from /lib/ld-linux.so.2...done.
+Loaded symbols for /lib/ld-linux.so.2
+Core was generated by `./a.out'.
+Program terminated with signal 11, Segmentation fault.
+#0  0x08048524 in dummy_function () at d.c:4
+4               *ptr = 0x00;
+```
+
+Wow, impressive! Again, it immediately pinpoints the error location. Hats off to the Linux/Unix system design.
+
+Now, thinking further: when using Internet Explorer on Windows, opening certain web pages sometimes triggers a "runtime error." If you have a Windows compiler installed, a dialog pops up asking whether you want to debug. If you say yes, the debugger launches and enters debug mode.
+
+How can we achieve similar behavior on Linux? My mind races—and then it hits me: invoke gdb from within the SIGSEGV signal handler. Thus, the third method is born:
+
+3. Launching Debugger on Segmentation Fault:
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <string.h>
+
+void dump(int signo)
+{
+    char buf[1024];
+    char cmd[1024];
+    FILE *fh;
+
+    snprintf(buf, sizeof(buf), "/proc/%d/cmdline", getpid());
+    if(!(fh = fopen(buf, "r")))
+        exit(0);
+    if(!fgets(buf, sizeof(buf), fh))
+        exit(0);
+    fclose(fh);
+    if(buf[strlen(buf) - 1] == ' ')
+        buf[strlen(buf) - 1] = '\0';
+    snprintf(cmd, sizeof(cmd), "gdb %s %d", buf, getpid());
+    system(cmd);
+
+    exit(0);
+}
+
+void
+dummy_function (void)
+{
+    unsigned char *ptr = 0x00;
+    *ptr = 0x00;
+}
+
+int
+main (void)
+{
+    signal(SIGSEGV, &dump);
+    dummy_function();
+
+    return 0;
+}
+```
+
+Compilation and execution result:
+
+```
+xiaosuo@gentux test $ gcc -g -rdynamic f.c
+xiaosuo@gentux test $ ./a.out
+GNU gdb 6.5
+Copyright (C) 2006 Free Software Foundation, Inc.
+GDB is free software, covered by the GNU General Public License, and you are
+welcome to change it and/or distribute copies of it under certain conditions.
+Type "show copying" to see the conditions.
+There is absolutely no warranty for GDB.  Type "show warranty" for details.
+This GDB was configured as "i686-pc-linux-gnu"...Using host libthread_db library "/lib/libthread_db.so.1".
+
+Attaching to program: /home/xiaosuo/test/a.out, process 9563
+Reading symbols from /lib/libc.so.6...done.
+Loaded symbols for /lib/libc.so.6
+Reading symbols from /lib/ld-linux.so.2...done.
+Loaded symbols for /lib/ld-linux.so.2
+0xffffe410 in __kernel_vsyscall ()
+(gdb) bt
+#0  0xffffe410 in __kernel_vsyscall ()
+#1  0xb7ee4b53 in waitpid () from /lib/libc.so.6
+#2  0xb7e925c9 in strtold_l () from /lib/libc.so.6
+#3  0x08048830 in dump (signo=11) at f.c:22
+#4  <signal handler called>
+#5  0x0804884c in dummy_function () at f.c:31
+#6  0x08048886 in main () at f.c:38
+```
+
+How about that? Still pretty cool, right?
+
+All the above methods assume gdb is available on the system. But what if it isn't? Fortunately, glibc provides a family of functions capable of dumping stack content. See `/usr/include/execinfo.h` (these functions lack man pages, which is why we often overlook them), or consult the GNU manual for further learning.
+
+4. Using backtrace and objdump for Analysis:
+
+Rewritten code:
+
+```c
+#include <execinfo.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+
+/* A dummy function to make the backtrace more interesting. */
+void
+dummy_function (void)
+{
+    unsigned char *ptr = 0x00;
+    *ptr = 0x00;
+}
+
+void dump(int signo)
+{
+    void *array[10];
+    size_t size;
+    char **strings;
+    size_t i;
+
+    size = backtrace (array, 10);
+    strings = backtrace_symbols (array, size);
+
+    printf ("Obtained %zd stack frames.\n", size);
+
+    for (i = 0; i < size; i++)
+        printf ("%s\n", strings[i]);
+
+    free (strings);
+
+    exit(0);
+}
+
+int
+main (void)
+{
+    signal(SIGSEGV, &dump);
+    dummy_function();
+
+    return 0;
+}
+```
+
+Compilation and execution:
+
+```
+xiaosuo@gentux test $ gcc -g -rdynamic g.c
+xiaosuo@gentux test $ ./a.out
+Obtained 5 stack frames.
+./a.out(dump+0x19) [0x80486c2]
+[0xffffe420]
+./a.out(main+0x35) [0x804876f]
+/lib/libc.so.6(__libc_start_main+0xe6) [0xb7e02866]
+./a.out [0x8048601]
+```
+
+This time, you might feel a bit disappointed—the output doesn't seem to provide enough detail to pinpoint the error. Don't worry—let's see what we can analyze. Use objdump to disassemble the program and locate the code at address `0x804876f`:
+
+```
+xiaosuo@gentux test $ objdump -d a.out
+
+ 8048765:       e8 02 fe ff ff          call   804856c <signal@plt>
+ 804876a:       e8 25 ff ff ff          call   8048694 <dummy_function>
+ 804876f:       b8 00 00 00 00          mov    $0x0,%eax
+ 8048774:       c9                      leave
+```
+
+We still managed to identify the function (`dummy_function`) where the error occurred. The information isn't complete, but something is better than nothing!
+
+Postscript:  
+This article presents several methods for analyzing "segmentation faults." Don't think of these as pedantic as Mr. Kong Yiji's four ways of writing the character "回"—each method has its own applicable scope and environment. Use them appropriately, or as directed.

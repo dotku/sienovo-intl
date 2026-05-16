@@ -1,0 +1,63 @@
+---
+title: "Understanding (int *)&i and int increment(int * &i)"
+date: "2011-11-14"
+slug: "6969352"
+tags: ["#null", "#C"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6969352"
+originalTitle: "(int   *)&i  与int   increment(int   *   &   i) 相关理解的整理"
+---
+
+Q1:  
+#include "stdio.h"  
+void main()  
+{  
+int i[] = {2, 3};  
+int *j = i;  
+int **k = &j; // Double pointer, correct;  
+int *p = NULL;  
+  
+//         k = &i;   // 'i' represents the array address, and '&i' also seems like a double pointer—why does this fail?  
+// Error: cannot convert from 'int (*)[2]' to 'int **'  
+// Isn't 'int (*)[2]' an array pointer? For example, int (*c)[2]; c = arry[3][2]. Here, 'c' is also used like a double pointer~  
+  
+// i = (int *)&i; // Error: cannot convert from 'int *' to 'int [2]'  
+// k = (int *)&i; // Error: cannot convert from 'int *' to 'int **'  
+// k = (int *)i;  // Error: cannot convert from 'int *' to 'int **'  
+  
+p = (int *)i;  
+p = (int *)&i;  
+// Both of these casts work. What's the actual difference between &i and i? Is & meaningless here?  
+}  
+  
+A1:  
+i = (int *)&i; // Error: cannot convert from 'int *' to 'int [2]'  
+
+This line is definitely wrong because 'i', as an array name, is a pointer—but a constant pointer—and cannot be assigned to.  
+k = (int *)&i; // Error: cannot convert from 'int *' to 'int **'  
+
+This is also wrong. &i is already of type int**, so adding an explicit (int**) cast does more harm than good.  
+k = (int *)i; // Error: cannot convert from 'int *' to 'int **'  
+
+This is incorrect as well. 'k' is of type int**, and you cannot convert directly from int*.  
+--------------------------------------------------------------------------------------------  
+Q2:  
+**Define a function, for example: int increment(int * & i)  
+                                    {  
+                                        i++;  
+                                        return 0;  
+                                    }  
+  
+    How should the parameter: int * & i be understood?**  
+
+A2:  
+1) int increment(int * & i)  
+            {  
+                i++;  
+                return 0;  
+            }  
+
+'increment' is a function. It's essentially the same as int increment(int * i); the '&' just indicates that the parameter is passed by reference.  
+2) &i is simply an alias for i; it denotes a reference to an integer pointer;  
+ * for pointer, & for reference  
+ int * & i  
+ means a reference to a pointer to an integer

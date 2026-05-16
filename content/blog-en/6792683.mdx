@@ -1,0 +1,39 @@
+---
+title: "Discussion on the String Terminator '\0' in C Language"
+date: "2011-09-20"
+slug: "6792683"
+tags: ["#Language", "#C", "#Storage"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6792683"
+originalTitle: "C语言中字符串结束符'\0'的讨论"
+---
+
+'\0' is 8-bit 00000000. Since there is no corresponding character in character types, it is written this way. In numeric types, it represents the number 0.
+
+When storing numeric types, the most significant bit determines the sign. If all other bits are 0, isn't that just 0?
+
+'\0' is an escape character, meaning it tells the program that this is not the character '0', but rather the binary representation of the number 0 directly inserted, because the ASCII code for '0' is not 00000000.
+
+Originally, in C language, there are no dedicated string variables. A character array is typically used to store a string. Strings are always terminated by '\0'. Therefore, when storing a string into an array, the terminator '\0' is also stored in the array and serves as the flag for the string's end. With the '\0' flag, there's no need to use the character array's length to determine the string's length.
+
+'\0' is the string termination flag.
+
+For example, assigning a string to an array:
+u8 str1[]={"cxjr.21ic.org"};
+In reality, the array `str1` is stored in memory as:
+c x j r . 2 1 i c . o r g '\0'
+The trailing '\0' is automatically added by the C compiler. Therefore, when initializing with a string literal, there's generally no need to specify the array length, as the system handles it automatically.
+When copying the string from character array `str1` to character array `str2`, the string terminator '\0' is also copied.
+
+However... there are some exceptions.
+For instance, when the array length is insufficient. Suppose we specify the array length, such as:
+u8 str1[13]={"cxjr.21ic.org"};
+Since the length of character array `str1` is 13, the trailing information will be lost, meaning '\0' will be lost.
+
+Additionally, if each character is enclosed in single quotes when assigning to an array, '\0' will also be lost. For example:
+u8 str1[]={'c','x','j','r','.','2','1','i','c','.','o','r','g'};
+If you want the array to be terminated by '\0', you can either write it as:
+u8 str1[]={"cxjr.21ic.org"};
+Or write it as (manually adding '\0'):
+u8 str1[]={'c','x','j','r','.','2','1','i','c','.','o','r','g', '\0'};
+Or write it as (intentionally reserving an empty space in the array):
+u8 str1[14]={'c','x','j','r','.','2','1','i','c','.','o','r','g'};

@@ -1,0 +1,538 @@
+---
+title: "Comprehensive Guide to Linux Processes, Signals, IPC, and gprof Usage (Reprinted)"
+date: "2011-10-08"
+slug: "6852194"
+tags: ["#Linux", "#Struct", "#Buffer", "#String", "#Server", "#GCC"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6852194"
+originalTitle: "Linux进程，信号，IPC等知识普及强文，最后讲了下gprof用法（转）"
+---
+
+Comprehensive Guide to Linux Processes, Signals, IPC, and gprof Usage (Reprinted)
+
+Source: ChinaUnix Blog　Date: 2008.03.14 15:48　(Comments: ) [Comment here](http://linux.chinaunix.net/bbs/thread-983262-1-1.html) Thanks to 007xiong, Hoyt, and others. This article is excellent. Concerned that the original link might disappear someday, I'm making a backup here. Original link:  
+[http://www.mwjx.com/aboutfish/private/book/linux_c.txt](http://www.mwjx.com/aboutfish/private/book/linux_c.txt)  
+Introduction to C Programming under Linux  
+Compiled and written by: 007xiong  
+Original: Hoyt et al.  
+(1) Table of Contents  
+1) Introduction to Linux Program Design -- Basics  
+2) Introduction to Linux Program Design -- Processes  
+3) Introduction to Linux Program Design -- File Operations  
+4) Introduction to Linux Program Design -- Time Concepts  
+5) Introduction to Linux Program Design -- Signal Handling  
+6) Introduction to Linux Program Design -- Message Management  
+7) Introduction to Linux Program Design -- Thread Operations  
+8) Introduction to Linux Program Design -- Network Programming  
+9) Introduction to C Development Tools under Linux  
+(2) Detailed Content  
+1) Introduction to Linux Program Design -- Basics  
+Fundamentals of C Programming under Linux  
+Preface:  
+This article introduces the foundational knowledge required for C programming under Linux. In this article, we will learn:  
+Source code compilation  
+Writing Makefiles  
+Linking program libraries  
+Program debugging  
+Header files and system help  
+\----------------------------------------------------------------------------  
+\----  
+1. Source Code Compilation  
+Under Linux, to compile a C source program, we use the GNU gcc compiler. Let's illustrate how to use gcc with an example.  
+Suppose we have the following very simple source program (hello.c):  
+int main(int argc,char \*\*argv)  
+{  
+printf("Hello Linux\\n");  
+}  
+To compile this program, simply execute the following command:  
+gcc -o hello hello.c  
+The gcc compiler will generate an executable file named hello. Running ./hello will display the program's output. In the command line, gcc indicates we are using gcc to compile our source code, the -o option specifies that we want the output executable file to be named hello, and hello.c is our source file.  
+The gcc compiler has many options, but generally, knowing just a few is sufficient. We already know the -o option, which specifies the desired name of the output executable file. The -c option means we only want the compiler to output object code without generating an executable file. The -g option tells the compiler to include debugging information for later program debugging.  
+Knowing these three options enables you to compile simple source programs you write. If you want to know more options, refer to gcc's help documentation, which provides detailed explanations of other options.  
+2. Writing Makefiles  
+Suppose we have the following program with the source code below:  
+/\* main.c \*/  
+#include "mytool1.h"  
+#include "mytool2.h"  
+int main(int argc,char \*\*argv)  
+{  
+mytool1\_print("hello");  
+mytool2\_print("hello");  
+}  
+/\* mytool1.h \*/  
+#ifndef \_MYTOOL\_1\_H  
+#define \_MYTOOL\_1\_H  
+void mytool1\_print(char \*print\_str);  
+#endif  
+/\* mytool1.c \*/  
+#include "mytool1.h"  
+void mytool1\_print(char \*print\_str)  
+{  
+printf("This is mytool1 print %s\\n",print\_str);  
+}  
+/\* mytool2.h \*/  
+#ifndef \_MYTOOL\_2\_H  
+#define \_MYTOOL\_2\_H  
+void mytool2\_print(char \*print\_str);  
+#endif  
+/\* mytool2.c \*/  
+#include "mytool2.h"  
+void mytool2\_print(char \*print\_str)  
+{  
+printf("This is mytool2 print %s\\n",print\_str);  
+}  
+Of course, since this program is very short, we could compile it like this:  
+gcc -c main.c  
+gcc -c mytool1.c  
+gcc -c mytool2.c  
+gcc -o main main.o mytool1.o mytool2.o  
+This way, we can also generate the main program, and it's not too troublesome. But what if one day we modify one of the files (say, mytool1.c)? Would we have to re-enter the above commands? You might say this is easy to solve—just write a SHELL script to do it. Yes, for this program, that would work. But if we think more complexly, what if our program has hundreds of source files? Would we still have the compiler recompile each one individually?  
+To solve this, clever programmers invented a great tool: make. By simply running make, we can resolve the above issue. Before running make, we must first write a very important file—Makefile. A possible Makefile for the above program is:  
+\# This is the Makefile for the program above  
+main:main.o mytool1.o mytool2.o  
+gcc -o main main.o mytool1.o mytool2.o  
+main.o:main.c mytool1.h mytool2.h  
+gcc -c main.c  
+mytool1.o:mytool1.c mytool1.h  
+gcc -c mytool1.c  
+mytool2.o:mytool2.c mytool2.h  
+gcc -c mytool2.c  
+With this Makefile, no matter which source file we modify, running the make command will cause the compiler to compile only the files related to the modified file; it won't bother with the others.  
+Next, let's learn how to write a Makefile.  
+Lines starting with # in a Makefile are comments. The most important part of a Makefile is the dependency description. The general format is:  
+target: components  
+TAB rule  
+The first line indicates the dependency relationship. The second line is the rule.  
+For example, the second line of our Makefile above:  
+main:main.o mytool1.o mytool2.o  
+indicates that the target (main) depends on the components (main.o, mytool1.o, mytool2.o). When a dependent object is modified after the target, the command specified in the rule line must be executed. As stated in the third line of our Makefile, execute gcc -o main main.o mytool1.o mytool2.o.  
+Note: The TAB in the rule line represents an actual TAB key.  
+Makefiles have three very useful variables: $@, $<, and $^. $@ represents the target file, $< represents the first dependent file, and $^ represents all dependent files. For example, in the rule:  
+main.o:main.c mytool1.h mytool2.h  
+gcc -c main.c  
+$@ is main.o, $< is main.c, and $^ is main.c mytool1.h mytool2.h.  
+3. Program Libraries  
+After writing a program, we often need to link it with standard libraries. For example, the following program:  
+#include <stdio.h>  
+#include <math.h>  
+int main(int argc,char \*\*argv)  
+{  
+double value;  
+printf("Value:%f\\n",value);  
+}  
+This program is quite simple, but when we compile it with gcc -o temp temp.c, the following error appears:  
+/tmp/cc33Kydu.o: In function \`main':  
+/tmp/cc33Kydu.o(.text+0xe): undefined reference to \`log'  
+collect2: ld returned 1 exit status  
+This error occurs because the compiler cannot find the specific implementation of log. Although we included the correct header file, we still need to link the appropriate library during compilation. Under Linux, to use mathematical functions, we must link with the math library, so we need to add the -lm option. Using gcc -o temp temp.c -lm will compile correctly. Someone might ask, why didn't we need to link a library when using printf earlier? The reason is that for some commonly used functions, the gcc compiler automatically links certain standard libraries, so we don't need to specify them ourselves. Sometimes, when compiling a program, we also need to specify the library path, in which case we use the compiler's -L option to specify the path. For example, if we have a library in /home/hoyt/mylib, we need to add -L/home/hoyt/mylib during compilation. For standard libraries, we don't need to specify the path as long as they are in the default library paths. The system's default library paths are /lib, /usr/lib, and /usr/local/lib. Libraries in these three paths can be used without specifying the path.  
+Another issue: sometimes we use a function but don't know the library name. What should we do then? Unfortunately, I don't know the answer to this question either. I only have a crude method. First, I look in the standard library paths for a library related to the function I'm using. This is how I found the library file (libpthread.a) for thread functions. Of course, if I can't find it, there's only one clumsy method. For example, to find the library containing the sin function, I can only use the command nm -o /lib/\*.so|grep sin>~/sin, then look in the ~/sin file. In the sin file, I find a line like libm-2.1.2.so:00009fa0 W sin, which tells me that sin is in the libm-2.1.2.so library, so I can use the -lm option (removing the leading lib and trailing version number, leaving just m, hence -lm). If you know a better method, please let me know immediately—I would be very grateful. Thank you!  
+4. Program Debugging  
+Our programs are unlikely to succeed on the first try. Many unexpected errors may occur, requiring us to debug the program.  
+The most commonly used debugging software is gdb. If you prefer a graphical interface, you can use xxgdb. Remember to include the -g option during compilation. For details on using gdb, refer to its help documentation. Since I haven't used this software much, I can't explain how to use it. However, I don't like using gdb. Tracing a program is quite tedious; I usually debug by outputting intermediate variable values within the program. Of course, you can choose your own method—there's no need to follow others. Now there are many IDE environments that include built-in debuggers. You can try a few to find one you like.  
+5. Header Files and System Help  
+Sometimes we only remember the general form of a function but not the exact expression, or we don't remember which header file declared the function. In such cases, we can seek help from the system.  
+For example, if we want to know the exact form of the fread function, we can simply run man fread, and the system will output a detailed explanation of the function and the header file where it is declared. If we want the description of the write function, running man write gives us the command description instead of the function description. To get the function description for write, we use man 2 write. The number 2 indicates that the write function is a system call. Another commonly used number is 3, indicating a C library function.  
+Remember, man is always our best helper, no matter what.  
+\------------------------------------------------------------------------  
+Well, that's enough for this chapter. With this knowledge, we can now embark on exciting C programming adventures under Linux.  
+2) Introduction to Linux Program Design -- Processes  
+Process Creation under Linux  
+Preface:  
+This article introduces various concepts related to processes under Linux. We will learn:  
+Concept of processes  
+Process identity  
+Process creation  
+Daemon process creation  
+\----------------------------------------------------------------------------  
+\----  
+1. Concept of Processes  
+The Linux operating system is multi-user. At any given time, multiple users can issue various commands to the operating system. How does the operating system achieve a multi-user environment? Modern operating systems have concepts of programs and processes. What is a program, and what is a process? Loosely speaking, a program is a file containing executable code—a static file. A process, on the other hand, is an instance of a program that has started execution but has not yet finished. It is the concrete implementation of an executable file. A single program can have multiple processes, and each process can have multiple child processes, creating a hierarchy of parent and child processes. When a program is loaded into memory by the system, the system allocates certain resources (memory, devices, etc.) to it and performs a series of complex operations to turn the program into a process for system use. In the system, only processes exist, not programs. To distinguish between different processes, the system assigns each process an ID (like an ID card) for identification. To fully utilize resources, the system also categorizes processes into different states: new, running, blocked, ready, and completed. New means the process is being created; running means the process is executing; blocked means the process is waiting for an event; ready means the system is waiting for the CPU to execute; and completed means the process has finished and the system is reclaiming resources. For detailed explanations of the five process states, refer to "Operating Systems."  
+2. Process Identification  
+As mentioned above, we know that processes have an ID. How do we obtain a process's ID? The system call getpid retrieves the process ID, and getppid retrieves the parent process ID (the process that created the calling process).  
+#include <sys/types.h>  
+pid\_t getpid(void);  
+pid\_t getppid(void);  
+Processes serve programs, and programs serve users. To identify the user associated with a process, the system links the process to a user, known as the process owner. Each user also has a user ID. The system call getuid retrieves the owner's ID. Since processes use resources, and Linux protects system resources, processes also have an effective user ID related to resource usage and permissions. The system call geteuid retrieves the effective user ID. Correspondingly, processes also have a group ID and an effective group ID. The system calls getgid and getegid retrieve the group ID and effective group ID, respectively.  
+#include <sys/types.h>  
+#include <unistd.h>  
+uid\_t getuid(void);  
+uid\_t geteuid(void);  
+gid\_t getgid(void);  
+gid\_t getegid(void);  
+Sometimes we are interested in other user information (such as login name), in which case we can call getpwuid to retrieve it.  
+struct passwd {  
+char \*pw\_name; /\* Login name \*/  
+char \*pw\_passwd; /\* Login password \*/  
+uid\_t pw\_uid; /\* User ID \*/  
+gid\_t pw\_gid; /\* Group ID \*/  
+char \*pw\_gecos; /\* Real name \*/  
+char \*pw\_dir; /\* User directory \*/  
+char \*pw\_shell; /\* User shell \*/  
+};  
+#include <sys/types.h>  
+#include <pwd.h>  
+struct passwd \*getpwuid(uid\_t uid);  
+Next, let's practice using the functions we've learned with an example:  
+#include <stdio.h>  
+#include <sys/types.h>  
+#include <unistd.h>  
+#include <pwd.h>  
+int main(int argc,char \*\*argv)  
+{  
+pid\_t my\_pid,parent\_pid;  
+uid\_t my\_uid,my\_euid;  
+gid\_t my\_gid,my\_egid;  
+struct passwd \*my\_info;  
+my\_pid=getpid();  
+parent\_pid=getppid();  
+my\_uid=getuid();  
+my\_euid=geteuid();  
+my\_gid=getgid();  
+my\_egid=getegid();  
+my\_info=getpwuid(my\_uid);  
+printf("Process ID:%ld\\n",my\_pid);  
+printf("Parent ID:%ld\\n",parent\_pid);  
+printf("User ID:%ld\\n",my\_uid);  
+printf("Effective User ID:%ld\\n",my\_euid);  
+printf("Group ID:%ld\\n",my\_gid);  
+printf("Effective Group ID:%ld\\n",my\_egid);  
+if(my\_info)  
+{  
+printf("My Login Name:%s\\n" ,my\_info->pw\_name);  
+printf("My Password :%s\\n" ,my\_info->pw\_passwd);  
+printf("My User ID :%ld\\n",my\_info->pw\_uid);  
+printf("My Group ID :%ld\\n",my\_info->pw\_gid);  
+printf("My Real Name:%s\\n" ,my\_info->pw\_gecos);  
+printf("My Home Dir :%s\\n", my\_info->pw\_dir);  
+printf("My Work Shell:%s\\n", my\_info->pw\_shell);  
+}  
+}  
+3. Process Creation  
+Creating a process is simple. We just need to call the fork function.  
+#include <sys/types.h>  
+#include <unistd.h>  
+pid\_t fork();  
+When a process calls fork, the system creates a child process. The only differences between the child and parent processes are their process IDs and parent process IDs; everything else is identical, as if the parent process cloned itself. Of course, creating two identical processes is meaningless. To distinguish between parent and child processes, we must track the return value of fork. When fork fails (due to insufficient memory or reaching the maximum number of processes for the user), fork returns -1. Otherwise, the return value of fork is crucial. For the parent process, fork returns the child process's ID, while for the child process, fork returns 0. We use this return value to distinguish between parent and child processes. Why does the parent process create a child process? As mentioned earlier, Linux is a multi-user operating system, and at any given time, multiple users compete for system resources. Sometimes, a process creates a child process to compete for resources to complete tasks sooner. Once the child process is created, both parent and child processes continue execution from the point of fork, competing for system resources. Sometimes, we want the child process to continue executing while the parent process blocks until the child process completes. In this case, we can call the wait or waitpid system calls.  
+#include <sys/types.h>  
+#include <sys/wait.h>  
+pid\_t wait(int \*stat\_loc);  
+pid\_t waitpid(pid\_t pid,int \*stat\_loc,int options);  
+The wait system call blocks the parent process until a child process ends or the parent receives a signal. If the parent has no child processes or all child processes have ended, wait returns immediately. On success (due to a child process ending), wait returns the child process's ID; otherwise, it returns -1 and sets the global variable errno. stat\_loc is the exit status of the child process, set by the child process via exit, \_exit, or return. To obtain this value, Linux defines several macros to test the return value:  
+WIFEXITED: Checks if the child process exited normally.  
+WEXITSTATUS: Retrieves the exit status of the child process (valid when WIFEXITED is true).  
+WIFSIGNALED: Checks if the child process was terminated by an unhandled signal.  
+WTERMSIG: Retrieves the signal number that terminated the child process (valid when WIFSIGNALED is true).  
+waitpid waits for a specified child process to return. If pid is positive, it waits for the specified process (pid). If pid is 0, it waits for any process in the same group as the caller. If pid is -1, it behaves like the wait call. If pid is less than -1, it waits for any process whose group ID equals the absolute value of pid. stat\_loc has the same meaning as in wait. The options parameter determines the parent process's state and can take two values: WNOHANG, which causes the parent to return immediately if no child exists; and WUNTRACED, which causes waitpid to return when the child process ends, but the exit status is not available.  
+After a parent process creates a child process, the child process usually needs to execute a different program. To invoke a system program, we can use the exec family of system calls. The exec family includes five functions:  
+#include <unistd.h>  
+int execl(const char \*path,const char \*arg,...);  
+int execlp(const char \*file,const char \*arg,...);  
+int execle(const char \*path,const char \*arg,...);  
+int execv(const char \*path,char \*const argv\[\]);  
+int execvp(const char \*file,char \*const argv\[\]);  
+The exec family can execute a given program. For detailed explanations of the exec family, refer to the system manual (man exec). Let's study an example. Note: compile with -lm to link the math library.  
+#include <stdio.h>  
+#include <sys/types.h>  
+#include <unistd.h>  
+#include <stdlib.h>  
+#include <sys/wait.h>  
+#include <string.h>  
+#include <errno.h>  
+void main(void)  
+{  
+pid\_t child;  
+int status;  
+printf("This will demonstrate how to get child status\\n");  
+if((child=fork())==-1)  
+{  
+printf("Fork Error :%s\\n",strerror(errno));  
+exit(1);  
+}  
+else if(child==0)  
+{  
+int i;  
+printf("I am the child:%ld\\n",getpid());  
+for(i=0;i<1000000;i++);  
+printf("I exit normally.\\n");  
+exit(0);  
+}  
+else  
+{  
+printf("I am the parent:%ld\\n",getpid());  
+wait(&status);  
+if(WIFEXITED(status))  
+{  
+printf("Child exited with code:%d\\n",WEXITSTATUS(status));  
+}  
+else if(WIFSIGNALED(status))  
+{  
+printf("Child terminated by signal:%d\\n",WTERMSIG(status));  
+}  
+}  
+}  
+4. Daemon Process Creation  
+Daemon processes are background processes that run independently of terminals. They are often used for system services. To create a daemon process, follow these steps:  
+1. Call fork to create a child process, then exit the parent process. This ensures the child is not a process group leader.  
+2. Call setsid to create a new session, making the child process a session leader and detaching it from the controlling terminal.  
+3. Change the working directory to the root directory to prevent the current directory from being locked.  
+4. Close unnecessary file descriptors and redirect standard input, output, and error to /dev/null.  
+Here is an example of a simple daemon process:  
+#include <stdio.h>  
+#include <sys/types.h>  
+#include <sys/stat.h>  
+#include <fcntl.h>  
+#include <unistd.h>  
+#include <stdlib.h>  
+#include <errno.h>  
+#include <string.h>  
+/\* Default user mailbox path in Linux is /var/spool/mail/username \*/  
+#define MAIL "/var/spool/mail/hoyt"  
+/\* Sleep for 10 seconds \*/  
+#define SLEEP\_TIME 10  
+main(void)  
+{  
+pid\_t child;  
+if((child=fork())==-1)  
+{  
+printf("Fork Error:%s\\n",strerror(errno));  
+exit(1);  
+}  
+else if(child>0)  
+while(1);  
+if(kill(getppid(),SIGTERM)==-1)  
+{  
+printf("Kill Parent Error:%s\\n",strerror(errno));  
+exit(1);  
+}  
+{  
+int mailfd;  
+while(1)  
+{  
+if((mailfd=open(MAIL,O\_RDONLY))!=-1)  
+{  
+fprintf(stderr,"%s","\\007");  
+close(mailfd);  
+}  
+sleep(SLEEP\_TIME);  
+}  
+}  
+}  
+You can create your mailbox file in the default path and test this program. Of course, this program has many areas for improvement. We will enhance this small program later. Before I show my improvements, try improving it yourself—perhaps allowing the user to specify the mailbox path and sleep time. Believe in yourself—you can do it. Go ahead, brave explorer.  
+Well, that's enough for this section on processes. Processes are a very important concept, and many programs use child processes. Creating a child process is a fundamental requirement for every programmer!  
+3) Introduction to Linux Program Design -- File Operations  
+File Operations under Linux  
+Preface:  
+In this section, we will discuss the various functions for file operations under Linux.  
+File creation and read/write  
+File attributes  
+Directory operations  
+Pipe files  
+\----------------------------------------------------------------------------  
+\----  
+1. File Creation and Read/Write  
+I assume you already know the standard-level file operation functions (fopen, fread, fwrite, etc.). If not, don't worry. The system-level file operations we discuss here actually serve the standard-level operations.  
+When we need to open a file for read/write operations, we can use the system call open. After use, we call close to close the file.  
+#include <sys/types.h>  
+#include <sys/stat.h>  
+#include <fcntl.h>  
+#include <unistd.h>  
+int open(const char \*pathname,int flags);  
+int open(const char \*pathname,int flags,mode\_t mode);  
+int close(int fd);  
+The open function has two forms. pathname is the filename (including path, default is current directory). flags can take one of the following values or a combination:  
+O\_RDONLY: Open for reading only.  
+O\_WRONLY: Open for writing only.  
+O\_RDWR: Open for both reading and writing.  
+O\_APPEND: Open in append mode.  
+O\_CREAT: Create a file.  
+O\_EXCL: If O\_CREAT is used and the file exists, an error occurs.  
+O\_NOBLOCK: Open in non-blocking mode.  
+O\_TRUNC: If the file exists, truncate its contents.  
+The first three flags can only be used singly. If O\_CREAT is used, we must use the second form of open and specify the mode flag to indicate file access permissions. mode can be a combination of the following:  
+\-----------------------------------------------------------------  
+S\_IRUSR User can read S\_IWUSR User can write  
+S\_IXUSR User can execute S\_IRWXU User can read, write, execute  
+\-----------------------------------------------------------------  
+S\_IRGRP Group can read S\_IWGRP Group can write  
+S\_IXGRP Group can execute S\_IRWXG Group can read, write, execute  
+\-----------------------------------------------------------------  
+S\_IROTH Others can read S\_IWOTH Others can write  
+S\_IXOTH Others can execute S\_IRWXO Others can read, write, execute  
+\-----------------------------------------------------------------  
+S\_ISUID Set user ID S\_ISGID Set group ID  
+\-----------------------------------------------------------------  
+We can also use numbers to represent the permission bits. Linux uses five digits to represent file permissions: 00000. The first digit sets the user ID, the second sets the group ID, the third represents user permissions, the fourth group permissions, and the fifth others' permissions. Each digit can be 1 (execute), 2 (write), 4 (read), 0 (none), or a sum of these values.  
+For example, to create a file with user read/write/execute, group no permissions, others read/execute, and set user ID, we can use the mode --1 (set user ID) 0 (group not set) 7 (1+2+4) 0 (no permissions, use default) 5 (1+4), i.e., 10705:  
+open("temp",O\_CREAT,10705);  
+If the file opens successfully, open returns a file descriptor. All subsequent file operations use this file descriptor.  
+After operations are complete, close the file by calling close, where fd is the file descriptor to close.  
+After opening a file, we perform read/write operations using the read and write functions.  
+#include <unistd.h>  
+ssize\_t read(int fd, void \*buffer,size\_t count);  
+ssize\_t write(int fd, const void \*buffer,size\_t count);  
+fd is the file descriptor for read/write operations, buffer is the memory address for writing to or reading from the file, and count is the number of bytes to read/write.  
+For regular files, read reads count bytes from the specified file (fd) into the buffer (remember to provide a sufficiently large buffer) and returns count.  
+If read reaches the end of the file or is interrupted by a signal, the return value is less than count. If interrupted by a signal with no data returned, read returns -1 and sets errno to EINTR. When the program reaches the end of the file, read returns 0.  
+write writes count bytes from buffer to file fd, returning the actual number of bytes written on success.  
+Next, let's study an example that copies a file.  
+#include <stdio.h>  
+#include <sys/types.h>  
+#include <sys/stat.h>  
+#include <fcntl.h>  
+#include <unistd.h>  
+#include <stdlib.h>  
+#include <errno.h>  
+#include <string.h>  
+#define BUFFER\_SIZE 1024  
+int main(int argc,char \*\*argv)  
+{  
+int from\_fd,to\_fd;  
+int bytes\_read,bytes\_write;  
+char buffer\[BUFFER\_SIZE\];  
+char \*ptr;  
+if(argc!=3)  
+{  
+fprintf(stderr,"Usage:%s fromfile tofile\\n\\a",argv\[0\]);  
+exit(1);  
+}  
+/\* Open source file \*/  
+if((from\_fd=open(argv\[1\],O\_RDONLY))==-1)  
+{  
+fprintf(stderr,"Open %s Error:%s\\n",argv\[1\],strerror(errno));  
+exit(1);  
+}  
+/\* Create destination file \*/  
+if((to\_fd=open(argv\[2\],O\_WRONLY|O\_CREAT,S\_IRUSR|S\_IWUSR))==-1)  
+{  
+fprintf(stderr,"Open %s Error:%s\\n",argv\[2\],strerror(errno));  
+exit(1);  
+}  
+/\* The following code is a classic file copy \*/  
+while(bytes\_read=read(from\_fd,buffer,BUFFER\_SIZE))  
+{  
+/\* A fatal error occurred \*/  
+if((bytes\_read==-1)&&(errno!=EINTR)) break;  
+else if(bytes\_read>0)  
+{  
+ptr=buffer;  
+while(bytes\_write=write(to\_fd,ptr,bytes\_read))  
+{  
+/\* A fatal error occurred \*/  
+if((bytes\_write==-1)&&(errno!=EINTR))break;  
+/\* All read bytes written \*/  
+else if(bytes\_write==bytes\_read) break;  
+/\* Only part written, continue \*/  
+else if(bytes\_write>0)  
+{  
+ptr+=bytes\_write;  
+bytes\_read-=bytes\_write;  
+}  
+}  
+/\* Fatal error during write \*/  
+if(bytes\_write==-1)break;  
+}  
+}  
+close(from\_fd);  
+close(to\_fd);  
+exit(0);  
+}  
+2. File Attributes  
+Files have various attributes, including creation time, size, etc., in addition to permissions.  
+Sometimes, we need to check if a file can be accessed in a certain way (read, write, etc.). In this case, we can use the access function.  
+#include <unistd.h>  
+int access(const char \*pathname,int mode);  
+pathname is the filename, and mode is the attribute we want to check. It can take the following values or combinations: R\_OK (readable), W\_OK (writable), X\_OK (executable), F\_OK (file exists). The function returns 0 on success, or -1 if any condition fails.  
+To obtain other file attributes, we can use the stat or fstat functions.  
+#include <sys/types.h>  
+#include <sys/stat.h>  
+int stat(const char \*file\_name,struct stat \*buf);  
+int fstat(int filedes,struct stat \*buf);  
+struct stat {  
+dev\_t st\_dev; /\* Device \*/  
+ino\_t st\_ino; /\* Inode \*/  
+mode\_t st\_mode; /\* Mode \*/  
+nlink\_t st\_nlink; /\* Hard links \*/  
+uid\_t st\_uid; /\* User ID \*/  
+gid\_t st\_gid; /\* Group ID \*/  
+dev\_t st\_rdev; /\* Device type \*/  
+off\_t st\_off; /\* File size in bytes \*/  
+unsigned long st\_blksize; /\* Block size \*/  
+unsigned long st\_blocks; /\* Number of blocks \*/  
+time\_t st\_atime; /\* Last access time \*/  
+time\_t st\_mtime; /\* Last modification time \*/  
+time\_t st\_ctime; /\* Last change time (metadata) \*/  
+};  
+stat is used for files not opened, while fstat is for opened files. The most commonly used attribute is st\_mode. We can use the following macros to determine if a given file is a regular file, directory, link, etc.:  
+S\_ISLNK(st\_mode): Is it a symbolic link? S\_ISREG: Is it a regular file? S\_ISDIR: Is it a directory? S\_ISCHR: Is it a character device? S\_ISBLK: Is it a block device? S\_ISFIFO: Is it a FIFO file? S\_ISSOCK: Is it a socket file? We will explain how to use these macros below.  
+3. Directory Operations  
+When writing programs, we sometimes need to get the current working directory. The C library function getcwd solves this problem.  
+#include <unistd.h>  
+char \*getcwd(char \*buffer,size\_t size);  
+We provide a buffer of size size, and getcwd copies the current path into the buffer. If the buffer is too small, the function returns -1 and an error code.  
+Linux provides many directory operation functions. We'll learn a few simple and commonly used ones.  
+#include <sys/types.h>  
+#include <sys/stat.h>  
+#include <dirent.h>  
+#include <fcntl.h>  
+#include <unistd.h>  
+int mkdir(const char \*path,mode\_t mode);  
+DIR \*opendir(const char \*path);  
+struct dirent \*readdir(DIR \*dir);  
+void rewinddir(DIR \*dir);  
+off\_t telldir(DIR \*dir);  
+void seekdir(DIR \*dir,off\_t off);  
+int closedir(DIR \*dir);  
+struct dirent {  
+long d\_ino;  
+off\_t d\_off;  
+unsigned short d\_reclen;  
+char d\_name\[NAME\_MAX+1\]; /\* File name \*/  
+mkdir is straightforward—it creates a directory. opendir opens a directory for reading. readdir reads an open directory. rewinddir is used to re-read a directory, similar to the rewind function. closedir closes a directory. telldir and seekdir are similar to ftell and fseek.  
+Next, we'll develop a small program that takes one parameter. If the parameter is a filename, it outputs the file's size and last modification time. If it's a directory, it outputs the size and modification time of all files in that directory.  
+#include <stdio.h>  
+#include <sys/types.h>  
+#include <sys/stat.h>  
+#include <dirent.h>  
+#include <fcntl.h>  
+#include <unistd.h>  
+#include <stdlib.h>  
+#include <errno.h>  
+#include <string.h>  
+static int get\_file\_size\_time(const char \*filename)  
+{  
+struct stat statbuf;  
+if(stat(filename,&statbuf)==-1)  
+{  
+printf("Get stat on %s Error:%s\\n",  
+filename,strerror(errno));  
+return(-1);  
+}  
+if(S\_ISDIR(statbuf.st\_mode))return(1);  
+if(S\_ISREG(statbuf.st\_mode))  
+printf("%s size:%ld bytes\\tmodified at %s",  
+filename,statbuf.st\_size,ctime(&statbuf.st\_mtime));  
+return(0);  
+}  
+int main(int argc,char \*\*argv)  
+{  
+DIR \*dirp;  
+struct dirent \*direntp;  
+int stats;  
+if(argc!=2)  
+{  
+printf("Usage:%s filename\\n\\a",argv\[0\]);  
+exit(1);  
+}  
+if(((stats=get\_file\_size\_time(argv\[1\]))==0)||(stats==-1))exit(1);  
+if((dirp=opendir(argv\[1\]))==NULL)  
+{  
+printf("Open Directory %s Error:%s\\n",  
+argv\[1\],strerror(errno));  
+exit(1);  
+}  
+while((direntp=readdir(dirp))!=NULL)  
+if(get\_file\_size\_time(direntp->d_name)==-1)break;  
+closedir(dirp);  
+exit(0);  
+}  
+4. Pipe Files  
+Pipes are a form of inter-process communication (IPC) that allow data to be passed between processes. A pipe has two ends: one for

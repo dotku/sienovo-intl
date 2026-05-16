@@ -1,0 +1,208 @@
+---
+title: "Structure Definition and Initialization"
+date: "2011-09-26"
+slug: "6822378"
+tags: ["#struct", "#Storage", "#date", "#Language", "#c"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6822378"
+originalTitle: "结构体定义和初始化"
+---
+
+Objective: Understand structure types, structure variables, and structure initialization, and the relationships between these three concepts.
+
+**Structure Definition**
+
+The general form for defining a structure is:
+
+**struct StructureName**
+
+**{**
+
+**MemberList**
+
+**}**
+
+The member list consists of several members, each of which is a component of the structure.
+
+Each member must also have a type declaration.
+
+For example:
+
+```c
+struct stu
+{
+int num;
+char name[20];
+int age;
+}
+```
+
+**Declaration of Structure Type Variables**
+
+A structure definition does not define a variable; rather, it defines a **data type**. This type is user-defined and can be used just like the simple data types inherent to the language (e.g., `int`).
+
+The structure itself does not allocate memory as data. What is actually stored in memory as data are the **variables** defined using this structure type.
+
+How much memory space does a structure variable occupy? This is determined by the definition of the structure type. It can be imagined that to store every member of the structure simultaneously, the storage size of a structure variable should be the sum of the storage spaces of all its components.
+There are three methods for declaring structure variables. We will illustrate these using the `stu` structure defined above.
+
+1.  Define the structure first, then declare structure variables. For example:
+
+```c
+struct stu
+{
+int num;
+char name[20];
+int age;
+};
+struct stu boy1,boy2;
+```
+
+This declares two variables, `boy1` and `boy2`, of the `stu` structure type.
+
+You can also use a macro definition to represent a structure type with a symbolic constant. For example:
+
+```c
+#define STU struct stu
+STU
+{
+int num;
+char name[20];
+int age;
+};
+STU boy1,boy2;
+```
+
+2.  Declare structure variables simultaneously with the structure type definition. For example:
+
+```c
+struct stu
+{
+int num;
+char name[20];
+int age;
+}boy1,boy2;
+```
+
+3.  Declare structure variables directly.
+
+For example:
+
+```c
+struct
+{
+int num;
+char name[20];
+int age;
+}boy1,boy2;
+```
+
+The difference between the third and second methods is that the third method omits the structure name and directly provides the structure variables.
+
+After declaring `boy1` and `boy2` as `stu` type variables, you can assign values to their respective members.
+
+In the `stu` structure definition above, all members are either basic data types or array types. A member can also be another structure, thus forming a nested structure.
+
+For example:
+
+```c
+struct date{
+int month;
+int day;
+int year;
+}
+struct{
+int num;
+char name[20];
+struct date birthday;
+}boy1,boy2;
+```
+
+**The general form for accessing a structure variable's member is:**
+
+**structure_variable_name.member_name**
+
+For example:
+
+boy1.num
+/* i.e., the student ID of the first person */
+
+If a member itself is another structure, you must access the lowest-level member step by step before it can be used.
+
+For example: `boy1.birthday.month`
+
+This means the month of birth member of the first person can be used independently in the program, just like a regular variable.
+
+### Structure Variable Initialization: Similar to multi-dimensional array initialization.
+
+**Assigning Values to Structure Variables**
+
+You can assign values to structure members one by one, similar to how arrays are assigned element by element (for arrays, unless initialized, you have no other choice but to assign this way). **Unlike arrays, structure variables in standard C can be assigned as a whole.**
+
+Example One:
+
+```c
+#include <stdio.h>
+
+int main (void)
+{
+    struct student
+    {
+        long int num;
+        int      age;
+        char*    name;
+    }st1={200,18,"zhangsan"};
+    struct student  st2,st3; 
+
+    printf("    NO.    age    name   /n");
+    printf("   %ld    %d   %s/n",st1.num,st1.age,st1.name);
+    getch();
+    st2.num=199;
+    st2.age=19;
+    st2.name="lisi";
+    printf("   %ld    %d   %s/n",st2.num,st2.age,st2.name);
+    getch();
+    st3=st2;
+    printf("   %ld    %d   %s/n",st3.num,st3.age,st3.name);
+    getch();
+    printf("/n/n   struct student:%d",sizeof(struct student));
+    getch();
+    return 0;
+}
+```
+
+Example Two:
+
+```c
+#include <stdio.h>
+#include <conio.h>
+
+struct birth
+    {
+        int year;
+        int month;
+        int day;
+    };
+struct student
+    {
+        long int num;
+        struct  birth  birthday;
+        char*    name;
+    }st1={200,{1988,8,8},"zhangsan"};
+
+int main(void)
+{
+    struct student  st2;
+    st2=st1;
+    printf("   %ld     %s  %d/n",st2.num,st2.name,sizeof(int));
+    printf("   year: %d   month: %d   month: %d/n",
+                st2.birthday.year,
+                st2.birthday.month,
+                st2.birthday.day);
+    getch();
+    return 0;
+}
+```
+
+**Note**
+
+When your structure variable has members that store multiple characters, it is recommended to define them as arrays (for example, the `name` member mentioned earlier; **if you don't know how large the array should be, you can also define it as a pointer**). The reason is that pointer variables cannot store actual data; they only store addresses.

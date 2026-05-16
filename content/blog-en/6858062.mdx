@@ -1,0 +1,33 @@
+---
+title: "What is the Working Principle of Shell in Linux?"
+date: "2011-10-10"
+slug: "6858062"
+tags: ["#shell", "#linux", "#Operation", "#LinuxKernel", "#Terminal", "#Language"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6858062"
+originalTitle: "Linux下的shell工作原理是什么？"
+---
+
+The most important system program that the Linux system provides to users is the Shell command language [interpreter](http://wenwen.soso.com/z/Search.e?sp=S%E8%A7%A3%E9%87%8A%E7%A8%8B%E5%BA%8F&ch=w.search.yjjlink&cid=w.search.yjjlink). It is not part of the kernel but runs outside the kernel in user mode. Its basic function is to interpret and execute various commands entered by the user, providing an interface between the user and the Linux kernel. After system startup, the kernel creates a process for each [terminal user](http://wenwen.soso.com/z/Search.e?sp=S%E7%BB%88%E7%AB%AF%E7%94%A8%E6%88%B7&ch=w.search.yjjlink&cid=w.search.yjjlink) to execute the Shell interpreter. Its execution process generally follows these steps:
+(1) Reads the command line entered by the user from the [keyboard](http://wenwen.soso.com/z/Search.e?sp=S%E9%94%AE%E7%9B%98&ch=w.search.yjjlink&cid=w.search.yjjlink).
+
+(2) Analyzes the command, using the command name as the filename, and transforms other parameters into the format required for internal processing by the [system call](http://wenwen.soso.com/z/Search.e?sp=S%E7%B3%BB%E7%BB%9F%E8%B0%83%E7%94%A8&ch=w.search.yjjlink&cid=w.search.yjjlink) `execve()`.
+
+(3) The terminal process calls `fork()` to create a child process.
+
+(4) The terminal process itself uses the system call `wait4()` to wait for the child process to complete (if it's a background command, it does not wait). When the child process runs, it calls `execve()`. The child process searches for the relevant file (which constitutes the [command interpreter](http://wenwen.soso.com/z/Search.e?sp=S%E5%91%BD%E4%BB%A4%E8%A7%A3%E9%87%8A%E7%A8%8B%E5%BA%8F&ch=w.search.yjjlink&cid=w.search.yjjlink)) in the directory based on the filename (i.e., the command name), loads it into memory, and executes this program (interpreting the command).
+
+(5) If the command ends with an ampersand `&` (background command symbol), the terminal process does not wait using the `wait4()` system call; it immediately issues a prompt, allowing the user to enter the next command, and proceeds to step (1). If the command does not end with an `&`, the terminal process waits until the child process (i.e., the process [running the command](http://wenwen.soso.com/z/Search.e?sp=S%E8%BF%90%E8%A1%8C%E5%91%BD%E4%BB%A4&ch=w.search.yjjlink&cid=w.search.yjjlink)) completes its processing and terminates, reporting back to the parent process (the terminal process). At this point, the terminal process wakes up, performs necessary checks, and then issues a prompt, allowing the user to enter a new command, repeating the above process.
+
+---------------------------------------------------------------------------------------------------------------------------
+
+The Linux system's shell acts as the outer layer of the [operating system](http://wenwen.soso.com/z/Search.e?sp=S%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F&ch=w.search.yjjlink&cid=w.search.yjjlink), providing users with an interface to interact with it. It is a collective term for command languages, [command interpreters](http://wenwen.soso.com/z/Search.e?sp=S%E5%91%BD%E4%BB%A4%E8%A7%A3%E9%87%8A%E7%A8%8B%E5%BA%8F&ch=w.search.yjjlink&cid=w.search.yjjlink), and [programming languages](http://wenwen.soso.com/z/Search.e?sp=S%E7%A8%8B%E5%BA%8F%E8%AE%BE%E8%AE%A1%E8%AF%AD%E8%A8%80&ch=w.search.yjjlink&cid=w.search.yjjlink).
+
+The shell is an interface program between the user and the Linux kernel. If you imagine the Linux kernel as the center of a [sphere](http://wenwen.soso.com/z/Search.e?sp=S%E7%90%83%E4%BD%93&ch=w.search.yjjlink&cid=w.search.yjjlink), the shell is the outer layer surrounding the kernel. When commands are passed to Linux from the shell or other programs, the kernel responds accordingly.
+
+The shell is a command language [interpreter](http://wenwen.soso.com/z/Search.e?sp=S%E8%A7%A3%E9%87%8A%E5%99%A8&ch=w.search.yjjlink&cid=w.search.yjjlink) that has its own set of built-in shell commands. The shell can also be called by other applications in the system. All commands entered by the user at the prompt are first interpreted by the shell and then passed to the Linux kernel.
+
+Some commands, such as the change directory command `cd`, are built into the shell. Other commands, such as the copy command `cp` and the move command `rm`, are separate programs located in a directory within the [file system](http://wenwen.soso.com/z/Search.e?sp=S%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F&ch=w.search.yjjlink&cid=w.search.yjjlink). For users, it is not necessary to care whether a command is built into the shell or is a separate program.
+
+The shell first checks if the command is an [internal command](http://wenwen.soso.com/z/Search.e?sp=S%E5%86%85%E9%83%A8%E5%91%BD%E4%BB%A4&ch=w.search.yjjlink&cid=w.search.yjjlink). If not, it then checks if it is an application (here, an application can be a Linux utility itself, such as `ls` and `rm`, a purchased commercial program, such as `xv`, or [free software](http://wenwen.soso.com/z/Search.e?sp=S%E8%87%AA%E7%94%B1%E8%BD%AF%E4%BB%B6&ch=w.search.yjjlink&cid=w.search.yjjlink), such as `emacs`). The shell then searches for these applications in the search path (the search path is a list of directories where [executable programs](http://wenwen.soso.com/z/Search.e?sp=S%E5%8F%AF%E6%89%A7%E8%A1%8C%E7%A8%8B%E5%BA%8F&ch=w.search.yjjlink&cid=w.search.yjjlink) can be found). If the entered command is not an internal command and the executable file is not found in the path, an error message will be displayed. If the command is successfully found, the internal command or application will be broken down into [system calls](http://wenwen.soso.com/z/Search.e?sp=S%E7%B3%BB%E7%BB%9F%E8%B0%B7&ch=w.search.yjjlink&cid=w.search.yjjlink) and passed to the Linux kernel.
+
+Another important feature of the shell is that it is an interpreted programming language itself. The [shell programming](http://wenwen.soso.com/z/Search.e?sp=Sshell%E7%A8%8B%E5%BA%8F&ch=w.search.yjjlink&cid=w.search.yjjlink) language supports most programming elements found in [high-level languages](http://wenwen.soso.com/z/Search.e?sp=S%E9%AB%98%E7%BA%A7%E8%AF%AD%E8%A8%80&ch=w.search.yjjlink&cid=w.search.yjjlink), such as functions, variables, [arrays](http://wenwen.soso.com/z/Search.e?sp=S%E6%95%B0%E7%BB%84&ch=w.search.yjjlink&cid=w.search.yjjlink), and program control structures. The shell [programming language](http://wenwen.soso.com/z/Search.e?sp=S%E7%

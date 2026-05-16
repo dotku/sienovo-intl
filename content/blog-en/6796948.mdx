@@ -1,0 +1,174 @@
+---
+title: "Advanced Programming in the Unix Environment: Compilation Methods - The Simplest Way to Compile APUE (Second Edition)"
+date: "2011-09-21"
+slug: "6796948"
+tags: ["#Unix", "#Programming", "#FreeBSD", "#Solaris", "#Linux", "#Include"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6796948"
+originalTitle: "unix环境高级编程编译方法 -apue最简单编译方法(第二版)"
+---
+
+Reposted from [http://www.cnblogs.com/gaojunling/articles/1237611.html](http://www.cnblogs.com/gaojunling/articles/1237611.html)
+
+/***********************************************************************  
+\* Method 0 - The Simplest and Most Practical  
+\*  
+***********************************************************************/  
+1. Enter the `lib` directory in the source code folder:  
+  cd lib  
+2. Run the make command:  
+  make -f linux.mk  
+3. Copy the generated `libapue.a` and `apue.h` to your source code directory (e.g., your file directory).  
+4. Compile your source code using:  
+  gcc -o ls1 ls1.c libapue.a  
+5. Success  
+
+/***********************************************************************  
+\* Method 1  
+\*  
+***********************************************************************/  
+
+In each example program from *Advanced Programming in the Unix Environment* (using the second edition source code), you'll find this line:  
+#include "apue.h"  
+    This header file was created by the author to consolidate commonly used standard headers, frequently used error-handling functions (like err_**() functions), and common macro definitions into a single file. This reduces repetitive code across examples and shortens each program, but it also brings some inconvenience to readers. Below is a method to compile the source code.
+
+1. Extract the files into the `apue.2e` directory.  
+2. Modify the platform-specific file. Since I'm using Linux, I edit `Make.defines.linux`.  
+   Only one line needs to be changed: `WKDIR=/home/your_dir/apue2e_src/apue.2e` — update it to your own directory path.  
+3. `cd` into the `apue.2e` directory and run `make -f linux.mk`. You’ll then find the file `libapue.a` in the `lib` directory.  
+   Now you can copy it to a location of your choice. When writing examples, you can:  
+4. Copy `apue2e_src/apue.2e/include/apue.h` and `apue2e_src/apue.2e/lib/libapue.a` to your source code directory.  
+5. Compile your source code using:  
+   gcc -o hello hello.c libapue.a  
+
+/***********************************************************************  
+\* Method 2  
+\*  
+***********************************************************************/  
+
+Recently, I've been reading the second edition of APUE. I just compiled the book's source code on Linux, which took a bit of time. As a reminder, I'm documenting the compilation process.  
+The source code can be downloaded from [www.apuebook.com](http://www.apuebook.com). After extraction, you’ll get a directory named `apue.2e`. On my system, the full path is `/home/se/apue.2e`.  
+First, read `/home/se/apue.2e/README`, written by Steve Rago, the author of the second edition. It provides basic instructions on compiling the book's code and summarizes changes made since the first edition. Key points include:
+
+Some source changes were needed after the book went out for the first printing. I forgot to make corresponding changes in the source tree on the system used to develop the book. The changes are summarized below:  
+1. lib/recvfd.c and sockets/recvfd.c - needed sys/uio.h on Mac OS X  
+2. lib/sendfd.c and sockets/sendfd.c - needed sys/uio.h on Mac OS X  
+3. stdio/buf.c - added code for Mac OS X  
+4. threadctl/suspend.c - changed wait to waitloc to avoid symbol definition clash on Solaris  
+5. include/apue.h - FreeBSD compiles work better if we rely on the default system settings. Solaris needed a different XOPEN_SOURCE definition and also a CMSG_LEN definition.  
+
+To build the source, edit the Make.defines.* file for your system and set WKDIR to the pathname of the tree containing the source code. Then just run "make". It should figure out the system type and build the source for that platform automatically. If you are running on a system other than FreeBSD, Linux, Mac OS X, or Solaris, you'll need to modify the makefiles to include the settings for your system. Also, you'll probably need to modify the source code to get it to build on a different operating system. The example source was compiled and tested using FreeBSD 5.2.1, Linux 2.4.22, Mac OS X 10.3, and Solaris 9.  
+For FAQs, updated source code, and the lost chapter, see http://www.apuebook.com.  
+Please direct questions, suggestions, and bug reports to sar@apuebook.com.
+
+In short, if you're using FreeBSD, Linux, Mac OS X, or Solaris, just modify the corresponding Make.defines.* file (e.g., Make.defines.linux for Linux), update the settings to match your system, and run `make` in the `apue.2e` directory. All code has been successfully compiled on FreeBSD 5.2.1, Linux 2.4.22, Mac OS X 10.3, and Solaris 9.
+
+Overall, successful compilation is straightforward, but platform differences may cause some errors, requiring system-specific adjustments:
+
+1. First, briefly examine the makefile. The `make` command will first execute the script `systype.sh` to detect the system type and then select the corresponding `Make.defines` file. You need to add execute permission to `systype.sh`:  
+   chmod u+x systype.sh  
+2. Since I'm using Linux, I check `Make.defines.linux`. The line `WKDIR=/home/sar/apue.2e` must be changed to your working directory. In my case: `WKDIR=/home/se/apue.2e`. This path is used during compilation to locate the "apue.h" header file.  
+3. I attempted to run `make`, and indeed encountered an error: after entering the `std` directory, it reported that the `nawk` command was not found. `nawk` is "new awk", but my system only has `awk`. You have two options:  
+   - Run `alias nawk='awk'` before `make`, effectively creating an alias so `awk` is used.  
+   - Modify `WKDIR/std/linux.mk`, changing `nawk` to `awk` on lines 10 and 15.  
+   For information about `awk` and `nawk`, refer to this article I previously saved:  
+   http://www.360doc.com/showWeb/0/0/308938.aspx  
+   Here, `awk` is used by `makeconf.awk` and `makeopt.awk` to generate the source files `conf.c` and `options.c`. Note: after modifying `linux.mk` or adding the alias, delete any previously generated `conf.c` and `options.c` files from failed `make` attempts, or errors will occur.  
+4. After making these changes, return to `WKDIR` and run `make`. Success — no errors, compilation completed.
+
+Now, to use APUE's library and compile your own code, you must include the `-I/home/se/apue.2e/include` option during compilation and `-L/home/se/apue.2e/lib source.c /home/se/apue.2e/lib/libapue.a` during linking. This allows you to use APUE-provided functions like `err_sys`. ^_^
+
+/***********************************************************************  
+\* Method 3  
+\*  
+***********************************************************************/  
+
+Compilation Methods for Advanced Programming in the Unix Environment  
+
+    This section addresses the compilation of the book's source code. Almost every example in the book contains this line:  
+    #include "ourhdr.h"  
+
+    In the second edition, this was changed to:  
+    #include "apue.h"  
+
+        This header file was created by the author to consolidate commonly used standard headers, frequently used error-handling functions (like err_**() functions), and common macro definitions into a single file. This eliminates repetitive code in each example and reduces program length. However, it introduces inconvenience for readers, who must figure out how to compile this header and turn it into a library to integrate into their system. This is especially frustrating for beginners who may lose confidence when encountering issues compiling the first program. I also didn’t understand how to statically compile "ourhdr.h" into the system.
+
+        However, not knowing how to use the "ourhdr.h" header file doesn’t prevent us from learning APUE or from compiling and running each example. With a little thought, we realize that for a C program to compile and run successfully, beyond correct syntax, the essential requirement is that all functions and macros used in the program must have complete definitions — i.e., all required headers must be included. For any specific source program, once the correct headers are included, the rest is just attention to syntax.
+
+        How do we determine which system call belongs to which header file? This is not difficult in Unix/Linux systems. The `man` command helps us find this information. `man` not only shows usage for regular commands but also provides layered help, such as system calls or administrator-level commands (e.g., in FreeBSD 6.1, `man 1` is for user commands, `man 2` for system calls, `man 3` for library functions, etc.).
+
+        Let’s take Program 1-1 from APUE (which implements part of the `ls` command) as an example to show how to rewrite the book’s programs to use only standard headers. The operating system used here is FreeBSD 6.1, but with minor modifications, it can run on the Unix and Linux systems mentioned in the book. I’ve successfully compiled and run this program on Debian Linux. The original code from 1-1.c is:
+
+    #include <sys/types.h>  
+    #include <dirent.h>  
+    #include "ourhdr.h"  
+
+    int  
+    main(int argc, char *argv[])  
+    {  
+        DIR                *dp;  
+        struct dirent    *dirp;  
+
+        if (argc != 2)  
+            err_quit("usage: ls directory_name");  
+
+        if ((dp = opendir(argv[1])) == NULL)  
+            err_sys("can't open %s", argv[1]);  
+        while ((dirp = readdir(dp)) != NULL)  
+            printf("%s\n", dirp->d_name);  
+
+        closedir(dp);  
+        exit(0);  
+    }  
+
+        From the appendix in the book, we see that "ourhdr.h" contains many commonly used headers, macro definitions, and definitions of common and error-handling functions. However, for each specific program, we only need to identify the headers actually used.
+
+        The system calls used in 1-1.c are: opendir(), readdir(), printf(), closedir(), and exit().  
+    For common functions like printf() and exit(), their header files are well known: <stdio.h> and <stdlib.h>, respectively. For opendir(), readdir(), and closedir(), running `man opendir`, `man readdir`, and `man closedir` reveals that these directory-related functions require the headers: <sys/types.h> and <dirent.h> — both already included in the source.
+
+        Additionally, 1-1.c uses two user-defined functions: err_quit() and err_sys(). These are primarily for error handling. While they provide robust error reporting, for learning purposes, understanding the core functionality of the program is more important. We can simplify error handling by using printf() to indicate errors. Although printf() is not a proper error-handling method and may hide critical error details, it’s acceptable for learning. After all, the core we aim to understand is the program’s functionality, not error handling.
+
+       Based on the above, we can rewrite 1-1.c as follows:
+
+    #include <sys/types.h>  
+    #include <dirent.h>  
+    #include <stdio.h>  
+    #include <stdlib.h>  
+    int main(int argc, char* argv[])  
+    {  
+        DIR *dp;  
+        struct dirent *dirp;  
+         
+        if(argc != 2)  
+        {  
+            printf("You need input the directory name.\n");  
+            exit(1);    
+        }  
+         
+        if((dp = opendir(argv[1])) == NULL)  
+        {  
+            printf("cannot open %s\n", argv[1]);  
+            exit(1);     
+        }  
+
+        while ((dirp = readdir(dp)) != NULL)  
+            printf("%s\n", dirp->d_name);  
+
+        closedir(dp);  
+        exit(0);  
+    }  
+
+        This modified program no longer depends on the author's header "ourhdr.h" and can be compiled independently. I used the root account and executed:
+
+    # gcc 1-1.c  // generates output file a.out  
+    or  
+    # gcc -o 1-1 1-1.c  // generates output file named 1-1  
+
+        No errors or warnings — compilation succeeded. Running the generated executable:
+
+    # ./a.out /home  
+    or  
+    # ./1-1 /home  
+
+        lists all files under the `/home` path, including directories (.) and (..).
+
+        Using this method, we can essentially convert all examples in the book to programs that don’t rely on "ourhdr.h". This allows us to compile each example independently, without dealing with the author’s bundled header. While this approach may seem crude, it actually helps us better understand which headers correspond to different system calls — a beneficial side effect for learning.

@@ -1,0 +1,46 @@
+---
+title: "VxWorks Message Queue Analysis and Application"
+date: "2012-02-19"
+slug: "7272047"
+tags: ["#DataStructure", "#Task", "#API", "#Work", "#Struct", "#Programming"]
+source: "https://blog.csdn.net/yeyuangen/article/details/7272047"
+originalTitle: "VxWorks消息队列分析及应用"
+---
+
+Abstract:
+
+This article provides a detailed introduction to the working principle of message queues in the VxWorks kernel, performs a flow analysis of the message queue's source code, and demonstrates the usage of message queue APIs with examples.
+
+Keywords: VxWorks, Message Queue, IPC
+
+Message queues are one of VxWorks' three inter-process communication (IPC) mechanisms. The other two are semaphores and shared memory. These IPC mechanisms use a common authorization method. A process can only access these resources after passing an identifier to the kernel via a system call. The control method used by these system IPC objects is very similar to that of file systems, using resource reference identifiers as indexes into a resource table.
+
+A message queue is essentially a linked list of messages. Messages are treated as records, and these records have a specific format and priority. Processes with write permission to the message queue can add new messages according to certain rules, and processes with read permission can retrieve messages from the message queue.
+
+1. msgQlib.h Message Queue Introduction
+
+1.1 Basic Concepts of Message Queues
+
+VxWorks uses message queues to implement message passing. This message passing method allows the sender to continue working without waiting for the receiver to check the messages it has received, and the receiver does not need to wait if no message has arrived. This communication mechanism is relatively simple, but applications may need to use a relatively complex approach to interact with it. New messages are always placed at the end of the queue, but reception doesn't necessarily always happen from the beginning; messages can also be received from the middle.
+
+Message queues are associated with the kernel and processes, and are only truly deleted when the kernel restarts or a message queue is explicitly deleted. Therefore, the data structure that records messages in the system
+
+#### [_struct ipc\_ids msg\_ids_](http://cn.bing.com/search?FORM=BADUES&intlf=1&q=struct+ipc%5Fids+msg%5Fids)
+
+is located in the kernel, and all message structures in the system can be accessed via the `msg_ids` structure.
+
+1.2 Introduction to Related System Calls
+
+There are 4 programming interfaces (APIs) for message queues:
+
+(1) msgget(): The caller provides a key for a message queue,
+
+2. Source Code Analysis (Figures, Text)
+
+3. Application
+
+4. Conclusion
+
+Analysis of Inter-Task Communication and Synchronization Mechanisms Implemented by Semaphores in VxWorks
+
+Analysis of VxWorks-based Real-time Multi-task Programming Mechanisms

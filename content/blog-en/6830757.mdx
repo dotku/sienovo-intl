@@ -1,0 +1,56 @@
+---
+title: "What Type of Pointer is FILE *p?"
+date: "2011-09-28"
+slug: "6830757"
+tags: ["#File", "#Stream", "#Character", "#Struct", "#Token"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6830757"
+originalTitle: "FILE *p 是什么类型的指针呢"
+---
+
+1) Definition
+
+FILE is a file type predefined in stdio.h.
+
+You must first declare a file pointer variable and then operate on it using file functions.  
+In textbooks, you may have seen the FILE type defined as:  
+```cpp
+typedef struct{  
+short level; /* degree of "full/empty" in buffer */  
+unsigned flags; /* file status flags */  
+char fd;  
+unsigned char hold;  
+short bsize; /* buffer size */  
+unsigned char *buffer; /* location of data buffer */  
+unsigned char *curp; /* pointer to current read/write position */  
+unsigned istemp;  
+short token;  
+}FILE;
+```
+
+FILE is a structure pointer that contains information such as the file name, file buffer, and so on.
+
+2) Initialization
+
+```cpp
+FILE *fpt = fopen("a.txt", "r");
+```
+
+3) Program Example
+
+```cpp
+#include <stdio.h>
+int main(void)
+{
+    FILE *stream;
+    /* open a file for reading */
+    stream = fopen("DUMMY.FIL", "r");
+    /* read a character from the file */
+    fgetc(stream);
+    /* check for EOF */
+    if (feof(stream))
+        printf("We have reached end-of-file\n");
+    /* close the file */
+    fclose(stream);
+    return 0;
+}
+```

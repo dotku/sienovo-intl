@@ -1,0 +1,45 @@
+---
+title: "Exploring the Essence of Modular Programming"
+date: "2011-09-29"
+slug: "6834033"
+tags: ["#Programming", "#DLL", "#Windows", "#OO", "#API", "#Tools"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6834033"
+originalTitle: "模块化编程本质探讨"
+---
+
+Exploring the Essence of Modular Programming  
+**[Opening]**  
+The concept of a "module" is widely used and highly context-dependent. For example:  
+                          An ant says to a toad: "Wow, you're huge!"  
+                          An elephant says to a toad: "Wow, you're tiny!"  
+                          (The toad asks: "Am I big or small?")  
+From the elephant's perspective, the toad is small. From the ant's perspective, the toad is large. You don't know the true size of the toad because you're standing from the toad’s own point of view. (Just a joke.)  
+A module represents the granularity with which we divide a larger entity. For a class as a large entity, modules might be individual member functions; for an executable program, modules could be DLLs; for a Windows operating system, modules might include subsystems like the file system.  
+To understand what a module is, you must first understand what that larger entity is in your mind.
+
+**[Introduction]**  
+1) Modules are divided by functionality. They have no intrinsic connection to classes or files.  
+2) If using a single file, how can you ensure high cohesion and low coupling? Should all related class definitions be placed in that file?  
+— This has nothing to do with the physical location of classes (i.e., which file they reside in).  
+It refers to the degree of independence (or association, reference, invocation) among classes. (My understanding.)  
+3) Generally, any part that fulfills a specific function can be called a module.  
+For instance, a small utility or a function implementing a specific feature can be considered a module.  
+A class can also be a module.  
+In component-based software, a dynamic (or static) library implementing specific functionality can be referred to as a module.  
+4) A module should be a collection of classes or files that collectively complete a certain function.  
+5) In C++, a module typically refers to a group of functions designed to achieve specific functionality within a particular domain. It may manifest as a set of interfaces encapsulated in a DLL, or as a group of APIs under a namespace, among others—primarily a logical concept.  
+6) The concept of modules predates object-oriented programming and is not inherently tied to OO. C++ is not purely object-oriented; it incorporates many paradigms.  
+7) A module is: a collection of related procedures and the data they operate on, organized together.  
+8) A functional module is usually implemented as a DLL to achieve reusability.  
+9) In most cases, a module consists of a class with its cpp and h files. It can be a file, a class, or even a single function—as long as it accomplishes a specific function, it can be regarded as a module.  
+10) General design principles:  
+Minimal functionality  
+Minimal interfaces  
+Minimal dependencies  
+
+Internal details may be hidden, but interfaces should be minimal—ideally implemented via a single Imp class using virtual interfaces.  
+It doesn't necessarily need to be a standalone DLL, but must exhibit low coupling and high internal integrity.  
+Additionally, high reusability is the core value of a module.  
+11) In software design, a module refers to a set of entities (e.g., N classes or a group of functions) with closely related functionalities. In C++, from a compilation standpoint, a module can be seen as a separately compilable unit. There are many interpretations of the term "module," each carrying different implications depending on the context—there's no need to be overly rigid. In any given situation, understanding its precise contextual meaning is sufficient.  
+12) A module is purely a concept encountered during the software design phase in software engineering—a methodology, a way to break down an otherwise unsolvable large problem into smaller, manageable ones. Each of these smaller problems and their solutions constitutes a module. The principle of strong cohesion and weak coupling means minimizing dependencies on other problems when solving one. Implementation can take many forms; class inheritance and object-oriented design are typical examples, where public members serve as the interface to the module, and protected members reflect strong internal cohesion.  
+A module is a mindset!

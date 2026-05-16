@@ -1,0 +1,118 @@
+---
+title: "Linux Inter-thread Communication"
+date: "2011-09-08"
+slug: "6759382"
+tags: ["#Linux", "#Multithreading", "#Thread", "#Join", "#Signal", "#Programming"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6759382"
+originalTitle: "linux线程间通信"
+---
+
+Threads do not require special means for communication because they can share data structures; that is, a global variable can be used by two threads simultaneously. However, it's important to ensure synchronization between threads, typically using mutexes. You can refer to newer UNIX/Linux programming books, which often cover Posix thread programming, such as "Advanced Programming in the UNIX Environment (Second Edition)," "UNIX System Programming," etc. Linux messages belong to IPC (Inter-Process Communication), which is not used by threads.
+
+Linux uses `pthread_kill` to send signals to threads. By the way, in Windows, isn't thread communication done using `post...` (are you referring to `PostMessage`?)?
+
+Windows uses `PostThreadMessage` for inter-thread communication, but this method is rarely used in practice. Synchronization is more commonly employed. The principles of synchronization in Linux and Windows are the same. However, Linux signals are also very useful.
+
+Properly using semaphores for shared resources is sufficient.
+
+One reason to use multithreading is that, compared to processes, it's a very "economical" way to perform multitasking. We know that in a Linux system, starting a new process requires allocating an independent address space and establishing numerous data tables to maintain its code segment, stack segment, and data segment. This is an "expensive" multitasking approach. In contrast, multiple threads running within a single process share the same address space and most data. The space required to start a thread is far less than that needed to start a process, and the time required for thread switching is also much less than for process switching.
+
+Another reason to use multithreading is the convenient [communication](http://tele.it168.com/ "communication") mechanism between threads. For different processes, they have independent data spaces, and data transfer can only occur through communication methods, which is both time-consuming and inconvenient. Threads are different: since threads within the same process share the data space, data from one thread can be directly used by other threads, which is both fast and convenient. Of course, data sharing also introduces other issues. Some variables cannot be modified by two threads simultaneously, and static data declared within subroutines can potentially cause catastrophic problems for multithreaded programs. These are the most critical points to pay attention to when writing multithreaded programs.
+1. Simple Multithreaded Program
+
+First, in the `main` function, we use two functions, `pthread_create` and `pthread_join`, and declare a variable of type `pthread_t`.
+`pthread_t` is declared in the `pthread.h` header file and serves as the thread identifier.
+
+The `pthread_create` function is used to create a thread. Its prototype is:
+
+extern int pthread_create __P ((pthread_t *__thread, __const pthread_attr_t *__attr,void *(*__start_routine) (void *), void *__arg));
+
+The first parameter is a pointer to the thread identifier, the second parameter is used to set thread attributes, the third parameter is the starting address of the thread's execution function, and the last parameter is the argument for the execution function. If our thread function does not require arguments, the last parameter is set to a null pointer. We also set the second parameter to a null pointer, which will create a thread with default attributes. The setting and modification of thread attributes will be discussed in the next section. When a thread is successfully created, the function returns 0; if it's not 0, it indicates that thread creation failed. Common error return codes are `EAGAIN` and `EINVAL`. The former means the system limit for creating new threads has been reached (e.g., too many threads); the latter indicates an invalid thread attribute value represented by the second parameter. After successful thread creation, the newly created thread executes the function determined by the third and fourth parameters, while the original thread continues to execute the next line of code.
+The `pthread_join` function is used to wait for a thread to terminate. Its prototype is:
+
+extern int pthread_join __P ((pthread_t __th, void **__thread_return));
+
+The first parameter is the identifier of the thread to be waited for, and the second parameter is a user-defined pointer that can be used to [store](http://storage.it168.com/ "store") the return value of the waited thread. This function is a blocking function; the calling thread will wait until the waited thread terminates. When the function returns, the resources of the waited thread are reclaimed. A thread can terminate in two ways: one is like our example above, where the function finishes, and the calling thread also terminates; the other way is through the `pthread_exit` function. Its prototype is:
+
+extern void pthread_exit __P ((void *__retval)) __attribute__ ((__noreturn__));
+
+The sole parameter is the function's return code. As long as the second parameter `thread_return` in `pthread_join` is not `NULL`, this value will be passed to `thread_return`. Finally, it's important to note that a thread cannot be waited on by multiple threads; otherwise, the first thread to receive the signal will return successfully, while the remaining threads calling `pthread_join` will return the error code `ESRCH`.
+
+2. Modifying Thread Attributes
+The function for setting the thread's contention scope is `pthread_attr_setscope`. It has two parameters: the first is a pointer to the attribute structure, and the second is the contention scope type, which can take two values: `PTHREAD_SCOPE_SYSTEM` (system-contention scope) and `PTHREAD_SCOPE_PROCESS` (process-contention scope). The following code creates a thread with system-contention scope.
+
+```c
+#include   
+pthread_attr_t attr;   
+pthread_t tid;      /*Initialize attribute values, all set to default*/   
+pthread_attr_init(&attr);   
+pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);      
+pthread_create(&tid, &attr, (void *) my_function, NULL);   
+```
+3. Thread Data Handling
+
+Compared to processes, one of the biggest advantages of threads is data sharing. Threads within the same process share the data segment inherited from the parent process, allowing for easy access and modification of data. However, this also introduces many problems for multithreaded programming. We must be careful when multiple different threads access the same variable. Many functions are non-reentrant, meaning multiple copies of a function cannot run simultaneously (unless different data segments are used). Static variables declared within functions often cause issues, and function return values can also be problematic. For example, if a function returns the address of statically declared space within itself, another thread might call this function and modify that data segment while the first thread is still using the data pointed to by that address. Variables shared within a process must be defined with the `volatile` keyword to prevent compilers from changing their usage during optimization (e.g., when using the `-OX` option in GCC). To protect variables, we must use methods like semaphores and mutexes to ensure their correct usage.
+
+4. Mutexes
+
+Mutexes are used to ensure that only one thread executes a specific section of code at any given time. The necessity is obvious: imagine multiple threads sequentially writing data to the same file; the final result would undoubtedly be catastrophic.
+
+```c
+1. #define _GNU_SOURCE
+2. #include <unistd.h>
+3. #include <pthread.h>
+
+5. #include <stdlib.h>
+6. #include <stdio.h>
+
+8. //static pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
+9. // Although this is P/V, using cond is indeed more convenient.
+10. static pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+11. static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+13. int i = 0;
+
+15. void get ( )
+16. {
+17. pthread_mutex_lock (&mutex );
+18. while ( i == 0 ) // Queue lower bound
+19. pthread_cond_wait (&cond, &mutex ); // Wake up other threads to check.
+
+21. --i;
+22. pthread_cond_signal (&cond );
+23. printf ( "Current size: %d/n", i );
+
+25. pthread_mutex_unlock (&mutex );
+26. }
+
+28. void put ( )
+29. {
+30. pthread_mutex_lock (&mutex );
+31. while ( i == 3 ) // Queue upper bound
+32. pthread_cond_wait (&cond, &mutex );
+
+34. ++i;
+35. pthread_cond_signal (&cond ); // Wake up other threads
+36. printf ( "Now size: %d/n", i );
+
+38. pthread_mutex_unlock (&mutex );
+39. }
+
+41. void *thf ( void *arg )
+42. {
+43. while ( 1 )
+44. {
+45. put ( );
+46. }
+47. }
+
+49. int main ( )
+50. {
+51. pthread_t tid;
+52. pthread_create (&tid, NULL, thf, NULL );
+
+54. sleep ( 3 );
+55. while ( 1 )
+56. get ( );
+57. }
+```

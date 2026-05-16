@@ -1,0 +1,146 @@
+---
+title: "Writing a Simple Shell Command Parser"
+date: "2011-10-10"
+slug: "6858230"
+tags: ["#Shell", "#Testing", "#Redirect", "#Jobs", "#Input", "#RedHat"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6858230"
+originalTitle: "编写简单的shell命令解析器"
+---
+
+Writing a Simple Shell Command Parser
+
+Environment:
+
+RedHat 9.0    Kernel 2.4.20
+
+vi text editor  6.1.320
+
+gcc  3.2.2-5
+
+Implementation Steps:
+
+Step 0: Write the simplest shell command interpreter. This program is adapted from APUE Example 1-5, and does not support commands with arguments.
+
+The following tasks need to be completed:
+
+1.  The command interpreter starts as an infinite loop.
+    
+2.  Print a command prompt.
+    
+3.  Read the command line input into an array. Commands do not need to support arguments. You may use functions such as getc(), fgets(), or scanf().
+    
+4.  If using fgets(), the resulting string includes the trailing newline character, so you must replace the final "\n" in the command string with "\0".
+    
+5.  Create a child process and use exec to execute the command.
+    
+6.  The parent process calls waitpid() to wait for the child process to exit, then continues to the next loop iteration.
+
+Step 1: Write a shell command interpreter that can handle commands with arguments.
+
+The following tasks need to be completed:
+
+1.  The command interpreter starts as an infinite loop.
+    
+2.  Print a command prompt that includes the current path information. Read the command line input; in this program, the input is stored in memory pointed to by a character pointer.
+    
+3.  Parse the command line, extracting the command and its arguments separated by spaces, and store them in a character pointer array arg[]. The input string is stored in memory pointed to by 'input'. To separate the command and arguments in the string, use a temporary array tmp (in this program, reuse the previously used buf array) to store the command and arguments into arg[0], arg[1], etc.
+    
+4.  Create a child process and use exec to execute the command.
+    
+5.  The parent process (i.e., the shell command interpreter) decides whether to call waitpid() based on whether the command is running in the foreground or background, then proceeds to the next loop iteration.
+
+Step 2: Add built-in commands cd and exit.
+
+The following tasks need to be completed:
+
+1.  Based on Step 1, after parsing the command line input, check whether the command arg[0] is "exit" or "cd". If so, execute them as built-in commands before creating a child process.
+    
+2.  The exit command simply prints "Bye bye!", frees previously allocated memory, and exits.
+    
+3.  The cd command uses the function chdir(arg[1]) to change the current working directory.
+
+Step 3: Split the program into multiple files and introduce header files. Introduce redirection and pipe functions, though their implementations are not required at this stage.
+
+The following tasks need to be completed:
+
+1.  Introduce header files to store common variables and functions, ensuring protection against multiple inclusions.
+    
+2.  Handle cases where user input contains redirection or pipe symbols. Use functions redirect() and my_pipe() to process redirection and piping. These two functions are declared in a separate file, but their implementations are not required yet.
+
+Step 4: Introduce an environment variable configuration file mysh_profile, read environment variables, check whether the file exists, and execute commands accordingly; otherwise, print "command not found".
+
+The following tasks need to be completed:
+
+1.  Create an environment variable configuration file containing one line defining the PATH variable: PATH=/bin:/sbin:/usr/bin:/usr/sbin
+    
+2.  Create a function init_environ() to read environment variables into an array.
+    
+3.  Create a function is_founded() to check whether a file exists.
+
+Step 5: Implement redirection functionality.
+
+The following tasks need to be completed:
+
+- Implement the redirect() function in the file redirect.c.
+
+Step 6: Implement pipe functionality.
+
+The following tasks need to be completed:
+
+- Implement the my_pipe() function in the file pipe.c.
+
+Step 7: Implement command history with the history command.
+
+The following tasks need to be completed:
+
+1.  In the header file mysh.h, add a circular array data structure to store command history, and define the corresponding variables.
+    
+2.  In history.c, implement the functions add_history() and history_cmd().
+    
+3.  In main.c, before executing pipe, redirection, built-in, or normal commands, add the current command line to the circular history buffer.
+
+Step 8: Implement a background job queue and add built-in commands jobs, bg, and fg.
+
+Testing the Implemented Features:
+
+Step 0:
+1. After each command completes, the prompt must be reprinted.
+2. Test commands such as ls and cat.
+
+Step 1: Arguments
+1. The prompt must display current path information.
+2. Test commands: "ls", "ls<space>", "<space>ls", "<space>ls<space>",  
+   "ls -a -l", "<space>ls <multiple spaces> -a <multiple spaces> -l"
+
+Step 2: cd and exit
+1. Test commands: "cd ..", "cd /home", "cd -", "cd ~", etc.
+
+Step 4: Environment Variables
+1. Copy the /bin/ls file to the /home directory,  
+   rename /bin/ls to /bin/ls-bk, and test the ls command.
+2. Add the "/home" directory to the environment variable file mysh_profile and test the ls command.
+
+Step 5: Redirection
+1. Test "ls>test", "ls (space)>(space)test", "ls (space)>test"
+2. Test "ls>>test", "ls (space)>>(space)test", "ls (space)>>test"
+3. Test "cat<test", "cat (space)<(space)test", "cat (space)<test"
+4. Test "cat>test<test1", "cat>test1<test". The file 'test' should be generated using "ls -al >> test"
+
+Step 6: Pipes
+1. Test "ls (space)|(space)more"
+
+Step 7: Command History
+1. Test retrieving commands from history using the up and down arrow keys.
+
+Step 8: Job Management
+1. Test jobs, bg, fg, "Ctrl+c", "Ctrl+z" commands
+
+Summary: This project primarily involves knowledge of process control and inter-process communication. Of course, a solid foundation in C language is the most important.
+
+The basic functionality of the project has been implemented, but some issues remain:  
+1. Modified commands retrieved from history cannot be executed after editing;  
+2. The jobs linked list lacks conditional checks, causing duplicate entries when running background commands.
+
+Source Code Location:
+
+[http://download.csdn.net/source/1237870](http://download.csdn.net/source/1237870)

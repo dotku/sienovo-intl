@@ -1,0 +1,44 @@
+---
+title: "The Purpose of STDIN_FILENO and its Difference from stdin"
+date: "2011-09-16"
+slug: "6781999"
+tags: ["#File", "#API", "#Mobile", "#Buffer", "#Terminal", "#Network"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6781999"
+originalTitle: "STDIN_FILENO的作用及与stdin 的区别"
+---
+
+1. Purpose of STDIN_FILENO
+
+STDIN_FILENO belongs to the system API library, declared as an `int` type. It is an open file descriptor, and its corresponding functions primarily include system calls like `open`, `read`, `write`, `close`.
+
+File APIs provided at the operating system level all represent files using file descriptors. STDIN_FILENO is the file descriptor for the standard input device (usually the keyboard).
+
+2. Differences
+
+1) Inconsistent Data Types:
+`stdin` is of type `FILE*`
+`STDIN_FILENO` is of type `int`
+Functions that use `stdin` primarily include `fread`, `fwrite`, `fclose`, etc., most of which start with 'f'.
+Functions that use `STDIN_FILENO` include `read`, `write`, `close`, etc.
+
+2) `stdin` and similar are `FILE*` types, belonging to standard I/O, which are high-level input/output functions. They are defined in `<stdio.h>`.
+`STDIN_FILENO` and similar are file descriptors, which are non-negative integers, typically defined as 0, 1, 2. They belong to unbuffered I/O, directly invoking system calls, and are defined in `<unistd.h>`.
+
+3) STDIN_FILENO is the file descriptor for standard input.
+See `/usr/include/unistd.h` for details.
+Code:
+/* Standard file descriptors. */
+#define STDIN_FILENO 0 /* Standard input. */
+#define STDOUT_FILENO 1 /* Standard output. */
+#define STDERR_FILENO 2 /* Standard error output. */
+
+4) Different levels of abstraction. `stdin` belongs to the input stream handled by the standard library, declared as a `FILE` type, and its corresponding functions all start with 'f', such as standard library calls like `fopen`, `fread`, `fwrite`, `fclose`.
+STDIN_FILENO belongs to the system API library, declared as an `int` type. It is an open file descriptor, and its corresponding functions primarily include system calls like `open`, `read`, `write`, `close`.
+
+The standard library encapsulates system API calls; for example, `fread` internally calls `read`.
+
+5) File APIs provided at the operating system level all represent files using file descriptors. STDIN_FILENO is the file descriptor for the standard input device (usually the keyboard).
+
+6) I once wondered why an integer file descriptor (fd), like `STDIN_FILENO=0`, could represent an open file.
+Later I understood it's similar to our phone numbers: a phone number is just a 9-digit integer, but within the mobile communication network, it can be used to distinguish different mobile terminals.
+File operation function libraries provided at the standard C level all use `FILE*` to represent files, and `stdin` is a `FILE*` pointing to the standard input device file.

@@ -1,0 +1,75 @@
+---
+title: "Running Java Programs on Linux - JRE Installation and Configuration"
+date: "2011-08-29"
+slug: "6728004"
+tags: ["#Java", "#Linux", "#Plugins", "#Browser", "#Firefox", "#JDK"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6728004"
+originalTitle: "Linux下运行JAVA程序——JRE安装和配置"
+---
+
+To run Java programs, you must install the Java Runtime Environment (JRE), which provides the necessary execution environment. You can obtain it by installing either JRE or JDK. If you are only using Java applications and not developing them, downloading just the JRE package is sufficient.
+
+To run Java programs, you must [install](http://soft.zdnet.com.cn/files/list-0-0-105247-1-1.htm "安装") the Java Runtime Environment (JRE), which provides the necessary execution environment. You can obtain it by [installing](http://soft.zdnet.com.cn/files/list-0-0-105247-1-1.htm "安装") either JRE or JDK. If you are only using Java applications and not developing them, downloading just the JRE package is sufficient; the JDK package also includes the JRE. This article will use JRE [installation](http://soft.zdnet.com.cn/files/list-0-0-105247-1-1.htm "安装") as an example. The JRE also includes the Java plugin required by web browsers.
+
+I. Download JRE;
+http://ftp.isu.edu.tw
+
+Download the appropriate version for your machine. My machine is a 32-bit X86, so I can only download jre-1\_5\_0\_04-[Linux](http://soft.zdnet.com.cn/files/list-0-0-154112-1-1.htm "Linux")\-i586.bin from the [Linux](http://soft.zdnet.com.cn/files/list-0-0-154112-1-1.htm "Linux")32 directory. If you have an X86-64 bit machine, download the corresponding version.
+
+jre-1\_5\_0\_04-[Linux](http://soft.zdnet.com.cn/files/list-0-0-154112-1-1.htm "Linux")\-i586.bin For [Linux](http://soft.zdnet.com.cn/files/list-0-0-154112-1-1.htm "Linux")32
+
+II. Unpack and Configure;
+
+1. Extract the package;
+
+```
+[root@localhost sunjava]# ls   jre-1_5_0_04-[Linux](http://soft.zdnet.com.cn/files/list-0-0-154112-1-1.htm "Linux")-i586.bin   [root@localhost sunjava]# sh jre-1_5_0_04-[Linux](http://soft.zdnet.com.cn/files/list-0-0-154112-1-1.htm "Linux")-i586.bin   Do you agree to the above license terms? [yes or no] yes    [root@localhost sunjava]# ls   jre1.5.0_04 jre-1_5_0_04-[Linux](http://soft.zdnet.com.cn/files/list-0-0-154112-1-1.htm "Linux")-i586.bin
+```
+
+2. Configure JRE;
+
+1) Move the jre1.5.0\_04 directory to /usr/lib
+
+```
+[root@localhost sunjava]# mv jre1.5.0_04 /usr/lib/jre154
+```
+
+2) Configure environment variables;
+
+Add the following three lines to the current user's .bashrc:
+
+```
+JAVA_HOME=/usr/lib/jre154   JAVA_BIN=/usr/lib/jre154/bin   export JAVA_HOME JAVA_BIN
+```
+
+You can use gedit or vi to edit the .bashrc file;
+
+```
+[root@localhost sunjava]# gedit ~/.bashrc   [root@localhost sunjava]# vi ~/.bashrc
+```
+
+3) Add a simsun.ttf font;
+
+Create a directory named `fallback` in `/usr/lib/jre154/lib/fonts`, then copy the `simsun.ttf` font to this directory. Alternatively, you can copy `simsun.ttc` and rename it to `simsun.ttf`, then place it in this directory.
+
+```
+[root@localhost ~]# mkdir /usr/lib/jre154/lib/fonts/fallback
+```
+
+4) [Install](http://soft.zdnet.com.cn/files/list-0-0-105247-1-1.htm "安装") Java plugins; to enable browsers to support Java programs;
+
+For example, if I use the Firefox browser, create a symbolic link for `libjavaplugin_oji.so` to the `plugins` directory within the corresponding Firefox directory. The same applies to other browsers;
+
+```
+[root@localhost plugins]# cd /usr/lib/firefox-1.0.6/plugins/   [root@localhost plugins]# ln -s /usr/lib/jre154/plugin/i386/ns7/libjavaplugin_oji.so .
+```
+
+5) Invoking the Java Control Panel;
+
+```
+[beinan@localhost ~]# /usr/lib/jre154/bin/ControlPanel
+```
+
+Test address: http://www.icq.com/icq2go
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/6728004/01_0_1314579753ZwBS.gif)

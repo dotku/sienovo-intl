@@ -1,0 +1,40 @@
+---
+title: "Differences Between Mutex and Semaphore"
+date: "2012-12-21"
+slug: "8364466"
+tags: []
+source: "https://blog.csdn.net/yeyuangen/article/details/8364466"
+originalTitle: "互斥锁Mutex与信号量Semaphore的区别"
+---
+
+In multi-threaded programming, one often encounters these two concepts: Mutex and Semaphore. The differences between them are as follows:
+
+Someone has made the following analogy:
+
+A Mutex is like a key. One person can enter a room after taking it. When leaving, they hand the key to the first person in the queue. Its general use is to serialize access to critical section code, ensuring that this code is not run in parallel.
+
+A Semaphore is like a room that can accommodate N people. If it's not full, people can enter. If it's full, one must wait for someone to leave.
+
+The case where N=1 is called a binary semaphore. Its general use is to restrict simultaneous access to a specific [resource](http://www.haogongju.net/tag/%E8%B5%84%E6%BA%90 "资源"). In some [systems](http://www.haogongju.net/tag/%E7%B3%BB%E7%BB%9F "系统"), there is no difference between a binary semaphore and a Mutex.
+
+A semaphore can have a counter, while a mutex only has a 0 or 1 state.
+
+`Semaphore semaphore = new Semaphore(1);` indicates that only one permit for resource access is allowed simultaneously. This semantic can implement a Mutex:
+
+```cpp
+class semaphore
+{
+public:
+    Semaphore(int count, int max_count);
+    ~Semaphore();
+    void Unsignal(); // Wait operation P, count--, if count==0 then wait
+    void Signal();   // Release operation V, count++
+}
+
+class mutex
+{
+public:
+    waitMutex();   // Block thread until other threads release the mutex
+    releaseMutex(); // Release thread
+}
+```

@@ -1,0 +1,29 @@
+---
+title: "GCC / G++ for Compiling C and C++ Source Code"
+date: "2011-09-19"
+slug: "6789965"
+tags: ["#GCC", "#C", "#CPlusPlus", "#Compiler", "#String", "#Assembly"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6789965"
+originalTitle: "GCC /G++ 分别用于编译C及C++源代码"
+---
+
+GCC and G++ are GNU's C and C++ compilers, respectively.
+
+When GCC/G++ performs compilation, it generally involves 4 steps:
+
+1. Preprocessing, generating .i files [Preprocessor cpp]
+2. Compiling the preprocessed file into assembly language, generating .s files [Compiler egcs]
+3. Assembling the assembly code into object code (machine code), generating .o files [Assembler as]
+4. Linking the object code, generating an executable program [Linker ld]
+
+[Parameter Details]
+-x language filename
+Specifies the language of the source file, overriding the file extension. This setting applies to subsequent files until another -x option is encountered. By convention, C language files use the .c extension, while C++ files use .C or .cpp. If you're unconventional and decide your C code files should have a .pig extension, haha, then you'll need to use this parameter. This parameter affects all filenames that follow it, unless another parameter overrides it.
+Available parameters include:
+`c', `objective-c', `c-header', `c++', `cpp-output',
+`assembler', and `assembler-with-cpp'.
+Seeing the English, it should be understandable.
+Example usage:
+gcc -x c hello.pig
+
+-x none

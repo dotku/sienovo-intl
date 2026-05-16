@@ -1,0 +1,92 @@
+---
+title: "VxWorks Inter-Process Communication 1 - Message Queues"
+date: "2012-02-19"
+slug: "7272003"
+tags: ["#buffer", "#Task"]
+source: "https://blog.csdn.net/yeyuangen/article/details/7272003"
+originalTitle: "Vxworks 进程间通信1－－消息队列"
+---
+
+## VxWorks Inter-Process Communication 1 - Message Queues
+
+## I. Concepts:
+
+1. Message queues are used for passing information between tasks.
+
+2. Multiple tasks can send or receive messages to/from the same message queue.
+
+3. ISRs (Interrupt Service Routines) can send messages using the NO_WAIT option.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/7272003/01_0_1303094586oOvP.gif)
+
+## II. Control Functions:
+
+## **1. msgQCreate**
+
+**\[c-sharp\]** [view plain](http://write.blog.csdn.net/postedit# "view plain") [copy](http://write.blog.csdn.net/postedit# "copy")
+
+1.  MSG\_Q\_ID msgQCreate  
+2.  (  
+3.      int maxMsgs, /\* Message queue length (maximum number of messages) \*/  
+
+5.      int maxMsgLength, /\* Maximum length of messages in the message queue\*/  
+
+7.      int options /\* FIFO/PRIORITY task queuing method\*/  
+8.  )  
+
+**![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/7272003/02_0_13030945987Ino.gif)**
+
+**2. msgQSend**
+
+**\[c-sharp\]** [view plain](http://write.blog.csdn.net/postedit# "view plain") [copy](http://write.blog.csdn.net/postedit# "copy")
+
+1.  STATUS msgQSend  
+2.  (  
+3.      MSG\_Q\_ID msgQId, /\* Message queue ID \*/  
+
+5.      char \*buffer, /\* Pointer to the message to send\*/  
+
+7.      UINT nBytes, /\* Message length\*/  
+
+9.      int timeout, /\* Timeout period (ticks) / no-wait / forever \*/  
+
+11.      int priority /\* MSG\_PRI\_NORMAL or MSG\_PRI\_URGENT \*/  
+12.  )  
+
+**3. msgQReceive**
+
+**\[c-sharp\]** [view plain](http://write.blog.csdn.net/postedit# "view plain") [copy](http://write.blog.csdn.net/postedit# "copy")
+
+1.  int msgQReceive  
+2.  (  
+3.      MSG\_Q\_ID msgQId, /\* Message queue ID \*/  
+
+5.      char \*buffer, /\* Pointer to the receive buffer for the message\*/  
+
+7.      UINT maxNBytes, /\* Number of bytes in the receive buffer\*/  
+
+9.      int timeout /\* Timeout period (ticks) / no-wait / forever \*/  
+10.  )  
+
+**4. msgQDelete**
+
+**\[c-sharp\]** [view plain](http://write.blog.csdn.net/postedit# "view plain") [copy](http://write.blog.csdn.net/postedit# "copy")
+
+1.  STATUS msgQDelete  
+2.  (  
+3.      MSG\_Q\_ID msgQId /\* ID of the message queue to delete \*/  
+4.  )  
+
+Once the msgQDelete() operation is completed, tasks blocked on this message queue, including those blocked on the send queue and receive queue, will be unpended, and the message queue ID will no longer be valid.
+
+## III. Recommendations:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/7272003/03_0_13030946041z5O.gif)
+
+1. Create a dedicated message queue for each task.
+
+2. All messages intended for a task should be sent to its unique message queue.
+
+3. Due to the **Copy & MaxLength** characteristics of message queues, we can store only pointers in the message queue.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/7272003/04_0_13030946111XwX.gif)

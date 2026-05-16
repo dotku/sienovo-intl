@@ -1,0 +1,82 @@
+---
+title: "YAFFS2 Root Filesystem Creation and Installation (Including Issues: [drivers/video/console/vgacon.o] Error 1)"
+date: "2011-08-16"
+slug: "6690435"
+tags: ["#Function", "#Each"]
+source: "https://blog.csdn.net/yeyuangen/article/details/6690435"
+originalTitle: "yaffs2根文件系统的制作安装（附：出现的问题[drivers/video/console/vgacon.o] error 1）"
+---
+
+——————————————————
+
+（一）Root Filesystem Installation Q&A
+
+——————————————————
+
+1. First, compile into a complete filesystem.
+
+2. Could there be an issue with my kernel? Try rebuilding it (treat it as a review exercise for generating kernel images).
+
+3. Creating the YAFFS2 filesystem.
+
+Question 4: After decompression, nothing appears.
+
+Answer:  
+
+  
+
+  
+
+——————————————————
+
+（二）Issues Encountered
+
+\[drivers/video/console/vgacon.o\] error 1  
+\[drivers/video/console\] Error 2  
+\[drivers/video\] Error 2  
+
+——————————————————
+
+drivers/video/console/vgacon.c: In function 'vgacon\_startup':...
+
+When executing `make uImage` after configuration, the following error appears. Judging from the message, it seems related to VGA support. Here, I resolved it by disabling the VGA-related configuration options.
+
+Device Drivers
+
+      ----> Graphics support
+
+              -----> Console display driver support
+
+            -----> VGA text Console (unselecting this option resolves the issue)
+
+CC      drivers/video/console/dummycon.o
+
+CC      drivers/video/console/vgacon.o  
+drivers/video/console/vgacon.c: In function 'vgacon\_startup':  
+drivers/video/console/vgacon.c:489: error: 'PCIMEM\_BASE' undeclared (first use in this function)  
+drivers/video/console/vgacon.c:489: error: (Each undeclared identifier is reported only once  
+drivers/video/console/vgacon.c:489: error: for each function it appears in.)  
+drivers/video/console/vgacon.c: In function 'vgacon\_do\_font\_op':  
+drivers/video/console/vgacon.c:1047: error: 'PCIMEM\_BASE' undeclared (first use in this function)  
+make\[3\]: \*\*\* \[drivers/video/console/vgacon.o\] Error 1  
+make\[2\]: \*\*\* \[drivers/video/console\] Error 2  
+make\[1\]: \*\*\* \[drivers/video\] Error 2  
+make: \*\*\* \[drivers\] Error 2  
+\[root@localhost linux-2.6.22.6\]#
+
+——————————————————————————————————————————————
+
+Issue: \[drivers/video/console/vgacon.o\] error 1
+
+drivers/video/console/vgacon.o:987: warning: comparison is always true due to limited range of data type  
+make\[3\]: \*\*\* \[drivers/video/console/vgacon.o\] Error 1  
+make\[2\]: \*\*\* \[drivers/video/console\] Error 2  
+make\[1\]: \*\*\* \[drivers/video\] Error 2  
+make: \*\*\* \[drivers\] Error 2  
+
+Solution:  
+
+During `make menuconfig`,  
+Graphics support ->  
+Console display driver support ->  
+VGA text console (do not select this option)
