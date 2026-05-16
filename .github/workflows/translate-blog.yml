@@ -32,16 +32,25 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Primary: Gemini 2.5 Flash free tier — 10 RPM, 250 RPD.
-      # Highest free daily quota of our options, and DELAY_MS=6500 in the
-      # script is already calibrated for its 10 RPM cap.
-      - name: Translate articles (Gemini free)
+      # Primary: Cerebras (Qwen-3-235B). Native Chinese, very fast
+      # inference — clears a multi-hundred-article backlog in minutes.
+      # If CEREBRAS_API_KEY is unset, this step is a no-op and the
+      # subsequent Gemini step picks up the slack.
+      - name: Translate articles (Cerebras Qwen-3-235B)
+        run: node scripts/translate-blog.mjs --provider cerebras
+        continue-on-error: true
+        env:
+          CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
+
+      # Fallback 1: Gemini 2.5 Flash free tier — 10 RPM, 250 RPD.
+      # DELAY_MS=6500 in the script is already calibrated for its 10 RPM cap.
+      - name: Translate remaining (Gemini free)
         run: node scripts/translate-blog.mjs --provider gemini
         continue-on-error: true
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
-      # Fallback 1: GitHub Models (gpt-4o-mini). Free tier via the
+      # Fallback 2: GitHub Models (gpt-4o-mini). Free tier via the
       # auto-injected GITHUB_TOKEN with `models: read` scope is only
       # 150 RPD — fine as a top-up after Gemini is exhausted.
       - name: Translate remaining (GitHub Models)
@@ -50,14 +59,14 @@ jobs:
         env:
           MODELS_TOKEN: ${{ secrets.MODELS_TOKEN || github.token }}
 
-      # Fallback 2: OpenRouter (paid credits, very generous rate limits).
+      # Fallback 3: OpenRouter (paid credits, very generous rate limits).
       - name: Translate remaining (OpenRouter)
         run: node scripts/translate-blog.mjs --provider openrouter
         continue-on-error: true
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
 
-      # Fallback 3: Vercel AI Gateway (paid credits). Secret name is the
+      # Fallback 4: Vercel AI Gateway (paid credits). Secret name is the
       # legacy "VERCEL_AI_GEWAY_API_KEY" (sic — typo predates this fix).
       - name: Translate remaining (Vercel AI Gateway)
         run: node scripts/translate-blog.mjs --provider gateway

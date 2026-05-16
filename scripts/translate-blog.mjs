@@ -47,6 +47,17 @@ const PROVIDERS = {
     model: process.env.CLAUDE_MODEL || "sonnet",
     available: hasClaudeCLI(),
   },
+  // Cerebras — Qwen-3-235B Instruct, OpenAI-compatible. Native Chinese
+  // ability makes it a strong fit for CN→EN technical translation, and
+  // Cerebras inference is fast enough that a multi-hundred-article backlog
+  // clears in minutes. Override the model via CEREBRAS_MODEL.
+  cerebras: {
+    name: "Cerebras (Qwen-3-235B)",
+    url: "https://api.cerebras.ai/v1/chat/completions",
+    key: process.env.CEREBRAS_API_KEY,
+    model: process.env.CEREBRAS_MODEL || "qwen-3-235b-a22b-instruct-2507",
+    format: "openai",
+  },
   // GitHub Models — uses MODELS_TOKEN (or GITHUB_TOKEN in Actions) with the
   // `models:read` scope. OpenAI-compatible endpoint, generous free tier,
   // gpt-4o-mini is the sweet spot for technical CN→EN translation: solid
