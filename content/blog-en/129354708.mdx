@@ -6,17 +6,179 @@ tags: ["#DomesticFPGA", "#VPX", "#NetworkSwitch"]
 source: "https://blog.csdn.net/yeyuangen/article/details/129354708"
 originalTitle: "基于龙芯+国产FPGA 的VPX以太网交换板设计（三）"
 brandBackfilled: true
+expanded: true
 ---
-Debugging and testing are crucial steps in the design and implementation of this system. Single-board debugging primarily involves debugging individual unit circuits and interfaces, mainly by observing signal waveforms and running software to test each function. This chapter will outline a series of debugging and testing plans to verify the correctness of the circuit design.
+Debugging and testing are critical phases in the development of any complex embedded system. This article, part three of a series, delves into the practical aspects of bringing up and validating a VPX Ethernet switch board, designed with a Loongson processor and domestic FPGA. We'll explore the detailed debugging environment, step-by-step procedures for single-board and joint hardware-software debugging, and comprehensive system-level testing. Crucially, we'll analyze two challenging issues encountered during testing—an intermittent Ethernet interface anomaly and line-rate forwarding packet loss—providing in-depth root cause analysis and the solutions implemented, offering valuable insights into the complexities of integrating domestic chips in high-performance industrial computing solutions.
 
-**6.1 Circuit Board Static Inspection**
+## 6.1 Circuit Board Static Inspection
 
-After schematic design, PCB layout, manufacturing, and PCB assembly processes, the final circuit board is shown in the figures below. Figure 6.1 shows the top layer of the switch system's mother board, and Figure 6.2 shows the top layers of the power daughter board and CPU daughter board. These two boards are screwed onto the bottom layer of the switch system's mother board.
+Following the complete manufacturing process, which includes schematic design, PCB layout, fabrication, and assembly, the final circuit board is ready for initial inspection. The physical appearance of the assembled boards is crucial for understanding the system's modularity. Figure 6.1 illustrates the top layer of the main switch system mother board, while Figure 6.2 displays the top layers of the power daughter board and the CPU daughter board. These two daughter boards are securely mounted onto the bottom layer of the switch system's mother board, forming a compact and integrated unit.
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129354708/01_0578487983cd8dca5718a3be13805b22.png)
 
-Before debugging and testing the circuit board, a static inspection is required. This primarily involves checking for open circuits between each output voltage and GND using a multimeter, based on the PCB markings.
+Before applying power or initiating any active debugging, a thorough static inspection of the circuit board is indispensable. This preliminary check helps identify potential manufacturing defects or assembly errors that could lead to damage upon power-up. The primary step involves using a multimeter to verify the integrity of the power distribution network. Based on the PCB markings, each output voltage rail is measured against the ground (GND) to ensure there are no short circuits or open circuits. This simple yet vital check confirms that the basic power pathways are correctly established before proceeding to more complex tests.
 
-![](https://pub-048dcb96257f476697
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129354708/02_90b11fff66a42b7e529dfbe72c0ec9e4.png)
+
+## 6.2 Debugging Environment
+
+The debugging process for the Ethernet switch board is structured into three main phases: single-board hardware debugging, software debugging, and integrated system debugging. Each phase requires a specific set of instruments and tools to effectively diagnose and verify functionality.
+
+The following table outlines the essential debugging instruments and tools:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129354708/03_6be0e2e52a9de6c4f2ef13c457928e45.png)
+
+For single-board hardware debugging, an oscilloscope is used to test critical signal waveforms, such as clock signals, ensuring they meet frequency and amplitude specifications. A multimeter is essential for checking circuit connectivity, verifying voltage levels, and identifying potential short or open circuits. A dedicated single-board power supply provides the necessary power to the board during initial bring-up.
+
+Software debugging relies on specific tools for programming and interaction. A domestic FPGA download cable is used for debugging and programming the domestic FPGA devices on the board, facilitating configuration and firmware updates. A Loongson development host (a computer running the appropriate development environment) is used for burning software programs onto the system's storage and for interacting with the board via debug interfaces.
+
+Integrated system debugging requires a more comprehensive setup. An information processing equipment chassis provides the necessary backplane and environmental conditions for testing the full system, including Gigabit electrical and optical ports, indicator lights, and SerDes interfaces. An AC/DC power supply is used to power the entire chassis and the integrated system during full-scale testing.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129354708/04_9b984062c2f81655ecce4c7f46853d9ec.png)
+
+## 6.3 Single-Board Debugging
+
+### 6.3.1 Power Debugging
+
+Power circuit debugging is the absolute first step in single-board bring-up. Any anomaly in the power supply can prevent the system from functioning correctly or, worse, cause irreversible damage to the circuit board. The process begins with a meticulous visual inspection:
+1.  **Visual Inspection**: Cross-reference the bill of materials (BOM) to ensure that voltage-regulating resistors in the peripheral circuits of chips are correctly installed and that electrolytic capacitors are not reverse-polarized.
+2.  **Initial Power-Up and IPMC Verification**: Apply power to the printed circuit board. Measure the 3.3V and 1.5V rails for the IPMC (Intelligent Platform Management Controller) module. These voltages must be stable and within specifications for the IPMC to operate.
+3.  **FPGA Programming for Power Control**: According to the power system design, the output enable signals for various power modules are controlled by the FPGA within the IPMC module. Once the IPMC's 3.3V and 1.5V rails are confirmed to be normal, use the FPGA download cable to program the FPGA firmware into the IPMC FPGA.
+4.  **Verify Power Module Enables**: After the IPMC FPGA is programmed, measure the output enable signals from the IPMC FPGA that control the power modules on the power daughter board. Ensure these signals are asserted correctly.
+5.  **Final Voltage Verification**: Once the output enable signals are confirmed, measure the main output voltages from the power daughter board: 5V, 3.3V, 2.5V, 1.5V, 1.2V, 1.02V, and 1.0V. All should be within their specified tolerances.
+6.  **Ripple Measurement**: For critical low-voltage rails, specifically 1.02V and 1.0V, use an oscilloscope to measure their ripple voltage. This ensures the power quality meets the requirements for stable digital circuit operation.
+
+### 6.3.2 Crystal Oscillator and Reset Circuit Debugging
+
+Digital circuits heavily rely on stable clock signals generated by crystal oscillators. Therefore, before proceeding with further circuit debugging, a preliminary check of all crystal oscillator outputs is necessary. Use an oscilloscope to observe the waveform and frequency of each crystal oscillator to ensure they are stable and accurate.
+
+Once the power daughter board voltages are stable, program the Main FPGA with its firmware using the FPGA download cable. The operational status of the FPGA can often be initially judged by observing indicator lights (e.g., a "heartbeat" LED).
+
+The reset circuit in this design is implemented through the FPGA. Generally, if the FPGA is operating normally and its internal logic is correct, the reset output should also be correct. Thus, the initial debugging of the reset circuit is indirectly verified by the FPGA's operational indicator lights. Any issues with the reset circuit will typically manifest during subsequent chip functional debugging, prompting a re-evaluation of the reset logic.
+
+Additionally, the AD9517 clock synthesizer's output is configured via the FPGA. After the FPGA is confirmed to be running correctly, use an oscilloscope to measure the output clock frequency and voltage levels from the AD9517 to ensure they meet the system's requirements.
+
+### 6.3.3 Debug Serial Port and Network Port Debugging
+
+To facilitate convenient single-board debugging, the Ethernet switch board includes dedicated debug serial and network ports, even in a space-constrained design. The debugging process for these interfaces involves:
+1.  **Software Burning**: Use the Loongson development host to burn the software program onto the CF card (CompactFlash card), which serves as the system's storage.
+2.  **Connectivity**: Connect the debug serial port to a computer using a serial cable and the debug network port to the same computer using an Ethernet cable.
+3.  **Verification**: Observe the serial console output on the computer to ensure that boot messages and other debug prints are displayed correctly. Test inputting commands via the serial port to verify responsiveness. Simultaneously, check the computer's local network connection status to confirm that the debug network port is recognized and functioning.
+
+It's important to note that the debugging of other complex circuits, such as the SERDES (Serializer/Deserializer) interfaces, is highly dependent on the software running correctly. These interfaces typically require the main chips to be fully operational and are often verified during integrated system-level testing.
+
+## 6.4 Hardware and Software Joint Debugging
+
+The Gigabit Ethernet optical and electrical ports, indicator light interfaces, and SerDes interfaces of the Ethernet switch board are all routed through the backplane connector to the front panel. This design means that the single board itself does not have the necessary test conditions for these interfaces. Therefore, it must be inserted into an information processing equipment chassis for comprehensive testing.
+
+### 6.4.1 Gigabit Electrical Ethernet Port Debugging
+
+1.  **Connection**: Connect the Gigabit electrical Ethernet port of the information processing equipment to a computer's network port using a dedicated Ethernet cable.
+2.  **Auto-Negotiation Test**: Configure the computer's network card "connection speed and duplex mode" to "Auto-negotiation." After powering on the equipment, verify that the computer's local connection displays a "1G" speed.
+3.  **Speed/Duplex Verification**: Systematically change the computer's network card mode to "10M Full Duplex" and then "100M Full Duplex." In both cases, the computer's local connection should correctly identify the corresponding speed and duplex settings. This operation verifies that the Ethernet PHY (Physical Layer) chip is working correctly and that the chassis wiring is accurate.
+4.  **Switch-PHY Interconnect Verification**: Access the board's command-line interface (CLI) via the serial port and enter the port status viewing command: `show port mac-link`. The output should show that ports 22-24 (corresponding to the electrical Ethernet ports) are all in the "UP" state. This confirms the normal interconnection between the switch chip and the Ethernet PHY chips.
+
+### 6.4.2 Gigabit Optical Ethernet Port Debugging
+
+1.  **Connection**: Connect optical port 5 and optical port 6 of the information processing equipment using a fiber optic cable.
+2.  **Initial Status Check**: Enter the port status viewing command `show port mac-link` via the serial port. Initially, the corresponding ports 13 and 14 might show a "down" status.
+3.  **Troubleshooting Optical Module Enable**: Upon investigation, it was discovered that the transmit enable signal for the optical module was inactive.
+4.  **FPGA Logic Enablement**: By enabling this pin through the FPGA's internal logic, and then repeating the port status check, ports 13 and 14 were confirmed to be "up." The result is shown in Figure 6.5 (implied image, not provided in English source). This verifies the normal interconnection between the switch chip and the optical modules.
+5.  **Repeat for Other Ports**: Use the same method to verify optical ports 7 and 8.
+
+### 6.4.3 Serdes Interface Debugging
+
+The SerDes interfaces on the Ethernet switch board connect to other business/payload boards via the backplane connector.
+1.  **Insert Payload Board**: Insert a business board into a business slot (e.g., slot 10) of the information processing equipment chassis.
+2.  **Board Startup**: After the payload board starts normally, enter the port status viewing command `show port mac-link` via the serial port.
+3.  **Verify SerDes Link**: Check that the status of the port corresponding to the SerDes interface is "up." This confirms the successful link establishment between the switch board and the payload board via SerDes.
+
+### 6.4.4 Indicator Light Interface Testing
+
+During the testing of both the optical and electrical Ethernet interfaces, observe the corresponding port indicator lights on the chassis front panel. If the lights transition from off to on when a link is established, it verifies that the indicator light interface is functioning correctly.
+
+## 6.5 System-Level Testing
+
+### 6.5.1 Gigabit Electrical Ethernet Function Test
+
+The Ethernet switch board is designed to support Gigabit electrical Ethernet interfaces as per technical requirements.
+
+**Test Instruments:**
+*   Two computers supporting Gigabit Ethernet (PC1, PC2)
+*   One information processing equipment chassis
+
+**Test Method and Steps:**
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129354708/05_430f12db444b6c06eb28ea153a8c65.png)
+
+1.  As shown in the diagram above, connect Gigabit electrical Ethernet interface 1 of the information processing equipment to PC1, and Gigabit electrical Ethernet interface 2 to PC2.
+2.  Configure the IP parameters for Ethernet ports 1 and 2 through the WEB management system, as shown in Figure 6.7 (implied image, not provided in English source). This typically involves assigning IP addresses, subnet masks, and potentially gateway information to enable network communication.
+3.  (Implied step) Perform basic network connectivity tests, such as pinging between PC1 and PC2, to verify end-to-end communication through the switch.
+
+### 6.5.3 Business Forwarding Performance Test
+
+The business forwarding performance of the Ethernet switch board is a critical technical indicator for information processing equipment. This test primarily assesses the forwarding latency and packet loss rate of its Ethernet interfaces under 100% bandwidth utilization. For this test case, Gigabit electrical Ethernet ports 1 and 2 are selected, and a specialized network tester, TestCenter, is used for verification.
+
+**Test Instruments:**
+*   Network tester: TestCenter
+*   One computer
+*   One information processing equipment chassis
+
+**Test Method and Steps:**
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129354708/06_fbfaaaad8bd2155ecce4c7f46853d9ec.png)
+
+1.  Connect Ethernet interface 1 of the information processing equipment to port 1 of the network tester.
+2.  Connect Ethernet interface 2 of the information processing equipment to port 2 of the network tester.
+3.  Set the IP interface parameters for Ethernet ports 1 and 2 of the information processing equipment via the WEB management system, as shown in the diagram below (implied image, not provided in English source).
+4.  Configure the TestCenter to generate traffic at 100% bandwidth between its ports 1 and 2, passing through the switch board.
+5.  Measure the forwarding latency and packet loss rate reported by the TestCenter.
+
+## 6.6 Test Analysis
+
+During the testing of the Ethernet switch board, two particularly challenging issues emerged. A detailed analysis of these problems and their specific solutions is provided below, highlighting the complexities often encountered when developing with domestic chips.
+
+### 6.6.1 Ethernet Interface Anomaly Analysis
+
+**Problem:**
+During Gigabit electrical Ethernet interface testing, it was observed that two computer terminals would sometimes fail to ping each other. This failure was random and intermittent, with no fixed pattern.
+
+**Troubleshooting:**
+After ruling out issues with the terminals themselves and the test cables, extensive experimentation was conducted on the Ethernet board, coupled with a thorough review of the chip manuals. The problem was ultimately traced to an interaction issue between the switch chip and the PHY chip.
+
+**Root Cause:**
+Upon power-up of the Ethernet switch board, the FPGA performs reset operations for various chips. After the CPU completes its reset, it begins initializing the switch chip. Concurrently, the CPU configures the PHY chips via the switch chip's management interface. Due to the large number of parameters requiring configuration for the switch chip, it takes longer to enter a normal operational state compared to the PHY chip. The PHY chip, upon entering its normal operational state earlier, would begin sending data over the SGMII (Serial Gigabit Media Independent Interface) to the switch chip. This premature data transmission would destabilize the switch chip, which was still in its initialization process, leading to the observed random and intermittent ping failures.
+
+**Solution:**
+The solution involved modifying the FPGA reset logic and the CPU's initialization sequence:
+1.  **FPGA Reset Logic Modification**: In the FPGA's reset logic design, the reset signals for the Loongson processor, the switch chip, and the PHY chips were synchronized.
+2.  **Reset Sequence Reordering**:
+    *   First, the switch chip was reset.
+    *   Then, the Loongson processor was reset.
+    *   After the Loongson processor completed the initialization of the switch chip, the FPGA would then reset the PHY chips.
+    *   Finally, the initialization of the PHY chips was performed.
+This revised sequence ensured that the SGMII bus of the switch chip was fully prepared and stable before the PHY chips entered their normal operational state and began transmitting data. After modifying the FPGA program and the CPU program according to this logic, the interfaces were repeatedly tested and verified, and the intermittent ping failures no longer occurred.
+
+### 6.6.2 Business Line-Rate Forwarding Packet Loss Analysis
+
+**Problem:**
+The business forwarding performance is one of the most critical technical indicators for information processing equipment. In initial performance tests, packet loss was observed when the test data bandwidth reached 100%, with a packet loss rate of 10^-6. When the test data bandwidth was reduced to 98%, no packet loss occurred, and the transmission latency was measured at 40us.
+
+**Troubleshooting:**
+After a series of experiments and analyses, the problem was ultimately traced to an issue related to the interface clock of the switch chip.
+
+**Root Cause:**
+The switch chip references its local clock when transmitting data and references the line-recovered clock when receiving data. Crystal oscillators inherently have a certain degree of error. If the line-recovered clock (from the incoming data stream) is faster than the local clock (used for sending), it can cause the receive buffer to overflow, leading to packet loss.
+In the business forwarding performance test, the network tester (TestCenter) has a highly accurate local clock. It was assumed that test data packets were sent referencing a standard 25MHz clock. The switch chip would recover the clock from the incoming line and use it to store data in its receive buffer. After performing Layer 3 switching, the switch chip would then reference its *local* clock to transmit data to the corresponding port.
+In this design, all clock signals for the switch chip are derived from the reference clock of the AD9517 clock programming chip. This reference clock is generated by a nominal 25MHz crystal oscillator. Using an Agilent frequency counter, the actual frequency of this crystal was measured to be 24.999885MHz. This meant the local sending clock was slightly *slower* than the incoming line-recovered clock (which was closer to the ideal 25MHz from the accurate test instrument), causing the receive buffer to eventually overflow and resulting in packet loss.
+
+**Solution:**
+1.  **Initial Attempt (Crystal Screening):** Initially, crystals were screened to find one with a positive frequency bias. Replacing the AD9517's reference clock crystal with a positively biased one resolved the packet loss. However, this introduced a new problem: the crystal screening process was complex, impractical for mass production, and had poor operability.
+2.  **Refined Solution (Custom Crystal):** To address the production challenges and reliably ensure the sending clock was always slightly faster, a custom crystal was ordered. This custom crystal had a nominal frequency of 25.000625MHz with a frequency deviation of ±25ppm. This specific frequency was chosen to ensure that the switch chip's sending clock frequency would consistently remain within a positive bias range, effectively reducing the probability of the sending clock frequency being less than the receiving clock frequency. This also satisfied the switch chip's basic requirements for a 25MHz reference clock with a frequency deviation of ±50ppm. After testing with a frequency counter, the actual frequency of the customized 25.000625MHz crystal was measured to be 25.000460MHz. Subsequent performance tests with this new crystal showed no packet loss, and the transmission latency met the technical specifications.
+
+**Fundamental Solution (Future Considerations):**
+It is important to note that while replacing the crystal mitigated the packet loss issue in performance tests, the root cause of such errors fundamentally lies in the clocks not being sourced from a common origin. To truly resolve this issue, a common clock source must be implemented. When multiple information processing devices are networked via Ethernet, they can be designed to uniformly receive clock signals transmitted by GPS (Global Positioning System). These GPS-derived clock signals can then be phase-locked locally and output as the input clocks for the switch chips. This approach ensures that all switch chips reference the same GPS clock, thereby achieving clock common sourcing. The Ethernet switch board was designed with these considerations in mind, and the current hardware circuit supports this functionality, requiring further debugging and implementation in future system deployments.
+
+This article has detailed the debugging environment, single-board debugging, hardware-software joint debugging, and system-level testing methods for the Ethernet switch board. By thoroughly analyzing two typical challenging problems, we've highlighted the complexities involved in developing with domestic chips. Through comprehensive functional and performance testing, the design of the Ethernet switch board has been largely validated to meet operational requirements.
 
 Sienovo provides integrated Loongson + domestic FPGA hardware and software solutions.

@@ -5,22 +5,283 @@ slug: "129145068"
 tags: ["#linux", "#SystemPorting"]
 source: "https://blog.csdn.net/yeyuangen/article/details/129145068"
 originalTitle: "基于龙芯 2K1000 的嵌入式 Linux 系统移植和驱动程序设计（二）"
+expanded: true
 ---
+This guide details the process of porting an embedded Linux system onto the Loongson 2K1000 processor, covering the critical stages of bootloader configuration, kernel compilation, and root filesystem creation. Readers will learn the specific steps and considerations for setting up a robust embedded Linux environment, including PMON bootloader analysis, Linux kernel customization, and Buildroot-based root filesystem generation.
 
-Chapter 3 Embedded Software System Porting
+## 3. Embedded Software System Porting
 
-The prerequisite for the embedded system to function correctly in this project is that the embedded software system is complete and operational, providing a working platform for subsequent software development. The bootloader PMON needs to complete kernel booting, the embedded Linux kernel must have complete functionality and be usable, and the root filesystem must perform initialization tasks during the boot process.
+For an embedded system to function correctly, a complete and operational embedded software system is paramount. This system forms the foundational platform for all subsequent software development. Key components include the PMON bootloader, which initiates kernel booting; a fully functional embedded Linux kernel; and a root filesystem responsible for critical initialization tasks during the boot process.
 
-3.1 PMON Boot Process and Compilation
+## 3.1 PMON Boot Process and Compilation
 
-3.1.1 PMON Directory Structure and Main Commands
+PMON (Processor Monitor) serves as the bootloader for the Loongson 2K1000, responsible for initializing the hardware and loading the Linux kernel. Understanding its structure and boot sequence is crucial for successful system porting.
 
-The PMON directory structure is shown in Table 3-1. The PMON directory contains processor-related code and some basic device drivers, while the `Targets` directory holds detailed configuration files for different boards \[39\].
+### 3.1.1 PMON Directory Structure and Main Commands
+
+The PMON source code is organized to separate processor-specific code from general device drivers and board-specific configurations.
+
+The PMON directory structure, typically visualized in a table like Table 3-1, contains core processor-related code and fundamental device drivers. Within this structure, the `Targets` directory is particularly important as it houses detailed configuration files tailored for different development boards, allowing for flexible adaptation to various hardware platforms [39].
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129145068/01_3fa00688494ae39e33f7cf20b1f6be09.png)
 
-PMON's main commands include common instructions and device operation commands, such as `ifaddr` for setting network device IP, `ping` for network connectivity, and `devls` for viewing devices.
+PMON provides a set of essential commands for system interaction and debugging. These include general instructions and specific commands for device operations. For example, `ifaddr` is used to configure the IP address of network interfaces, `ping` tests network connectivity, and `devls` lists available devices, providing a basic command-line interface for system management before the full operating system loads.
 
-3.1.2 PMON Boot Process Analysis
+### 3.1.2 PMON Boot Process Analysis
 
-The Loongson 2K1
+The Loongson 2K1000 processor utilizes an SPI bus interface to connect to a NOR Flash memory, where the PMON image file is stored. The physical starting address of the NOR Flash is 0x1fc00000, which corresponds to the processor's SPI bus controller. However, since programs primarily execute from memory, this physical address is mapped to a virtual address starting at 0xbfc00000. Upon power-up, the processor directly begins executing the PMON code from this virtual address.
+
+The PMON bootloader is structured into two distinct parts. The initial section of the PMON image consists of uncompressed assembly code. This part executes immediately after power-on, as the system environment is not yet ready for C language execution. Its primary role is to perform fundamental initialization tasks for the processor, memory, and other essential devices. Once these preparatory steps are complete, this assembly code then decompresses and executes the second part, which consists of compressed C code [40].
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129145068/02_5e5324269e73d09663b97e2f7707a033.png)
+
+As illustrated in Figure 3-1, the PMON boot process begins with the `start.s` assembly code, located at the virtual address 0xbfc00000. After completing initial setup tasks such as initializing registers, memory controllers, serial ports, and network interfaces, `start.s` is responsible for decompressing the second part of the PMON code (the C code) and relocating the entire PMON image into RAM for execution. Following this, control is transferred to the `initmips` function. The `initmips` function, found in the `Targets\LS2K\ls2k\tgt_machdep.c` file, performs further system initialization. It first executes `tgt_cpufreq` to detect the CPU frequency, then calls `dbginit` to initialize commands, the filesystem, executable handling, and environment variables. Subsequently, it initializes the PCI bus and its devices, loads drivers for various peripherals like serial ports, network interfaces, video interfaces, and USB interfaces, ultimately constructing a functional command-line interface for user interaction.
+
+### 3.1.3 PMON Compilation
+
+Compiling PMON involves several steps, primarily focused on setting up the cross-compilation environment and building the bootloader image.
+
+1.  **Download and Extract PMON Source Code:**
+    Obtain the PMON source package, typically from a vendor-specific repository, and extract it to your development environment.
+
+2.  **Acquire PMON Cross-Compiler (GCC):**
+    A MIPS-specific GCC cross-compiler toolchain is required to build PMON for the Loongson 2K1000. Ensure this toolchain is correctly installed and accessible.
+
+3.  **Install Necessary Build Dependencies:**
+    Install essential development tools and libraries required for the PMON build process on your host system (e.g., an Ubuntu machine).
+
+    ```bash
+    #sudo apt-get install xutils-dev
+    #sudo apt-get install bison flex build-essential patch
+    ```
+
+    Next, navigate to the `pmoncfg` tool directory within the PMON source and compile it. This tool is often used for configuring PMON builds.
+
+    ```bash
+    #cd /home/troy/pmon-loongson3-20200728/tools/pmoncfg
+    #make pmoncfg
+    #cp pmoncfg /usr/bin
+    ```
+
+4.  **Configure Environment Variables:**
+    To ensure the build system can locate the cross-compiler and its libraries, set the appropriate environment variables in your shell's configuration file, such as `.bashrc`. Open `.bashrc` with a text editor:
+
+    ```bash
+    #vi .bashrc
+    ```
+
+    Add the following lines to the end of the file, adjusting the paths to match your specific cross-compiler installation directory:
+
+    ```bash
+    export LD_LIBRARY_PATH=/home/troy/pmongcc/opt/gcc-4.4-gnu/lib:
+    export CROSS_COMPILE=/home/troy/pmongcc/opt/gcc-4.4-gnu/bin/mipsel-linux
+    export PATH=/home/troy/pmongcc/opt/gcc-4.4-gnu/bin/:$PATH
+    ```
+
+    After saving the changes, apply the new environment variables to your current shell session:
+
+    ```bash
+    #source .bashrc
+    ```
+
+5.  **Compile PMON:**
+    Navigate to the specific PMON source directory for the Loongson 2K1000 (e.g., `zloader.ls2k`) and initiate the compilation process.
+
+    ```bash
+    #cd /home/troy/pmon-loongson3-20200728/zloader.ls2k
+    #make cfg
+    #make all tgt=rom
+    #make dtb
+    ```
+
+    The `make cfg` command is crucial if you have modified any source files or parameters within the `Targets/LS2K/conf/ls2k` directory; it ensures these changes are recognized by the build system. For routine compilations without configuration changes, `make cfg` is not always necessary. The `make all tgt=rom` command compiles the PMON image for ROM. Finally, `make dtb` combines the Device Tree Blob (DTB) with the `gzrom.bin` image to produce `gzrom-dtb.bin`, which is often required for modern embedded systems to describe hardware.
+
+    Upon successful compilation, as shown in Figure 3-2, the `zloader.ls2k/` directory within your PMON source will contain the generated `gzrom.bin` and `gzrom-dtb.bin` files. These are the PMON bootloader images ready for deployment.
+
+    ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129145068/03_0cff62eb4308c5236fad2db4fdb36c76.png)
+
+## 3.2 Embedded Linux Kernel Porting
+
+The Linux kernel is the core of any Linux-based embedded system, acting as the intermediary between applications and hardware. Porting it to a new platform like the Loongson 2K1000 involves careful configuration and compilation.
+
+### 3.2.1 Linux Kernel Introduction
+
+In an embedded system, the Linux kernel serves as the vital link between user applications and the underlying hardware devices, as depicted in Figure 3-3. It translates application requests and commands into low-level instructions that the hardware can execute, thereby enabling control and interaction with peripherals.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129145068/04_f450fe90fd2d367c144c7ed0b8e2d804.png)
+
+The Linux kernel is functionally divided into five primary subsystems [41]:
+
+*   **Process Scheduling:** This is a core function of the kernel. With multiple processes vying for the CPU's limited resources, and the CPU capable of handling only one process at a time, the process scheduler intelligently switches between processes. This creates the illusion of parallel execution, ensuring that the CPU is always busy and its resources are utilized as efficiently as possible.
+*   **Memory Management:** This subsystem efficiently allocates and manages a single memory region for use by multiple processes. By doing so, it optimizes memory usage and prevents conflicts, allowing applications to access memory without interfering with each other.
+*   **File System (Virtual File System - VFS):** The VFS layer abstracts away the complexities and differences of various underlying file systems. It provides a unified interface (e.g., `read`, `write`) for users and applications to access different types of files, regardless of their storage medium or format. Without VFS, users would have to directly interact with the physical locations of files on storage devices, which would be highly inconvenient and impractical.
+*   **Inter-Process Communication (IPC):** As software functionality grows increasingly complex, single-process applications are rare. The IPC subsystem enables multiple processes to communicate and synchronize with each other. This is achieved through mechanisms like semaphores for mutual exclusion of resources and shared memory for efficient data exchange, making it a critical component for modern multi-process applications.
+*   **Network Subsystem:** This subsystem encompasses various network protocols (e.g., TCP/IP) and the necessary device drivers for network hardware. It enables the system to perform network transmission and communication, connecting the embedded device to other systems and the internet.
+
+### 3.2.2 Linux Kernel Configuration and Compilation
+
+For the Loongson 2K1000 processor, the project utilizes official Loongson-supported embedded Linux source code, specifically tailored for the MIPS architecture. The kernel is then customized (trimmed) and cross-compiled within an Ubuntu virtual machine environment to ensure software interchangeability and portability. The main workflow is as follows:
+
+1.  **Obtain Linux Source Code:**
+    Download the compressed kernel source package from the official Loongson FTP server and extract it to create the kernel source directory.
+
+2.  **Configure Environment Variables:**
+    Similar to PMON compilation, set the cross-compiler path in your `.bashrc` file. Open `.bashrc` with a text editor:
+
+    ```bash
+    #vi .bashrc
+    ```
+
+    Add the absolute path to your cross-compilation toolchain at the end of the file:
+
+    ```bash
+    #export PATH=/home/troy/opt/gcc-4.9.3-64-gnu/bin:$PATH
+    ```
+
+    Then, apply the changes to your current shell:
+
+    ```bash
+    #source .bashrc
+    ```
+
+3.  **Kernel Trimming and Configuration:**
+    The Linux kernel provides a graphical interface tool for kernel configuration, allowing for customization without directly modifying the kernel's build files. Execute the following command from the kernel source directory:
+
+    ```bash
+    #make ARCH=mips CROSS_COMPILE=mips64el-linux- menuconfig
+    ```
+
+    Running this command will launch the kernel configuration interface, as depicted in Figure 3-4.
+
+    ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129145068/05_b5c57d87bc4638e27e43d20c891a43b7.png)
+
+    Since this project uses a Linux kernel maintained by Loongson, specific adjustments are needed to tailor the kernel to the actual hardware characteristics of the Loongson 2K1000 processor:
+
+    *   **(1) Add Frame Buffer Driver:** Essential for graphical output to a display.
+        Navigate to:
+        ```
+        Device Driver--->
+            Graphics support--->
+                Support for frame buffer devices--->
+                    Loongson Frame Buffer Support
+        ```
+
+    *   **(2) Add Loongson 2K1000 Processor SPI Bus Controller Driver:** Required for interacting with SPI-based devices, such as the NOR Flash storing PMON.
+        Navigate to:
+        ```
+        Device Driver--->
+            SPI support--->
+                <*>Loongson SPI Controller Support
+        ```
+
+    *   **(3) Add Loongson 2K1000 Processor VGA Driver:** Enables VGA output for display purposes.
+        Navigate to:
+        ```
+        Device Driver--->
+            Graphics support--->
+                <*>Loongson VGA DRM
+                [ ] use platform device
+        ```
+        Ensure "use platform device" is unchecked if not applicable.
+
+    *   **(4) Compile Custom Network Drivers into the Kernel:** If any custom network drivers have been developed for specific hardware, they should be selected for compilation directly into the kernel image.
+
+    *   **(5) Remove Unused Drivers and Features:** To minimize kernel size and resource consumption, disable any unnecessary drivers or functionalities, such as mailbox support or wireless network drivers, if they are not used in the target system.
+
+4.  **Compile the Kernel:**
+    After configuring the kernel, initiate the compilation process using the following command:
+
+    ```bash
+    #make ARCH=mips CROSS_COMPILE=mips64el-linux-
+    ```
+
+    Upon successful compilation, as shown in Figure 3-5, two key files will be generated in the kernel directory: `vmlinux` (the uncompressed, portable Linux kernel image) and `vmlinuz` (the compressed, portable Linux kernel image). For embedded systems, which typically have limited resources, `vmlinuz` is the preferred choice as the system kernel image due to its smaller size.
+
+    ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129145068/06_af87f623fcc5d274113e5f19e58699fc.png)
+
+## 3.3 Root Filesystem Creation
+
+The root filesystem is a fundamental component of any Linux system, especially in embedded contexts. It provides the necessary files and directories for the operating system to boot and function.
+
+### 3.3.1 Linux Root Filesystem
+
+After the kernel starts, its first action is to mount the root filesystem. Beyond its standard role in storing and managing data, the root filesystem in Linux has unique responsibilities. It typically contains numerous initialization scripts and configuration files, often located in the `/etc` directory, which are crucial for performing system initialization tasks during the boot process. The root filesystem is mounted at the root directory (`/`) in the final stages of kernel startup, with other directories subsequently mounted underneath it [42].
+
+While the root filesystem is responsible for the Linux kernel's initialization work, in embedded systems, it is generally kept separate from the kernel. This separation is strategic: the kernel handles fundamental operating system tasks such as process scheduling, which are largely consistent across different processor platforms. In contrast, the root filesystem is responsible for configuration, and the specific configuration methods and content vary significantly between different processors. By decoupling the root filesystem from the kernel, the overall portability of the embedded software system is greatly enhanced, allowing for easier adaptation to diverse hardware.
+
+### 3.3.2 Root Filesystem Creation
+
+Common tools for creating root filesystems include BusyBox and Buildroot [43]. For this project, Buildroot is chosen over BusyBox due to its comparative ease of use. Buildroot is a comprehensive toolchain that includes Makefiles and Kconfig, capable of building the kernel, bootloader, and root filesystem. In embedded development, it is primarily used for constructing the root filesystem. The steps to create a root filesystem image using Buildroot are as follows:
+
+1.  **Download and Configure Buildroot:**
+    First, download and extract the Buildroot source package. Then, replace the default configuration file with the one specifically tailored for the Loongson 2K1000 processor.
+
+    ```bash
+    #wget http://ftp.loongnix.org/embedd/ls2h/Buildroot/
+    #sudo tar -zxvf Buildroot.tar.gz
+    #cp ls2k_docker-systemd-gcc-4.9.3.config .config
+    ```
+
+2.  **Create an Automatic Compilation Script:**
+    To simplify the compilation process and reduce manual steps, create an executable script that encapsulates the commands for building the root filesystem.
+
+    ```bash
+    #touch cmd.sh
+    #vi cmd.sh
+    ```
+
+    Add the following content to `cmd.sh`:
+
+    ```bash
+    #! /bin/bash
+    export LANG=C
+    export PATH=/home/troy/opt/gcc-4.9.3-64-gnu/bin/:$PATH
+    make ARCH=mips CROSS_COMPILE=mips64el-linux- -j2
+    ```
+
+    Make the script executable:
+
+    ```bash
+    #chmod 777 cmd.sh
+    ```
+
+3.  **Configure Buildroot using the Graphical Interface:**
+    Launch Buildroot's graphical configuration interface to customize the root filesystem.
+
+    ```bash
+    #make menuconfig
+    ```
+
+    The Buildroot graphical configuration interface, similar to Figure 3-6, allows for detailed customization. Follow these specific configuration steps:
+
+    ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129145068/07_95a388a73c223458df3609ebfffdc1b2.png)
+
+    *   **(1) Target options:**
+        Configure the CPU parameters according to the Loongson 2K1000 processor's specifications, setting the CPU architecture to MIPS64 and endianness to little-endian.
+
+    *   **(2) Toolchain:**
+        Specify the path to your cross-compilation toolchain, `gcc-4.9.3-64-gnu`, ensuring it matches the actual directory in your virtual machine.
+
+    *   **(3) System configuration:**
+        Define system-level settings such as the welcome message displayed at boot, and configure default usernames and passwords for the system.
+
+    *   **(4) Run a getty (login prompt) after boot:**
+        This option configures the baud rate for the serial port login prompt. Since this project uses an external screen directly for display rather than a serial console, this setting can be left unconfigured.
+
+    *   **(5) Kernel:**
+        As the goal is to create a root filesystem *without* an embedded kernel (which was compiled separately), this option should be left empty or configured not to build a kernel.
+
+    *   **(6) Target packages:**
+        Select the embedded software packages to include in the root filesystem based on actual requirements. For this project, which aims to build only a most basic root filesystem, no additional packages need to be selected.
+
+4.  **Compile Buildroot:**
+    Execute the automatic compilation script from the top-level Buildroot directory to start the build process:
+
+    ```bash
+    #./cmd.sh
+    ```
+
+    Upon successful compilation, as illustrated in Figure 3-7, the `buildroot/output/images/` directory will contain various types of root filesystem images, including `cpio`, `cpio.gz`, `ubi`, `ubifs`, and `yaffs2`. Since the system uses an SSD card as the storage medium, choose a filesystem format other than `ubifs`, which is typically designed for NAND flash.
+
+    ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129145068/08_82212623fcc5d274113e5f19e58699fc.png)
+    ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/129145068/09_ba1d5d5e14ab0d089e1446a3c7c962e2.png)

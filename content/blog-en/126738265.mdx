@@ -5,20 +5,105 @@ slug: "126738265"
 tags: ["#AutonomousDriving", "#AI", "#MachineLearning"]
 source: "https://blog.csdn.net/yeyuangen/article/details/126738265"
 originalTitle: "自动驾驶Nvidia Jetson +FPGA设计方案"
+expanded: true
 ---
+This blog post delves into the integration of Nvidia Jetson NX and Xilinx ZYNQ platforms, leveraging FPGAs for high-speed MIPI video data acquisition. We'll explore how this powerful combination forms the backbone of advanced systems, including electronic countermeasures and multi-object recognition solutions, before expanding into a comprehensive overview of the hardware and software architectures essential for autonomous driving applications.
 
-Nvidia NX Platform uses FPGA Devices to Acquire MIPI Video Data - Debugging Log
-Jetson NX communicates with ZYNQ via PCIe.
+## System Overview: Jetson NX, ZYNQ, and FPGA Integration
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/126738265/01_60a749976621a088b6f9e6ea78fc1553.jpeg)![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/126738265/02_acaf82224e1ae4337e52dc8d025d2cdf.jpeg) 
+Modern edge AI applications, particularly in demanding fields like autonomous driving and electronic countermeasures, require a blend of high-performance processing and flexible, real-time data handling. This is precisely where the synergy between Nvidia's Jetson NX platform and Xilinx ZYNQ FPGAs shines.
 
-Hardware Schematic
+The Nvidia Jetson NX, a compact and powerful System-on-Module (SOM), offers significant AI computing capabilities with its NVIDIA Volta GPU and ARM CPUs, making it ideal for complex AI workloads such as target recognition and locking. However, raw sensor data acquisition, especially from high-speed interfaces like MIPI or CameraLink, often benefits from the deterministic, low-latency processing capabilities of FPGAs.
 
-Design based on ZYNQ+Jetson Multi-Object Recognition Solution
+This system architecture utilizes FPGA devices for acquiring MIPI video data, a common interface for cameras in embedded systems. The Xilinx ZYNQ, a System-on-Chip (SoC) that integrates both an ARM processor and FPGA logic on a single die, is perfectly suited for this role. The ZYNQ's programmable logic can be configured to handle high-bandwidth video streams, perform initial pre-processing, and then efficiently transfer this data to the Jetson NX.
 
-FPGA+Xavier High-Speed Signal Processing System
+Communication between the Jetson NX and ZYNQ is established via PCIe, a high-speed serial computer expansion bus standard. PCIe provides the necessary bandwidth and low latency for the ZYNQ to stream processed sensor data to the Jetson NX for further AI inference.
 
-6U ZYNQ+Nvidia Jetson Xavier NX Board
-Electronic Countermeasures Platform. Xilinx ZYNQ connects to CameraLink high-frame-rate cameras, acquires images, and sends them to Jetson Xavier NX for target recognition and locking. It can be used in UAVs, radar systems, and vision controllers.
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/126738265/01_60a749976621a088b6f9e6ea78fc1553.jpeg)![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/126738265/02_acaf82224e1ae4337e52dc8d025d2cdf.jpeg)
 
-![](https://pub-0
+*Hardware Schematic*
+
+This design approach forms the basis for multi-object recognition solutions, where the FPGA handles the raw data ingress and initial processing, offloading the Jetson NX to focus on advanced AI algorithms. The combination also enables high-speed signal processing systems, crucial for applications requiring rapid data throughput.
+
+A specific example of this integration is a 6U ZYNQ+Nvidia Jetson Xavier NX board designed as an Electronic Countermeasures (ECM) platform. In this setup, the Xilinx ZYNQ connects to CameraLink high-frame-rate cameras, acquiring images with minimal latency. These images are then sent to the Jetson Xavier NX for real-time target recognition and locking. Such a system is highly versatile and can be deployed in various critical applications, including Unmanned Aerial Vehicles (UAVs), sophisticated radar systems, and advanced vision controllers.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/126738265/03_b31af39676621a088b6f9e6ea78fc1553.jpeg)
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/126738265/04_ed614dce634b0e7cd6835f720b3bdaf2.jpeg)
+
+## The Landscape of Autonomous Driving
+
+Autonomous driving, or intelligent vehicle technology, represents a complex integration of environmental perception, planning and decision-making, multi-level assisted driving, and motion control. It draws upon a wide array of advanced technologies, including computer vision, modern sensing, information fusion, communication, artificial intelligence, and automatic control. This makes it a quintessential high-tech integrated system.
+
+The theoretical framework for autonomous driving, encompassing environmental perception, behavioral decision-making, path planning, and motion control, might sound straightforward. However, its practical implementation is far from simple. Companies like Google have been developing autonomous driving technology for many years, highlighting the significant technical accumulation required to bring such systems to mass production. Autonomous driving is a vast and intricate engineering challenge, involving numerous detailed technologies. We can broadly categorize these technologies into hardware and software components.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/126738265/05_60757f63232a56fa7174513a0fd8b885.jpeg)
+
+## Hardware Architecture for Autonomous Driving
+
+Discussing autonomous driving without considering its underlying hardware is incomplete. The diagram below illustrates a comprehensive set of hardware components typically required for autonomous driving research.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/126738265/06_983864a10170a0d1b476ecbd9767a274.jpeg)
+
+It's important to note that not all these sensors will necessarily be present in every autonomous vehicle. The specific array of sensors depends heavily on the tasks the vehicle needs to accomplish. For instance, if the goal is only highway autonomous driving, similar to Tesla's Autopilot, LiDAR sensors might not be essential. However, for urban autonomous driving, relying solely on vision sensors without LiDAR can be extremely challenging. Autonomous driving system engineers must adopt a task-oriented approach to hardware selection and cost control, much like configuring a computer based on specific requirements.
+
+### 1. Choosing the Right Vehicle Platform
+
+The vehicle itself is, of course, indispensable for autonomous driving. From the experience of leading automotive companies, when developing autonomous systems, it's often advisable to avoid purely gasoline-powered cars if possible. Firstly, the entire autonomous driving system consumes a significant amount of electrical power, giving hybrid and pure electric vehicles a distinct advantage. Secondly, the low-level control algorithms for internal combustion engines are far more complex than those for electric motors. Investing extensive time in calibrating and debugging engine control systems can detract from focusing on higher-level algorithms.
+
+Media research on test vehicle selection often highlights why companies like Google and Apple have consistently chosen hybrid vehicles such as the Lexus RX450h. The consensus is that "electricity" (power availability) and "space" (for computing hardware and sensors) are crucial for modifying vehicles for autonomous operation. Additionally, the "familiarity" with a car's technical architecture is another factor, as integrating with a vehicle's control systems often requires "hacking" them if direct collaboration with the car manufacturer isn't established.
+
+### 2. Central Processing Units: IPCs vs. Embedded Controllers
+
+In the early stages of algorithm research and development, Industrial PCs (IPCs) are often recommended as the primary controller solution. IPCs offer superior stability and reliability compared to typical embedded devices, along with richer community support and a broader range of compatible software. For example, Baidu's open-source Apollo platform recommends a GPU-equipped IPC, the Nuvo-5095GC, for its development vehicles.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/126738265/07_2f71f7e74c2bf6cca9c254c69b5afb2d.jpeg)
+*Image: Github ApolloAuto*
+
+Once algorithms mature and are deemed stable, the system can transition to embedded controllers. A notable example is the zFAS developed jointly by Audi and TTTech, which is now deployed in mass-produced vehicles like the latest Audi A8.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/126738265/08_6743e8b0c0a6bb5bd1a7c2cbdcfd4580.jpeg)
+*Image: GeekCar*
+
+### 3. Interfacing with the Vehicle: The CAN Bus
+
+Interaction between the IPC and the vehicle chassis is primarily achieved through the Controller Area Network (CAN) bus. To acquire information such as current vehicle speed and steering wheel angle from the chassis, data transmitted over the CAN bus must be parsed. Conversely, after the IPC calculates the desired steering angle and target speed based on sensor data, it uses a CAN card to encode these messages into signals that the chassis can interpret, prompting the vehicle to respond accordingly. CAN cards can be directly installed in the IPC and then connected to the vehicle's CAN bus via external interfaces. The CAN card used by Apollo, for instance, is the ESD CAN-PCIe/402.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/126738265/09_a00755cd9800f0b7fd9385cc39a016cb.jpeg)
+
+### 4. Localization and Navigation: GPS and IMU
+
+Just as a human driver needs a map and knowledge of their current location to navigate from point A to point B, an autonomous driving system relies on precise localization. A combination of Global Positioning System (GPS) and Inertial Measurement Unit (IMU) provides this crucial information. GPS determines the vehicle's absolute position (latitude and longitude), while the IMU provides orientation (heading) and other dynamic data such as yaw rate and angular acceleration. These rich data streams are vital for accurate positioning and robust decision-making and control in autonomous vehicles.
+
+For example, Apollo utilizes the NovAtel GPS-703-GGG-HV for GPS and the NovAtel SPAN-IGM-A1 for IMU.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/126738265/10_79e4d2fd5e8a039d2cd325fa42125f0d.jpeg)
+
+### 5. Perception Sensors: Cameras, LiDAR, and Radar
+
+Perception sensors are the "eyes and ears" of an autonomous vehicle. These include various types such as vision sensors (cameras), laser sensors (LiDAR), and radar sensors.
+
+*   **Vision Sensors:** Cameras come in monocular (single camera) and stereo (two cameras for depth perception) configurations. Well-known providers include Mobileye from Israel, PointGrey from Canada, and Pike from Germany.
+*   **LiDAR Sensors:** LiDAR (Light Detection and Ranging) sensors vary from single-line to multi-line configurations, up to 64 lines or more. Each additional line significantly increases cost but also enhances detection range and resolution. Prominent LiDAR providers include Velodyne and Quanergy from the United States, and Ibeo from Germany. In China, companies like RoboSense and Hesai Technology are key players.
+*   **Radar Sensors:** Radar sensors are a strong suit for automotive Tier 1 suppliers, given their widespread use in conventional vehicles. Leading suppliers in this domain include Bosch, Delphi, and Denso.
+
+### 6. Hardware Integration Summary
+
+Assembling an autonomous driving system capable of performing specific functions demands extensive experience. A deep understanding of each sensor's performance boundaries and the controller's computational capabilities is paramount. Skilled system engineers can meet functional requirements while minimizing costs, thereby increasing the likelihood of mass production and successful deployment.
+
+## Software Stack for Autonomous Driving
+
+The software architecture for autonomous driving typically comprises four main layers: Perception, Fusion, Decision, and Control. Each layer requires dedicated code to facilitate information transformation and processing. A more detailed classification includes:
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/126738265/11_d1d2a6440991c2abdbce06616230b002.jpeg)
+
+*   Sensor Layer
+*   Driver Layer
+*   Information Fusion Layer
+*   Decision Planning Layer
+*   Bottom Control Layer
+
+The fundamental processes across these layers include data acquisition and preprocessing, coordinate transformation, and information fusion.
+
+### 1. Data Acquisition and Driver Layer
+
+Sensors communicate with the PC or

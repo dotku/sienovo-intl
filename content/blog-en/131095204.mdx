@@ -6,14 +6,172 @@ tags: ["#FPGADev"]
 source: "https://blog.csdn.net/yeyuangen/article/details/131095204"
 originalTitle: "基于RK3399+FPGA的地面测试台多参数数据记录仪方案(一）软件设计及测试"
 brandBackfillNotNeeded: true
+expanded: true
 ---
+This blog post delves into the software design and testing aspects of an RK3399+FPGA-based ground test bench, specifically focusing on a multi-parameter data logger solution. We will explore the software's architecture, its core functionalities, the underlying Qt communication mechanisms, and the practical implementation and testing of its user interface, providing a comprehensive overview for engineers working with similar embedded systems and data acquisition challenges.
 
-After completing the test bench software analysis and programming environment setup, the next step is software development. This chapter mainly covers software window interface design and functional code implementation. Aiming at the operational requirements of a certain type of data logger, and based on the testing workflow, a fully functional, user-friendly, and easy-to-operate test bench software is designed using Linux-Qt as the primary development tool.
+## Software Design Principles for the Ground Test Bench
 
-3.1 Software Design Principles
+The development of the test bench software began with a thorough analysis of the operational requirements for a specific type of data logger. The primary goal was to create a fully functional, user-friendly, and intuitive test bench application using Linux-Qt as the main development framework.
 
-According to requirements and overall design, the software is divided into three operating modes, with the functional module diagram shown in Figure 3.1. From the figure, it is clear that the software includes three functional windows: Analog Signal Source, Memory Detection and Readback, and Data Processing. Each window functions independently yet is closely integrated. They can work together for testing or operate individually for specific tests.
+The software's architecture is structured around three distinct operating modes, each managed by its own functional window:
+
+*   **Analog Signal Source:** Responsible for generating simulated data.
+*   **Memory Detection and Readback:** Manages the retrieval of stored data.
+*   **Data Processing:** Handles the analysis and separation of raw data.
+
+These windows are designed to function independently, allowing for focused testing of specific modules, yet they are also closely integrated to support comprehensive, end-to-end testing workflows.
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131095204/01_cd139ac32005f875d003d07af301d25a.png)
 
-First is the Analog Source window, primarily responsible for simulating ground data sources before flight experiments. The host computer sends commands to control the main CPU in the test bench
+### Analog Signal Source Window
+
+The Analog Signal Source window is crucial for pre-flight testing, simulating various ground data sources. The host computer sends commands to the main CPU within the test bench, which then generates a diverse set of signals:
+*   5 channels of switching quantities (digital on/off signals)
+*   2 channels of analog quantities
+*   1 channel of 422 data (RS-422 serial communication)
+*   5 channels of network data
+
+This simulation allows for a complete system test before actual flight experiments. Pre-configured analog data is sent and stored in Flash memory, then read back. This data undergoes initial comparison and further processing to verify the entire system's operational status.
+
+### Memory Detection and Readback Window
+
+This window is dedicated to managing and retrieving data stored in the data logger's Flash memory. Its functionalities include:
+*   Network configuration
+*   Memory selection (e.g., primary or backup storage)
+*   Querying current storage status
+*   Setting read counts and read volumes
+*   Stopping read operations
+*   Erasing the data logger's memory
+
+The core task here is to efficiently read back existing data from the Flash memory.
+
+### Data Processing Window
+
+The Data Processing window's main function is to separate raw data files that have been read back and saved to the desktop. It allows for the segregation of data according to different channels, facilitating independent analysis and research.
+
+### Communication Modes
+
+The system employs two primary communication modes:
+1.  **Serial Command Transmission and Reception:** This mode uses a send-and-feedback mechanism to ensure the accuracy of each command. Real-time feedback is displayed on the software interface, and a `.log` file is generated upon exit for easy review. The lower-level device provides immediate feedback upon receiving a command.
+2.  **UDP Data Readback:** When the host computer sends a data readback command, the data logger transmits the data stored in Flash memory back to the host via UDP over the network. This data is then saved as a local file for subsequent processing. The data packet format is structured as: `Frame Header + Frame Count + Data + Checksum`.
+
+Detailed control command tables are used to define the specific instructions for interaction between the host and the data logger.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131095204/02_7339d7d4789005beec1711cff76f7f7d.png)
+![](https://pub-048dcb961257f476697b113fcb5939cb9.r2.dev/blog/131095204/03_f2601ca61e910483261c2365c4c67532.png)
+
+### Software Function Overview
+
+The software incorporates the following key functionalities:
+
+1.  **Work Mode Selection:** Users can choose between "Analog Source Mode," "Data Readback Mode," and "Data Separation Mode" directly from the software's startup interface.
+2.  **Analog Source Control:** In Analog Source Mode, the software sends serial commands to enable relays on the test bench and control the CPU to generate simulated data. Operations can be performed in either automatic or manual modes. During experiments, any switching quantity can be enabled or disabled at any time, which is useful for verifying the proper functioning of specific channels within the system.
+3.  **Data Readback Management:** In Data Readback Mode, the host computer queries storage information from a specified memory unit to select data for reading. No other operations are permitted during the read process. Upon completion, users can choose to erase the data logging device (a full erase), which requires a re-confirmation step.
+4.  **Data Separation:** The Data Separation Mode allows users to further process read-back and stored data files. Users can separate one or multiple data channels as needed. Each data separation operation functions as an independent module, ensuring no interference between different channel separations.
+
+## Qt Signal Communication Mechanism
+
+As a host computer control software, its primary function is to communicate with lower-level devices through command transmission and reception. When developing with Qt, communication is a fundamental consideration. Qt's unique "Signal & Slot" mechanism is a powerful communication paradigm. Conceptually, a signal is like a switch, and a slot function is like a light bulb. When the switch is triggered, the light bulb activates. Similarly, when an event associated with a signal function occurs (e.g., clicking a button), a signal is emitted. The purpose is for a corresponding slot function to execute. This mechanism abstracts away complex low-level implementations; once a signal and slot are connected, the signal emitter doesn't need to know how Qt finds and executes the slot function. Compared to callback functions in some other development frameworks, Qt's Signal & Slot mechanism is more flexible and makes programming goals for various UI components clearer.
+
+Signals and slot functions are connected using the `QObject::connect()` function, typically written as:
+`QObject::connect(sender, SIGNAL(signal()), receiver, SLOT(slot()));`
+or
+`connect(sender, SIGNAL(signal()), receiver, SLOT(slot()));` (where `QObject` can be omitted).
+
+In this function:
+*   `sender` refers to the name of the control that emits the signal.
+*   `signal()` is the name of the signal itself (e.g., a button click, text input).
+*   `receiver` refers to the name of the class that receives the signal (e.g., a window, a dialog).
+*   `slot()` is the corresponding slot function, defining the operation the receiving class should perform (e.g., popping up a window, displaying text).
+
+When programming with the Signal & Slot mechanism, several key points should be understood:
+
+1.  **One-to-Many and Many-to-One Connections:** A single signal can be connected to multiple slot functions, and multiple signals can also be associated with the same slot function. There isn't a fixed numerical match between signals and slots. When a signal is connected to several slot functions, their execution order depends on the specific program logic and their connection sequence. This one-to-many and many-to-one relationship can be visualized as shown in Figure 3.2.
+
+    ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131095204/04_03f69bbd0a8f885db53ccecd3ba8203d.png)
+
+2.  **Signal-to-Signal Connections:** Signals can also be connected to other signals. A signal doesn't strictly have to correspond to a slot function; it can trigger another signal, which then responds to one or more slot functions. This offers great flexibility depending on the specific application requirements.
+
+3.  **Immediate and Synchronous Execution:** The association between signals and slot functions is immediate and synchronous. Similar to an interrupt, when a signal triggers a slot function, it executes immediately. The main program flow will only resume after the slot function has completed its execution.
+
+Beyond the fundamental Signal & Slot mechanism, Qt also provides functions to handle other event triggers, such as mouse operations and keyboard input. These operations have corresponding functions in Qt to respond to them. Figure 3.3 illustrates some common event handling functions.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131095204/05_66874094852a6348d7c262675a3ff2ea.png)
+
+## Software Program Interface Design and Implementation
+
+Based on Qt's communication mechanisms and project requirements, the software's user interface is designed with a startup screen and three main functional windows: the Analog Source window, the Data Readback window, and the Data Separation window.
+
+### Boot Interface
+
+The boot interface displays the software name, version number, and provides entry points to the three main functional windows. Each window is functionally independent and does not interfere with the others. Users can select the appropriate function button based on their specific needs.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131095204/06_16ac3fef8a6ff77dd84e0a9d01f8c846.png)
+
+### Ground Data Simulation Window
+
+Ground data simulation is an essential part of the overall system, necessary for verifying the data logger's operation before flight experiments. The simulation source offers both manual and automatic modes.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131095204/07_d1e86ec6cd3fdc1f66d0672f8218b967.png)
+
+Upon clicking "System Power On," the software sends a command to the CPU, activating the relays and powering up the system. In **manual mode**, users can freely select any switching or analog quantity for testing, which is convenient for diagnosing faults in specific system channels. In **automatic mode**, the software sends a single command, and the CPU automatically powers up, sequentially activating various switching and analog data channels, recording them in memory, thereby automating the operation. The test bench features corresponding indicator lights to show whether each switch is open. The right-hand panel of the window displays real-time operation and feedback information.
+
+The working duration for the analog source mode can be controlled by the user, typically set for 3-5 minutes. The on/off times for each switching quantity are stored as data in memory, allowing for a direct visual representation of each switch's activation time and sequence upon readback. Buttons like "System Power On" and "Automatic Mode" are designed to be toggle buttons; a single click changes their label to "System Power Off" and "Stop Test," respectively. The main CPU on the test bench is responsible for overall data framing and storage of received data.
+
+### Data Readback Window
+
+The Data Readback window is a core component of the software's functionality, responsible for retrieving framed data stored in Flash memory back to the host computer. The hardware interface utilizes a 100-megabit Ethernet chip (W5300) and employs the UDP protocol for data readback. The retrieved data is saved to the desktop in `.hex` file format.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131095204/08_f0d7db396cdec509.png)
+
+The readback process involves several steps:
+1.  Click the "System Power On" button.
+2.  Configure the network IP address and port number.
+3.  Click the "Connect" button; the interface will display the current network connection status.
+4.  Select the memory unit. The system is equipped with two memory chips, both with backups, ensuring data integrity.
+5.  Click the "Read Recorder Information" button to display the current storage status on the interface, including power-on count and data size. Users can then select the number of reads and the read volume based on this information.
+6.  Click "Read Main Memory" or "Read Backup Memory" to begin reading. The data will be saved to the desktop, named according to the read time. A prompt will appear in the text box upon completion.
+7.  Finally, click the "Stop Reading" button to free up the FPGA. Users can also choose to erase the memory as needed.
+
+The right-hand text box of the interface provides operational steps, and every operation and feedback is displayed in real-time in the lower text box. To prevent user errors, each button is grayed out and unusable until the previous operation is completed. After reading is finished, clicking "Exit" returns to the main interface for subsequent operations.
+
+### Data Separation Window
+
+The Data Separation window's primary function is to process and separate the raw data files that have been read back.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131095204/09_dd5a0269c42c9414a1671023e163f1d.png)
+
+Each button in the interface represents the separation of a single data channel. Clicking a button automatically opens a file index window, allowing the user to select any previously read raw data file for separation. Upon completion, an information prompt indicates that the separation is finished. The output sub-data files are saved to the desktop. By separating the data, users can further observe and analyze each channel's data, compare it with pre-set simulated data, and draw conclusions about the overall system's operation.
+
+The fundamental idea behind data separation is to segregate data based on the frame headers of different channels. Since data from each channel is independent and unaffected by others, and the data format is fixed (Frame Header + Frame Count + Data + Checksum), using the frame header for judgment allows for accurate separation of the raw data. The program design flowchart for the separation process is illustrated in Figure 3.8.
+
+Sienovo (深圳信迈) provides the RK3399+FPGA hardware and software solution for this system.
+
+## Software Function Testing
+
+To validate the software, the RK3399 development board was connected to the test bench. This included providing 12V power from the test bench to the development board, and connecting the serial and network ports to the test bench. Upon powering on the test bench, the voltage display showed a stable 27.7V, and the indicator lights for power, serial, and network connections were all green, confirming proper hardware connectivity.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131095204/10_9d31dacb607b3339e69d8035ae0243da.png)
+
+### Testing Analog Source Mode
+
+After launching the software, the "Analog Source" work mode was selected. In "Manual Mode," various switching and analog quantity buttons were clicked sequentially, with the working time set to 5 minutes. The software interface displayed real-time operation information, confirming the commands were being sent and processed correctly.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131095204/11_e1ef69906b26e4ee2527e3d0548a656a.png)
+
+### Testing Data Readback Mode
+
+Once the system's simulation work concluded, the data readback process began. In the software's "Data Readback" interface, the read configuration was performed according to the prompts. This involved setting up network parameters and initiating the read operation.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131095204/12_423d4f9395e579fa38be913573e9f745.png)
+
+Upon successful readback, the data was automatically saved to the desktop as a source file, named according to the storage time.
+
+## Test Results
+
+The successfully read-back data was transferred from the RK3399's USB port to a PC. Using data analysis software, including Hexedit and Matlab, the raw data was processed and separated based on the data frame headers for each channel. This resulted in the output of 7 distinct data channels. By viewing and processing these channels, corresponding data source code and waveform diagrams were obtained. It was observed that within the first 8 bytes of each data channel, 4 bytes represented the data frame header, and the subsequent 4 bytes represented the frame count, both clearly visible in the raw data.
+
+The test results for switching and analog quantities are shown in Figure 5.4. For this specific test, the data frame header was `F1F20000`, the frequency was `100Hz`, and the frame count interval was `2`.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/131095204/13_8d72e1b83b51c8e92cf1597d1dc08023.png)

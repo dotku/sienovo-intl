@@ -5,10 +5,77 @@ slug: "19613189"
 tags: []
 source: "https://blog.csdn.net/yeyuangen/article/details/19613189"
 originalTitle: "面试题【2】‘exit()’与‘_exit()’的区别"
+expanded: true
 ---
+In the realm of C and C++ programming, particularly when dealing with system-level operations and process management, understanding the nuances between seemingly similar functions is crucial. This article delves into the critical distinctions between `exit()` and `_exit()`, two functions used to terminate a program. While both ultimately stop a process, their underlying mechanisms and the cleanup operations they perform differ significantly, impacting resource management, data integrity, and multi-process programming, especially when combined with `fork()` and `vfork()`. By the end of this post, you'll have a clear understanding of when to use each function and the implications of your choice.
 
-Firstly, the `_exit()` function's role is the simplest: it directly stops the process, clears its memory space, and destroys its various data structures in the kernel (user-mode constructs). The `exit()` function, however, adds some wrappers on top of this, performing several additional steps before exiting (calling user-defined cleanup routines). For this reason, some people no longer consider `exit()` to be a pure system call.
+## Understanding Process Termination in Linux/Unix
+
+When a program finishes execution, either normally or due to an error, the operating system needs to reclaim the resources it was using. This includes memory, open files, network connections, and other system-level constructs. The `exit()` and `_exit()` functions are the primary mechanisms for a process to voluntarily terminate itself.
+
+## `_exit()`: The Raw System Call for Immediate Termination
+
+Firstly, the `_exit()` function's role is the simplest: it directly stops the process, clears its memory space, and destroys its various data structures in the kernel (user-mode constructs). This function is a low-level system call, meaning it directly interfaces with the operating system kernel to perform the termination.
+
+When `_exit()` is invoked, the operating system immediately:
+*   Deallocates all memory associated with the process.
+*   Closes all open file descriptors.
+*   Releases any other kernel resources held by the process (e.g., semaphores, shared memory segments).
+*   Sets the process's exit status, which can be retrieved by its parent process.
+
+Crucially, `_exit()` performs no user-space cleanup. It does not call any functions registered with `atexit()`, nor does it flush any buffered I/O streams. Its primary purpose is to provide an immediate, no-frills termination, making it suitable for scenarios where higher-level cleanup is either unnecessary, undesirable, or potentially problematic.
+
+## `exit()`: The Standard Library Function with Comprehensive Cleanup
+
+The `exit()` function, however, adds some wrappers on top of this, performing several additional steps before exiting (calling user-defined cleanup routines). This function is part of the C standard library (`stdlib.h`) and provides a more graceful and thorough termination sequence than `_exit()`. For this reason, some people no longer consider `exit()` to be a pure system call, as it performs significant work in user space before eventually invoking the `_exit()` system call.
+
+When `exit()` is called, it performs the following sequence of operations:
+1.  **Calls `atexit()` registered functions:** Any functions registered with `atexit()` are called in reverse order of their registration. These functions are typically used for application-specific cleanup, such as releasing dynamically allocated memory, closing application-level logs, or performing final data serialization.
+2.  **Flushes all open I/O buffers:** This is the most significant difference and a critical aspect of `exit()`'s behavior.
+3.  **Closes all open streams:** After flushing, `exit()` closes all open `FILE` streams (e.g., those opened with `fopen()`).
+4.  **Finally, calls `_exit()`:** After completing all the above cleanup tasks, `exit()` makes a call to the `_exit()` system call to perform the actual kernel-level termination.
+
+## The Critical Difference: I/O Buffer Flushing
 
 The biggest difference between the `exit()` function and the `_exit()` function is that `exit()` checks for open files and writes the contents of file buffers back to the files before calling the `_exit()` system call, which is known as "flushing I/O buffers."
 
-Secondly, the numerous differences between `exit()` and `_exit()` become particularly prominent when using `fork()`, and especially `vfork()`.
+To understand why this is so important, consider how standard I/O (like `printf`, `fprintf`, `fwrite`) works. To improve performance, data written to files or standard output is often not immediately sent to the underlying device. Instead, it's temporarily stored in an in-memory buffer. The operating system or the C library then writes this buffered data to the actual file or device in larger chunks, or when the buffer is full, a newline character is encountered (for line-buffered streams), or when explicitly requested.
+
+*   **`exit()` and I/O Flushing:** When `exit()` is called, it ensures that any data still residing in these I/O buffers is written to their respective files or devices. This is crucial for data integrity, ensuring that all output generated by the program is persisted before termination. Without this flush, data could be lost.
+*   **`_exit()` and I/O Flushing:** `_exit()`, being a raw system call, bypasses this user-level cleanup. It does not flush I/O buffers. If a program terminates using `_exit()` while there's still data in its output buffers, that data will be lost, as the buffers are simply discarded along with the process's memory space.
+
+For example, if you write a log message using `fprintf()` and then call `_exit()` immediately, that log message might never appear in the log file because it was still sitting in the buffer. If you called `exit()` instead, the buffer would be flushed, and the log message would be written.
+
+## Implications with `fork()` and `vfork()`
+
+Secondly, the numerous differences between `exit()` and `_exit()` become particularly prominent when using `fork()`, and especially `vfork()`. These system calls are fundamental for creating new processes in Unix-like operating systems, and the choice between `exit()` and `_exit()` in the child process can have significant consequences.
+
+### When Using `fork()`
+
+The `fork()` system call creates a new process (the child) that is an almost identical copy of the calling process (the parent). This includes inheriting open file descriptors and their associated I/O buffers.
+
+*   **Child calls `exit()`:** If a child process created by `fork()` calls `exit()`, it will flush its own copies of the I/O buffers. If these buffers contain data that was also present in the parent's buffers (due to inheritance), this could lead to the data being written twice (double-flushing) or other unexpected behavior if the parent also continues to operate on those streams and eventually flushes them. This can result in corrupted output or redundant data.
+*   **Child calls `_exit()`:** If a child process created by `fork()` calls `_exit()`, it terminates without flushing its I/O buffers. This is often the desired behavior, especially if the child's primary purpose is to perform a specific task and then terminate, or if it's about to call `exec()` to load a new program. By not flushing, the child avoids interfering with the parent's buffered I/O, ensuring that the parent retains control over its own data streams and their eventual flushing.
+
+A common pattern is for a `fork()`'d child to immediately call `exec()` to load a new program. In such cases, `_exit()` is the correct choice if the `exec()` fails, because any buffered data from the parent that was copied to the child should not be flushed by the child.
+
+### When Using `vfork()`
+
+The `vfork()` system call is a specialized version of `fork()` designed for efficiency when the child process is immediately going to call `exec()`. Unlike `fork()`, `vfork()` does not create a separate copy of the parent's address space. Instead, the child process runs in the parent's address space, and the parent process is suspended until the child calls `exec()` or `_exit()`.
+
+*   **Child calls `exit()` with `vfork()`:** This is extremely dangerous and almost always incorrect. Since the child process is running in the parent's address space, if the child calls `exit()`, it will perform cleanup operations (like flushing I/O buffers and calling `atexit()` handlers) on the *parent's* resources. This can lead to:
+    *   **Data Corruption:** Flushing the parent's I/O buffers prematurely or incorrectly.
+    *   **Deadlocks:** If `atexit()` handlers or I/O flushing routines acquire locks, and the parent is suspended holding those locks, a deadlock can occur.
+    *   **Undefined Behavior:** The parent's state can be irrevocably altered, leading to crashes or unpredictable behavior when it resumes.
+*   **Child calls `_exit()` with `vfork()`:** This is the correct and safe way for a `vfork()`'d child to terminate if it does not call `exec()`. `_exit()` directly terminates the child process without performing any user-space cleanup, thus leaving the parent's address space and resources untouched. The parent can then safely resume execution.
+
+Therefore, for a child process created by `vfork()`, it is almost universally required to call `exec()` or `_exit()`. Calling `exit()` is a critical error.
+
+## Conclusion
+
+The choice between `exit()` and `_exit()` is not merely a matter of preference but a crucial design decision with significant implications for program correctness, data integrity, and multi-process robustness.
+
+*   **`_exit()`** is a raw system call that provides immediate, unbuffered termination. It's ideal for child processes created by `fork()` (especially before `exec()`) or `vfork()`, where avoiding interference with parent resources or preventing redundant I/O flushing is paramount.
+*   **`exit()`** is a higher-level standard library function that performs comprehensive cleanup, including executing `atexit()` handlers and, most importantly, flushing all buffered I/O streams before finally invoking `_exit()`. It is generally preferred for normal program termination to ensure all data is written and resources are gracefully released.
+
+By understanding these distinctions, developers can make informed decisions that lead to more stable, predictable, and robust applications, particularly in complex system programming contexts.

@@ -5,37 +5,29 @@ slug: "111823712"
 tags: []
 source: "https://blog.csdn.net/yeyuangen/article/details/111823712"
 originalTitle: "ubuntu 安装rar/unrar 提示错误E: Package ‘unrar‘ has no installation candidate解决方法"
+expanded: true
+seoTitle: "Install RAR/UnRAR on Ubuntu: Fix 'No Installation Candidate' | Sienovo"
+seoDescription: "Resolve the 'Package unrar has no installation candidate' error on Ubuntu by learning how to install RAR/UnRAR from source. Get the latest version directly."
 ---
+This error message indicates that `apt-get` cannot find a package named `unrar` in any of its configured repositories. While enabling the "multiverse" repository and running `sudo apt-get update` might resolve this for some, an alternative and robust solution is to download and compile the official RAR/unRAR tools directly from the developer, rarlab.com. This method ensures you get the latest stable version and bypasses any repository-related issues.
 
-Background: Ubuntu 16.04
+## Understanding RAR and unRAR
 
-When installing rar/unrar, the following error occurs:
+RAR is a proprietary archive file format that supports data compression, error recovery, and file spanning. It was developed by Eugene Roshal. While many Linux systems use open-source alternatives like `zip` and `tar.gz`, RAR remains a popular format, especially for sharing large files. The `unrar` utility is the command-line tool specifically designed to extract files from `.rar` archives. Since the RAR format is proprietary, the `unrar` utility often needs to be obtained from the official source or through non-free repositories.
 
-```hljs
- sudo apt-get install unrarReading package lists... DoneBuilding dependency tree       Reading state information... DonePackage unrar is not available, but is referred to by another package.This may mean that the package is missing, has been obsoleted, oris only available from another source E: Package 'unrar' has no installation candidate
-```
+## Solution Overview: Manual Installation from Source
 
-Solution:
+The most reliable way to install `unrar` when `apt-get` fails is to manually download the official Linux binaries from the rarlab website and compile them. This process involves a few straightforward steps:
+1.  **Prepare your system** by ensuring necessary build tools are installed.
+2.  **Determine your system's architecture** (32-bit or 64-bit).
+3.  **Download the appropriate RAR for Linux package** from rarlab.com.
+4.  **Extract the archive** and **compile the source code**.
+5.  **Verify the installation** and confirm `unrar` is operational.
 
-1.   Open https://www.rarlab.com/download.htm
-    
-2.   Download RAR 5.71 beta 2 for Linux (choose 32-bit or 64-bit based on your system)
-    
+Let's walk through each step in detail.
 
-How to determine if your system is 32-bit or 64-bit:
+## Step 1: Prepare Your System (Prerequisites)
 
-```hljs
-root# getconf LONG_BIT64  # 64-bit system
-```
+Before you can compile software from source, your Ubuntu system needs to have the necessary development tools installed. The `build-essential` package is a meta-package that includes a C/C++ compiler (GCC), make, and other utilities required for compiling most software.
 
-Installation:
-
-```hljs
-tar -xzpvf rarlinux-x64-5.7.1b2.tar.gz cd rar make
-```
-
-Running `make` will output:
-
-```hljs
-root:/home/work/rar# makemkdir -p /usr/local/binmkdir -p /usr/local/libcp rar unrar /usr/local/bincp rarfiles.lst /etccp default.sfx /usr/local/lib
-```
+Open your terminal and run the following commands to update your package lists and install `build-essential`:

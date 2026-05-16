@@ -5,12 +5,111 @@ slug: "130608191"
 tags: ["#FPGADev", "#DomesticVirtualInstrument"]
 source: "https://blog.csdn.net/yeyuangen/article/details/130608191"
 originalTitle: "【国产虚拟仪器】基于FPGA+JESD204B 时钟双通道 6.4GSPS 高速数据采集设计（三）连续多段触发存储及传输逻辑设计"
+expanded: true
 ---
+This chapter delves into the design of continuous multi-segment triggered storage for high-speed data acquisition, specifically targeting 80 channels of parallel sampled data at an 80MHz data rate with a 12-bit width. We will explore the overall framework, the critical role of the Memory Interface Generator (MIG) user interface, its settings, and read/write timing. A significant focus will be on the design of the data cross-clock domain module and the memory control module, both essential for achieving robust continuous multi-segment triggered storage. Finally, we will touch upon the high-speed serial data transmission of this triggered data to an AXIe carrier board.
 
-This chapter will complete the continuous multi-segment triggered storage of 80 channels of parallel sampled data with a data rate of 80MHz and a bit width of 12 bits. First, the overall framework and functional module division of data triggered storage are presented. Then, the MIG user interface, settings, and read/write timing are briefly introduced. Finally, data cross-clock domain module design and memory control module design are carried out to achieve continuous multi-segment triggered storage. The triggered storage data will be transmitted to the AXIe carrier board via a high-speed serial interface, and finally, this chapter will also complete the high-speed serial data transmission.
+## 4.1 Continuous Multi-Segment Triggered Storage
 
-4.1 Continuous Multi-Segment Triggered Storage
+### 4.1.1 Overall Framework Design for Triggered Storage
 
-4.1.1 Overall Framework Design for Triggered Storage
+For high-speed data acquisition systems, implementing triggered storage is crucial for capturing transient events or specific data segments. This design ultimately leverages DDR3 memory modules for the triggered storage of acquired data. The approach to trigger control for DDR3 significantly differs from that of a First-In, First-Out (FIFO) buffer due to their fundamental architectural differences.
 
-As described in Section 2.4 on data triggered storage schemes, this paper ultimately uses DDR3 memory modules to implement triggered storage of acquired data. The trigger control for DDR3 differs from that of a FIFO. The process of implementing triggered storage using a FIFO is shown in Figure 4-1. Here, it is assumed that the pre-trigger depth is half of the storage depth, and the peak of the sine wave is the trigger point. First, the FIFO write enable is activated, and sampled data is written, as shown in Figure
+**Triggered Storage with FIFO (Conceptual)**
+To illustrate, consider triggered storage using a FIFO, where the pre-trigger depth is assumed to be half of the total storage depth, and the trigger point is the peak of a sine wave (conceptually similar to Figure 4-1 in the original context).
+1.  Initially, the FIFO's write enable is activated, and sampled data is continuously written.
+2.  Once the pre-trigger depth is filled, both FIFO read and write enables are activated simultaneously, awaiting the trigger signal. During this phase, newly written data overwrites older data, effectively creating a circular buffer.
+3.  Upon the arrival of the trigger signal, only the FIFO write enable remains active until the storage space is completely filled.
+
+**Triggered Storage with DDR3**
+DDR3 memory, unlike a FIFO, uses an address bus for accessing storage space, meaning read and write operations cannot occur simultaneously. Therefore, triggered storage in DDR3 must be implemented by recording trigger addresses. The process (conceptually similar to Figure 4-2) involves:
+1.  After initialization, the DDR3 memory begins storing sampled data.
+2.  When the stored data reaches the pre-trigger depth, data continues to be written to subsequent address spaces.
+3.  Upon the arrival of the trigger signal (e.g., point C in a conceptual diagram), the current trigger address is recorded. The trigger signal can occur either before the storage space is full or after.
+4.  As data continues to be written to the DDR3, a "write-back" phenomenon occurs, where new sampled data overwrites previously stored data in specific segments (e.g., segments AE or CE in a conceptual diagram).
+
+From this, it's clear that DDR3-based triggered storage requires meticulous management of read/write addresses and control commands. The refined design block diagram for triggered storage (conceptually similar to Figure 4-3) shows that sampled data from a single ADC, after being processed by a JESD204B IP core and demultiplexing module, results in 80 channels of parallel data at an 80MHz rate. The DDR3 data rate is set to 1600 MT/s.
+
+The implementation of triggered storage is divided into two main parts:
+1.  **MIG Core Storage Logic Design:** This includes the read/write logic design for the MIG core and the cross-clock domain module design.
+2.  **Triggered Storage Control Module Design:** This encompasses the storage state machine design, the specific triggered storage logic, and segmented storage design.
+
+Let's elaborate on these key components:
+1.  **MIG Core Read/Write Logic Design:** This involves performing read and write operations through the user interface provided by the Xilinx Memory Interface Generator (MIG) IP core, ensuring compliance with its specific read/write timing requirements. Correct configuration of MIG core parameters is paramount for its normal operation.
+2.  **Cross-Clock Domain Module Design:** Asynchronous FIFOs are employed to handle data transfer between different clock domains. This addresses the clock and data width mismatches between the MIG core's operating clock, the sampled data, and the data upload module. Its purpose is to ensure that each segment of triggered storage data is correct and continuous.
+3.  **Storage State Machine Design:** A state machine manages the switching between different operating modes, which are parsed from commands received by a command reception module. These commands also specify parameters like storage depth for each segment and read addresses. Regardless of the operating mode, the state machine orchestrates a combination of read and write processes, transitioning between states based on FIFO flags and user interface signals.
+4.  **Triggered Storage Design:** Building upon the storage state machine, this module specifically handles the recording of trigger addresses during the write process, enabling subsequent data retrieval based on these addresses. It includes the design of read/write address counters, pre-trigger depth full detection, trigger address registration, and post-trigger depth full detection. The trigger signal itself originates from a trigger management module, which handles trigger source selection and pulse generation.
+5.  **Segmented Storage Design:** Based on the storage state machine and triggered storage logic, this module implements segmented storage for large-capacity memory. The storage space is divided into segments according to the storage depth parsed by the command reception module. Each segment's depth can be flexibly set to 2^n, and their write start addresses are also determined by the storage depth settings.
+
+### 4.1.2 MIG Core-Based Storage Logic Design
+
+#### MIG Core Settings and Read/Write Logic
+
+To simplify user interaction with DDR3 memory, Xilinx provides the Memory Interface Generator (MIG) IP core, which allows users to control DDR3 devices through its user interface. The MIG core's architecture (conceptually similar to Figure 4-4) consists of three main parts: the User Interface Block, the Memory Controller, and the Physical Layer. The User Interface Block mediates between the user's design logic and the Memory Controller. It offers two interface options for user control logic: an AXI4 slave interface (requiring adherence to the AXI4 bus protocol) and a simpler user interface (providing a flat address space and read/write data buffers).
+
+This design utilizes the simpler user interface for DDR3 storage control. Key signals of this user interface include (referencing a conceptual Table 4-1):
+*   **Command Signals:** `app_en`, `app_rdy`, `app_cmd`, `app_addr`, `app_burst_len`.
+*   **Write Operation Signals:** `app_wdf_wren`, `app_wdf_rdy`, `app_wdf_data`, `app_wdf_mask`.
+*   **Read Operation Signals:** `app_rd_data_valid`, `app_rd_data`.
+
+The bit widths of the read/write address and data buses depend on the DDR3 parameters, while the mapping between read/write addresses and physical register space, as well as the user interface clock frequency, depend on the MIG core settings. Clock-related settings within the MIG core are particularly critical.
+
+The MIG core's internal clock structure (conceptually similar to Figure 4-5) is functionally divided into FPGA internal logic clock, write path (output) port logic clock, read path (input) port logic clock, and IDELAY reference clock. All clocks except the IDELAY reference clock are generated by a PLL module, with the PLL input clock referred to as the system clock. An MMCM module, located in the same Bank as the PLL, generates the IDELAY reference clock, which has a frequency of 200MHz. If the system clock frequency matches the reference clock frequency, the system clock can substitute the reference clock, reducing external clock inputs. The FPGA internal logic clock and controller clock share the same clock. This clock has a 1:4 or 1:2 ratio with the physical layer clock (whose frequency is determined by the external memory device's operating frequency), corresponding to data widths of 4 times and 8 times the memory interface, respectively.
+
+For instance, when the DDR3 memory module data rate is set to 1600 MT/s, the physical layer clock frequency is 800MHz. In this scenario, the controller clock to physical layer clock ratio can only be set to 1:4. This means the controller clock and the FPGA internal logic clock frequency will be 200MHz, and the read/write data width will be 8 times the DDR3 memory module's data width.
+
+The user interface signals can be categorized into command, write, and read operation signals. Let's examine their timing requirements, using a burst length of 8 as an example:
+*   **Command Path Timing (conceptually similar to Figure 4-6):** To send a write address command (e.g., to 0x0000_0e30), `app_en` is asserted high. If `app_rdy` is low for a period, the command won't be successfully received. Thus, `app_en` must remain high, and the address unchanged, until `app_rdy` also goes high.
+*   **Write Data Path Timing (conceptually similar to Figure 4-7):** Write data operations can occur one clock cycle before or up to two clock cycles after a successful write command. If the write data operation and write command are completed within the same clock cycle (i.e., `app_en` and `app_wdf_wren` are both high simultaneously), then `app_rdy` and `app_wdf_rdy` both being high indicates a successful write data operation; otherwise, it fails.
+*   **Read Data Path Timing (conceptually similar to Figure 4-8):** Read data operations are simpler. It's only necessary to ensure that the command and read address are successfully written to the MIG core. The MIG core uses the `app_rd_data_valid` signal to indicate whether the output data is valid.
+
+#### Cross-Clock Domain Design
+
+A critical challenge in this design is managing data transfer across different clock domains. The demultiplexed sampled data operates at 80MHz with a data width of 80 * 12 bits. In contrast, the MIG core's user interface clock is 200MHz, and its burst read/write data width is 64 * 8 bits. Consequently, the sampled data must be synchronized to the user interface clock domain before being written to memory. Furthermore, the subsequent data upload module operates at 40MHz with a 32-bit data width, also requiring cross-clock domain (CDC) handling.
+
+High-speed data transfer across clock domains often leads to metastability, where the phase relationship between the source and destination register clocks is unknown. This can cause data to fail setup and hold time requirements at the destination, resulting in an indeterminate state. To mitigate metastability, synchronization strategies are essential. Common methods include single-bit synchronizers (for single-bit signals), handshake protocols, and asynchronous FIFOs (for multi-bit signals). Given the need for high processing speed and wide data paths, asynchronous FIFOs are chosen for both data storage into and data retrieval from memory, as handshake protocols typically incur longer processing times due to continuous feedback. The key to this CDC design lies in controlling the FIFO's read/write enables and configuring its depth. A conceptual block diagram (similar to Figure 4-9) illustrates the CDC processing for data entering and exiting memory.
+
+**Input FIFO Details:**
+Sampled data, under the control of the triggered storage control module, first enters an input FIFO for CDC processing. With 80 parallel channels of 12-bit data, the total data width is 960 bits. To match the user interface data width of 512 bits (which accommodates 40 12-bit samples), the asynchronous FIFO's input data width is set to 1024 bits (accommodating 80 12-bit samples). The FIFO's input and output clock frequencies are 80MHz and 200MHz, respectively.
+The FIFO's read rate (200MHz × 512 bits) is theoretically greater than its write rate (80MHz × 1024 bits = 160MHz × 512 bits). However, DDR3 memory modules undergo pre-charge and refresh cycles during which they are inaccessible. During these periods, the MIG core's `app_rdy` signal will periodically go low, and even more frequently during write operations. If continuous read/write operations are attempted, the frequent assertion of `app_rdy` as low can cause the FIFO's effective read rate to temporarily fall below its write rate, potentially leading to FIFO overflow and loss of sampled data if the FIFO depth is insufficient.
+
+**Solution for Input FIFO Overflow:**
+Through experimental analysis, a FIFO depth of 256 was found to be sufficient to buffer sampled data during periods when `app_rdy` is invalid.
+The control logic for the FIFO's read enable (`fifo_rd_en`) is crucial:
+*   As established in the MIG core timing analysis, addresses and commands can only enter the MIG core when `app_rdy` is valid, allowing read/write operations to proceed.
+*   Therefore, when `app_rdy` is invalid, the FIFO's read enable signal (`fifo_rd_en`) must be deasserted (low) to prevent the currently outputted data from being overwritten by the next read.
+*   Similarly, when the FIFO is empty, `fifo_rd_en` must also be low to ensure data continuity into the MIG core.
+*   **Conclusion:** The FIFO's read enable signal can only be asserted high when the asynchronous FIFO is *not* empty AND the `app_rdy` signal is valid. When the FIFO is empty or `app_rdy` is invalid, `fifo_rd_en` is deasserted, and the FIFO's output data remains unchanged (conceptually similar to Figure 4-10).
+
+**Output FIFO Details:**
+The data reading process is simpler than the storage process. It primarily requires ensuring that the address and read command signals are sent to the MIG core when `app_rdy` is valid. Additionally, when initiating a DDR3 read, the output FIFO must be empty. The DDR3 output data width is 512 bits. To facilitate processing by the host computer, the sampled data width is expanded to 16 bits, so the output FIFO's input data width is set to 640 bits. The output FIFO's output data width is determined by the upload module and FIFO characteristics, here set to 160 bits.
+
+### 4.1.3 Triggered Storage Control Module
+
+#### Storage State Machine Design
+
+To enable large-capacity data storage and transmission, the host computer first sets storage parameters and operating modes, then initiates the storage state machine. Upon receiving parameters and a write mode command, the system begins storing sampled data until a trigger signal arrives and the post-trigger depth storage is completed. After storing the large-capacity data, the user can set a read start address to retrieve the stored sampled data, which is then transmitted to the AXIe carrier board and ultimately uploaded to the host computer.
+
+The storage module requires several states:
+*   **IDLE State:** An initialization process.
+*   **WRITE State:** To write waveform data into DDR3.
+*   **READ State:** To read waveform data from DDR3.
+*   **CMD State:** A process for judging the operating mode.
+*   **DELAY State:** A delay state defined between the write and read processes in a "write-then-read" mode.
+
+The storage module defines three operating modes: write-only, read-only, and write-then-read. A conceptual state transition diagram (similar to Figure 4-11) illustrates the module's behavior.
+
+**State Transitions and Conditions:**
+*   **Reset Condition (Condition 1):** Upon reset, the state machine returns to the initial IDLE state from any current state.
+*   **IDLE State:** In the IDLE state, the state machine checks if the MIG core's initialization calibration signal (`init_calib_complete`) is valid, ensuring DDR3 is ready for read/write operations. It also monitors if the input asynchronous FIFO is empty, guaranteeing that the next write operation to DDR3 does not include unread data from a previous write. During IDLE, storage-related parameters (initial write address, read address, commands) are initialized. When `init_calib_complete` is valid and the input asynchronous FIFO empty flag is high (Condition 2), the state machine transitions from IDLE to the CMD (command selection) state.
+*   **CMD State:** In the CMD state, command reception is enabled. Based on the command type, the state machine transitions to either the READ or WRITE state, while also initializing write addresses, read addresses, etc. If the operating mode command is "write-only" or "write-then-read" (Condition 3), the state machine first enters the WRITE state. If the operating mode command is "read-only" (Condition 5), it enters the READ state. Commands can only be received in the CMD state.
+*   **WRITE State:** In the WRITE state, triggered data storage is performed, and the trigger address is recorded. The state machine then transitions based on the operating mode command. If the operating mode command is "write-only" and the write process is complete (Condition 6), the state machine returns to the CMD state to await new commands. If the operating mode command is "write-then-read" and the write process is complete (Condition 4), the state machine enters the DELAY state, where read-related parameters are initialized, and then proceeds to the READ state.
+*   **READ State:** In the READ state, the read start address is calculated based on the recorded trigger address. The state machine then transitions based on the operating mode command. If the read process is complete (Condition 7), the state machine returns to the CMD state.
+
+For practical implementation, a three-segment state machine is employed, known for its ease of synthesis and low resource consumption.
+
+#### Triggered Storage Design
+
+As discussed in the overall framework section, the primary difference between implementing triggered storage with a FIFO and with DDR3 memory lies in trigger control. A FIFO can perform simultaneous read and write operations between the pre-trigger depth being full and the trigger signal's arrival. After the trigger, it only needs to disable the read enable while maintaining the write enable. DDR3, however, can only write data during triggered storage, and upon trigger signal arrival, it must record the address information. When reading data from DDR3, the read start address must be calculated based on the recorded trigger address.
+
+Because DDR3 cannot simultaneously read and write during triggered storage, and data write-back can occur, the DDR3 triggered storage process can be conceptually represented as a circular buffer (similar to Figure 4-12). In this conceptual model, segment AA' represents the memory space corresponding to the total storage depth, and segment AB represents the pre-trigger depth. This circular approach, combined with precise address management, allows for the effective capture of pre- and post-trigger data segments within the DDR3 memory.

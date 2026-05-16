@@ -5,10 +5,113 @@ slug: "131730593"
 tags: ["#FPGADev", "#stm32", "#ARMDev"]
 source: "https://blog.csdn.net/yeyuangen/article/details/131730593"
 originalTitle: "基于STM32 ARM+FPGA伺服控制系统(二）软件及FPGA设计"
+expanded: true
 ---
+A complete servo system involves numerous modules, making it impractical to detail each one. This article focuses on the more challenging FPGA implementation, providing a brief overview of the ARM-side workflow. The FPGA is central to the control system, handling critical functions like the Field-Oriented Control (FOC) algorithm, current sampling, and encoder sampling. The performance of these FPGA-based algorithms directly dictates the quality of motor control. Due to the inherent parallelism and real-time constraints of FPGA operation, careful consideration of design timing and the coordinated scheduling of various tasks is paramount, significantly increasing design complexity. Below, we will delve into the design specifics of key FPGA program parts, primarily covering the Space Vector Pulse Width Modulation (SVPWM) algorithm module, the BISS-C encoder feedback module, and the Tamagawa encoder feedback module.
 
-A complete servo system contains many modules, so it's impossible to introduce them all in detail one by one. Therefore, this chapter focuses on the more challenging FPGA part and briefly introduces the ARM-side workflow. The FPGA part mainly includes FOC algorithm, current sampling algorithm, and encoder sampling algorithm, which are the foundation of the entire control system and directly determine the quality of motor control. Due to the special nature of FPGA operation, it is necessary to consider the rationality of design timing and the coordinated scheduling of various tasks, which greatly increases its design difficulty. The design of important FPGA program parts will be explained below, mainly divided into the SVPWM algorithm module, encoder feedback module, and current sampling module.
+## 4.1 SVPWM Algorithm Program Design
 
-**4.1 SVPWM Algorithm Program Design**
+As established in prior discussions, the SVPWM algorithm's workflow is a sequential process designed to generate the precise voltage required for motor control. This process begins by decoding the stationary frame voltage components, U_alpha and U_beta, to accurately determine the current sector of the voltage vector. Following sector identification, the system calculates the active time required for the basic voltage vectors within that specific sector. The next step involves determining the precise time points for PWM comparison. Finally, pulse width modulation is performed, incorporating a crucial dead-time to generate complementary PWM waves. These waves then control the inverter switches, ultimately producing the desired sinusoidal voltage waveform for the motor.
 
-As known from Section 4 of Chapter 2, the workflow of the SVPWM algorithm is shown in Figure 4-1. First, decode ܷ ߙ and ܷ ߚ to determine the current sector. Then, calculate the active time required for the basic vectors in the current sector. Next, determine the PWM comparison value time points. Finally, perform pulse width modulation and add dead-time to form complementary PWM waves to control the inverter switches, thereby generating the required sinusoidal voltage.![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/1
+### 4.1.1 Software Module Design
+
+The SVPWM module's functional structure is designed to manage the generation of these control signals. The module interacts with several key signals:
+*   **sys_clk**: The system clock, operating at a frequency of 50MHz, provides the timing backbone for all operations.
+*   **sys_rst**: The system reset signal, which is active low, initializes the module to a known state.
+*   **svpwm_en**: The module enable signal, which activates or deactivates the SVPWM generation process.
+*   **ualpha, ubeta**: These are the output signals from the inverse Park transformation module, representing the voltage components in the stationary reference frame.
+*   **Other**: This refers to the six complementary PWM waves (three pairs) that drive the inverter's power switches.
+
+The underlying principles and computational formulas for this module are detailed in Chapter 2 and will not be reiterated here. However, a critical design consideration is the generation of complementary PWM waves with a precisely defined dead-time. This dead-time is essential to account for the mechanical switching delays inherent in the inverter's power devices (e.g., MOSFETs or IGBTs). Without adequate dead-time, there is a risk of simultaneously turning on both the upper and lower switches of an inverter leg, leading to a direct short circuit across the DC bus, which can damage the inverter and pose a safety hazard.
+
+The principle for generating complementary PWM waves with dead-time involves using the calculated PWM wave as a reference. A suitable dead-time is then configured based on the specific characteristics of the inverter hardware. Assuming the inverter input signal is active high:
+*   When the reference PWM signal transitions from low to high (indicating the upper switch should turn on), the lower switch is first commanded to turn off. After a delay equal to the defined dead-time, the upper switch is then commanded to turn on.
+*   Conversely, when the reference PWM signal transitions from high to low (indicating the upper switch should turn off), the upper switch is first commanded to turn off. After a delay equal to the defined dead-time, the lower switch is then commanded to turn on.
+
+This mechanism ensures that there is a brief period where both switches in a leg are off, preventing shoot-through. For example, considering the U-phase, if `u_pwm` is the calculated reference PWM wave, `u_pwm1` would be the PWM wave for the upper switch, and `u_pwm2` for the lower switch. The dead-time would be visible as a short delay between `u_pwm1` turning off and `u_pwm2` turning on, and vice-versa.
+
+### 4.1.2 Simulation Test
+
+To validate the functionality of the SVPWM module, a simulation was conducted. The simulation results demonstrated that by assigning arbitrary values to `u_alpha` and `u_beta`, and then generating a single clock cycle `svpwm_en` signal, the system correctly produced `u_pwm` as the reference PWM wave. Crucially, based on this `u_pwm` signal, the module successfully generated the complementary PWM waves, `u_pwm1` and `u_pwm2`, with the expected dead-time clearly visible between them. This simulation confirmed that the SVPWM module is capable of generating the required complementary PWM waves with dead-time, ensuring safe and effective inverter operation.
+
+## 4.2 BISS-C Protocol Program Design
+
+The BISS (Bi-directional Synchronous Serial) protocol, developed by iC-Haus, is a robust bi-directional serial interface specifically designed for sensors. It incorporates CRC (Cyclic Redundancy Check) functionality to ensure the integrity and correctness of transmitted data. Compared to other similar communication protocols, BISS offers significant advantages in terms of compatibility and network structure. It achieves high speeds and low latency, comparable to SSI (Synchronous Serial Interface), with communication rates reaching up to 10Mbps. Furthermore, the BISS protocol allows for flexible adjustment of data length according to specific application requirements, providing excellent scalability.
+
+BISS protocol supports two operating modes. The design discussed here utilizes the sensor mode, where the FPGA acts as the master, sending position request commands to the encoder, and the encoder (slave) responds with relevant information. In sensor mode, the BISS-C data format is structured as a series of bits transmitted over the SLO (Slave Output) data line, synchronized by the MA (Master) clock signal generated by the host.
+
+### 4.2.1 BISS-C Protocol Data Structure
+
+A BISS-C data frame is composed of eight distinct parts:
+1.  **Ack (Acknowledgement) Phase**: The encoder signals its readiness.
+2.  **Start Bit**: A single bit indicating the start of data transmission.
+3.  **One '0' Bit**: A fixed zero bit following the start bit.
+4.  **Position Data**: A variable number of bits representing the encoder's absolute position.
+5.  **Error Bit**: A single bit indicating an error condition in the encoder.
+6.  **Warning Bit**: A single bit indicating a warning condition in the encoder.
+7.  **CRC Check Code**: A six-bit CRC checksum for data integrity verification.
+8.  **Timeout Phase**: The concluding phase of the communication cycle.
+
+The communication request cycle proceeds as follows:
+1.  **Idle State**: When no position request is active, the MA clock signal is held high. The host monitors the encoder's SLO data line. If SLO is high, it indicates the encoder is ready for communication.
+2.  **Start MA Clock**: Once the encoder is ready, the host begins transmitting a fixed-frequency MA clock signal to the encoder.
+3.  **Encoder Acknowledgment**: Upon detecting the second rising edge of the MA clock signal from the host, the encoder responds by pulling its SLO line low.
+4.  **Host Switches to Receive**: The encoder pulling the SLO line low signals to the host that the encoder is in the Acknowledge (Ack) state. The host should then switch to its receive state.
+5.  **Data Reception**: The host synchronously receives data transmitted by the encoder over the SLO line, synchronized with the MA clock signal. The data frame format is Most Significant Bit (MSB) first.
+6.  **Cycle Completion**: After receiving all data, the host pulls the MA clock line high. The encoder will then pull its SLO line high to indicate readiness for the next position request. If not ready, it will keep SLO low.
+
+### 4.2.2 Software Module Design
+
+The BISS module's functional structure comprises three main sub-modules: the MA module, the SLO module, and the CRC module. Key signals for the BISS module include:
+*   **biss_en**: The module enable signal, used to initiate the process of acquiring encoder position information.
+*   **data_length**: A configurable parameter that sets the bit width of the encoder's position data.
+*   **SLO**: The BISS protocol data line, carrying information from the encoder to the FPGA.
+*   **MA**: The BISS protocol clock line, generated by the FPGA to synchronize communication with the encoder.
+*   **abs_data**: The single-turn absolute value, used for multi-turn counting in rotary encoders and for electrical angle calculations.
+*   **abs_pos**: The total actual position data from the encoder.
+
+The module operates by first configuring the `data_length` register in the FPGA to match the position data bit width of the specific encoder model being used. This design supports position data widths up to 32 bits. When the main control module asserts the `biss_en` signal, the MA clock module begins operation, sending a fixed-frequency MA clock signal to the encoder to request its current position value. Upon receiving the data returned by the encoder, the FPGA feeds this data into the CRC verification module for integrity checking. Finally, the validated position data is output to the next stage of the control system.
+
+To manage the data reception process from the SLO line, a state machine is implemented, dividing the reception into six distinct states based on the BISS protocol's timing diagram characteristics:
+1.  **Idle State**: The functional module starts in an idle state.
+2.  **Wait State**: It then transitions into a waiting state, monitoring the SLO line.
+3.  **Ack State**: When the encoder pulls the SLO signal line low, the state machine enters the Acknowledge (Ack) state.
+4.  **STATE_ZERO**: Upon detecting SLO transitioning from low to high, the state machine moves to STATE_ZERO.
+5.  **Work State**: When the SLO data line is detected as low again, the module enters the working state and begins receiving data.
+6.  **TIMEOUT State**: After receiving the configured data width, the module transitions to the "TIMEOUT" state, indicating the end of data reception for the current cycle.
+
+In practical engineering applications, data signal levels can be susceptible to glitches or metastability, especially when sampling on the rising edge of a clock signal. Directly reading the SLO data line's level on the MA clock's rising edge can lead to unreliable data. A more robust approach, implemented here, is to sample the SLO data line multiple times during the stable middle portion of each MA clock cycle. The logic then determines which level (high or low) has a majority count among these samples and assigns that stable value to a register. This method leverages the fact that the MA clock frequency is typically much lower than the internal FPGA operating frequency (`sys_clk`), allowing for multiple samples within a single MA clock period. Specifically, at each rising edge of the MA clock, a counter (`bps_cnt`) starts from zero, accumulating samples. The system then compares the count of high samples versus low samples, and the majority value is latched into a register. This process repeats until all data bits are received.
+
+Once the SLO module completes data reception, it sends a "reception complete" signal to both the MA module and the CRC verification module. The MA module, upon receiving this signal, instructs the FPGA to pull the MA clock line high, preparing for the next communication cycle. Simultaneously, the CRC module receives the data frame transmitted by the SLO module and performs the CRC checksum calculation. The BISS-C protocol specifies a CRC polynomial of G(x) = x^6 + x + 1, which corresponds to the binary sequence 1000011. To maximize the parallel processing capabilities of the FPGA and enhance efficiency, a parallel CRC calculation algorithm is employed. This allows the CRC checksum to be computed within a single system clock cycle. The core logic for this parallel CRC operation involves an input `d[33:0]` (the data to be checked) and an output `crc_out[5:0]` (the calculated CRC result), with an initial `c[5:0]` value of zero.
+
+After calculation, the `crc_out` result is compared with the received CRC checksum from the encoder. A crucial detail is that the encoder internally inverts its CRC checksum before transmitting it to the host. Therefore, the FPGA's calculated CRC value must also be inverted before comparison. If the inverted calculated CRC matches the received CRC, it indicates that the SLO module correctly received the data, and the validated position data is then updated in the next-level module. If there is a mismatch, the system retains the previously valid position data and initiates a new position request to the encoder.
+
+### 4.2.3 Simulation Test
+
+A comprehensive test file was developed to verify the BISS module's functionality using ModelSim software, with a strong emphasis on stability for real-world industrial applications. The simulation was conducted at a communication rate of 5Mbps, which is a common high-speed setting. The module was tested against frequently used encoder models with both 26-bit and 32-bit position data widths.
+
+For the 26-bit data width, two sets of data were configured. The first set intentionally had a single bit difference in the last bit of the CRC checksum, while the second set was entirely correct. This deliberate manipulation allowed for testing whether the BISS module could correctly receive and differentiate between valid and corrupted data, and critically, to verify the proper operation of the CRC verification module. As noted previously, the BISS-C protocol specifies that the encoder inverts its CRC checksum before transmission. Consequently, the CRC values presented in the test data tables were pre-inverted. During the FPGA's verification process, the calculated CRC value must also be inverted before being compared with the received value. The overall simulation results for the 26-bit mode confirmed the module's correct operation.
+
+The simulation waveforms showed that upon receiving the `biss_en` enable signal, the FPGA transmitted a 5MHz MA clock signal to the encoder. The encoder, detecting the MA clock, returned data via the SLO line. Once the FPGA completed data reception, it transferred the received CRC checksum (`crc_check`) and the data to be verified (`check_data`) to the CRC module, along with a `done` signal to trigger the CRC module's operation. The CRC module then processed the data. After processing, it compared its calculated CRC (`crc_out`) with the received `crc_check`. If they matched (after accounting for the inversion), a high-level pulse on the `crc_done` signal indicated successful verification; otherwise, `crc_done` remained low.
+
+A closer examination of the CRC verification details revealed that if the received `crc_check` was, for example, `001011`, and the calculated `crc_out` (before inversion) was `110100`, then after inverting `crc_out` to `001011`, it matched the received value. This confirmed the CRC module's correct operation, and importantly, the CRC calculation was completed within a single system clock cycle, demonstrating the efficiency of the parallel CRC algorithm.
+
+From these simulation results, it was concluded that the BISS module could reliably send MA clock signals at 5Mbps, completely receive encoder data, and perform CRC verification within a single clock cycle. Thus, the designed BISS module successfully passed functional simulation tests for the 26-bit mode.
+
+Similarly, simulation tests were performed for the 32-bit data width, using a corresponding set of simulation data. The functional simulation and CRC verification details for the 32-bit mode also confirmed the successful operation of the designed BISS module.
+
+In conclusion, the designed BISS module is capable of reliably receiving data from encoders with data widths up to 32 bits at a communication rate of 5Mbps, simply by adjusting the `data_length` register.
+
+## 4.3 Tamagawa Protocol Program Design
+
+The Tamagawa protocol, developed by Tamagawa Seiki Co., Ltd. of Japan, employs a "request-response" communication model. In this scheme, the host (FPGA) sends various request commands to the encoder to obtain different types of data. The communication method is similar to standard serial communication, transmitting one byte of data at a fixed rate of 2.5Mbps, starting with the least significant bit (LSB). This section will primarily focus on the Tamagawa protocol's mode for reading encoder information.
+
+### 4.3.1 Tamagawa Protocol Data Structure
+
+The data frame format for reading encoder information consists of several components. The operational principle is that the host sends different control frame commands to the encoder to request specific information. In response, the encoder returns a data group comprising a control frame, a status frame, a variable number of data frames (depending on the encoder model and requested information), and a CRC frame for error checking.
+
+The control frame's data format is structured into three main parts: a synchronization code, a control command, and a control command checksum bit. The synchronization code is a fixed, unchanging pattern, while the control command and its associated checksum bit are specific instruction codes. These instruction codes, detailed in a command table, correspond to different functions and dictate the type of data the encoder will return. For instance, if a user wishes to obtain both the single-turn and multi-turn values from the encoder, consulting the command table would reveal that instruction code ID 3 (binary: 01011000) corresponds to this request. The host would then send this specific command code to the encoder. Upon receiving it, the encoder would respond with its current single-turn value, multi-turn value, and any additional relevant information.
+
+The status frame's data format provides critical diagnostic information and is composed of information bits, encoder error alarm bits, and communication alarm bits. The meaning of the information bits can vary depending on the specific encoder model and should be referenced in the corresponding encoder manual. The encoder error alarm bits include `ea0` and `ea1`. If `ea0` is set to '1', it indicates an encoder encoding error or an external power supply issue, signifying that the current encoder information is incorrect. If `ea1` is '1', it indicates an error in the encoder's multi-turn value data. The communication alarm bits, `ca0` and `ca1`, signal issues with the communication itself. If `ca0` is '1', it means an error occurred in the control command checksum bit within the received control frame. If `ca1` is '1', it indicates an error in the end bit of the received control frame.
+
+Tamagawa absolute encoders are capable of achieving high-resolution position encoding data, up to 39 bits in total, which typically includes 23 bits for the single-turn value and 16 bits for the multi-turn value. However, the Tamagawa protocol transmits data only 8 bits at a time. Therefore, sending complete high-resolution position information requires multiple communication exchanges.
