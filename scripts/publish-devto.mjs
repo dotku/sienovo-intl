@@ -142,7 +142,9 @@ for (const post of batch) {
   }
   results.push({ slug: post.slug, ...r });
 
-  // Light pacing between posts (Dev.to is fine, this is courtesy)
+  // postArticle() handles 429 cooldowns internally; 2s here is just a
+  // courtesy pause so we don't tee up the next request the instant the
+  // previous response lands.
   await sleep(2000);
 }
 
@@ -311,26 +313,49 @@ function buildArticlePayload(post) {
   return { article };
 }
 
-async function postArticle(payload) {
-  try {
-    const resp = await fetch("https://dev.to/api/articles", {
-      method: "POST",
-      headers: {
-        "api-key": API_KEY,
-        "Content-Type": "application/json",
-        Accept: "application/vnd.forem.api-v1+json",
-      },
-      body: JSON.stringify(payload),
-    });
-    const text = await resp.text();
-    if (!resp.ok) {
-      return { ok: false, error: `HTTP ${resp.status} ${text.slice(0, 300)}` };
+async function postArticle(payload, { maxRetries = 3 } = {}) {
+  // Dev.to enforces a burst-rate cap on POST /api/articles: after ~2 quick
+  // posts it returns 429 with "try again in N seconds". The previous version
+  // surfaced that as a hard failure, which is why daily runs were stuck at
+  // 2 published articles. Parse the suggested cooldown and retry.
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    let resp;
+    try {
+      resp = await fetch("https://dev.to/api/articles", {
+        method: "POST",
+        headers: {
+          "api-key": API_KEY,
+          "Content-Type": "application/json",
+          Accept: "application/vnd.forem.api-v1+json",
+        },
+        body: JSON.stringify(payload),
+      });
+    } catch (err) {
+      return { ok: false, error: err.message };
     }
-    const data = JSON.parse(text);
-    return { ok: true, id: data.id, url: data.url || data.canonical_url };
-  } catch (err) {
-    return { ok: false, error: err.message };
+    const text = await resp.text();
+    if (resp.ok) {
+      const data = JSON.parse(text);
+      return { ok: true, id: data.id, url: data.url || data.canonical_url };
+    }
+    if (resp.status === 429 && attempt < maxRetries) {
+      // Honor Retry-After header when set; otherwise pull "try again in N
+      // seconds" out of the body; otherwise default to 35s (just past the
+      // observed 30s window).
+      const retryAfterHeader = parseInt(resp.headers.get("retry-after") || "", 10);
+      const bodyMatch = text.match(/try again in (\d+) second/i);
+      const waitSec = Number.isFinite(retryAfterHeader) && retryAfterHeader > 0
+        ? retryAfterHeader
+        : bodyMatch
+          ? parseInt(bodyMatch[1], 10) + 2
+          : 35;
+      console.warn(`  429 from dev.to — sleeping ${waitSec}s before retry ${attempt + 1}/${maxRetries}`);
+      await sleep(waitSec * 1000);
+      continue;
+    }
+    return { ok: false, error: `HTTP ${resp.status} ${text.slice(0, 300)}` };
   }
+  return { ok: false, error: "HTTP 429: exhausted retries" };
 }
 
 async function refreshArticle(slug) {
