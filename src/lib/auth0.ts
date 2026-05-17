@@ -16,6 +16,10 @@ const BOOTSTRAP_ROLES: Record<string, Role> = {
   "sienovoleo@gmail.com": "owner",
   "sienovojay@gmail.com": "owner",
   "yizhuo.chen@sienovo.cn": "marketing",
+  // Jay's marketing-role test account — gmail "+marketing" alias lets him
+  // experience the dashboard as a marketing user without losing his owner
+  // session. Same inbox, different Auth0 user.
+  "sienovojay+marketing@gmail.com": "marketing",
 };
 
 export async function getSession() {
