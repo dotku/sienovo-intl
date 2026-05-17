@@ -23,7 +23,14 @@ const nextConfig: NextConfig = {
   // for every route that reads them via getAllPosts/getPostBySlug.
   // Wildcard key catches future routes too without per-path bookkeeping.
   outputFileTracingIncludes: {
-    "**/*": ["./content/blog/**/*.mdx", "./content/blog-en/**/*.mdx"],
+    // blog content for getAllPosts / sitemap; data/* for the bot-reports
+    // page which reads SEO snapshots and devto state from disk.
+    "**/*": [
+      "./content/blog/**/*.mdx",
+      "./content/blog-en/**/*.mdx",
+      "./data/seo-reports/*.json",
+      "./data/devto-published.jsonl",
+    ],
   },
   async redirects() {
     return [
