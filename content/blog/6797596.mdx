@@ -13,9 +13,7 @@ source: "https://blog.csdn.net/yeyuangen/article/details/6797596"
 
 相信很多跟我一样想要学习unix编程的朋友在兴冲冲拿到《unix环境高级编程》后，准备拿源码练练手时，执行第一个myls就出现一大堆的 错误，这未免时个不小的打击。今天把解决方法写下来，第一自己有个记录，第二也帮助那些被同样问题困扰的朋友尽快的进入linux美丽的世界。(只限 linux系统）
 
-首先需要make一次源代码
-
-编辑源码解压生成的apue.2e文件夹下的Make.defines.linux
+首先需要make一次源代码编辑源码解压生成的apue.2e文件夹下的Make.defines.linux
 
 修改WKDIR=/home/var/apue.2e为你的apue.2e目录，比如我的apue源码解压在/usr/local,那我就改为：
 
@@ -35,9 +33,7 @@ myls.c:13: error: \`NULL' undeclared (first use in this function)
 myls.c:13: error: (Each undeclared identifier is reported only once  
 myls.c:13: error: for each function it appears in.)
 
-解决办法：
-
-拷贝apue.h到系统默认头文件目录中
+解决办法：拷贝apue.h到系统默认头文件目录中
 
 $cp /usr/local/apue.2e/include/apue.h /usr/include
 
@@ -51,9 +47,7 @@ collect2: ld returned 1 exit status
 
 解决办法：
 
-err\_quit跟err\_sys是作者自己定义的错误处理函数,需要单独定义头文件
-
-在/usr/include 下新建一个名为myerr.h的文件，拷贝在原书的附录B中头文件到其中。
+err\_quit跟err\_sys是作者自己定义的错误处理函数,需要单独定义头文件在/usr/include 下新建一个名为myerr.h的文件，拷贝在原书的附录B中头文件到其中。
 
 **《UNIX环境高级编程》源码编译方法**
 
@@ -156,9 +150,7 @@ int main(int argc, char\* argv\[\])
 
 #chmod +x systype.sh  
 
-给当前用户及其所在组和其他组添加可执行权限；
-
-或者
+给当前用户及其所在组和其他组添加可执行权限；或者
 
 #chmod u+x systype.sh
 

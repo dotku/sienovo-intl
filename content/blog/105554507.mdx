@@ -10,13 +10,9 @@ source: "https://blog.csdn.net/yeyuangen/article/details/105554507"
 
 现在AM335X上设计nor flash启动的相关要点总结如下，供大家参考。
 
-1\. 关于nor flash启动的信息
+1\. 关于nor flash启动的信息可以参考TRM的26.1.7.2 XIP Memory章节，在这里就不详述了。
 
-可以参考TRM的26.1.7.2 XIP Memory章节，在这里就不详述了。
-
-2\. 设计时注意点
-
-由于AM335X的管脚有限，所以在应用中许多客户会考虑采用GPMC数据线/地址线复用的方式连接外部的nor flash。这样可以将GPMC\_AD\[15:0\]即作为16bit数据线，又作为低16bit的地址线。
+2\. 设计时注意点由于AM335X的管脚有限，所以在应用中许多客户会考虑采用GPMC数据线/地址线复用的方式连接外部的nor flash。这样可以将GPMC\_AD\[15:0\]即作为16bit数据线，又作为低16bit的地址线。
 
 那在这种情况下，针对具体设计，需要注意哪些地方？
 
@@ -98,9 +94,7 @@ V5
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/105554507/01_7e28062f01bc2db8ce8c7467dcde1796.png)
 
-（2） 采用pinmux mode1的连接时，需注意
-
-由于此时GPMC\_A\[10:1\]与LCD\_DATA复用，而LCD\_DATA又在启动初期作为SYSBOOT管脚使用，在其管脚上会根据启动序列的选择存在相应的上下拉。这就与（1）中要求的nor flash启动初期需要对GPMC\_A\[10:1\]一直保持下拉存在冲突。所以在这种应用下，需要增加一个bus transceiver对两者进行隔离。见下图。
+（2） 采用pinmux mode1的连接时，需注意由于此时GPMC\_A\[10:1\]与LCD\_DATA复用，而LCD\_DATA又在启动初期作为SYSBOOT管脚使用，在其管脚上会根据启动序列的选择存在相应的上下拉。这就与（1）中要求的nor flash启动初期需要对GPMC\_A\[10:1\]一直保持下拉存在冲突。所以在这种应用下，需要增加一个bus transceiver对两者进行隔离。见下图。
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/105554507/02_c797dd02dc1f720c4e4480a6d6abdcbc.png)
 
@@ -108,9 +102,7 @@ V5
 
  
 
-软件方面：
-
-在SDK-05.06.00.00及之后的版本的U-boot中已经添加了Nor flash启动的代码。在使用时，需要注意
+软件方面：在SDK-05.06.00.00及之后的版本的U-boot中已经添加了Nor flash启动的代码。在使用时，需要注意
 
 nor flash为XIP memory，其启动时不需要将SPL拷贝到RAM中运行，而可以直接在nor flash进行。由于nor flash启动，ROM CODE只对低16位地址进行了初始化，所以启动时只能访问0x08000000起始的64K x 16bit的地址空间。在此初始化中，u-boot.bin会执行对nor flash高位地址的初始化，以便后续AM335X能访问nor flash的整个地址空间。
 
@@ -248,20 +240,14 @@ asm("ldmfd      sp!, {r2 - r4}");
 
 ![1325.11.png](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/105554507/05_721dcf9f7bcd6e8227ce89459d8c0c48.png)![uploading.4e448015.gif](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/105554507/07_d12faba5ad1b3bc665e4e15b307496c5.gif)转存失败重新上传取消
 
-（2） 采用pinmux mode1的连接时，需注意
+（2） 采用pinmux mode1的连接时，需注意由于此时GPMC\_A\[10:1\]与LCD\_DATA复用，而LCD\_DATA又在启动初期作为SYSBOOT管脚使用，在其管脚上会根据启动序列的选择存在相应的上下拉。这就与（1）中要求的nor flash启动初期需要对GPMC\_A\[10:1\]一直保持下拉存在冲突。所以在这种应用下，需要增加一个bus transceiver对两者进行隔离。见下图。
 
-由于此时GPMC\_A\[10:1\]与LCD\_DATA复用，而LCD\_DATA又在启动初期作为SYSBOOT管脚使用，在其管脚上会根据启动序列的选择存在相应的上下拉。这就与（1）中要求的nor flash启动初期需要对GPMC\_A\[10:1\]一直保持下拉存在冲突。所以在这种应用下，需要增加一个bus transceiver对两者进行隔离。见下图。
-
-![2553.22.png](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/105554507/08_0b8e3530db6bb8202bdf0fc6c9327d88.png)![uploading.4e448015.gif](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/105554507/07_d12faba5ad1b3bc665e4e15b307496c5.gif)转存失败重新上传取消
-
-由于SYSBOOT的管脚状态只有在PORz的上升沿才会读取。而warm reset的输入管脚nRESET\_OUT会在PORz完成后持续一段时间低电平，可参考TRM的Figure 8-19. PORz。所以可以通过此信号来作为Bus transceiver的控制信号。当nRESET\_OUT为低时，根据SN74AVC32T245的逻辑，连接在总线上的信号会是A到B，期间PORz信号的上升沿触发时段，可以读取SYSBOOT的管脚状态。当nRESET\_OUT持续一段时间低电平后，其电平会变为高，此时Bus transceiver则会将A侧的GPMC\_A\[10:1\]与B侧SYSBOOT的上下拉隔离开。
+![2553.22.png](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/105554507/08_0b8e3530db6bb8202bdf0fc6c9327d88.png)![uploading.4e448015.gif](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/105554507/07_d12faba5ad1b3bc665e4e15b307496c5.gif)转存失败重新上传取消由于SYSBOOT的管脚状态只有在PORz的上升沿才会读取。而warm reset的输入管脚nRESET\_OUT会在PORz完成后持续一段时间低电平，可参考TRM的Figure 8-19. PORz。所以可以通过此信号来作为Bus transceiver的控制信号。当nRESET\_OUT为低时，根据SN74AVC32T245的逻辑，连接在总线上的信号会是A到B，期间PORz信号的上升沿触发时段，可以读取SYSBOOT的管脚状态。当nRESET\_OUT持续一段时间低电平后，其电平会变为高，此时Bus transceiver则会将A侧的GPMC\_A\[10:1\]与B侧SYSBOOT的上下拉隔离开。
 
   
  
 
-软件方面：
-
-在SDK-05.06.00.00及之后的版本的U-boot中已经添加了Nor flash启动的代码。在使用时，需要注意
+软件方面：在SDK-05.06.00.00及之后的版本的U-boot中已经添加了Nor flash启动的代码。在使用时，需要注意
 
 nor flash为XIP memory，其启动时不需要将SPL拷贝到RAM中运行，而可以直接在nor flash进行。由于nor flash启动，ROM CODE只对低16位地址进行了初始化，所以启动时只能访问0x08000000起始的64K x 16bit的地址空间。在此初始化中，u-boot.bin会执行对nor flash高位地址的初始化，以便后续AM335X能访问nor flash的整个地址空间。
 

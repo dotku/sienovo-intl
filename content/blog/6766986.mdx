@@ -32,9 +32,7 @@ prev = current; ／\*让prev成为当前进程 \*／
 
 this\_cpu = prev->processor;
 
-if (in\_interrupt()) {／\*如果schedule是在中断服务程序内部执行，
-
-就说明发生了错误\*／
+if (in\_interrupt()) {／\*如果schedule是在中断服务程序内部执行，就说明发生了错误\*／
 
 printk("Scheduling in interrupt\\n");
 
@@ -42,9 +40,7 @@ BUG();
 
 }
 
-release\_kernel\_lock(prev, this\_cpu); /\*释放全局内核锁，
-
-并开this\_cpu的中断\*／
+release\_kernel\_lock(prev, this\_cpu); /\*释放全局内核锁，并开this\_cpu的中断\*／
 
 spin\_lock\_irq(&runqueue\_lock); ／\*锁住运行队列，并且同时关中断\*/
 
@@ -58,9 +54,7 @@ switch (prev->state) { ／\*根据prev的状态做相应的处理\*／
 
 case TASK\_INTERRUPTIBLE: /\*此状态表明该进程可以被信号中断\*/
 
-if (signal\_pending(prev)) { /\*如果该进程有未处理的
-
-信号，则让其变为可运行状态\*/
+if (signal\_pending(prev)) { /\*如果该进程有未处理的信号，则让其变为可运行状态\*/
 
 prev->state = TASK\_RUNNING;
 
@@ -106,9 +100,7 @@ c = weight, next = p;
 
 }
 
-／\* 如果c为0，说明运行队列中所有进程的权值都为0，也就是分配给各个进程的
-
-时间片都已用完，需重新计算各个进程的时间片 \*／
+／\* 如果c为0，说明运行队列中所有进程的权值都为0，也就是分配给各个进程的时间片都已用完，需重新计算各个进程的时间片 \*／
 
 if (!c) {
 

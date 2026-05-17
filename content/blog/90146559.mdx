@@ -25,29 +25,19 @@ source: "https://blog.csdn.net/yeyuangen/article/details/90146559"
 
 ![边界扫描链位置](http://www.veryarm.com/wp-content/uploads/4635e932934f0d29dcf628186c0c9bf3.jpg)
 
-边界扫描链位置
-
-通过边界扫描链，当有信号输入的时候，边界扫描链就能获取信号，当CPU要输出信号的时候，边界扫描链也能获取要输出的信号。另外，也可以通过边界扫描链来直接向外部输出信号。
+边界扫描链位置通过边界扫描链，当有信号输入的时候，边界扫描链就能获取信号，当CPU要输出信号的时候，边界扫描链也能获取要输出的信号。另外，也可以通过边界扫描链来直接向外部输出信号。
 
 无论是信号的抓取还是输出，都需要有接口来保存这些信号，TDI 跟 TDO 就是做这样一些工作的。如图：
 
 ![JTAG TDI TDO示意图](http://www.veryarm.com/wp-content/uploads/d749c1b2c2acac7dde890413f7c20db2.jpg)
 
-JTAG TDI TDO示意图
-
-本来边界扫描链保存着 引脚 上的信号，当通过TDI引脚输入我们自己的信号的时候，会发生沿上面红线方向的移位操作，
+JTAG TDI TDO示意图本来边界扫描链保存着 引脚 上的信号，当通过TDI引脚输入我们自己的信号的时候，会发生沿上面红线方向的移位操作，
 
 **TDI ——〉 边界扫描链 —— 〉 TDO**
 
 简单地说，PC机对目标板的调试就是通过TAP接口完成对相关**数据寄存器(DR)**和**指令寄存器(IR)的访问**。
 
-系统上电后，TAPController 首先进入 **Test-LogicReset** 状态，然后依次进入**Run-Test/Idle、Selcct-DR- Scan、Select-IR-Scan、Capture-IR、Shift-IR、Exitl-IR、Update-IR**状态，最后回到 **Run- Tcst/Idle** 状态。在此过程中，状态的转移都是通过TCK信号进行驱动(上升沿)，通过TMS信号对TAP的状态进行选择转换的。其中，
-
-在 Capture-IR状态下，一个特定的逻辑序列被加载到指令寄存器中；
-
-在Shift-IR状态下，可以将一条特定的指令送到指令寄存器中；
-
-在 Update—IR状态下，刚才输入到指令寄存器中的指令将用来更新指令寄存器。
+系统上电后，TAPController 首先进入 **Test-LogicReset** 状态，然后依次进入**Run-Test/Idle、Selcct-DR- Scan、Select-IR-Scan、Capture-IR、Shift-IR、Exitl-IR、Update-IR**状态，最后回到 **Run- Tcst/Idle** 状态。在此过程中，状态的转移都是通过TCK信号进行驱动(上升沿)，通过TMS信号对TAP的状态进行选择转换的。其中，在 Capture-IR状态下，一个特定的逻辑序列被加载到指令寄存器中；在Shift-IR状态下，可以将一条特定的指令送到指令寄存器中；在 Update—IR状态下，刚才输入到指令寄存器中的指令将用来更新指令寄存器。
 
 最后，系统又回到Run— Test /Idle状态，指令生效，完成对指令寄存器的访问。
 
@@ -60,11 +50,7 @@ JTAG TDI TDO示意图
 1.  BootLoader是位于片内引导ROM中的复位后执行的一段程序，复位向量位于0x3FFFC0处
 2.  启动方式从GPIOF2、GPIOF3、GPIOF4、GPIOF12来确定引导方式
 
-TI支持很多种方式的boot，内部的ram（saram），flash，sci，spi等等，但无论哪种启动都遵循下面的流程：
-
-而该流程中的 reset ,initboot,call selectbootmode, read i/o state, call boot loader这些步骤都是固化在芯片内的程序自己执行的，也就是说这些代码在出厂的时候已经在TI的芯片内。在28335中是一段的8k\*16的read-only的memory，地址位于0x3fe000-0x3fffff,见下图：
-
-根据上面的流程图和rom分布图，详细的解释一下流程：
+TI支持很多种方式的boot，内部的ram（saram），flash，sci，spi等等，但无论哪种启动都遵循下面的流程：而该流程中的 reset ,initboot,call selectbootmode, read i/o state, call boot loader这些步骤都是固化在芯片内的程序自己执行的，也就是说这些代码在出厂的时候已经在TI的芯片内。在28335中是一段的8k\*16的read-only的memory，地址位于0x3fe000-0x3fffff,见下图：根据上面的流程图和rom分布图，详细的解释一下流程：
 
 1.在3f ffc0到3f ffff其实是放了中断向量表的地方：系统一开机当然是处于reset中断，因此直接跳至reset的地方执行（0x3f ffc0）。而这个地方的两个字节只是放了一条指令，就是跳至initboot函数，也就是3f f34c的地址执行boot load.
 

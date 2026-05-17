@@ -17,9 +17,7 @@ source: "https://blog.csdn.net/yeyuangen/article/details/86761811"
 1、将设备树文件拷贝到内核源码的arch/\*（处理器平台）/boot/dts/\*（厂家）/目录下，  
    执行make dtbs
 
-具体到AM5728，如下：
-
-不同型号开发板的设备树文件名不同，故编译命令不同。在 Linux 内核源码安装目录下，执行如下命令编译设备树文件：
+具体到AM5728，如下：不同型号开发板的设备树文件名不同，故编译命令不同。在 Linux 内核源码安装目录下，执行如下命令编译设备树文件：
 
 Host# make ARCH=arm CROSS\_COMPILE=arm-linux-gnueabihf- am57xx-evm-reva3.dtb  
 编译完成后， 会在 Linux 内核源码目录"arch/arm/boot/dts"路径下， 生成对应平台的设备树文件。  
@@ -174,9 +172,7 @@ mac:ethernet@4a100000 {
 
               };
 
-接下来看一下内核是如何调用这些参数的：
-
-首先在文件Cpsw.c (drivers\\net\\ethernet\\ti)中的平台驱动结构体中有of\_match\_table匹配函数:
+接下来看一下内核是如何调用这些参数的：首先在文件Cpsw.c (drivers\\net\\ethernet\\ti)中的平台驱动结构体中有of\_match\_table匹配函数:
 
 static structplatform\_driver cpsw\_driver = {
 

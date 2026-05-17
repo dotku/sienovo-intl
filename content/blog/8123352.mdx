@@ -10,17 +10,11 @@ source: "https://blog.csdn.net/yeyuangen/article/details/8123352"
 
 1、如何判断一个链表是不是这类链表？ 　 2、如果链表为存在环，如果找到环的入口点？
 
-解答：
-
-一、判断链表是否存在环，办法为：
-
-设置两个指针(fast, slow)，初始值都指向头，slow每次前进一步，fast每次前进二步，如果链表存在环，则fast必定先进入环，而slow后进入环，两个指针必定相遇。(当然，fast先行头到尾部为NULL，则为无环链表)程序如下：
+解答：一、判断链表是否存在环，办法为：设置两个指针(fast, slow)，初始值都指向头，slow每次前进一步，fast每次前进二步，如果链表存在环，则fast必定先进入环，而slow后进入环，两个指针必定相遇。(当然，fast先行头到尾部为NULL，则为无环链表)程序如下：
 
 bool IsExitsLoop(slist \*head) {     slist \*slow \= head, \*fast = head;     while ( fast &&fast\->next )     {         slow \= slow\->next;         fast \= fast\->next\->next;         if ( slow \==fast ) break;     }     return !(fast \== NULL || fast\->next \== NULL); }
 
-二、找到环的入口点
-
-当fast若与slow相遇时，slow肯定没有走遍历完链表，见注释（１）而fast已经在环内循环了n圈(1<=n)。假设slow走了s步，则fast走了2s步（fast步数还等于s 加上在环上多转的n圈），设环长为r，则：
+二、找到环的入口点当fast若与slow相遇时，slow肯定没有走遍历完链表，见注释（１）而fast已经在环内循环了n圈(1<=n)。假设slow走了s步，则fast走了2s步（fast步数还等于s 加上在环上多转的n圈），设环长为r，则：
 
 　2s = s + nr 　 　s= nr
 
@@ -30,13 +24,9 @@ bool IsExitsLoop(slist \*head) {     slist \*slow \= head, \*fast = head
 
 slist\* FindLoopPort(slist \*head) {     slist \*slow = head, \*fast = head;     while ( fast &&fast->next )     {         slow = slow->next;         fast = fast->next->next;         if ( slow ==fast ) break;     }     if (fast == NULL || fast->next == NULL)         return NULL;     slow =head;     while (slow != fast)     {          slow = slow->next;          fast = fast->next;     }     return slow; }
 
-扩展问题：
+扩展问题：判断两个单链表是否相交，如果相交，给出相交的第一个点（两个链表都不存在环）。
 
-判断两个单链表是否相交，如果相交，给出相交的第一个点（两个链表都不存在环）。
-
-比较好的方法有两个：
-
-一、将其中一个链表首尾相连，检测另外一个链表是否存在环，如果存在，则两个链表相交，而检测出来的依赖环入口即为相交的第一个点。
+比较好的方法有两个：一、将其中一个链表首尾相连，检测另外一个链表是否存在环，如果存在，则两个链表相交，而检测出来的依赖环入口即为相交的第一个点。
 
 二、如果两个链表相交，那个两个链表从相交点到链表结束都是相同的节点，我们可以先遍历一个链表，直到尾部，再遍历另外一个链表，如果也可以走到同样的结尾点，则两个链表相交。
 

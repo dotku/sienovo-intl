@@ -30,13 +30,9 @@ fopen() fclose() putc() fputc() getc() fgetc() fseek() fprintf() fscanf(
 
 （1）打开文件：ANSI C库中打开文件函数fopen声明如下：
 
-FIEF \*fopen(\_const char \*\_restrict\_filename,\_const char \*\_restrict\_modes)；
+FIEF \*fopen(\_const char \*\_restrict\_filename,\_const char \*\_restrict\_modes)；如果执行成功，将返回打开文件的文件指针。如果执行失败，将返回NULL。
 
-如果执行成功，将返回打开文件的文件指针。如果执行失败，将返回NULL。
-
-函数的第一个参数是指向欲打开的文件名称字符串的指针（例如”/etc/service”）第二个参数为打开模式。打开文件模式如下：
-
-参数                             说明
+函数的第一个参数是指向欲打开的文件名称字符串的指针（例如”/etc/service”）第二个参数为打开模式。打开文件模式如下：参数                             说明
 
 r(或rb)                以只读方式打开，该文件必须存在
 
@@ -113,9 +109,7 @@ int fwrite(void \*buffer，int size，int count，FILE \*fp)；
 fwrite()──从buffer开始，一次输出size个字节，重复count次， 并将输出的数据存放到fp所指向的文件中。buffer是要输出数据在    内存中的起始地址（即从何处开始输出）。  
 一般用于二进制文件的处理。
 
-（c）举例
-
-将一个字符串写入文件：  
+（c）举例将一个字符串写入文件：  
     char \*str="hello,I am a test program!";  
     fwrite(str,sizeof(char),strlen(str),fp)  
 将一个字符 数组 写入文件：  
@@ -159,15 +153,11 @@ fseek(fp,100L,SEEK\_END);把fp指针退回到离文件结尾100字节处。
 此函数常用来计算流的长度:  
     int filesize = fseek( fp, 0, SEEK\_END );  
     fseek( fp, 0, SEEK\_SET );  
-（3）重置当前读写位置
-
-当执行完一次操作，为了实现第二次操作，需要调用rewind函数将读写位置重置到文件开头
+（3）重置当前读写位置当执行完一次操作，为了实现第二次操作，需要调用rewind函数将读写位置重置到文件开头
 
 void rewind (FILE \*stream)
 
-4 文件流检测
-
-要标识一个错误,许多的stdio库函数会返回一个越界的值,例如空指针或者是定值EOF.在这些情况下,这些错误是由外部的变量errno来标识的:  
+4 文件流检测要标识一个错误,许多的stdio库函数会返回一个越界的值,例如空指针或者是定值EOF.在这些情况下,这些错误是由外部的变量errno来标识的:  
 #include <errno.h>  
 extern int errno;  
 在这里我们要注意的,许多的函数会改变errno的值.只有当一个函数的调用失败时,他的值才是可用的.我们应在一个函数标识失败后立刻检测errno的值.我们应在使用他之前要将他的值拷贝到另一个变量中,因为一些打印函数,如fprintf也许会修改他的值.  
@@ -183,9 +173,7 @@ ferror判断给定的流是否出现错误
 
 int ferror (FILE \*stream)
 
-如果没有出现错误，返回0，否则返回错误，保存在error中，
-
-在使用以上两个函数进行文件流检测时，将设置错误标志，执行错误处理后，应该清除该错误标识位
+如果没有出现错误，返回0，否则返回错误，保存在error中，在使用以上两个函数进行文件流检测时，将设置错误标志，执行错误处理后，应该清除该错误标识位
 
 void cleareer(FILE \*stream)
 

@@ -10,9 +10,7 @@ source: "https://blog.csdn.net/yeyuangen/article/details/34115971"
 
 ## 
 
-段错误
-
-所谓的段 [错误](http://baike.baidu.com/view/120927.htm)就是指访问的 [内存](http://baike.baidu.com/view/1082.htm)超出了系统所给这个程序的内存空间，通常这个值是由gd tr来保存的，他是一个48位的寄存器，其中的32位是保存由它指向的 gdt表，后13位保存 相应于gdt的下标，最后3位包括了程序是否在内存中以及程序的在 [cpu](http://baike.baidu.com/view/2089.htm)中的运行级别，指向 的gdt是由以64位为一个单位的表，在这张表中就保存着程序运行的 [代码段](http://baike.baidu.com/view/1315853.htm)以及 [数据段](http://baike.baidu.com/view/1005328.htm)的起 始地址以及与此相应的段限和页面交换还有程序运行级别还有内存粒度等等的信息。
+段错误所谓的段 [错误](http://baike.baidu.com/view/120927.htm)就是指访问的 [内存](http://baike.baidu.com/view/1082.htm)超出了系统所给这个程序的内存空间，通常这个值是由gd tr来保存的，他是一个48位的寄存器，其中的32位是保存由它指向的 gdt表，后13位保存 相应于gdt的下标，最后3位包括了程序是否在内存中以及程序的在 [cpu](http://baike.baidu.com/view/2089.htm)中的运行级别，指向 的gdt是由以64位为一个单位的表，在这张表中就保存着程序运行的 [代码段](http://baike.baidu.com/view/1315853.htm)以及 [数据段](http://baike.baidu.com/view/1005328.htm)的起 始地址以及与此相应的段限和页面交换还有程序运行级别还有内存粒度等等的信息。
 
 ### 目录
 
@@ -46,11 +44,7 @@ On Unix-like operating systems, a process that accesses invalid memory receives 
 
 #### Quote:
 
-一旦一个程序发生了 [越界](http://baike.baidu.com/view/392942.htm)访问， [cpu](http://baike.baidu.com/view/2089.htm)就会产生相应的保护，于是segmentation fault就出现
-
-了通过上面的解释，段 [错误](http://baike.baidu.com/view/120927.htm)应该就是访问了不可访问的 [内存](http://baike.baidu.com/view/1082.htm)，这个 [内存](http://baike.baidu.com/view/1082.htm)区要么是不存在的，
-
-要么是受到系统保护的，还有可能是缺少文件或者文件损坏。
+一旦一个程序发生了 [越界](http://baike.baidu.com/view/392942.htm)访问， [cpu](http://baike.baidu.com/view/2089.htm)就会产生相应的保护，于是segmentation fault就出现了通过上面的解释，段 [错误](http://baike.baidu.com/view/120927.htm)应该就是访问了不可访问的 [内存](http://baike.baidu.com/view/1082.htm)，这个 [内存](http://baike.baidu.com/view/1082.htm)区要么是不存在的，要么是受到系统保护的，还有可能是缺少文件或者文件损坏。
 
 ### 2段错误的常见形式[编辑](http://baike.baidu.com/link?url=q5BY4s6WdLTvMnqZA8yCK-Nel1D8sQhpmfveGuS2ILvgP3cw739Rk5ylvhHDEHkqeGxpQM1kQqwyIAT3Vs8ZjK# "编辑本段")
 
@@ -92,13 +86,9 @@ On Unix-like operating systems, a process that accesses invalid memory receives 
 
 xiaosuo@gentux test $ ./a.out
 
-段错误
+段错误出错并退出。
 
-出错并退出。
-
-#### 利用gdb逐步查找段错误
-
-这种方法也是被大众所熟知并广泛采用的方法，首先我们需要一个带有调试信息的可执行程序，所以我们加上“-g -rdynamic"的参数进行编译，然后用 [gdb](http://baike.baidu.com/view/639266.htm)调试运行这个新编译的程序,具体步骤如下:
+#### 利用gdb逐步查找段错误这种方法也是被大众所熟知并广泛采用的方法，首先我们需要一个带有调试信息的可执行程序，所以我们加上“-g -rdynamic"的参数进行编译，然后用 [gdb](http://baike.baidu.com/view/639266.htm)调试运行这个新编译的程序,具体步骤如下:
 
 xiaosuo@gentux test $ gcc -g -rdynamic d.c
 
