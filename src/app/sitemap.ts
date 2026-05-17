@@ -78,6 +78,26 @@ export default async function sitemap({
   ];
 }
 
+// Helper: wraps a sync producer so any throw becomes a debug URL we can
+// see in the live sitemap (instead of the entry just being missing).
+function safeUrls(
+  label: string,
+  producer: () => MetadataRoute.Sitemap,
+): MetadataRoute.Sitemap {
+  try {
+    return producer();
+  } catch (err) {
+    console.error(`[sitemap] ${label} failed`, err);
+    const msg = err instanceof Error ? err.message : String(err);
+    return [
+      {
+        url: `${SITE_URL}/?_sitemap_debug=${label}:${encodeURIComponent(msg.slice(0, 120))}`,
+        lastModified: new Date(),
+      },
+    ];
+  }
+}
+
 // ── ID 0: Top tier ──────────────────────────────────────────────────────────
 async function topTierSitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
@@ -85,7 +105,8 @@ async function topTierSitemap(): Promise<MetadataRoute.Sitemap> {
   const absUrl = (path: string) =>
     /^https?:\/\//.test(path) ? path : `${SITE_URL}${path.startsWith("/") ? "" : "/"}${path}`;
 
-  // Static landing pages
+  // Static landing pages — always emit these even if everything below
+  // explodes, so the sitemap never goes below the minimum.
   const staticEntries: MetadataRoute.Sitemap = [
     { url: SITE_URL, lastModified: now, changeFrequency: "weekly", priority: 1.0, images: [heroImage] },
     { url: `${SITE_URL}/blog`, lastModified: now, changeFrequency: "daily", priority: 0.8 },
@@ -96,7 +117,6 @@ async function topTierSitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/zh/press`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
   ];
 
-  // Products — non-fatal on DB error so a Prisma outage can't 500 the sitemap.
   let productEntries: MetadataRoute.Sitemap = [];
   try {
     const products = await prisma.product.findMany({
@@ -115,41 +135,49 @@ async function topTierSitemap(): Promise<MetadataRoute.Sitemap> {
     console.error("[sitemap] prisma.product.findMany failed", err);
   }
 
-  const enTop = topPostsByLocale("en", 0, TOP_N).map((post) => ({
-    url: `${SITE_URL}/blog/${post.slug}`,
-    lastModified: post.date ? new Date(post.date) : new Date(),
-    changeFrequency: "monthly" as const,
-    priority: 0.6,
-  }));
+  const enTop = safeUrls("en-top", () =>
+    topPostsByLocale("en", 0, TOP_N).map((post) => ({
+      url: `${SITE_URL}/blog/${post.slug}`,
+      lastModified: post.date ? new Date(post.date) : new Date(),
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    })),
+  );
 
-  const zhTop = topPostsByLocale("zh", 0, TOP_N).map((post) => ({
-    url: `${SITE_URL}/zh/blog/${post.slug}`,
-    lastModified: post.date ? new Date(post.date) : new Date(),
-    changeFrequency: "monthly" as const,
-    priority: 0.5,
-  }));
+  const zhTop = safeUrls("zh-top", () =>
+    topPostsByLocale("zh", 0, TOP_N).map((post) => ({
+      url: `${SITE_URL}/zh/blog/${post.slug}`,
+      lastModified: post.date ? new Date(post.date) : new Date(),
+      changeFrequency: "monthly" as const,
+      priority: 0.5,
+    })),
+  );
 
   return [...staticEntries, ...productEntries, ...enTop, ...zhTop];
 }
 
 // ── ID 1: EN long tail (ranked 101+) ────────────────────────────────────────
 function enLongTailSitemap(): MetadataRoute.Sitemap {
-  return topPostsByLocale("en", TOP_N, Number.MAX_SAFE_INTEGER).map((post) => ({
-    url: `${SITE_URL}/blog/${post.slug}`,
-    lastModified: post.date ? new Date(post.date) : new Date(),
-    changeFrequency: "monthly" as const,
-    priority: 0.4,
-  }));
+  return safeUrls("en-long", () =>
+    topPostsByLocale("en", TOP_N, Number.MAX_SAFE_INTEGER).map((post) => ({
+      url: `${SITE_URL}/blog/${post.slug}`,
+      lastModified: post.date ? new Date(post.date) : new Date(),
+      changeFrequency: "monthly" as const,
+      priority: 0.4,
+    })),
+  );
 }
 
 // ── ID 2: ZH long tail (ranked 101+) ────────────────────────────────────────
 function zhLongTailSitemap(): MetadataRoute.Sitemap {
-  return topPostsByLocale("zh", TOP_N, Number.MAX_SAFE_INTEGER).map((post) => ({
-    url: `${SITE_URL}/zh/blog/${post.slug}`,
-    lastModified: post.date ? new Date(post.date) : new Date(),
-    changeFrequency: "monthly" as const,
-    priority: 0.4,
-  }));
+  return safeUrls("zh-long", () =>
+    topPostsByLocale("zh", TOP_N, Number.MAX_SAFE_INTEGER).map((post) => ({
+      url: `${SITE_URL}/zh/blog/${post.slug}`,
+      lastModified: post.date ? new Date(post.date) : new Date(),
+      changeFrequency: "monthly" as const,
+      priority: 0.4,
+    })),
+  );
 }
 
 // ── Shared ranking + slicing ────────────────────────────────────────────────
