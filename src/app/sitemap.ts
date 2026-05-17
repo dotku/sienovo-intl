@@ -48,9 +48,16 @@ export default async function sitemap({
   }
 
   // Fallback so /sitemap/0.xml never returns a fully-empty urlset even
-  // if Prisma / fs / etc. blow up at request time.
+  // if Prisma / fs / etc. blow up at request time. The first URL bakes
+  // in the deploy fingerprint (commit SHA + id we received) so we can
+  // tell which build is actually serving when debugging cache layers.
   const now = new Date();
+  const sha = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 8) || "local";
   return [
+    {
+      url: `${SITE_URL}/?_sitemap_fallback=sha:${sha}_id:${id}`,
+      lastModified: now,
+    },
     {
       url: SITE_URL,
       lastModified: now,
