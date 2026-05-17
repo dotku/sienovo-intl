@@ -27,17 +27,17 @@ export async function generateSitemaps() {
   return [{ id: 0 }, { id: 1 }, { id: 2 }];
 }
 
+// Next.js 16 made the sitemap function args async (mirroring the
+// `params` / `searchParams` change). `id` arrives as a Promise<number>,
+// not a number — old code that did `Number(id)` got `NaN` and every
+// branch fell through to the fallback. Always await first.
 export default async function sitemap({
   id,
 }: {
-  id: number;
+  id: Promise<number> | number;
 }): Promise<MetadataRoute.Sitemap> {
-  // Next 16 hands `id` in as a string at runtime (it's a URL path
-  // segment) even though the type annotation says number.
-  const n = Number(id);
-  console.log(
-    `[sitemap] invoked id=${JSON.stringify(id)} (${typeof id}) → n=${n}`,
-  );
+  const resolvedId = await Promise.resolve(id);
+  const n = Number(resolvedId);
 
   try {
     if (n === 0) return await topTierSitemap();
@@ -55,7 +55,7 @@ export default async function sitemap({
   const sha = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 8) || "local";
   return [
     {
-      url: `${SITE_URL}/?_sitemap_fallback=sha:${sha}_id:${id}`,
+      url: `${SITE_URL}/?_sitemap_fallback=sha:${sha}_id:${resolvedId}_n:${n}`,
       lastModified: now,
     },
     {
