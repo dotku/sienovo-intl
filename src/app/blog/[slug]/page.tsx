@@ -26,8 +26,20 @@ function buildDescription(content: string): string {
     .slice(0, 160);
 }
 
+// ISR: prerender the top 100 substantive posts at build (same tier the
+// sitemap promotes), defer the long tail to on-demand render + 1h cache.
+// Build time drops from "compile all ~1.6k MDX files" to "compile 100",
+// and rarely-visited slugs are still served — they just render on first
+// hit and get cached at the edge for an hour.
+export const revalidate = 3600;
+export const dynamicParams = true;
+
 export async function generateStaticParams() {
-  return getAllPosts("en").map((post) => ({ slug: post.slug }));
+  return getAllPosts("en")
+    .filter((post) => !isLowQualityPost(post))
+    .sort((a, b) => (b.content?.length ?? 0) - (a.content?.length ?? 0))
+    .slice(0, 100)
+    .map((post) => ({ slug: post.slug }));
 }
 
 export async function generateMetadata({

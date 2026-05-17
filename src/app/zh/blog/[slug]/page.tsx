@@ -26,8 +26,17 @@ function buildDescription(content: string): string {
     .slice(0, 160);
 }
 
+// ISR — see /blog/[slug]/page.tsx for rationale. Prerender top 100, ISR
+// the long tail with 1h revalidation.
+export const revalidate = 3600;
+export const dynamicParams = true;
+
 export async function generateStaticParams() {
-  return getAllPosts("zh").map((post) => ({ slug: post.slug }));
+  return getAllPosts("zh")
+    .filter((post) => !isLowQualityPost(post))
+    .sort((a, b) => (b.content?.length ?? 0) - (a.content?.length ?? 0))
+    .slice(0, 100)
+    .map((post) => ({ slug: post.slug }));
 }
 
 export async function generateMetadata({
