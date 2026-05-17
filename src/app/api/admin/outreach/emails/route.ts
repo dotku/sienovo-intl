@@ -70,6 +70,21 @@ export async function PUT(req: NextRequest) {
       where: { id: { in: emailIds } },
       data: { status: "pending", subject: "", htmlContent: "" },
     });
+  } else if (action === "markReplied") {
+    // Manual override — Collin/Jay saw a reply in their mailbox and is
+    // flagging it. Stamps `repliedAt` so the funnel dashboard counts it,
+    // even when our IMAP poller missed the match (forwarded reply, no
+    // In-Reply-To header, etc.).
+    const now = new Date();
+    await prisma.outreachEmail.updateMany({
+      where: { id: { in: emailIds }, repliedAt: null },
+      data: { repliedAt: now, lastEventAt: now },
+    });
+  } else if (action === "unmarkReplied") {
+    await prisma.outreachEmail.updateMany({
+      where: { id: { in: emailIds } },
+      data: { repliedAt: null },
+    });
   }
 
   return NextResponse.json({ success: true, count: emailIds.length });

@@ -203,6 +203,15 @@ export default function EmailQueuePage() {
               {t.regenerate || "Regenerate"} ({selected.size})
             </button>
           )}
+          {selected.size > 0 && (filter === "sent" || filter === "all") && (
+            <button
+              onClick={() => bulkAction("markReplied")}
+              className="bg-emerald-600 text-white px-3 py-1.5 rounded text-xs font-medium hover:bg-emerald-700 transition-colors"
+              title="Mark as replied — they responded to the email"
+            >
+              {t.markReplied || "Mark replied"} ({selected.size})
+            </button>
+          )}
           {(approvedCount > 0 || (selected.size > 0 && filter === "approved")) && (
             <button
               onClick={handleSend}

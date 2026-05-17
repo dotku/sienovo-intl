@@ -214,11 +214,22 @@ for (const row of candidatesRes.rows) {
     });
 
     if (res.ok) {
+      // Brevo returns { messageId: "<...@smtp-relay.mailin.fr>" } — store it
+      // so the IMAP reply poller (scripts/outreach-imap-poll.mjs) can match
+      // inbound In-Reply-To headers back to this row and stamp repliedAt.
+      let brevoMessageId = null;
+      try {
+        const resp = await res.json();
+        brevoMessageId = resp.messageId || null;
+      } catch {
+        // body wasn't JSON — ignore, just skip the ID
+      }
       await client.query(
         `UPDATE "OutreachEmail"
-         SET status = 'sent', "sentAt" = NOW(), "updatedAt" = NOW()
+         SET status = 'sent', "sentAt" = NOW(), "updatedAt" = NOW(),
+             "brevoMessageId" = COALESCE($2, "brevoMessageId")
          WHERE id = $1`,
-        [row.id],
+        [row.id, brevoMessageId ? brevoMessageId.replace(/^<|>$/g, "") : null],
       );
       console.log(`  ✓ ${row.contact_email}  (${row.subject})`);
       sent++;
