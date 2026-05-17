@@ -7,9 +7,16 @@
  * - fulfillment: orders (update tracking, shipping)
  * - support: tickets, customer chat
  * - content: knowledge base, articles, products
+ * - marketing: outreach campaigns, CRM, content drafting, ad assets
  */
 
-export type Role = "owner" | "sales" | "fulfillment" | "support" | "content";
+export type Role =
+  | "owner"
+  | "sales"
+  | "fulfillment"
+  | "support"
+  | "content"
+  | "marketing";
 
 export type Permission =
   | "admin.access"          // any access to /admin/*
@@ -72,13 +79,30 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "products.read", "products.write",
     "chat.access",
   ],
+  marketing: [
+    "admin.access",
+    "outreach.read", "outreach.write",   // primary use case — campaigns
+    "crm.read", "crm.write",             // manage contacts/companies
+    "knowledge.read", "knowledge.write", // content drafting / press releases
+    "products.read",                     // reference for campaign copy
+    "tickets.read",                      // visibility into customer feedback
+    "chat.access",                       // AI assistance for drafting
+  ],
 };
 
-export const ALL_ROLES: Role[] = ["owner", "sales", "fulfillment", "support", "content"];
+export const ALL_ROLES: Role[] = [
+  "owner",
+  "sales",
+  "marketing",
+  "fulfillment",
+  "support",
+  "content",
+];
 
 export const ROLE_LABELS: Record<Role, string> = {
   owner: "Owner",
   sales: "Sales",
+  marketing: "Marketing",
   fulfillment: "Fulfillment",
   support: "Support",
   content: "Content",

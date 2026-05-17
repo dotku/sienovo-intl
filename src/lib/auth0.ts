@@ -4,8 +4,19 @@ import { roleHasPermission, type Permission, type Role } from "@/lib/permissions
 
 export const auth0 = new Auth0Client();
 
-// Bootstrap owners — these emails always get the "owner" role on first login
-const BOOTSTRAP_OWNERS = ["sienovoleo@gmail.com", "sienovojay@gmail.com"];
+// Bootstrap roles — assigns a specific role on first login (and re-asserts
+// on every login, so a manual demotion can be undone by removing the entry
+// here, or vice versa).
+//
+// To invite a new team member: add their email + role here, push to prod,
+// share https://intl.sienovo.cn/login with them. On their first successful
+// Auth0 login the upsert below promotes them automatically — no manual
+// SQL or dashboard step needed.
+const BOOTSTRAP_ROLES: Record<string, Role> = {
+  "sienovoleo@gmail.com": "owner",
+  "sienovojay@gmail.com": "owner",
+  "yizhuo.chen@sienovo.cn": "marketing",
+};
 
 export async function getSession() {
   return auth0.getSession();
@@ -16,21 +27,22 @@ export async function getUser() {
   const session = await auth0.getSession();
   if (!session?.user?.sub || !session?.user?.email) return null;
 
-  const isBootstrapOwner = BOOTSTRAP_OWNERS.includes(session.user.email);
+  const bootstrapRole = BOOTSTRAP_ROLES[session.user.email.toLowerCase()];
 
   return prisma.user.upsert({
     where: { auth0Sub: session.user.sub },
     update: {
       email: session.user.email,
       name: session.user.name || null,
-      // Promote bootstrap owners on every login (idempotent)
-      ...(isBootstrapOwner ? { role: "owner" } : {}),
+      // Re-assert role on every login so the bootstrap map is the source
+      // of truth (idempotent). Manual demotions via dashboard get reverted.
+      ...(bootstrapRole ? { role: bootstrapRole } : {}),
     },
     create: {
       auth0Sub: session.user.sub,
       email: session.user.email,
       name: session.user.name || null,
-      role: isBootstrapOwner ? "owner" : null,
+      role: bootstrapRole ?? null,
     },
   });
 }
