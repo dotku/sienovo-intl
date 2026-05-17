@@ -33,14 +33,49 @@ export default async function sitemap({
   id: number;
 }): Promise<MetadataRoute.Sitemap> {
   // Next 16 hands `id` in as a string at runtime (it's a URL path
-  // segment) even though the type annotation says number — strict
-  // `===` against numeric literals silently dropped every branch and
-  // returned empty <urlset> for /sitemap/0.xml, /1.xml, /2.xml.
+  // segment) even though the type annotation says number.
   const n = Number(id);
-  if (n === 0) return topTierSitemap();
-  if (n === 1) return enLongTailSitemap();
-  if (n === 2) return zhLongTailSitemap();
-  return [];
+  console.log(
+    `[sitemap] invoked id=${JSON.stringify(id)} (${typeof id}) → n=${n}`,
+  );
+
+  try {
+    if (n === 0) return await topTierSitemap();
+    if (n === 1) return enLongTailSitemap();
+    if (n === 2) return zhLongTailSitemap();
+  } catch (err) {
+    console.error("[sitemap] generation threw", err);
+  }
+
+  // Fallback so /sitemap/0.xml never returns a fully-empty urlset even
+  // if Prisma / fs / etc. blow up at request time.
+  const now = new Date();
+  return [
+    {
+      url: SITE_URL,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 1.0,
+    },
+    {
+      url: `${SITE_URL}/blog`,
+      lastModified: now,
+      changeFrequency: "daily",
+      priority: 0.8,
+    },
+    {
+      url: `${SITE_URL}/zh/blog`,
+      lastModified: now,
+      changeFrequency: "daily",
+      priority: 0.7,
+    },
+    {
+      url: `${SITE_URL}/press`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+  ];
 }
 
 // ── ID 0: Top tier ──────────────────────────────────────────────────────────
