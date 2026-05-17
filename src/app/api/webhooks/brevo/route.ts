@@ -22,16 +22,49 @@ import { prisma } from "@/lib/prisma";
  *   - Or relying on Cloudflare to filter by IP allowlist
  */
 
-// Map Brevo event names → OutreachEmail status values. Anything not in
-// this map is logged but ignored (e.g. "opened", "click" — useful for
-// analytics but we don't currently store them per-row).
+// Map Brevo event names → OutreachEmail status values. "opened" / "click"
+// don't change status (they're additive lifecycle events stamped onto
+// the new timestamp columns below).
 const BREVO_STATUS_MAP: Record<string, string> = {
   hard_bounce: "hard_bounced",
+  hardbounce: "hard_bounced",
   soft_bounce: "bounced",
+  softbounce: "bounced",
   spam: "complaint",
+  complaint: "complaint",
   blocked: "bounced",
   invalid_email: "hard_bounced",
   unsubscribed: "unsubscribed",
+  delivered: "delivered",
+};
+
+// Brevo event → which timestamp column on OutreachEmail to stamp. Multiple
+// events of the same type only stamp the FIRST occurrence — later opens
+// shouldn't reset openedAt.
+const BREVO_TIMESTAMP_COL: Record<string, string> = {
+  delivered: "deliveredAt",
+  opened: "openedAt",
+  unique_opened: "openedAt",
+  uniqueopened: "openedAt",
+  click: "clickedAt",
+  hard_bounce: "bouncedAt",
+  hardbounce: "bouncedAt",
+  soft_bounce: "bouncedAt",
+  softbounce: "bouncedAt",
+  blocked: "bouncedAt",
+  invalid_email: "bouncedAt",
+  spam: "complaintAt",
+  complaint: "complaintAt",
+  unsubscribed: "unsubscribedAt",
+};
+
+const BOUNCE_TYPE: Record<string, string> = {
+  hard_bounce: "hard",
+  hardbounce: "hard",
+  soft_bounce: "soft",
+  softbounce: "soft",
+  blocked: "blocked",
+  invalid_email: "invalid",
 };
 
 type BrevoEvent = {
@@ -82,46 +115,70 @@ export async function POST(req: NextRequest) {
 
   const eventName = event.event?.toLowerCase() || "";
   const newStatus = BREVO_STATUS_MAP[eventName];
+  const tsCol = BREVO_TIMESTAMP_COL[eventName];
   const emailId = extractEmailId(event);
 
-  // Always log to api_usage for visibility on the admin page.
-  // (Skipping for "opened"/"click" — too noisy.)
+  // Always log non-noisy events. Opens/clicks logged at debug-level only.
   if (eventName !== "opened" && eventName !== "click") {
     console.log(
       `[brevo-webhook] event=${eventName} email=${event.email} id=${emailId}`,
     );
   }
 
-  if (!newStatus) {
-    // Not a status-changing event; ack and move on.
+  // Anything we don't recognise gets ack'd but otherwise ignored
+  if (!newStatus && !tsCol) {
     return NextResponse.json({ ok: true, action: "ignored" });
   }
 
+  const eventTs = event.date
+    ? new Date(event.date)
+    : event.ts
+      ? new Date(event.ts * 1000)
+      : new Date();
+
+  // Build the update payload. Stamp lastEventAt every time, the per-event
+  // column only on first occurrence, status only when the event maps to a
+  // terminal status.
+  function buildUpdate(existing: {
+    deliveredAt?: Date | null;
+    openedAt?: Date | null;
+    clickedAt?: Date | null;
+    bouncedAt?: Date | null;
+    complaintAt?: Date | null;
+    unsubscribedAt?: Date | null;
+  }): Record<string, unknown> {
+    const data: Record<string, unknown> = {
+      lastEventAt: eventTs,
+      updatedAt: new Date(),
+    };
+    if (tsCol) {
+      const existingTs = (existing as Record<string, Date | null | undefined>)[tsCol];
+      if (!existingTs) data[tsCol] = eventTs;
+    }
+    if (newStatus) {
+      data.status = newStatus;
+      if (event.reason) data.error = event.reason.slice(0, 500);
+    }
+    if (BOUNCE_TYPE[eventName]) data.bounceType = BOUNCE_TYPE[eventName];
+    return data;
+  }
+
   // Update OutreachEmail row if we can match it.
+  let updatedRow = false;
   if (emailId) {
-    await prisma.outreachEmail
-      .update({
-        where: { id: emailId },
-        data: {
-          status: newStatus,
-          error: event.reason ? event.reason.slice(0, 500) : undefined,
-          updatedAt: new Date(),
-        },
-      })
-      .catch((err) => {
-        console.error("[brevo-webhook] failed to update email row", err);
-      });
+    const row = await prisma.outreachEmail.findUnique({ where: { id: emailId } });
+    if (row) {
+      await prisma.outreachEmail.update({ where: { id: row.id }, data: buildUpdate(row) });
+      updatedRow = true;
+    }
   } else if (event.email) {
-    // Fallback: best-effort match by recipient + most recent sent row.
     const recent = await prisma.outreachEmail.findFirst({
       where: { contact: { email: event.email.toLowerCase() } },
       orderBy: { sentAt: "desc" },
     });
     if (recent) {
-      await prisma.outreachEmail.update({
-        where: { id: recent.id },
-        data: { status: newStatus, updatedAt: new Date() },
-      });
+      await prisma.outreachEmail.update({ where: { id: recent.id }, data: buildUpdate(recent) });
+      updatedRow = true;
     }
   }
 
@@ -140,5 +197,14 @@ export async function POST(req: NextRequest) {
       });
   }
 
-  return NextResponse.json({ ok: true, action: newStatus });
+  return NextResponse.json({
+    ok: true,
+    action: newStatus || (tsCol ? "stamped" : "ignored"),
+    matched: updatedRow,
+  });
+}
+
+// Brevo periodically pings the URL with GET to verify it's alive.
+export async function GET() {
+  return NextResponse.json({ ok: true, ts: new Date().toISOString() });
 }

@@ -279,12 +279,12 @@ model OutreachCampaign {
   targetTitles     String?
   targetCountries  String?
   targetDomains    String?
-  senderName       String          @default("Leo from Sienovo")
-  // sienovo.cn is the brand-aligned sending domain (Brevo-authenticated
-  // SPF + DKIM). Customer replies route to leo.liu@jytech.us via the
-  // Reply-To header set at send time — see /api/admin/outreach/send.
-  senderEmail      String          @default("leo@sienovo.cn")
-  replyTo          String          @default("leo.liu@jytech.us")
+  senderName       String          @default("Collin Liu, Sienovo")
+  // Brevo-verified sender. collin.liu@sienovo.cn was verified by Collin
+  // (Sales Director) clicking the Brevo confirmation email. Add new
+  // senders the same way before changing this default.
+  senderEmail      String          @default("collin.liu@sienovo.cn")
+  replyTo          String          @default("collin.liu@sienovo.cn")
   productFocus     String?
   aiContext        String?
   createdAt        DateTime        @default(now())
@@ -358,7 +358,21 @@ model OutreachEmail {
   subject     String           @default("")
   htmlContent String           @default("")
   status      String           @default("pending")
+  // Brevo provider-side message id (assigned at send), used as the join
+  // key when the webhook fires open/click/bounce events for this row.
+  brevoMessageId String?
   sentAt      DateTime?
+  // Webhook-driven lifecycle. Each is nullable; first event of each type
+  // wins (we only care about whether it happened + when, not the count).
+  deliveredAt DateTime?        // Brevo accepted by recipient mailbox
+  openedAt    DateTime?        // tracking pixel fired (proxy_open ignored)
+  clickedAt   DateTime?        // any link in the email was clicked
+  repliedAt   DateTime?        // inbound reply detected (manual or webhook)
+  bouncedAt   DateTime?
+  bounceType  String?          // 'hard' | 'soft' | 'blocked'
+  complaintAt DateTime?        // recipient flagged as spam
+  unsubscribedAt DateTime?
+  lastEventAt DateTime?        // any of the above — used for index/sort
   error       String?
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
@@ -366,4 +380,6 @@ model OutreachEmail {
   @@index([campaignId])
   @@index([contactId])
   @@index([status])
+  @@index([brevoMessageId])
+  @@index([lastEventAt])
 }

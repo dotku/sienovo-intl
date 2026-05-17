@@ -194,6 +194,15 @@ for (const row of candidatesRes.rows) {
             name: recipientName || undefined,
           },
         ],
+        // Global CC — gives stakeholders visibility into every outbound
+        // touch. Set OUTREACH_DEFAULT_CC=jay.lin@sienovo.cn (env / GH
+        // secret) and every send copies that address. Comma-separated for
+        // multiple. Leave unset and no CC is added.
+        cc: (process.env.OUTREACH_DEFAULT_CC || "")
+          .split(",")
+          .map((e) => e.trim())
+          .filter(Boolean)
+          .map((email) => ({ email })),
         subject: row.subject,
         htmlContent: row.htmlContent,
         tags: ["outreach", `campaign:${row.campaignId}`],
