@@ -17,20 +17,13 @@ const nextConfig: NextConfig = {
   // request time — they're outside the import graph. Without this, the
   // sitemap, blog list and post detail routes see empty content/ in
   // production and silently render zero entries.
+  // Vercel's serverless function bundler doesn't auto-trace files read
+  // via `fs.readdirSync(process.cwd() + "/content/...")` at request time
+  // — they're outside the import graph. Glob-include every content path
+  // for every route that reads them via getAllPosts/getPostBySlug.
+  // Wildcard key catches future routes too without per-path bookkeeping.
   outputFileTracingIncludes: {
-    "/sitemap.xml/route": ["./content/blog/**", "./content/blog-en/**"],
-    "/sitemap/[__metadata_id__]/route": [
-      "./content/blog/**",
-      "./content/blog-en/**",
-    ],
-    "/blog/page": ["./content/blog/**", "./content/blog-en/**"],
-    "/blog/[slug]/page": ["./content/blog/**", "./content/blog-en/**"],
-    "/blog/all/page": ["./content/blog/**", "./content/blog-en/**"],
-    "/zh/blog/page": ["./content/blog/**", "./content/blog-en/**"],
-    "/zh/blog/[slug]/page": ["./content/blog/**", "./content/blog-en/**"],
-    "/zh/blog/all/page": ["./content/blog/**", "./content/blog-en/**"],
-    "/rss.xml/route": ["./content/blog/**", "./content/blog-en/**"],
-    "/zh/rss.xml/route": ["./content/blog/**", "./content/blog-en/**"],
+    "**/*": ["./content/blog/**/*.mdx", "./content/blog-en/**/*.mdx"],
   },
   async redirects() {
     return [
