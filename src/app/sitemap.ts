@@ -32,9 +32,14 @@ export default async function sitemap({
 }: {
   id: number;
 }): Promise<MetadataRoute.Sitemap> {
-  if (id === 0) return topTierSitemap();
-  if (id === 1) return enLongTailSitemap();
-  if (id === 2) return zhLongTailSitemap();
+  // Next 16 hands `id` in as a string at runtime (it's a URL path
+  // segment) even though the type annotation says number — strict
+  // `===` against numeric literals silently dropped every branch and
+  // returned empty <urlset> for /sitemap/0.xml, /1.xml, /2.xml.
+  const n = Number(id);
+  if (n === 0) return topTierSitemap();
+  if (n === 1) return enLongTailSitemap();
+  if (n === 2) return zhLongTailSitemap();
   return [];
 }
 
