@@ -1,0 +1,84 @@
+name: Outreach daily pipeline
+
+# Pulls Apollo leads → drafts emails via Gemini → sends through Brevo.
+# Runs once per business day. Warmup phase is intentionally conservative;
+# bump DAILY_CAP via workflow_dispatch input once domain reputation builds.
+
+on:
+  schedule:
+    # 15:00 UTC = 08:00 PT = a reasonable morning hour for US recipients
+    # (most outbound prospecting goes out 09:00-11:00 local). Skip
+    # weekends entirely — Saturday/Sunday cold email tanks open rates.
+    - cron: "0 15 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      daily_cap:
+        description: "Override daily send cap (default 30 during warmup)"
+        required: false
+        default: "30"
+      skip_pull:
+        description: "Skip Apollo lead pull this run?"
+        required: false
+        default: "false"
+        type: boolean
+      skip_draft:
+        description: "Skip AI draft generation?"
+        required: false
+        default: "false"
+        type: boolean
+      dry_run:
+        description: "Dry-run send (no Brevo call)?"
+        required: false
+        default: "false"
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    concurrency:
+      # Never let two runs overlap — would race the daily cap accounting.
+      group: outreach-daily
+      cancel-in-progress: false
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install deps
+        run: npm i --no-fund --no-audit
+
+      - name: Pull Apollo leads
+        if: ${{ github.event.inputs.skip_pull != 'true' }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          APOLLO_API_KEY: ${{ secrets.APOLLO_API_KEY }}
+        run: node scripts/outreach-pull-leads.mjs --per-run 25
+
+      - name: Draft emails with AI
+        if: ${{ github.event.inputs.skip_draft != 'true' }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          CAP="${{ github.event.inputs.daily_cap || '30' }}"
+          # Draft at the daily cap so we always have inventory to send.
+          node scripts/outreach-draft.mjs --limit "$CAP"
+
+      - name: Send batch via Brevo
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+        run: |
+          CAP="${{ github.event.inputs.daily_cap || '30' }}"
+          DRY="${{ github.event.inputs.dry_run || 'false' }}"
+          if [ "$DRY" = "true" ]; then
+            node scripts/outreach-send.mjs --daily-cap "$CAP" --dry-run
+          else
+            node scripts/outreach-send.mjs --daily-cap "$CAP"
+          fi

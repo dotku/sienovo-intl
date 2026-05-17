@@ -7,8 +7,11 @@
  * of how many product photos we upload.
  *
  * Outputs (all into public/ads/):
- *   logo-square-1200.png      1200×1200 — required PMax Logo
- *   logo-landscape-1200x300.png  1200×300  — required PMax Landscape Logo
+ *   logo-square-1200.png   1200×1200    — required PMax Logo
+ *   logo-landscape.png     auto-sized   — required PMax Landscape Logo,
+ *                                         trimmed to actual content with
+ *                                         uniform 30px white padding.
+ *                                         Typical output: ~900×300.
  *
  * The "Business name" PMax field is text-only ("Sienovo"), so no file
  * needed — type it directly in the Ads UI asset group.
@@ -17,7 +20,7 @@
  *   node scripts/generate-pmax-logos.mjs
  */
 
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import sharp from "sharp";
 
@@ -38,10 +41,12 @@ await sharp(iconSvg, { density: 600 })
   .toFile(squarePath);
 console.log(`✓ wrote ${squarePath}`);
 
-// ── 2. Landscape logo (1200×300) ────────────────────────────────────────────
-// Composition: icon left (240×240) on a white canvas + "Sienovo" text right.
-// PMax allows 1.91:1 to 8:1 — 4:1 is the safest middle ground.
-const W = 1200;
+// ── 2. Landscape logo (auto-sized) ──────────────────────────────────────────
+// Composition: icon left (240×240) on a white canvas + "SIENOVO" text right.
+// PMax allows 1.91:1 to 8:1; we render onto an oversize canvas and trim
+// trailing whitespace + re-pad evenly so the final image hugs the content
+// (no dead space to the right of the wordmark).
+const RENDER_W = 1600;
 const H = 300;
 const PAD = 30;
 const ICON_SIZE = H - PAD * 2; // 240
@@ -57,31 +62,54 @@ const iconPng = await sharp(iconSvg, { density: 600 })
   .png()
   .toBuffer();
 
-// Build the text as an inline SVG overlay so we don't need a font file
+// Build the text as an inline SVG overlay so we don't need a font file.
+// All-caps wordmark + tighter tracking — heavier optical weight, no
+// trailing whitespace gets baked into the composite.
 const textSvg = Buffer.from(`
-<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
+<svg width="${RENDER_W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
   <style>
     .brand {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-      font-weight: 700;
-      letter-spacing: -3px;
+      font-weight: 800;
+      letter-spacing: -4px;
     }
   </style>
-  <text x="${TEXT_X}" y="${TEXT_BASELINE_Y}" class="brand" font-size="${TEXT_FONT_SIZE}" fill="#1a1a1a">Sienovo</text>
+  <text x="${TEXT_X}" y="${TEXT_BASELINE_Y}" class="brand" font-size="${TEXT_FONT_SIZE}" fill="#1a1a1a">SIENOVO</text>
 </svg>
 `);
 
-const landscapePath = join(OUT_DIR, "logo-landscape-1200x300.png");
-await sharp({
-  create: { width: W, height: H, channels: 4, background: { r: 255, g: 255, b: 255, alpha: 1 } },
+const compositeBuffer = await sharp({
+  create: {
+    width: RENDER_W,
+    height: H,
+    channels: 4,
+    background: { r: 255, g: 255, b: 255, alpha: 1 },
+  },
 })
   .composite([
     { input: iconPng, top: ICON_Y, left: ICON_X },
     { input: textSvg, top: 0, left: 0 },
   ])
   .png()
+  .toBuffer();
+
+// Trim white margins on every edge, then add a uniform PAD of white back
+// in. End result: ICON | gap | SIENOVO, with consistent 30px padding all
+// around — and no trailing right-side whitespace.
+const landscapePath = join(OUT_DIR, "logo-landscape.png");
+await sharp(compositeBuffer)
+  .trim({ background: { r: 255, g: 255, b: 255 }, threshold: 5 })
+  .extend({
+    top: PAD,
+    bottom: PAD,
+    left: PAD,
+    right: PAD,
+    background: { r: 255, g: 255, b: 255, alpha: 1 },
+  })
+  .png()
   .toFile(landscapePath);
-console.log(`✓ wrote ${landscapePath}`);
+const { width: outW, height: outH } = await sharp(landscapePath).metadata();
+console.log(`✓ wrote ${landscapePath} (${outW}×${outH})`);
 
 console.log("\nNext step: upload both to Google Ads → Campaigns → Sienovo → Asset Group 1");
 console.log("  Logo (square):    " + squarePath);

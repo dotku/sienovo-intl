@@ -504,3 +504,147 @@ Return ONLY the JSON object, no other text.`;
     return null;
   }
 }
+
+// --- People Search (lead generation) ---
+
+export interface ApolloSearchFilters {
+  /** e.g. ["Operations Director", "Plant Manager", "Loss Prevention Manager"] */
+  personTitles?: string[];
+  /** e.g. ["c_suite","vp","head","director","manager","owner","founder"] */
+  personSeniorities?: string[];
+  /** e.g. ["United States","Canada"] */
+  organizationLocations?: string[];
+  /** Apollo industry keyword filters — e.g. ["oil & gas","gas station"] */
+  industryKeywords?: string[];
+  /** Apollo employee bands, e.g. ["51,200","201,1000"] */
+  organizationNumEmployeesRanges?: string[];
+  /** Only return contacts with a verified email — recommended for cold outreach. */
+  onlyVerifiedEmail?: boolean;
+  page?: number;
+  perPage?: number;
+}
+
+export interface ApolloPerson {
+  id: string;
+  firstName: string | null;
+  lastName: string | null;
+  email: string | null;
+  emailStatus: string | null; // "verified" | "guessed" | "unverified" | null
+  title: string | null;
+  linkedinUrl: string | null;
+  city: string | null;
+  state: string | null;
+  country: string | null;
+  company: string | null;
+  companyWebsite: string | null;
+  companyIndustry: string | null;
+  companySize: string | null;
+  companyLinkedinUrl: string | null;
+}
+
+export interface ApolloSearchResult {
+  people: ApolloPerson[];
+  page: number;
+  totalEntries: number;
+  totalPages: number;
+}
+
+/**
+ * Search Apollo for prospects matching the ICP. Returns one page at a
+ * time — the caller paginates. Filters that aren't relevant for a given
+ * search should be omitted (Apollo treats empty arrays as "any").
+ */
+export async function searchPeople(
+  filters: ApolloSearchFilters,
+): Promise<ApolloSearchResult | null> {
+  const apiKey = process.env.APOLLO_API_KEY;
+  if (!apiKey) return null;
+
+  const body: Record<string, unknown> = {
+    page: filters.page ?? 1,
+    per_page: Math.min(filters.perPage ?? 25, 100),
+  };
+  if (filters.personTitles?.length) body.person_titles = filters.personTitles;
+  if (filters.personSeniorities?.length)
+    body.person_seniorities = filters.personSeniorities;
+  if (filters.organizationLocations?.length)
+    body.organization_locations = filters.organizationLocations;
+  if (filters.industryKeywords?.length)
+    body.q_organization_keyword_tags = filters.industryKeywords;
+  if (filters.organizationNumEmployeesRanges?.length)
+    body.organization_num_employees_ranges =
+      filters.organizationNumEmployeesRanges;
+  if (filters.onlyVerifiedEmail) body.contact_email_status = ["verified"];
+
+  try {
+    const res = await fetch(`${APOLLO_API_URL}/mixed_people/api_search`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Api-Key": apiKey,
+        accept: "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      await trackApiUsage("apollo", "search_people", false);
+      return null;
+    }
+    const data = await res.json();
+    await trackApiUsage("apollo", "search_people", true);
+
+    type ApolloRawPerson = {
+      id?: string;
+      first_name?: string | null;
+      last_name?: string | null;
+      email?: string | null;
+      email_status?: string | null;
+      title?: string | null;
+      linkedin_url?: string | null;
+      city?: string | null;
+      state?: string | null;
+      country?: string | null;
+      organization?: {
+        name?: string | null;
+        website_url?: string | null;
+        industry?: string | null;
+        estimated_num_employees?: number | null;
+        linkedin_url?: string | null;
+      } | null;
+    };
+
+    const people: ApolloPerson[] = (data.people || []).map(
+      (p: ApolloRawPerson) => {
+        const org = p.organization;
+        const size = org?.estimated_num_employees;
+        return {
+          id: p.id || "",
+          firstName: p.first_name ?? null,
+          lastName: p.last_name ?? null,
+          email: p.email ?? null,
+          emailStatus: p.email_status ?? null,
+          title: p.title ?? null,
+          linkedinUrl: p.linkedin_url ?? null,
+          city: p.city ?? null,
+          state: p.state ?? null,
+          country: p.country ?? null,
+          company: org?.name ?? null,
+          companyWebsite: org?.website_url ?? null,
+          companyIndustry: org?.industry ?? null,
+          companySize: size != null ? String(size) : null,
+          companyLinkedinUrl: org?.linkedin_url ?? null,
+        };
+      },
+    );
+
+    return {
+      people,
+      page: data.pagination?.page ?? body.page,
+      totalEntries: data.pagination?.total_entries ?? people.length,
+      totalPages: data.pagination?.total_pages ?? 1,
+    };
+  } catch {
+    await trackApiUsage("apollo", "search_people", false);
+    return null;
+  }
+}

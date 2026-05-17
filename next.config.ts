@@ -4,6 +4,14 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: process.cwd(),
   },
+  // Keep gRPC-based packages out of the bundle — Turbopack can't load their
+  // native bindings, causing runReport() to surface as the cryptic
+  // "Error: undefined undefined: undefined" from google-gax.
+  serverExternalPackages: [
+    "@google-analytics/data",
+    "google-gax",
+    "@grpc/grpc-js",
+  ],
   async redirects() {
     return [
       {

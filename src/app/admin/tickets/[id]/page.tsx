@@ -19,7 +19,12 @@ interface Ticket {
   status: string;
   createdAt: string;
   updatedAt: string;
-  user: { email: string; name: string | null; companyName: string | null };
+  // Nullable for orphaned rows — see /admin/tickets/page.tsx for context.
+  user: {
+    email: string;
+    name: string | null;
+    companyName: string | null;
+  } | null;
   messages: Message[];
 }
 
@@ -150,7 +155,10 @@ export default function AdminTicketDetailPage() {
                     <span className="text-xs font-semibold text-gray-700">
                       {msg.isAdmin
                         ? (td.supportTeam || "Sienovo Team")
-                        : (msg.user?.name || msg.user?.email || ticket.user.email)}
+                        : (msg.user?.name ||
+                            msg.user?.email ||
+                            ticket.user?.email ||
+                            "Unknown user")}
                     </span>
                     {msg.isAdmin && (
                       <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-bold">
@@ -193,27 +201,42 @@ export default function AdminTicketDetailPage() {
         <div className="space-y-5">
           {/* Customer Info */}
           <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">{t.customer || "Customer"}</h3>
-            <div className="space-y-2 text-sm">
-              {ticket.user.name && (
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">
+              {t.customer || "Customer"}
+            </h3>
+            {ticket.user ? (
+              <div className="space-y-2 text-sm">
+                {ticket.user.name && (
+                  <div>
+                    <p className="text-xs text-gray-500">{t.name || "Name"}</p>
+                    <p className="text-gray-900 font-medium">
+                      {ticket.user.name}
+                    </p>
+                  </div>
+                )}
                 <div>
-                  <p className="text-xs text-gray-500">{t.name || "Name"}</p>
-                  <p className="text-gray-900 font-medium">{ticket.user.name}</p>
+                  <p className="text-xs text-gray-500">{t.email || "Email"}</p>
+                  <a
+                    href={`mailto:${ticket.user.email}`}
+                    className="text-accent hover:underline"
+                  >
+                    {ticket.user.email}
+                  </a>
                 </div>
-              )}
-              <div>
-                <p className="text-xs text-gray-500">{t.email || "Email"}</p>
-                <a href={`mailto:${ticket.user.email}`} className="text-accent hover:underline">
-                  {ticket.user.email}
-                </a>
+                {ticket.user.companyName && (
+                  <div>
+                    <p className="text-xs text-gray-500">
+                      {t.company || "Company"}
+                    </p>
+                    <p className="text-gray-900">{ticket.user.companyName}</p>
+                  </div>
+                )}
               </div>
-              {ticket.user.companyName && (
-                <div>
-                  <p className="text-xs text-gray-500">{t.company || "Company"}</p>
-                  <p className="text-gray-900">{ticket.user.companyName}</p>
-                </div>
-              )}
-            </div>
+            ) : (
+              <p className="text-sm text-gray-500">
+                User record missing — this ticket is orphaned.
+              </p>
+            )}
           </div>
 
           {/* Status Control */}

@@ -20,8 +20,15 @@ export default function Header() {
       router.push(pathname.replace(/^\/zh\/blog/, "/blog"));
     } else if (pathname.startsWith("/blog")) {
       router.push(`/zh${pathname}`);
+    } else if (pathname.startsWith("/zh/press")) {
+      router.push(pathname.replace(/^\/zh\/press/, "/press"));
+    } else if (pathname.startsWith("/press")) {
+      router.push(`/zh${pathname}`);
     }
   }
+
+  const pressHref = locale === "zh" ? "/zh/press" : "/press";
+  const blogHref = locale === "zh" ? "/zh/blog" : "/blog";
 
   const NAV_ITEMS = [
     { href: "/#products", label: t.products },
@@ -30,7 +37,8 @@ export default function Header() {
     { href: "/#cases", label: t.cases },
     { href: "/#specs", label: t.specs },
     { href: "/#platform", label: t.platform },
-    { href: "/blog", label: t.blog },
+    { href: blogHref, label: t.blog },
+    { href: pressHref, label: t.press || "Press" },
   ];
 
   return (

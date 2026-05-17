@@ -52,6 +52,8 @@ async function topTierSitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/blog/all`, lastModified: now, changeFrequency: "daily", priority: 0.8 },
     { url: `${SITE_URL}/zh/blog`, lastModified: now, changeFrequency: "daily", priority: 0.7 },
     { url: `${SITE_URL}/zh/blog/all`, lastModified: now, changeFrequency: "daily", priority: 0.7 },
+    { url: `${SITE_URL}/press`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
+    { url: `${SITE_URL}/zh/press`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
   ];
 
   // Products — non-fatal on DB error so a Prisma outage can't 500 the sitemap.

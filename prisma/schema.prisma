@@ -280,7 +280,11 @@ model OutreachCampaign {
   targetCountries  String?
   targetDomains    String?
   senderName       String          @default("Leo from Sienovo")
-  senderEmail      String          @default("sienovoleo@gmail.com")
+  // sienovo.cn is the brand-aligned sending domain (Brevo-authenticated
+  // SPF + DKIM). Customer replies route to leo.liu@jytech.us via the
+  // Reply-To header set at send time — see /api/admin/outreach/send.
+  senderEmail      String          @default("leo@sienovo.cn")
+  replyTo          String          @default("leo.liu@jytech.us")
   productFocus     String?
   aiContext        String?
   createdAt        DateTime        @default(now())
