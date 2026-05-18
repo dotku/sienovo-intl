@@ -5,24 +5,120 @@ slug: "138803440"
 tags: ["#RK3568", "#IDVerificationTerminal"]
 source: "https://blog.csdn.net/yeyuangen/article/details/138803440"
 originalTitle: "基于RK3568的全国产化人证核验一体机项目，支持定制，支持鸿蒙系统"
+expanded: true
 ---
+The identity verification terminal solution is built around the AIoT-3568A AI motherboard as its core platform, offering comprehensive support for the system, identity recognition, and an ecosystem of other peripheral accessories. This article will delve into the project overview, application scenarios, system architecture, peripheral specifications, and testing methodologies involved in deploying a fully localized identity verification all-in-one machine.
 
-The identity verification terminal solution is built around the AIoT-3568A AI motherboard as its core platform, offering comprehensive support for the system, identity recognition, and an ecosystem of other peripheral accessories.
+## Project Overview
 
-![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138803440/01_f83bebccaa4f8eb826595c09fdb65718.png)
+### Project Application Scenarios
 
-![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138803440/02_829c096651753afb7ba4a04e2c56f160.png)
+The identity verification terminal is designed for various application scenarios, including:
 
-* * *
+1. **Identity Verification**: Used in government agencies, enterprises, public institutions, and financial institutions to verify identities.
+2. **Real-name Registration**: Facilitates real-name registration in accommodation establishments such as hotels, guesthouses, and apartments.
+3. **Security Checks**: Employed at transportation hubs like train stations, airports, and ports for security checks.
+4. **Event Verification**: Utilized for entry verification at large events such as exhibitions, concerts, and sports events.
+5. **Other Identity Verification Needs**: Applicable in any scenario requiring identity verification.
 
-### 
+### Target Audience
 
-**01**
+The target audience for this solution includes:
 
-**Project Overview**
+1. Personnel from government agencies, enterprises, and financial institutions.
+2. Staff from accommodation establishments.
+3. Security personnel at transportation hubs.
+4. Organizers and security personnel for large events.
+5. Individuals and organizations requiring identity verification.
 
-**Project Application Scenarios**
+## System Architecture and Key Modules
 
-1. Identity verification in government agencies, enterprises and public institutions, financial institutions, and other venues;
-2. Real-name registration in accommodation establishments such as hotels, guesthouses, and apartments;
-3. Security checks at
+### System Architecture Diagram
+
+![System Architecture](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138803440/03_b03821790a2892b70841306f5bbd634b.png)
+
+**Note**: Ensure correct connections for LVDS and EDP screen lines to avoid damage. Additionally, verify the power voltage and pin sequence for peripherals like ID card modules or QR code scanners before connecting.
+
+### Peripheral Specifications
+
+The system includes several key functional modules:
+
+1. **Dual-Camera Module**: Captures facial images for facial recognition functionality.
+2. **QR Code Scanner**: Scans QR codes such as health codes or tickets.
+3. **ID Card Reader**: Reads information from ID cards, including name, ID number, and photo.
+
+#### 1. ID Card Reader Module
+
+![ID Card Reader Module](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138803440/04_90eaad0b87b8686411dd7fc3f5183b76.png)
+
+- **Purpose**: Reads ID card information to compare with facial recognition results for authenticity.
+- **Important Notes**:
+  - Interfaces can be USB or TTL RS232.
+  - For serial communication, ensure a baud rate of 115200 and appropriate voltage levels (some support 5V, others only 3.3V).
+  - Antenna board design should consider reading distance without excessive thickness that could affect signal transmission.
+
+#### 2. QR Code Scanning Module
+
+![QR Code Scanning Module](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138803440/05_d22ee2f3efd3ab517a1ee0d57122d18c.png)
+
+- **Purpose**: Scans QR codes to validate their authenticity.
+- **Important Notes**: Interfaces can be USB or RS232.
+
+#### 3. Camera Module
+
+![Camera Module](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138803440/06_25af1b4376eea5d1d004be80540f0e12.png)
+
+- **Functionality**: Captures facial images to compare against stored templates for verification.
+- **Important Notes**:
+  - Generally uses USB interfaces; ensure the camera operates within the required current limits.
+  - Some models may require dual USB connections for color and infrared cameras.
+
+## PCBA Assembly Process and Methods
+
+### PCBA Interface Function Diagram
+
+![PCBA Interface Function Diagram](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138803440/07_11d0a04d23148e6696704fc54600fd3d.png)
+
+### Assembly Process Steps
+
+1. Prepare the corresponding PCBA and relevant hardware modules, along with the specification documents for reference.
+2. Familiarize yourself with the various interfaces on the motherboard, including LVDS and EDP signal output interfaces.
+3. Adjust screen voltage connections according to the specifications.
+4. Connect the display, ensuring to include backlight connections.
+5. Connect multiple peripherals through the available USB ports.
+6. Ensure correct voltage levels for TTL and RS232 serial ports.
+
+## Screen Configuration Steps
+
+1. Understand the LCD display principles.
+2. Obtain the LVDS screen specification document.
+3. Confirm hardware-related matters such as LVDS screen VCC voltage and data lines.
+4. Modify screen parameters as necessary.
+5. Use a USB drive formatted to FAT32 with the appropriate configuration file to set screen parameters.
+
+### Example Screen Parameters
+
+```plaintext
+cpu_id=3568; // Platform is RK3568
+disp_main=lvds; // Main screen is LVDS
+lvds_x=1920; // X direction pixel count
+lvds_y=1080; // Y direction pixel count
+lvds_dclk_freq_khz=148000; // Clock frequency
+...
+```
+
+## Peripheral Functionality Testing and Aging Tests
+
+### Peripheral Testing
+
+1. **ID Card Module Testing**: Power on the device and use testing tools to read ID card information.
+2. **Camera Testing**: Use the factory testing tools to preview and capture images.
+3. **QR Code Module Testing**: Power on and scan a supported QR code to verify data retrieval.
+
+### Aging Testing
+
+Conduct aging tests to ensure the device operates under various environmental conditions, including high and low temperatures, to validate reliability and performance.
+
+## Conclusion
+
+This identity verification terminal solution, based on the RK3568 platform, provides a robust framework for various identity verification applications. By following the outlined assembly and testing procedures, users can ensure the system operates effectively and reliably in real-world scenarios.

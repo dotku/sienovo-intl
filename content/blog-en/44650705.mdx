@@ -5,10 +5,34 @@ slug: "44650705"
 tags: []
 source: "https://blog.csdn.net/yeyuangen/article/details/44650705"
 originalTitle: "pthread_cond_wait()和pthread_cond_signal() 的理解"
+expanded: true
 ---
+## Understanding `pthread_cond_wait()` and `pthread_cond_signal()`
 
-pthread_cond_wait() is used to block the current thread, waiting for another thread to wake it up using pthread_cond_signal() or pthread_cond_broadcast. pthread_cond_wait() must be used in conjunction with a pthread_mutex. As soon as the pthread_cond_wait() function enters the waiting state, it automatically releases the mutex. When another thread wakes up this thread via pthread_cond_signal() or pthread_cond_broadcast, causing pthread_cond_wait() to proceed (return), this thread automatically reacquires the mutex.
+In this article, we will delve into the functions `pthread_cond_wait()` and `pthread_cond_signal()`, which are crucial for managing thread synchronization in multi-threaded applications using POSIX threads (pthreads). Understanding these functions will help you effectively coordinate the execution of threads and avoid common pitfalls such as race conditions and deadlocks.
 
-The purpose of the pthread_cond_signal function is to send a signal to another thread that is currently in a blocked waiting state, allowing it to exit the blocked state and continue execution. If no thread is in a blocked waiting state, pthread_cond_signal will still return successfully.
+### `pthread_cond_wait()`
 
-Using pthread_cond_signal generally does not cause a "thundering herd" phenomenon; it sends a signal to at most one thread. If multiple threads are blocked waiting on this condition variable, then which thread receives the signal and resumes execution is determined by the priority of each waiting thread. If the threads have the same priority, then which thread receives the signal is determined by the length of their waiting time. However, in any case, a single pthread_cond_signal call sends a signal at most once.
+The `pthread_cond_wait()` function is used to block the current thread until another thread signals it to wake up. This function is typically used in scenarios where a thread needs to wait for a certain condition to be met before it can proceed with its execution. 
+
+Here’s how it works:
+
+- **Mutex Requirement**: `pthread_cond_wait()` must be used in conjunction with a `pthread_mutex`. This ensures that the condition variable is protected from concurrent access.
+
+- **Automatic Mutex Release**: When a thread calls `pthread_cond_wait()`, it automatically releases the associated mutex and enters a waiting state. This is crucial because it allows other threads to acquire the mutex and potentially change the condition that the waiting thread is interested in.
+
+- **Reacquiring the Mutex**: Once another thread signals the waiting thread (using `pthread_cond_signal()` or `pthread_cond_broadcast()`), the waiting thread will be awakened. At this point, `pthread_cond_wait()` returns, and the thread automatically reacquires the mutex before proceeding. This ensures that the thread can safely check the condition it was waiting for.
+
+### `pthread_cond_signal()`
+
+The `pthread_cond_signal()` function is used to wake up one thread that is currently in a blocked waiting state. Here are some key points to note:
+
+- **Single Signal**: The function sends a signal to at most one waiting thread. If multiple threads are waiting, only one will be awakened, which helps to avoid the "thundering herd" problem, where multiple threads wake up and compete for resources unnecessarily.
+
+- **Successful Return**: If there are no threads currently waiting on the condition variable, `pthread_cond_signal()` will still return successfully without any adverse effects.
+
+- **Priority Handling**: If multiple threads are waiting, the thread that receives the signal is determined by the priority of the waiting threads. If the threads have the same priority, the thread that has been waiting the longest will be signaled first. This behavior ensures a fair chance for all waiting threads to proceed.
+
+### Conclusion
+
+Understanding how to use `pthread_cond_wait()` and `pthread_cond_signal()` is essential for effective thread synchronization in multi-threaded applications. By employing these functions correctly, you can manage thread states efficiently, ensuring that your application runs smoothly without unnecessary delays or resource contention. Proper use of mutexes and condition variables is a fundamental skill for any developer working with concurrent programming in C or C++.

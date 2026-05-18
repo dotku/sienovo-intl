@@ -5,40 +5,79 @@ slug: "6688258"
 tags: []
 source: "https://blog.csdn.net/yeyuangen/article/details/6688258"
 originalTitle: "内核移植（包括LCD液晶屏、OTG-usb)"
+expanded: true
 ---
+Kernel porting is a fundamental task for engineers working with embedded Linux systems, especially in specialized domains like edge-AI and industrial computing where hardware configurations are often unique. At Sienovo, we understand the critical need for robust, tailored kernel images that precisely match the capabilities of our industrial computing platforms. This post delves into common challenges encountered during kernel compilation and provides practical steps for integrating essential drivers, such as those for LCD screens, into a custom kernel image. By understanding these procedures, developers can overcome hurdles like PCI compilation errors and successfully bring up custom display interfaces, ensuring their embedded systems perform optimally.
 
-_________________________
+## Kernel Compilation into an Image File
 
-(1) Kernel Compilation into Image File
+The process of compiling a Linux kernel for an embedded system typically involves cross-compilation, where the kernel is built on a host machine (e.g., a desktop PC) for a target architecture (e.g., ARM). This requires a specific cross-compilation toolchain and a carefully configured kernel source tree. The configuration phase is crucial, as it determines which features, drivers, and optimizations are included in the final kernel image.
 
-————————————————————————
+One common utility for configuring the kernel is `make menuconfig`, which provides a text-based, interactive interface to navigate through the myriad of kernel options. During this process, developers select or deselect various components based on their target hardware and application requirements.
 
-1. An error occurred, related to PCI failing to compile. You can go to make menuconfig->drivers-> and uncheck the PCI driver option.
+**Addressing Compilation Errors: The PCI Driver Issue**
 
-2.
+A frequent stumbling block during initial kernel compilation attempts, especially when porting to new or highly specialized embedded hardware, can be errors related to peripheral drivers that are not relevant or properly supported by the target system.
 
-  
+As observed in a past project:
+1.  An error occurred, related to PCI failing to compile. You can go to `make menuconfig->drivers->` and uncheck the PCI driver option.
 
-——————————
+PCI (Peripheral Component Interconnect) is a high-speed bus standard commonly found in desktop and server systems for connecting expansion cards like graphics cards, network cards, and storage controllers. However, many embedded systems, particularly those designed for compact, low-power, or fanless industrial applications, may not feature a PCI or PCIe bus, or they might use a different internal bus architecture.
 
-(2) LCD Driver Porting
+If the kernel configuration includes PCI drivers for a system that lacks the necessary hardware or has incompatible dependencies, the compilation process can fail. This often manifests as linker errors, unresolved symbols, or build failures within the PCI subsystem. By navigating to the `drivers` section within `make menuconfig` and explicitly disabling the PCI driver option, you instruct the kernel build system to exclude these components, thereby resolving the compilation error and producing a clean kernel image. This step is particularly relevant when working with System-on-Chip (SoC) platforms that integrate most peripherals directly, reducing the need for external bus interfaces like PCI.
 
-——————————
+## LCD Driver Porting
 
-1. Statically Load LCD Driver
-  　　Place the written LCD driver program lcd.c into the arm/linux/drivers/char directory. Modify the arm/linux/drivers/char/config.in file, adding the line: Bool LCD driver support CONFIG_LCD. Modify the arm/linux/drivers/char/Makefile file, adding the line: obj-$(CONFIG_LCD)+=lcd.o.
-  　　This way, when you run `make xconfig` again, you will have the option to compile the LCD driver into the kernel. The same method can also be applied to other devices.
-  
-  
-  
-  
+Displays are integral to many industrial and edge-AI applications, serving as human-machine interfaces (HMIs) for monitoring, control, and data visualization. Integrating a custom LCD panel often requires porting or writing a specific LCD driver that handles the display's unique timing, resolution, and initialization sequences.
 
-  
+In embedded Linux, drivers can be compiled either as loadable kernel modules (LKM) that can be inserted and removed at runtime, or "statically loaded" (built-in) directly into the kernel image. Statically loading drivers ensures they are available from the moment the kernel boots, which is often preferred for essential components like display drivers.
 
-——————————————
+**Steps for Statically Loading an LCD Driver**
 
-(3) USB-OTG Driver Porting
+To integrate a custom LCD driver, `lcd.c`, into the kernel as a built-in component, you typically need to modify three key areas within the kernel source tree:
 
-——————————————
+1.  **Driver Source File Placement:**
+    Place the written LCD driver program `lcd.c` into the `arm/linux/drivers/char` directory.
 
-1.
+    *   **Context:** The `drivers/char` directory is a common location for character device drivers, which often include display drivers that interact with the framebuffer device (`/dev/fb0`). While modern kernel development might place display drivers under `drivers/gpu/drm` or `drivers/video`, `drivers/char` was historically and is still sometimes used for simpler framebuffer drivers. Ensure your driver adheres to the kernel's coding standards and uses the appropriate APIs.
+
+2.  **Kernel Configuration (Kconfig) Entry:**
+    Modify the `arm/linux/drivers/char/config.in` file, adding the line: `Bool LCD driver support CONFIG_LCD`.
+
+    *   **Context:** The `config.in` (or more commonly `Kconfig` in modern kernels) files define the kernel configuration options that `make menuconfig` (or `make xconfig`, `make gconfig`) presents to the user.
+        *   `Bool`: Specifies that `CONFIG_LCD` is a boolean option (yes/no).
+        *   `LCD driver support`: This is the human-readable prompt that will appear in the configuration menu.
+        *   `CONFIG_LCD`: This is the internal kernel configuration variable that will be set to `y` (for built-in) or `m` (for module) if selected. By adding this line, you create a new entry in the kernel configuration menu, allowing you to enable or disable your LCD driver.
+
+3.  **Kernel Makefile Entry:**
+    Modify the `arm/linux/drivers/char/Makefile` file, adding the line: `obj-$(CONFIG_LCD)+=lcd.o`.
+
+    *   **Context:** The `Makefile` in each kernel directory specifies how the source files in that directory are compiled and linked.
+        *   `obj-$(CONFIG_LCD)`: This is a standard kernel Makefile construct. If `CONFIG_LCD` is set to `y` (meaning the driver is built into the kernel), this expands to `obj-y`. If `CONFIG_LCD` is set to `m` (meaning the driver is built as a module), it expands to `obj-m`. If `CONFIG_LCD` is not set, it expands to `obj-`.
+        *   `+=lcd.o`: This appends `lcd.o` (the compiled object file of your `lcd.c` driver) to the list of objects that should be built for this directory based on the `CONFIG_LCD` setting.
+
+**Finalizing the Integration**
+
+After making these modifications:
+This way, when you run `make xconfig` again, you will have the option to compile the LCD driver into the kernel. The same method can also be applied to other devices.
+
+*   **`make xconfig` (or `make menuconfig`):** Running the configuration utility again will now present "LCD driver support" as an option under the `drivers/char` section (or wherever `config.in` places it). You can then select it to be built into the kernel (`<*>`) or as a module (`<M>`). For static loading, you would select `<*>`.
+*   **Compilation:** Once `CONFIG_LCD` is set to `y` in your `.config` file, a subsequent `make` command will compile your `lcd.c` driver and link it directly into the `vmlinux` kernel image.
+
+This systematic approach ensures that your custom LCD driver is properly integrated into the kernel's build system, allowing for seamless compilation and deployment on your target hardware.
+
+## USB-OTG Driver Porting
+
+USB On-The-Go (OTG) functionality is increasingly vital in embedded systems, enabling a single USB port to act as either a host (connecting to peripherals like keyboards, mice, or storage) or a device (connecting to a host PC for data transfer, debugging, or flashing). This dual-role capability is particularly useful in industrial settings where flexibility in connectivity is paramount.
+
+While the original article briefly mentions USB-OTG driver porting, it does not provide specific steps or details. The complexities of USB-OTG often involve:
+*   **Hardware-specific controllers:** Different SoCs have varying USB controllers (e.g., EHCI, OHCI, DWC3) that require specific drivers.
+*   **Role switching:** Managing the transition between host and device modes, often triggered by ID pin detection or software commands.
+*   **Gadget drivers:** When operating in device mode, the kernel needs "gadget" drivers (e.g., for mass storage, serial, Ethernet over USB) to present specific functionalities to the host.
+*   **Host drivers:** When operating in host mode, standard USB host controller drivers and class drivers (e.g., HID, storage) are required.
+
+Porting USB-OTG typically involves ensuring the correct host controller drivers are enabled in the kernel configuration, configuring the USB PHY (Physical Layer) for the specific hardware, and selecting the appropriate gadget drivers if device mode functionality is needed. This often requires delving into the device tree (`.dts` files) to define the USB controller's properties, pins, and operating modes.
+
+## Conclusion
+
+Successfully porting a Linux kernel to a specific embedded platform is a cornerstone of developing robust industrial and edge-AI solutions. As demonstrated, addressing compilation errors like those related to PCI by carefully configuring the kernel, and systematically integrating custom drivers for essential peripherals like LCD screens, are critical steps. While the journey can involve intricate details, following established kernel development practices and understanding the underlying build system allows engineers to tailor the operating system precisely to their hardware, unlocking the full potential of Sienovo's industrial computing platforms. For further details on USB-OTG driver porting, consulting the Linux kernel documentation specific to your SoC and USB controller is highly recommended.

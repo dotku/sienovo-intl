@@ -5,28 +5,113 @@ slug: "138803254"
 tags: ["#RK3568"]
 source: "https://blog.csdn.net/yeyuangen/article/details/138803254"
 originalTitle: "基于RK3568的全国产化双屏访客机项目，支持鸿蒙，支持定制"
+expanded: true
 ---
+The dual-screen visitor machine solution is centered around the AIoT-3568A AI motherboard, providing a robust platform for identity recognition and peripheral accessory integration. This solution is particularly relevant in various applications, including visitor registration, management, and verification across multiple sectors. In this post, we will delve into the project overview, application scenarios, and essential components of the dual-screen visitor machine, as well as the setup process and key considerations.
 
-The dual-screen visitor machine solution is centered around the AIoT-3568A AI motherboard and provides support for the system, identity recognition, and other peripheral accessory ecosystems.
+## Project Overview
 
-![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138803254/01_55cd530cd493559edfd53c5677ced72b.png)
+The dual-screen visitor machine is designed to enhance the visitor management process in various environments. It functions as a comprehensive system for identity verification and registration, utilizing advanced technologies to streamline operations. 
 
-![图片](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138803254/02_b4efac82abd7ce91138f360f32f4a35f.png)
+### Project Application Scenarios
 
-* * *
+1. **Visitor Registration**: This system can be implemented in government agencies, enterprises, and commercial buildings to facilitate efficient visitor registration processes.
+  
+2. **Visitor Management**: Schools, hospitals, and hotels can utilize this solution for managing visitors effectively, ensuring security and proper record-keeping.
+  
+3. **Entry Verification**: The machine is ideal for large-scale events such as exhibitions, concerts, and sports competitions, where it can validate entry tickets and manage crowd control.
 
-#### 
+4. **Other Applications**: Any organization requiring visitor management can benefit from this dual-screen solution, enhancing security and operational efficiency.
 
-**01**
+## System Framework and Key Modules
 
-**Project Overview**
+The system architecture consists of several key modules that work together to provide comprehensive functionality:
 
-**Project Application Scenarios**
+### System Diagram
 
-1. Visitor registration in government agencies, enterprises and institutions, commercial buildings, and other venues; 
+![System Diagram](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138803254/03_8be9c9dab3b58a7e34cdc94282715baa.png)
 
-2. Visitor management in schools, hospitals, hotels, and other institutions; 
+**Important Notes**:
+- Ensure correct connections for LVDS and EDP screen lines to prevent damage.
+- Pay attention to power supply voltage and wiring sequence when connecting peripherals like ID card readers or QR code scanners.
 
-3. Entry verification for large-scale events such as exhibitions, concerts, and sports competitions; 
+### Functional Modules
 
-4
+- **Stereo Camera**: Captures facial images for identity verification.
+  
+- **QR Code Scanner**: Reads QR codes for entry validation, such as health codes or tickets.
+  
+- **ID Card Reader**: Extracts information from ID cards, including names and identification numbers, to ensure identity authenticity.
+
+## Peripheral Specifications
+
+### 1. ID Card Reader Module
+
+![ID Card Reader Module](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138803254/04_1d322f33f1bc82a7fb1bba64313bc0a8.png)
+
+**Module Purpose**: Reads ID card information and compares it with facial recognition results to verify identity.
+
+**Key Considerations**:
+- Use USB or TTL RS232 interfaces for connection.
+- Ensure the communication speed is set to 115200 for serial communication.
+- Design the antenna board to optimize reading distance without obstructing signal transmission.
+
+### 2. QR Code Scanning Module
+
+![QR Code Scanning Module](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138803254/08_e1e3dc4fb30ae6de1aecbf45148a0564.png)
+
+**Module Purpose**: Scans QR codes to validate their authenticity.
+
+**Key Considerations**:
+- Ensure compatibility with your system's hardware and software.
+- Maintain optimal scanning distance and angle for effective reading.
+- Regularly clean the scanning window to ensure efficiency.
+
+### 3. Camera Module
+
+![Camera Module](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138803254/13_aa54b28a1e52b677fe7c4fd5752d01f7.png)
+
+**Module Function**: Captures facial images for comparison with stored templates to verify identity.
+
+**Key Considerations**:
+- Use USB interfaces, ensuring sufficient power supply for the camera.
+- Some cameras may require dual USB connections for optimal performance.
+
+## PCBA Assembly Process
+
+### PCBA Interface Functionality
+
+![PCBA Interface](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/138803254/14_5f532668670078ef0f2fe96348159c43.png)
+
+### Assembly Steps
+
+1. Prepare the necessary PCBA and hardware modules, along with reference specifications.
+2. Familiarize yourself with the motherboard interfaces, including LVDS and EDP connections.
+3. Adjust the display voltage according to the specifications.
+4. Connect the display, ensuring to include backlight connections.
+5. Connect multiple USB peripherals as needed.
+6. Ensure TTL and RS232 serial ports are correctly powered according to their specifications.
+
+## Display Configuration
+
+### Configuration Steps
+
+1. Understand the LCD display principles.
+2. Obtain the LVDS screen specifications.
+3. Confirm hardware details, including voltage and data lines.
+4. Modify screen parameters as necessary.
+5. Use a USB drive to configure settings, ensuring it is formatted to FAT32.
+
+### Example Screen Parameters
+
+```plaintext
+cpu_id=3568; // Platform is RK3568
+disp_main=lvds; // Main display is LVDS
+lvds_x=1920; // X direction pixels
+lvds_y=1080; // Y direction pixels
+lvds_dclk_freq_khz=148000; // Clock frequency
+```
+
+These parameters are crucial for ensuring the correct display settings and performance. Adjust them based on the specific requirements of the display used.
+
+In conclusion, the RK3568-based dual-screen visitor machine is a versatile solution that enhances visitor management across various sectors. By understanding its components, assembly process, and configuration, organizations can implement an effective system tailored to their needs.

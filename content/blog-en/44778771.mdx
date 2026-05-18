@@ -5,26 +5,128 @@ slug: "44778771"
 tags: ["#CProgramming", "#StringManipulation", "#C++"]
 source: "https://blog.csdn.net/yeyuangen/article/details/44778771"
 originalTitle: "C语言字符串操作总结大全(超详细)"
+expanded: true
 ---
+## Comprehensive Guide to C Language String Operations
 
-**Strings are surprisingly the most difficult part in C!**
+Strings in C can often be a challenging aspect of programming, but understanding how to manipulate them is crucial for effective coding. This guide will cover essential string operations, conversion functions, and character checks in C, providing examples to illustrate each concept.
 
-**1) String Operations**
-strcpy(p, p1) Copy string
-strncpy(p, p1, n) Copy specified length string
-strcat(p, p1) Append string
-strncat(p, p1, n) Append specified length string
-strlen(p) Get string length
-strcmp(p, p1) Compare strings
-strcasecmp Case-insensitive string comparison
-strncmp(p, p1, n) Compare specified length strings
-strchr(p, c) Find specified character in string
-strrchr(p, c) Find character in string (reverse search)
-strstr(p, p1) Find substring
-strpbrk(p, p1) Find the first occurrence of any character from a set of characters (p1) in the current string (p)
-strspn(p, p1) Find the length of the initial segment of string (p) that consists entirely of characters from a set (p1)
-strcspn(p, p1) Find the length of the initial segment of string (p) that consists entirely of characters NOT from a set (p1)
-\* String manipulation functions with specified length fill with null terminators after the processed string.
+## 1) String Operations
 
-**2) String to Numeric Type Conversion**
-strtod(p, ppend) Converts a
+C provides a variety of functions for string manipulation, which are defined in the `<string.h>` header file. Below are some of the most commonly used string functions:
+
+- **`strcpy(p, p1)`**: Copies the string from `p1` to `p`.
+  
+  ```c
+  #include <iostream.h>
+  #include <string.h>
+  
+  void main(void) {
+      char str1[10] = { "TsinghuaOK" };
+      char str2[10] = { "Computer" };
+      cout << strcpy(str1, str2) << endl;  // Output: Computer
+  }
+  ```
+  **Note**: The destination array must be large enough to hold the source string.
+
+- **`strncpy(p, p1, n)`**: Copies the first `n` characters from `p1` to `p`.
+  
+  ```c
+  #include <iostream.h>
+  #include <string.h>
+  
+  void main(void) {
+      char str1[10] = { "Tsinghua " };
+      char str2[10] = { "Computer" };
+      cout << strncpy(str1, str2, 3) << endl;  // Output: Comnghua
+  }
+  ```
+  **Note**: If `n` is greater than the length of `p1`, the destination will be padded with null characters.
+
+- **`strcat(p, p1)`**: Appends the string `p1` to the end of `p`.
+
+  ```c
+  #include <iostream.h>
+  #include <string.h>
+  
+  void main(void) {
+      char str1[20] = { "Tsinghua " };
+      char str2[] = { "Computer" };
+      cout << strcat(str1, str2) << endl;  // Output: Tsinghua Computer
+  }
+  ```
+  **Note**: Ensure that `str1` has enough space to accommodate the concatenated result.
+
+- **`strncat(p, p1, n)`**: Appends the first `n` characters of `p1` to `p`.
+
+  ```c
+  #include <iostream.h>
+  #include <string.h>
+  
+  void main(void) {
+      char str1[20] = { "Tsinghua " };
+      char str2[] = { "Computer" };
+      cout << strncat(str1, str2, 3) << endl;  // Output: Tsinghua Com
+  }
+  ```
+
+- **`strlen(p)`**: Returns the length of the string `p`.
+
+  ```c
+  #include <iostream.h>
+  #include <string.h>
+  
+  void main(void) {
+      char str[100];
+      cout << "请输入一个字符串:";
+      cin >> str;
+      cout << "The length of the string is :" << strlen(str) << "个" << endl;
+  }
+  ```
+
+- **`strcmp(p, p1)`**: Compares two strings `p` and `p1`.
+
+  ```c
+  #include <iostream.h>
+  #include <string.h>
+  
+  void main(void) {
+      char buf1[] = "aaa";
+      char buf2[] = "bbb";
+      int ptr = strcmp(buf2, buf1);
+      if (ptr > 0)
+          cout << "Buffer 2 is greater than buffer 1" << endl;
+      else
+          cout << "Buffer 2 is less than buffer 1" << endl;
+  }
+  ```
+
+## 2) String to Numeric Type Conversion
+
+C also provides functions to convert strings to numeric types:
+
+- **`strtod(p, ppend)`**: Converts the string `p` to a `double` and stores the pointer to the next character in `ppend`.
+
+- **`strtol(p, ppend, base)`**: Converts the string `p` to a `long`, with `base` specifying the numeral system (e.g., base 10 for decimal).
+
+- **`atoi(p)`**: Converts the string `p` to an `int`.
+
+- **`atof(p)`**: Converts the string `p` to a `double`.
+
+- **`atol(p)`**: Converts the string `p` to a `long`.
+
+## 3) Character Checks
+
+C provides several functions to check the type of characters:
+
+- **`isalpha()`**: Checks if the character is an alphabetic letter.
+- **`isdigit()`**: Checks if the character is a digit.
+- **`isupper()`**: Checks if the character is uppercase.
+- **`islower()`**: Checks if the character is lowercase.
+- **`isspace()`**: Checks if the character is a whitespace character.
+
+These functions can be useful for validating user input or processing text data.
+
+## Conclusion
+
+Understanding string operations in C is essential for effective programming. This guide provides a foundational overview of string manipulation, conversion functions, and character checks, with practical examples to illustrate each concept. By mastering these functions, you can handle strings more effectively in your C programs.

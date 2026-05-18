@@ -5,21 +5,57 @@ slug: "26247201"
 tags: []
 source: "https://blog.csdn.net/yeyuangen/article/details/26247201"
 originalTitle: "已知二叉树后序遍历序列是DABEC 中序遍历列是 DEBAC ，它的前序遍历序列是："
+expanded: true
 ---
+## Understanding Binary Tree Traversals: From Postorder and Inorder to Preorder
 
-## Given that the postorder traversal sequence of a binary tree is DABEC and the inorder traversal sequence is DEBAC, what is its preorder traversal sequence?
+In this article, we will explore how to derive the preorder traversal sequence of a binary tree when given its postorder and inorder traversal sequences. Specifically, we will analyze the postorder sequence DABEC and the inorder sequence DEBAC, and we will learn how to reconstruct the binary tree and determine its preorder traversal sequence.
 
-\----C  
----/   
---E   
--/-\\   
-D---B   
------\\   
-------A  
+### Binary Tree Traversal Definitions
 
-I know the answer looks like this.... But I want to ask... Why is it drawn this way??
+Before diving into the solution, it’s essential to understand the different types of tree traversals:
 
-Postorder traversal means: left-right-root, and inorder traversal means: left-root-right.  
-1. From postorder traversal, we know C is the root node.  
-2. From inorder traversal, we see that C has no right subtree. From postorder, the next root node before C is E.  
-3. From inorder sequence DEBA, D must be in the left subtree of E. From postorder sequence DAB, B is the next root node after D and A, so B must be the right child of E. From inorder sequence BA, A must be the right child of B.
+- **Postorder Traversal (Left-Right-Root)**: In this traversal method, we visit the left subtree first, then the right subtree, and finally the root node. For our example, the postorder sequence is DABEC.
+  
+- **Inorder Traversal (Left-Root-Right)**: In this method, we visit the left subtree, then the root node, and finally the right subtree. The inorder sequence we have is DEBAC.
+
+### Step-by-Step Reconstruction of the Binary Tree
+
+1. **Identifying the Root Node**: 
+   From the postorder traversal DABEC, we see that the last element, C, is the root node of the tree. This is a fundamental property of postorder traversal.
+
+2. **Analyzing the Inorder Traversal**: 
+   In the inorder sequence DEBAC, we can see that C is located in the middle. Since C has no right subtree (as indicated by its position in the inorder sequence), we can conclude that everything to the left of C (DEBA) forms the left subtree.
+
+3. **Finding the Left Subtree**:
+   The left subtree of C is derived from the inorder sequence DEBA. The first element in the postorder sequence relevant to this subtree is D. Therefore, D is the left child of E, which we will identify next.
+
+4. **Identifying the Right Child**:
+   From the remaining elements in the postorder sequence DAB, we can determine that B is the next root node after D. Since B is the right child of E, we can conclude that A, which follows B in the postorder sequence, must be the right child of B.
+
+5. **Constructing the Tree**:
+   Based on the above deductions, we can visualize the binary tree structure as follows:
+
+   ```
+       C
+      /
+     E
+    / \
+   D   B
+        \
+         A
+   ```
+
+### Conclusion: Deriving the Preorder Traversal
+
+Now that we have reconstructed the binary tree, we can derive the preorder traversal sequence, which follows the Left-Root-Right pattern.
+
+- Start from the root C
+- Move to the left child E
+- Then to the left child D
+- Backtrack to E and then to its right child B
+- Finally, move to B's right child A
+
+Thus, the preorder traversal sequence is **CEDBA**.
+
+In summary, by using the properties of postorder and inorder traversals, we have successfully reconstructed the binary tree and derived its preorder traversal sequence. Understanding these traversal methods is crucial for various applications in computer science, including tree algorithms and data structure manipulations.

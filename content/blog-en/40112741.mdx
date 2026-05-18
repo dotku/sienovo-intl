@@ -5,23 +5,54 @@ slug: "40112741"
 tags: ["#Networking", "#DevelopmentTips"]
 source: "https://blog.csdn.net/yeyuangen/article/details/40112741"
 originalTitle: "Connection to http://dl-ssl.google.com refused"
+expanded: true
 ---
+## Troubleshooting Connection Issues to dl-ssl.google.com
 
-If you encounter issues connecting to dl-ssl.google, apply the following solutions:
+If you're facing difficulties connecting to `dl-ssl.google.com`, you're not alone. This issue can arise due to various network configurations or proxy settings. In this post, we will explore a few practical solutions that can help you resolve this problem and get back to your development work seamlessly.
 
-（1） Add the following IP addresses to `/windows/system32/drivers/etc/hosts`:
+### Step 1: Update the Hosts File
 
-```
-203.208.46.146 www.google.com
-203.208.46.146 dl.google.com
-203.208.46.146 dl-ssl.google.com
-74.125.113.121 developer.android.com
-```
+One effective way to bypass connection issues is to modify your system's hosts file. This file allows you to map hostnames to IP addresses directly. Here’s how to do it:
 
-（2） In Eclipse → Options, change HTTPS to Forbidden HTTP;
+1. Open the hosts file located at `/windows/system32/drivers/etc/hosts` using a text editor with administrative privileges.
+2. Add the following lines to the file:
 
-（3） If the issue persists, run `netstat` in CMD, locate the proxy being used, and input it into Eclipse → Options.
+   ```
+   203.208.46.146 www.google.com
+   203.208.46.146 dl.google.com
+   203.208.46.146 dl-ssl.google.com
+   74.125.113.121 developer.android.com
+   ```
 
-That's it! Note: I performed the final step at my company network, not at home. Not sure if it works the same on home networks. However, at home, I previously found that only the first two steps were needed.  
+This step redirects requests for these domains to the specified IP addresses, potentially resolving connectivity issues.
 
-[Reference](http://cppblog.com/hlong/archive/2012/04/06/170311.html)
+### Step 2: Adjust Eclipse Settings
+
+If modifying the hosts file does not resolve the issue, the next step involves changing settings in Eclipse. Specifically, you need to adjust the HTTP settings:
+
+1. Open Eclipse and navigate to **Options**.
+2. Look for the setting related to HTTPS connections and change it to **Forbidden HTTP**.
+
+This adjustment can help Eclipse handle connections more effectively, especially if your network has restrictions on HTTPS traffic.
+
+### Step 3: Check Proxy Settings
+
+If you're still unable to connect after the first two steps, the issue might be related to your proxy settings. Here’s how to check and configure them:
+
+1. Open the Command Prompt (CMD) and run the following command:
+
+   ```
+   netstat
+   ```
+
+2. Look for any active connections that indicate a proxy server is being used. Note the details of the proxy.
+3. Return to Eclipse and navigate to **Options**. Input the proxy details you found in the previous step.
+
+This should help Eclipse connect through the correct proxy settings, allowing you to access `dl-ssl.google.com` without further issues.
+
+### Conclusion
+
+By following these steps—updating your hosts file, adjusting Eclipse settings, and checking your proxy configuration—you should be able to resolve the connection issues with `dl-ssl.google.com`. It's worth noting that these solutions were tested in a corporate network environment, and results may vary on home networks. However, many users have reported that the first two steps alone often suffice for home setups.
+
+For additional information, you can refer to the [original article](http://cppblog.com/hlong/archive/2012/04/06/170311.html).
