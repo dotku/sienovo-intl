@@ -5,16 +5,62 @@ slug: "6782666"
 tags: ["#QQ", "#Communication", "#Delphi", "#Server", "#CMD", "#HTTPServer"]
 source: "https://blog.csdn.net/yeyuangen/article/details/6782666"
 originalTitle: "QQ通讯协议"
+expanded: true
 ---
+## QQ Communication Protocol
 
-[http://bbs.gdei.edu.cn/read.php?tid=27042](http://bbs.gdei.edu.cn/read.php?tid=27042)
+The QQ Communication Protocol is an essential framework for understanding how the QQ messaging service operates. This blog post will delve into the structure of the protocol, detailing its components, message types, and how they facilitate communication between users and servers. By the end, readers will have a clearer understanding of the protocol's functionality and its implementation in programming environments.
 
-**QQ Communication Protocol**
+### Protocol Structure
 
-**Protocol Description:**
-The protocol consists of a message header (T) + sender (T) + receiver (T) + message type (T) + message length (L) + message content.
-Sender and receiver are program types within the system: OICQ server 0x01, fax server 0x02, WEB server 0x03, print server 0x04, chat server 0x05, OICQ user 0x0A.
-OICQ User to OICQ Server Communication Protocol Identifier (0x81+0x0A+0x01)
+The QQ protocol is structured as follows:
 
-Message Type | Message Content | Message Description
-0x01 Nickname (S) + Portrait (M) + User Password (S) + Gender (T) + Age (T) + Real Name (S) + Country/Region (T) + Province (T) + City (S) + Address (S) + Zip Code (S) + Education (T) + Graduated School (S) + Occupation (T) + Phone (S) + Pager (S) + Email (
+- **Message Header (T)**: The initial part of the message that contains metadata.
+- **Sender (T)**: Identifies the source of the message.
+- **Receiver (T)**: Identifies the intended recipient of the message.
+- **Message Type (T)**: Specifies the type of message being sent.
+- **Message Length (L)**: Indicates the size of the message content.
+- **Message Content**: The actual data being transmitted.
+
+The sender and receiver are represented by specific identifiers within the system:
+- OICQ Server: 0x01
+- Fax Server: 0x02
+- WEB Server: 0x03
+- Print Server: 0x04
+- Chat Server: 0x05
+- OICQ User: 0x0A
+
+The communication protocol identifier for OICQ User to OICQ Server is represented as (0x81 + 0x0A + 0x01).
+
+### Message Types and Descriptions
+
+The protocol defines various message types, each with specific content and purposes. Below are some key message types:
+
+| Message Type | Message Content | Message Description |
+|--------------|----------------|---------------------|
+| 0x01        | Nickname (S) + Portrait (M) + User Password (S) + Gender (T) + Age (T) + Real Name (S) + Country/Region (T) + Province (T) + City (S) + Address (S) + Zip Code (S) + Education (T) + Graduated School (S) + Occupation (T) + Phone (S) + Pager (S) + Email (S) + Hobbies (S) + Description (S) + Authentication (T) | New user registration; authentication is used when someone wants to add the user as a friend. |
+| 0x02        | Service Number (L) + Password (S) + Registration Method (T) | Old user registration; methods are 0 for normal, 1 for invisible. |
+| 0x03        | Service Number (L) + Other Service Number (L) + Content (S) | Send a message to someone. |
+| 0x04        | Service Number (L) + Group Number (L) + Content (S) | Broadcast message; group number 0 is for all. |
+| 0x05        | Service Number (L) + Friend Service Number (L) | View friend profile. |
+| 0x06        | Service Number (L) + Group Name (S) | Add a group. |
+| 0x07        | Service Number (L) + Group Number (T) + Group Name (S) | Modify group name. |
+| 0x08        | Service Number (L) + Group Number (T) | Delete group. |
+| 0x09        | Service Number (L) + Number of People to Move (T) + {Friend Service Number (L) + Destination Group Number (T)} | Move group members. |
+| 0x0A        | Service Number (L) + Starting Number (L) + Return Count (T) + Search Flag (T) | Check who is online; search flag 1 for smaller, 2 for larger. |
+| 0x0B        | Service Number (L) + SQL Statement (S) | Custom search. |
+| 0x0C        | Service Number (L) + Friend Service Number (L) | Add friend. |
+| 0x0D        | Service Number (L) + Friend Service Number (L) + Reason for Joining (S) | Request to add friend. |
+| 0x0E        | Service Number (L) + Friend Service Number (L) | Delete friend. |
+| 0x10        | Service Number (L) + Display Mode (T) | Change display mode (1 for online, 2 for hidden, 3 for do not disturb, 4 for offline). |
+| 0x11        | Service Number (L) + Monitor Service Number (L) | Monitor someone's conversation. |
+| 0x12        | Service Number (L) + Nickname (S) + Portrait (M) + User Password (S) + Gender (T) + Age (T) + Real Name (S) + Country/Region (T) + Province (T) + City (S) + Address (S) + Zip Code (S) + Education (T) + Graduated School (S) + Occupation (T) + Phone (S) + Pager (S) + Email (S) + Hobbies (S) + Description (S) + Authentication (T) | Change user information. |
+| 0x13        | Service Number (L) + Friend Service Number (L) + File Name (S) + File Length (L) | Request to send a file. |
+| 0x14        | Service Number (L) + Friend Service Number (L) + Allow/Deny (T) | Respond to file transfer request. |
+| 0x15        | Service Number (L) + Friend Service Number (L) + File Content (B) | Send file. |
+| 0x16        | Service Number (L) | Connection test message. |
+| 0x17        | Service Number (L) + Friend Service Number (L) + Agree Flag (T) | Respond to friend request; 0 for deny, 1 for agree. |
+
+### Conclusion
+
+The QQ Communication Protocol is a complex yet fascinating system that enables various types of interactions among users and servers. Understanding its structure and message types is crucial for developers looking to create applications that leverage QQ's capabilities. By implementing the outlined message types and structures, developers can effectively communicate with the QQ service, enhancing user experiences and functionalities.

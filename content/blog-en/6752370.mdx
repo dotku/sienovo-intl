@@ -5,16 +5,30 @@ slug: "6752370"
 tags: ["#Work"]
 source: "https://blog.csdn.net/yeyuangen/article/details/6752370"
 originalTitle: "主线程，工作线程关系"
+expanded: true
 ---
+## Relationship Between Main Thread and Worker Thread
 
-One: Relationship Between Main Thread and Worker Thread  
+In multi-threaded programming, understanding the relationship between the main thread and worker threads is crucial for ensuring proper application behavior and resource management. This article outlines the essential interactions between the main thread and worker threads, focusing on how termination signals are communicated and handled. By the end of this post, you will have a clearer understanding of how to manage thread lifecycles effectively.
 
-1. Before the main thread ends, it sends a termination message to the worker thread, notifying the worker thread to exit.  
+### 1. Sending Termination Messages
 
-2. The main thread immediately enters a waiting state for the worker thread to terminate, using functions such as WaitForSingleObject, WaitForMultipleObjects, etc.  
+Before the main thread concludes its execution, it is important to send a termination message to any active worker threads. This is typically done to ensure that the worker threads can complete their tasks gracefully and release any resources they may be holding. The termination message serves as a notification for the worker thread to prepare for exit, which helps avoid abrupt termination and potential resource leaks.
 
-3. Upon receiving the exit message, the worker thread exits (since it is operating within a large WaitForSingleObject loop waiting for the exit notification).  
+### 2. Waiting for Worker Thread to Terminate
 
-4. If the main thread becomes impatient (i.e., the wait times out), it directly terminates the worker thread.  
+Once the termination message is sent, the main thread enters a waiting state. This is commonly achieved using functions such as `WaitForSingleObject` or `WaitForMultipleObjects`. These functions allow the main thread to pause its execution until the worker thread has finished its tasks and has exited. The waiting mechanism is crucial for synchronizing the main thread's completion with that of the worker thread, ensuring that the application does not terminate prematurely while worker threads are still active.
 
-5. The program exits.
+### 3. Worker Thread Exit Handling
+
+Upon receiving the exit message from the main thread, the worker thread should exit its execution context. This is typically managed within a loop that checks for the termination signal, often implemented with a `WaitForSingleObject` call that waits for the exit notification. The worker thread should handle any cleanup tasks, such as releasing resources or saving state, before completing its execution. This orderly shutdown process is essential for maintaining application stability and data integrity.
+
+### 4. Handling Timeout Scenarios
+
+In some cases, the main thread may become impatient while waiting for the worker thread to terminate. If the wait times out, the main thread may decide to forcefully terminate the worker thread. This can be done using functions like `TerminateThread`, but it is generally not recommended due to the risks of resource leaks and inconsistent application state. Instead, it is advisable to implement a timeout handling mechanism that allows the worker thread to respond to the termination request more promptly.
+
+### 5. Program Exit
+
+After the worker thread has exited, either gracefully or through forced termination, the main thread can proceed to exit the program. This step should ensure that all resources are properly released and that the application state is consistent. Properly managing the lifecycle of threads is vital for creating robust multi-threaded applications that perform efficiently and reliably.
+
+In summary, the relationship between the main thread and worker threads involves careful management of termination signals and synchronization mechanisms. By following the outlined steps, developers can ensure that their applications handle threading effectively, avoiding common pitfalls associated with multi-threaded programming.

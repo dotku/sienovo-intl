@@ -5,12 +5,279 @@ slug: "6830811"
 tags: ["#Language", "#C", "#IO", "#Stream", "#File", "#FP"]
 source: "https://blog.csdn.net/yeyuangen/article/details/6830811"
 originalTitle: "ANSI C语言标准文件IO函数祥解"
+expanded: true
 ---
-
 ## I. Overview
 
 1.  The ANSI C file system is built upon the buffered file system of earlier C versions (also known as formatted or high-level file systems).
 
 2.  **Difference between Streams and Files:** The level of abstraction provided by C's I/O system between the programmer and the device being used is called a stream, while the physical device is called a file. The C file system can operate on various devices such as terminals, disk drives, and tape drives. Regardless of how different these devices are, the ANSI file system converts them into logical devices called "streams," providing great device independence. In C, the logical concept of a file refers to anything from a disk file to a terminal printer. A stream is associated with a file by performing an open operation. Once a file is opened, information can be exchanged between the program and that file. Not all files have the same capabilities; for example, disk files support random access, but terminals do not. This illustrates an important characteristic of the C I/O system: all streams are similar, but files are different.
 
-3.  There are two types of streams: text streams and binary streams. A text stream is a sequence of characters. In a text stream, specific character conversions are required by the host environment, so there is no one-to-one correspondence between the characters written (or read) and the characters
+3.  There are two types of streams: text streams and binary streams. A text stream is a sequence of characters. In a text stream, specific character conversions are required by the host environment, so there is no one-to-one correspondence between the characters written (or read) and the characters stored in the device. Similarly, due to possible conversions, the number of characters written (or read) may not match the number of characters stored in the device. A binary stream, on the other hand, is a sequence of bytes where the storage in the device is one-to-one, meaning there are no character conversions. Therefore, the number of bytes written (or read) matches the number of bytes stored in the device.
+
+4.  Files are linked to streams through a close operation. For output streams, when a file is closed, the associated stream is written to the device, a process commonly referred to as flushing. This ensures that no information is left in the disk buffer. When a program ends, all files are automatically closed; however, if a program crashes, files may not be closed properly, meaning information might not be written to disk. Each stream associated with a file has a control structure of type `FILE`, which is defined in `stdio.h`, and cannot be modified directly.
+
+5.  The following functions and types are defined in `stdio.h`:
+
+    - `fopen()`
+    - `fclose()`
+    - `putc()`
+    - `fputc()`
+    - `getc()`
+    - `fgetc()`
+    - `fseek()`
+    - `fprintf()`
+    - `fscanf()`
+    - `feof()` — returns true if the end of the file is reached
+    - `ferror()`
+    - `rewind()`
+    - `remove()` — deletes a file
+    - `fflush()` — flushes a file
+    - `fread()` — reads from a file
+    - `fwrite()` — writes to a file
+
+    Additionally, types such as `size_t` (large enough to hold the result of subtracting two pointers, a variant of `unsigned int`), `fpos_t` (used to describe a specific position in a file, also a variant of `unsigned int`), and the `FILE` type are defined. Several macros are also defined: `EOF` (typically defined as -1), `SEEK_SET`, `SEEK_CUR`, and `SEEK_END`.
+
+6.  When operating on files in read/write mode, two points must be noted: First, if a write operation is followed by a read operation, the `fflush()` function or file positioning functions such as `fseek()` or `rewind()` must be called. Second, if a read operation is followed by a write operation, it must be at the end of the file or a file positioning function must be called between the two operations.
+
+## II. Function Details
+
+1.  **Opening and Closing Files**
+
+    (1) **Opening Files:** The function to open files in the ANSI C library is declared as follows:
+
+    ```c
+    FILE *fopen(const char *restrict filename, const char *restrict modes);
+    ```
+
+    If successful, it returns a pointer to the opened file. If it fails, it returns `NULL`.
+
+    The first parameter is a pointer to the string of the filename to be opened (e.g., `/etc/service`). The second parameter specifies the mode for opening the file. The opening modes are as follows:
+
+    | Parameter    | Description |
+    |--------------|-------------|
+    | `r` (or `rb`) | Opens the file in read-only mode; the file must exist. |
+    | `r+` (or `rb+`) | Opens the file in read/write mode; the file must exist. |
+    | `w` (or `wb`) | Opens the file in write-only mode; if the file exists, it is cleared; if it does not exist, it is created. |
+    | `w+` (or `wb+`) | Opens the file in read/write mode; if the file exists, it is cleared; if it does not exist, it is created. |
+    | `a` (or `ab`) | Opens the file in write-only mode for appending; if the file exists, data is appended to the end; if it does not exist, it is created. |
+    | `a+` (or `ab+`) | Opens the file in read/write mode for appending; if the file exists, data can be read/written at the end; if it does not exist, it is created. |
+
+    (2) **Closing Files:** The function to close a file is declared as:
+
+    ```c
+    int fclose(FILE *stream);
+    ```
+
+    To close all opened stream objects, the `fcloseall` function can be used:
+
+    ```c
+    int fcloseall(void);
+    ```
+
+    To update the contents of the buffer, even if the buffer is not full, the `fflush` function can be used:
+
+    ```c
+    int fflush(FILE *stream);
+    ```
+
+2.  **Reading and Writing File Streams**
+
+    (1) **Character Read/Write Operations:**
+
+    (a) **Character Read Operation:** This operation reads one character at a time from the stream. The related function declarations are:
+
+    ```c
+    int fgetc(FILE *stream); // Reads one character from the stream
+    int getchar(void); // Reads one character from standard input
+    int getc(FILE *stream); // Equivalent to fgetc
+    ```
+
+    (b) **Character Write Operation:** This operation writes one character at a time to the stream. The relevant function declarations are:
+
+    ```c
+    int fputc(int c, FILE *stream); // Writes a character to an output file stream
+    int putc(int c, FILE *stream); // Similar to fputc
+    int putchar(int c); // Equivalent to putc(c, stdout)
+    ```
+
+    (2) **Line Read/Write Operations:**
+
+    (a) **Line Read Operation:** This operation reads one line of characters from the stream. The `fgets` function reads a string from the input file stream and writes it to the string pointed to by `s`, stopping at a newline or end-of-file marker, and appends a null byte (`\0`) at the end.
+
+    ```c
+    char *fgets(char *s, int n, FILE *stream);
+    ```
+
+    The `gets` function is similar to `fgets`, but it reads from standard input and discards the newline character.
+
+    (b) **Line Write Operation:** This operation writes one line of characters to the standard output. The `puts` function writes the string pointed to by `s` (terminated with a null character) to standard output, followed by a newline. The `fputs` function writes the string pointed to by `s` to the specified output stream but does not append a newline.
+
+    ```c
+    int fputs(char *s, FILE *stream);
+    int puts(char *s);
+    ```
+
+    (3) **Block Read/Write Operations:**
+
+    (a) **Block Read Operation:**
+
+    ```c
+    int fread(void *buffer, int size, int count, FILE *fp);
+    ```
+
+    `fread()` reads `size` bytes from the file pointed to by `fp` starting from the current position, repeating this `count` times, and stores the data in the memory starting at `buffer`.
+
+    (b) **Block Write Operation:**
+
+    ```c
+    int fwrite(void *buffer, int size, int count, FILE *fp);
+    ```
+
+    `fwrite()` outputs `size` bytes from `buffer` to the file pointed to by `fp`, repeating this `count` times. This is generally used for handling binary files.
+
+    (c) **Example of Writing a String to a File:**
+
+    ```c
+    char *str = "hello, I am a test program!";
+    fwrite(str, sizeof(char), strlen(str), fp);
+    ```
+
+    To write a character array to a file:
+
+    ```c
+    char str[] = {'a', 'b', 'c', 'd', 'e'};
+    fwrite(str, sizeof(char), sizeof(str), fp);
+    ```
+
+    To write an array of integers to a file:
+
+    ```c
+    int a[] = {12, 33, 23, 24, 12};
+    size_t nmemb = sizeof(a) / sizeof(a[0]);
+    fwrite(a, sizeof(int), nmemb, fp);
+    ```
+
+    Note: Since the generated file is a binary file rather than a text file, the representation of integers may vary across machines, so it cannot be opened directly. You can use the `fread` function to verify if the data has been written to the file.
+
+3.  **File Stream Positioning**
+
+    (1) **Returning Current Read/Write Position:**
+
+    ```c
+    long int ftell(FILE *stream);
+    ```
+
+    If successful, it returns the current position of the pointer in bytes from the beginning of the file; if it fails, it returns -1.
+
+    (2) **Modifying Current Read/Write Position:**
+
+    The usage of `fseek` is as follows:
+
+    ```c
+    int fseek(FILE *stream, long offset, int fromwhere);
+    ```
+
+    The first parameter is the file pointer, the second parameter is the offset to move, and the third parameter indicates where to move from, using three macros:
+
+    - `SEEK_SET` (0) — beginning of the file
+    - `SEEK_CUR` (1) — current position in the file
+    - `SEEK_END` (2) — end of the file
+
+    It is recommended to use macros instead of numbers. In summary:
+
+    ```c
+    fseek(fp, 100L, SEEK_SET); // Move the pointer 100 bytes from the start of the file
+    fseek(fp, 100L, SEEK_CUR); // Move the pointer 100 bytes from the current position
+    fseek(fp, 100L, SEEK_END); // Move the pointer back 100 bytes from the end of the file
+    ```
+
+    This function is commonly used to calculate the length of a stream:
+
+    ```c
+    int filesize = fseek(fp, 0, SEEK_END);
+    fseek(fp, 0, SEEK_SET);
+    ```
+
+    (3) **Resetting Current Read/Write Position:** After completing one operation, to prepare for the next operation, the `rewind` function should be called to reset the read/write position to the beginning of the file.
+
+    ```c
+    void rewind(FILE *stream);
+    ```
+
+4.  **File Stream Error Detection:** To identify an error, many `stdio` library functions return an out-of-bounds value, such as a null pointer or the constant `EOF`. In these cases, the errors are indicated by the external variable `errno`:
+
+    ```c
+    #include <errno.h>
+    extern int errno;
+    ```
+
+    It is important to note that many functions may change the value of `errno`. The value is only valid when a function call fails. It is advisable to check the value of `errno` immediately after a function indicates failure. Before using it, copy its value to another variable, as some printing functions, like `fprintf`, may modify its value.
+
+    You can also determine whether an error has occurred or if the end of the file has been reached by checking the status of the file stream.
+
+    To check if the end of the file has been reached:
+
+    ```c
+    int feof(FILE *stream);
+    ```
+
+    If the end of the file is reached, it returns 1; otherwise, it returns 0.
+
+    To check for errors in a given stream:
+
+    ```c
+    int ferror(FILE *stream);
+    ```
+
+    If no error has occurred, it returns 0; otherwise, it returns an error, which is stored in `errno`. When using the above two functions for file stream detection, the error flag will be set. After error handling, the error flag should be cleared:
+
+    ```c
+    void clearerr(FILE *stream);
+    ```
+
+    The `clearerr` function clears the end-of-file or error indicator for the file stream pointed to by `stream`. This function does not return a value or define an error. You can use this function to recover from error conditions on the stream, such as when the disk is full and data needs to be rewritten to the file stream.
+
+5.  **Streams and File Descriptors:** Each file stream corresponds to a lower-level file descriptor. While it is possible to mix low-level input/output with high-level file stream operations, it is generally unwise due to unpredictable buffer effects.
+
+    ```c
+    #include <stdio.h>
+    int fileno(FILE *stream); // Returns the file descriptor for a given file stream
+    FILE *fdopen(int fildes, const char *mode); // Creates a new file stream based on an existing file descriptor
+    ```
+
+    By calling the `fileno` function, you can determine which lower-level file descriptor is being used by a file stream. It returns a file descriptor for the specified file stream; if it fails, it returns -1. If you need low-level access to an open stream, you can use this function, such as with `fstat`.
+
+    The `fdopen` function allows you to create a new file stream based on an already opened file descriptor. Essentially, this function provides a `stdio` buffer for an already opened file descriptor, which can be useful for clarity. The `fdopen` function operates similarly to `fopen`, except that it uses a lower-level file descriptor. If you want to use `open` to create a file, perhaps for better permission control, but wish to perform write operations using file streams, this function becomes particularly useful. The `mode` parameter is the same as that for `fopen`, and it must be compatible with the file access mode established when the file was initially opened. `fdopen` returns a new file stream; if it fails, it returns `NULL`.
+
+6.  **File and Directory Maintenance:** The standard library and system calls provide complete control over file creation and maintenance.
+
+    - **`chmod`:** You can use the `chmod` system call to change the permissions of a file or directory. The syntax is as follows:
+
+    ```c
+    #include <sys/stat.h>
+    int chmod(const char *path, mode_t mode);
+    ```
+
+    The file specified by `path` will have the permissions specified by `mode`. The `mode` specified is similar to that in the `open` system call, being a bitwise OR of the desired permissions. Unless the program is granted appropriate permissions, only the file's owner or a superuser can change its permissions.
+
+    - **`chown`:** A superuser can use the `chown` system call to change the owner of a file. The syntax is as follows:
+
+    ```c
+    #include <unistd.h>
+    int chown(const char *path, uid_t owner, gid_t group);
+    ```
+
+    This call uses the numeric user ID or group ID (which can be obtained via `getuid` and `getgid`) and a constant to determine who can change the file's owner. With appropriate permissions set, we can change both the owner and the group of a file.
+
+    - **`unlink`, `link`, `symlink`:** You can use `unlink` to remove a file. `unlink` removes the directory entry for a file and decreases its link count. If the function call is successful, it returns 0; if it fails, it returns -1. You must have write and execute permissions in the directory where the command is executed, as files have their own directory entries.
+
+    The syntax is as follows:
+
+    ```c
+    int unlink(const char *path);
+    int link(const char *path1, const char *path2);
+    int symlink(const char *path1, const char *path2);
+    ```
+
+    If the link count reaches 0 and no processes are using the file, the file will be deleted. In fact, a directory entry is always deleted, but the file's space will not be reclaimed until the last associated process is closed. The `rm` program uses this call. Typically, we can use the `ln` program to create a link for a file. We can use the `link` system call to create a planned link for a file. The `link` system call creates a new link for an existing file specified by `path1`, with the new directory entry specified by `path2`. Similarly, we can use `symlink` to create a symbolic link. It is important to note that a file's symbolic link will not prevent the file from being deleted, unlike a hard link.

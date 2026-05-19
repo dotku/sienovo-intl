@@ -5,19 +5,26 @@ slug: "144193493"
 tags: ["#AI", "#Server", "#DevOps"]
 source: "https://blog.csdn.net/szxinmai/article/details/144193493"
 originalTitle: "基于BM1684的AI边缘服务器-模型转换，大模型一体机"
+expanded: true
 ---
+If you encounter any issues during the installation, you can refer to online resources for troubleshooting.
 
-#### Introduction
+### Download SDK
 
-We operate in an [SoC](https://so.csdn.net/so/search?q=SoC&spm=1001.2101.3001.7020 "SoC") mode, meaning we perform model compilation, quantization, and program cross-compilation on an x86 host using tpu-nntc and libsophon. For deployment, the compiled programs are copied to the SoC platform (1684 development board / SE [microserver](https://edu.csdn.net/cloud/sd_summit?utm_source=glcblog&spm=1001.2101.3001.7020 "microserver") / SM module) for execution.
+Next, you will need to download the necessary SDK from the Sophon official website. The SDK includes several essential tools for model compilation and deployment:
 
-Note: All the following operations are performed on an Ubuntu 20.04 system. Of course, Ubuntu 18 and 22 are also acceptable, as we primarily use the official Docker environment for configuration.
+- **tpu-nntc**: This tool is responsible for offline compilation and optimization of neural network models trained using various deep learning frameworks, generating the BModel required for runtime execution. It supports frameworks like Caffe, Darknet, MXNet, ONNX, PyTorch, PaddlePaddle, and TensorFlow.
+- **libsophon**: This library provides BMCV, BMRuntime, and BMLib, which are used to drive hardware like VPP and TPU for image processing, tensor operations, and model inference.
+- **sophon-mw**: This encapsulates libraries like BM-OpenCV and BM-FFmpeg, facilitating video stream parsing and image encoding/decoding acceleration for deep learning applications.
+- **sophon-sail**: This provides high-level interfaces in Python and C++, encapsulating lower-level library interfaces for deep learning application development.
 
-#### Preparation
+You can download the SDK from the following links:
 
-##### Install Docker
+- [tpu-nntc](https://sophon-file.sophon.cn/sophon-prod-s3/drive/22/11/28/12/tpu-nntc_20221028_200521.zip)
+- [libsophon](https://sophon-file.sophon.cn/sophon-prod-s3/drive/22/11/28/10/libsophon_20221027_214818.zip)
+- [sophon-mw](https://sophon-file.sophon.cn/sophon-prod-s3/drive/22/11/28/11/sophon-mw_20221027_183429.zip)
+- [sophon-demo](https://sophon-file.sophon.cn/sophon-prod-s3/drive/22/11/28/15/sophon-demo_20221027_181652.zip)
+- [sophon-img](https://sophon-file.sophon.cn/sophon-prod-s3/drive/22/11/28/15/sophon-img_20221027_215835.zip)
+- [sophon-sail](https://sophon-file.sophon.cn/sophon-prod-s3/drive/22/11/28/15/sophon-sail_20221026_200216.zip)
 
-First, install Docker.
-
-```hljs
-# Update libraries sudo apt-get updatesudo apt-gefat upgrade# Install Docker sudo apt-get install docker.io# Execute docker commands without root privileges # Create docker user group; if it already exists, an error will be reported, which can be ignored.sudo groupadd docker  # Add current user to the docker groupsudo gpasswd -
+You can download these files using `wget`:

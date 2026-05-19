@@ -5,21 +5,54 @@ slug: "6785197"
 tags: ["#Linux"]
 source: "https://blog.csdn.net/yeyuangen/article/details/6785197"
 originalTitle: "chmod 4755和chmod 755的区别"
+expanded: true
 ---
+## Understanding the Difference Between `chmod 4755` and `chmod 755`
 
-[Difference Between chmod 4755 and chmod 755](http://wangrusheng5200.iteye.com/blog/537200 " chmod 4755 and chmod 755 Difference")
+In Linux, managing file permissions is crucial for maintaining system security and functionality. One of the commands used for this purpose is `chmod`, which allows users to set permissions for files and directories. This article will delve into the differences between `chmod 4755` and `chmod 755`, explaining what each command does and the implications of using them.
 
-chmod is a Linux command used to set file permissions, where the following digits represent permissions for different users or user groups.  
-Typically, there are three digits: the first digit represents the file owner's permissions, the second digit represents the permissions for other users in the same group as the file owner, and the third digit represents the permissions for users in all other groups.  
+### File Permissions in Linux
 
-Permissions are divided into three types: read (r=4), write (w=2), and execute (x=1).  
-Combined, these yield read-execute (rx=5=4+1), read-write (rw=6=4+2), and read-write-execute (rwx=7=4+2+1).  
+Before we explore the specific commands, it's important to understand how file permissions work in Linux. Permissions are represented by three types of access: read (r), write (w), and execute (x). Each type of permission is assigned a numerical value:
 
-Therefore, chmod 755 sets the following permissions:  
-1. The file owner has read, write, and execute permissions  
-2. Other users in the same group as the file owner have read and execute permissions  
-3. Users in other groups have read and execute permissions  
+- Read (r) = 4
+- Write (w) = 2
+- Execute (x) = 1
 
-The difference between chmod 4755 and chmod 755 lies in the extra leading digit. This "4" means that when users from other groups execute the file, they do so with the same permissions as the file owner.  
+These values can be combined to set permissions for different users:
 
-For example: if the root user creates a network authentication program called netlogin, and other users also need to use this program to access the network, the root user must run the command chmod 755 netlogin so that other users can execute netlogin.
+- Read and execute (rx) = 5 (4 + 1)
+- Read and write (rw) = 6 (4 + 2)
+- Read, write, and execute (rwx) = 7 (4 + 2 + 1)
+
+### Breakdown of `chmod 755`
+
+When you run the command `chmod 755 <filename>`, you are setting the following permissions:
+
+1. The file owner has read, write, and execute permissions (7).
+2. Other users in the same group as the file owner have read and execute permissions (5).
+3. Users in other groups have read and execute permissions (5).
+
+This setup is common for scripts and executables that need to be accessible to other users while still allowing the owner to modify them.
+
+### Breakdown of `chmod 4755`
+
+The command `chmod 4755 <filename>` introduces an additional leading digit, which is crucial for understanding its functionality. The "4" at the beginning signifies that the file has the setuid (set user ID) bit set. This means that when users from other groups execute the file, they will do so with the same permissions as the file owner, effectively granting them elevated privileges.
+
+For example, if the root user creates a network authentication program called `netlogin`, and other users need to use this program to access the network, the root user would run the command `chmod 4755 netlogin`. With this command:
+
+- The file owner (root) has read, write, and execute permissions (7).
+- Other users in the same group have read and execute permissions (5).
+- Users in other groups can execute the file with the same privileges as the owner, allowing them to perform actions that may require elevated permissions.
+
+### When to Use Each Command
+
+Choosing between `chmod 755` and `chmod 4755` depends on the specific use case:
+
+- Use `chmod 755` when you want to allow other users to read and execute a file without giving them elevated privileges. This is suitable for most applications and scripts that do not require special permissions.
+  
+- Use `chmod 4755` when you need to allow users to execute a file with the same permissions as the owner. This is particularly useful for programs that require elevated privileges to function correctly, such as system utilities or network authentication programs.
+
+### Conclusion
+
+Understanding the difference between `chmod 4755` and `chmod 755` is essential for Linux system administrators and users who need to manage file permissions effectively. By knowing when to use each command, you can ensure that your files are both accessible and secure, maintaining the integrity of your system while allowing necessary functionality.

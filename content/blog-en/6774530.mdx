@@ -5,13 +5,49 @@ slug: "6774530"
 tags: ["#Linux", "#Float"]
 source: "https://blog.csdn.net/yeyuangen/article/details/6774530"
 originalTitle: "Linux sleep函数作用"
+expanded: true
 ---
+## Understanding the Linux sleep Function
 
-The sleep function changes the process's execution state to sleeping, removing it from the system's runnable queue so that the scheduler will not select the process or allocate CPU time slices to it. At the same time, based on the specified sleep duration, the process is added to the appropriate timer queue.
+In this article, we will explore the `sleep` function in Linux, which is crucial for managing process execution states. You will learn how `sleep` affects process scheduling, the underlying mechanics of timer queues, and a practical code example demonstrating its usage.
 
-The kernel maintains a timer queue. During each clock interrupt handling, any processes whose time has expired in the timer queue are awakened and moved back to the runnable process queue. Additionally, the remaining time values for all processes in the timer queue are decremented by one.
+### What Does the `sleep` Function Do?
+
+The `sleep` function changes a process's execution state to "sleeping." When a process calls `sleep`, it is removed from the system's runnable queue. This means that the scheduler will not select this process for execution, nor will it allocate CPU time slices to it during the specified sleep duration. 
+
+When a process is put to sleep, it is also added to a timer queue managed by the Linux kernel. The kernel maintains this timer queue to track processes that are waiting to be awakened after their sleep duration has expired.
+
+### The Timer Queue Mechanism
+
+The kernel handles a timer queue to manage the timing of sleeping processes. During each clock interrupt, the kernel checks this queue. If any processes have reached the end of their specified sleep duration, they are awakened and moved back to the runnable process queue. Additionally, the kernel decrements the remaining sleep time for all processes still in the timer queue.
+
+### Practical Example of Using `sleep`
+
+To illustrate how the `sleep` function works in practice, consider the following C code snippet:
 
 ```cpp
-    clock_t start=clock();    sleep(5);    clock_t end=clock();    float time=(float)(end-start)/CLOCKS_PER_SEC;    printf("Sleep clock:%f\n",time);
+#include <stdio.h>
+#include <time.h>
+#include <unistd.h>
+
+int main() {
+    clock_t start = clock();    // Record the start time
+    sleep(5);                   // Sleep for 5 seconds
+    clock_t end = clock();      // Record the end time
+    float time = (float)(end - start) / CLOCKS_PER_SEC; // Calculate elapsed time
+    printf("Sleep clock: %f\n", time);
+    return 0;
+}
 ```
-First, the current system tick count A is obtained. Then, the number of ticks B corresponding to the requested sleep duration—calculated based on CPU clock frequency—is added to A. A while loop continuously reads the current tick count, and only exits when this count exceeds (A + B), at which point the function returns.
+
+In this example, we first record the current system tick count, denoted as `A`. The `sleep` function is then called with a duration of 5 seconds. The number of ticks corresponding to this sleep duration, denoted as `B`, is calculated based on the CPU clock frequency.
+
+After the `sleep` call, we again record the current system tick count, denoted as `end`. The elapsed time is computed by subtracting the start time from the end time and converting the result into seconds.
+
+### Understanding the While Loop
+
+The code snippet provided does not explicitly show the while loop that is typically involved in the implementation of the `sleep` function, but it is essential to understand its role. The while loop continuously checks the current tick count until it exceeds the sum of `A` (the initial tick count) and `B` (the ticks to sleep). Once this condition is met, the function returns, and the process resumes execution.
+
+### Conclusion
+
+The `sleep` function is a fundamental part of process management in Linux, allowing developers to control when a process should pause its execution. Understanding how it works with the timer queue and the kernel's scheduling mechanisms is crucial for effective programming in a Linux environment. By using the provided example, you can see how to implement `sleep` in your own applications and measure the time accurately.

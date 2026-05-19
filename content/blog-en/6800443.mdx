@@ -5,25 +5,80 @@ slug: "6800443"
 tags: ["#DataStructures", "#Linux", "#C", "#Struct"]
 source: "https://blog.csdn.net/yeyuangen/article/details/6800443"
 originalTitle: "linux C 开发中重要的数据结构——结构体"
+expanded: true
 ---
+## Important Data Structures in Linux C Development — Structures
 
-In Linux driver development, the most commonly used and important data structure is the structure (struct), which is also the one most likely to cause confusion. To master structures, it's essential to first understand operator precedence:
+In Linux driver development, understanding data structures is crucial, and among these, the `struct` (structure) is the most commonly used and significant. However, its usage can often lead to confusion due to operator precedence and the way expressions are evaluated. This article will clarify the operator precedence related to structures and provide examples to illustrate how to correctly interpret and use them in C programming.
 
-Among all operators, the following four have the highest precedence: the structure member access operator "." and "->", the function call operator "()", and the subscript operator "[]". As a result, they bind most tightly to their operands.
+### Understanding Operator Precedence
 
-For example, given:
+To effectively work with structures in C, it is essential to grasp the concept of operator precedence. In C, the following four operators have the highest precedence:
 
+1. The structure member access operator: `.`
+2. The structure pointer member access operator: `->`
+3. The function call operator: `()`
+4. The subscript operator: `[]`
+
+These operators bind most tightly to their operands, which means that expressions involving these operators must be carefully interpreted to avoid confusion.
+
+### Example Structure Definition
+
+Consider the following structure definition:
+
+```c
 struct {
-int len;
-char *str;
-}*p;
+    int len;
+    char *str;
+} *p;
+```
 
-The expressions are interpreted as follows:
+In this example, `p` is a pointer to an unnamed structure that contains an integer `len` and a pointer to a character `str`. Let's analyze various expressions involving this structure to understand how operator precedence affects their evaluation.
 
-++p->len: increments the value of len; the implied parentheses are ++(p->len)  
-(++p)->len: first increments p by 1, then accesses the value of len  
-(p++)->len: first accesses the value of len, then increments p by 1  
-*p->str: retrieves the value pointed to by the pointer str  
-*p->str++: first retrieves the value pointed to by str, then increments the pointer str by 1  
-(*p->str)++: first retrieves the value pointed to by str, then increments that value by 1  
-*p++->str: first retrieves the value pointed to by str, then increments p by 1
+### Expression Evaluations
+
+1. **Incrementing the Length**:
+   ```c
+   ++p->len;
+   ```
+   This expression increments the value of `len`. The implied parentheses are `++(p->len)`, indicating that the `len` member of the structure pointed to by `p` is incremented directly.
+
+2. **Incrementing the Pointer First**:
+   ```c
+   (++p)->len;
+   ```
+   Here, `p` is incremented by 1 first, and then the value of `len` is accessed. This means that if `p` points to the first structure, after this operation, it will point to the next structure in memory.
+
+3. **Accessing Length Before Pointer Increment**:
+   ```c
+   (p++)->len;
+   ```
+   In this case, the value of `len` is accessed before `p` is incremented. This means you get the length of the structure that `p` originally pointed to, and only after this access does `p` move to the next structure.
+
+4. **Dereferencing the String Pointer**:
+   ```c
+   *p->str;
+   ```
+   This expression retrieves the value pointed to by the pointer `str`. It dereferences `str` to get the character it points to.
+
+5. **Incrementing the String Pointer**:
+   ```c
+   *p->str++;
+   ```
+   Here, the value pointed to by `str` is retrieved first, and then `str` itself is incremented by 1. This means that after this operation, `str` will point to the next character in the string.
+
+6. **Incrementing the Value Pointed to by String**:
+   ```c
+   (*p->str)++;
+   ```
+   This expression retrieves the value pointed to by `str` and increments that value by 1. If `str` points to a character, that character's ASCII value is increased.
+
+7. **Incrementing Pointer and Accessing String**:
+   ```c
+   *p++->str;
+   ```
+   Finally, this expression retrieves the value pointed to by `str` and then increments `p` by 1. Similar to the previous examples, the order of operations is crucial here.
+
+### Conclusion
+
+Understanding the operator precedence when working with structures in C is vital for effective Linux driver development. Misinterpretation of these expressions can lead to bugs and unexpected behavior in your code. By mastering these concepts, you can write cleaner and more efficient code when dealing with complex data structures in your Linux applications.

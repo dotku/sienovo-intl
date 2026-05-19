@@ -5,22 +5,127 @@ slug: "6734805"
 tags: ["#Vim", "#CentOS"]
 source: "https://blog.csdn.net/yeyuangen/article/details/6734805"
 originalTitle: "设置vim的自动缩进，tab四格和显示行号"
+expanded: true
 ---
+Vim, a powerful and highly configurable text editor, is an indispensable tool for developers, system administrators, and anyone working extensively with text files on Linux and Unix-like systems. While its default configuration is functional, customizing Vim to suit your preferences can significantly enhance productivity. This guide will walk you through configuring essential Vim settings: enabling line numbers, setting tab stops to four spaces, and activating auto-indentation. We'll also address a specific troubleshooting scenario encountered on older systems like CentOS 5.3, where the root user's `vi` command might not behave as expected, and provide a robust solution.
 
-Open /etc/vimrc with vim  
-vi /etc/vimrc  
-Add the following lines at the end:  
-set number  
-set tabstop=4  
-If  
-set ai  
-already exists in the vimrc file but is commented out with double quotes, simply remove the double quotes.  
-If set ai does not exist, add it at the end.
+## Understanding Vim Configuration Files
 
-I'm using CentOS 5.3. After applying the above settings, I found that Vim for regular users was properly configured. However, when the root user used the vi command, it launched vi instead of vim, so auto-indentation and line numbers were not enabled. Here's how to fix it:  
-Open the root user's .bashrc file  
-vi /root/.bashrc  
-Add the following line:  
-alias vi=vim  
-Save the file, log out of the root account, then log back in, and the issue will be resolved.  
+Vim's behavior is controlled by configuration files, commonly known as `vimrc` files. There are typically two main types:
+
+1.  **System-wide `vimrc`:** Located at `/etc/vimrc` (or sometimes `/etc/vim/vimrc` or similar, depending on the distribution). Settings in this file apply to all users on the system unless overridden by a user-specific configuration.
+2.  **User-specific `vimrc`:** Located at `~/.vimrc` (in the user's home directory). Settings here override system-wide settings and are unique to that particular user.
+
+For the purpose of establishing a consistent environment for all users, including system administrators, we will focus on modifying the system-wide `/etc/vimrc` file.
+
+## Configuring System-Wide Vim Settings
+
+To enable line numbers, set tab stops to four spaces, and activate auto-indentation for all users, you need to edit the `/etc/vimrc` file. You'll typically need root privileges to modify this file.
+
+1.  **Open `/etc/vimrc` with Vim:**
+    Use the `vi` or `vim` command to open the system-wide configuration file.
+
+    ```bash
+    vi /etc/vimrc
+    ```
+
+    Once the file is open in Vim, press `Shift + g` to jump to the end of the file, or navigate to a suitable section for adding new configurations.
+
+2.  **Add or Modify Basic Display and Indentation Settings:**
+
+    *   **`set number`**: This command instructs Vim to display line numbers in the left gutter of the editor window. This is incredibly useful for navigation, debugging, and collaborative coding, as it allows you to quickly reference specific lines of code.
+
+    *   **`set tabstop=4`**: This command defines the width of a tab character when it is displayed in Vim. Setting `tabstop=4` means that each tab character will visually occupy four spaces. This is a common convention in many programming languages and helps maintain consistent code formatting.
+
+    *   **`set ai`**: This command enables "auto-indentation." When auto-indentation is active, Vim automatically indents new lines to match the indentation level of the previous line. This is particularly helpful when writing structured code (e.g., within loops, conditional statements, or function definitions), as it saves you from manually indenting each new line.
+
+    Locate the end of the file or a designated configuration block and add these lines. If `set ai` already exists in the `vimrc` file but is commented out (often with a double quote `"` at the beginning of the line), simply remove the double quotes to uncomment it. If `set ai` does not exist, add it as a new line.
+
+    Here are the lines to add or ensure are present and uncommented:
+
+    ```vim
+    set number
+    set tabstop=4
+    set ai
+    ```
+
+    After making these changes, save the file and exit Vim by pressing `Esc`, then typing `:wq` and pressing `Enter`.
+
+## Troubleshooting: Root User's `vi` vs. `vim` on CentOS 5.3
+
+A common issue, particularly on older Linux distributions like CentOS 5.3, arises when the root user invokes the `vi` command. While regular users might find their Vim environment correctly configured after the above steps, the root user might still experience a lack of auto-indentation and line numbers.
+
+**The Original Observation:**
+
+"I'm using CentOS 5.3. After applying the above settings, I found that Vim for regular users was properly configured. However, when the root user used the vi command, it launched vi instead of vim, so auto-indentation and line numbers were not enabled."
+
+**Understanding the Problem:**
+
+Historically, `vi` is the original visual editor, while `vim` (Vi IMproved) is a modern, feature-rich superset. On many contemporary Linux systems, the `vi` command is often an alias or a symbolic link that actually points to `vim`. This means that when you type `vi`, you're effectively running `vim` with its advanced features and configuration capabilities.
+
+However, on older or minimal installations, `vi` might still refer to the classic `vi` binary, which is much simpler and does not support the advanced features and configuration options that `vim` does (like those defined in a `vimrc` file for `set number` or `set ai`). When the root user on CentOS 5.3 (or similar systems) types `vi`, they are launching this older, less capable `vi` editor, which ignores the `vimrc` settings.
+
+**The Solution: Aliasing `vi` to `vim` for the Root User**
+
+To resolve this, you can create a shell alias for the root user. An alias is a shortcut that allows you to define a new command that executes another command. By aliasing `vi` to `vim`, you ensure that whenever the root user types `vi`, the system actually executes `vim`.
+
+1.  **Open the root user's `.bashrc` file:**
+    The `.bashrc` file is a script that the Bash shell executes whenever a new interactive shell session is started. It's the ideal place to define user-specific aliases and environment variables.
+
+    ```bash
+    vi /root/.bashrc
+    ```
+
+    You will need root privileges to edit this file.
+
+2.  **Add the alias:**
+    Navigate to the end of the `.bashrc` file and add the following line:
+
+    ```bash
+    alias vi=vim
+    ```
+
+    This line tells the shell that whenever `vi` is typed, it should be replaced with `vim` before execution.
+
+3.  **Save and exit:**
+    Save the file and exit Vim by pressing `Esc`, then typing `:wq` and pressing `Enter`.
+
+4.  **Apply the changes:**
+    For the alias to take effect, the root user's shell environment needs to be reloaded. The simplest way to do this is to log out of the root account and then log back in. Alternatively, you can source the `.bashrc` file in the current shell session:
+
+    ```bash
+    source /root/.bashrc
+    ```
+
+    After logging back in (or sourcing the file), when the root user types `vi`, it will now launch `vim`, and all the configured settings (line numbers, 4-space tabs, auto-indentation) will be active.
+
+## Verifying Your Vim Settings
+
+To confirm that your settings have been applied correctly, open any file with Vim (as a regular user or as root after applying the alias fix).
+
+*   **Line Numbers:** You should immediately see line numbers displayed in the left margin of the editor window.
+*   **Tab Stops:** When you press the `Tab` key, the cursor should move forward by the equivalent of four spaces.
+*   **Auto-Indentation:** When you press `Enter` after a line of code that is indented (e.g., after an opening brace `{` in C/C++ or Python's colon `:`), the new line should automatically start with the same indentation level as the previous line.
+
+You can also check the current value of these settings from within Vim by typing:
+
+*   `:set number?`
+*   `:set tabstop?`
+*   `:set ai?`
+
+Vim will display the current status or value of each setting.
+
+## Further Customization (Beyond the Scope of this Guide)
+
+While this guide covers essential settings, Vim offers a vast array of customization options. Once you're comfortable with these basic configurations, you might explore:
+
+*   **`set expandtab`**: This setting makes Vim insert spaces instead of actual tab characters when you press the `Tab` key. This is often preferred in projects that enforce space-based indentation.
+*   **`set shiftwidth=4`**: This setting defines the number of spaces Vim uses for each indent level when performing auto-indentation or when using commands like `>>` (indent line) or `<<` (unindent line). It's often set to match `tabstop`.
+*   **Syntax Highlighting**: Most distributions enable this by default, but it's configured with `syntax on`.
+*   **User-specific `~/.vimrc`**: For personal preferences that differ from system-wide settings, create and edit `~/.vimrc` in your home directory.
+
+## Conclusion
+
+Configuring Vim with line numbers, consistent tab stops, and auto-indentation significantly improves readability and coding efficiency. By following these steps, you can establish a more productive Vim environment for all users on your system. Furthermore, understanding and resolving the `vi` vs. `vim` distinction for the root user on older systems ensures that even administrative tasks benefit from a fully featured editor. Embracing these customizations is a key step towards mastering Vim and enhancing your command-line workflow.
+
 Article source: Feinuo Network (www.diybl.com): http://www.diybl.com/course/6_system/linux/Linuxjs/20090426/165430.html
