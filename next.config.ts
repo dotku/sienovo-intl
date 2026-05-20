@@ -57,8 +57,14 @@ const nextConfig: NextConfig = {
         // Google reindexes everything to the new domain (a few weeks),
         // this rule can be retired and jytech.us can be retired or
         // re-pointed.
+        //
+        // CRITICAL: the `has.host` here MUST stay sienovo.jytech.us —
+        // if it ever matches the destination domain itself, you get a
+        // 308 self-redirect loop and the live site goes down. A global
+        // sed replace once flipped this to intl.sienovo.cn and bricked
+        // production for an hour. Don't sed-rewrite this block.
         source: "/:path*",
-        has: [{ type: "host", value: "intl.sienovo.cn" }],
+        has: [{ type: "host", value: "sienovo.jytech.us" }],
         destination: "https://intl.sienovo.cn/:path*",
         permanent: true,
       },
