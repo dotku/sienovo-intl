@@ -32,7 +32,7 @@ async function main() {
     targetDomains: "", // we let Apollo's industry+title+geo filter do the work
     senderName: "Leo from Sienovo",
     senderEmail: "leo@sienovo.cn",
-    replyTo: "leo.liu@jytech.us",
+    replyTo: "collin.liu@sienovo.cn",
     productFocus:
       "INT-AIBOX-P-8 for smart gas station safety — real-time smoking detection, phone-use-while-pumping alerts, intrusion/loitering after hours, and fire/smoke detection at fuel islands.",
     aiContext:

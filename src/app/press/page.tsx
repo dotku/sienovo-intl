@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   },
 };
 
-const MEDIA_EMAIL = "leo.liu@jytech.us";
+const MEDIA_EMAIL = "collin.liu@sienovo.cn";
 const YOUTUBE_CHANNEL = "https://www.youtube.com/@dk_wholesale";
 
 const BOILERPLATE_PARAGRAPHS = [

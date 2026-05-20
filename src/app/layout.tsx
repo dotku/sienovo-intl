@@ -140,7 +140,7 @@ export default function RootLayout({
               },
               contactPoint: {
                 "@type": "ContactPoint",
-                email: "leo.liu@jytech.us",
+                email: "collin.liu@sienovo.cn",
                 contactType: "sales",
               },
             }),

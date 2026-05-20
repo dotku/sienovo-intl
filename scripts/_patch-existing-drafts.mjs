@@ -4,7 +4,7 @@ import pg from "pg";
 
 const SIGNATURE_HTML = `<p>Best,</p>
 <p>Leo from Sienovo</p>
-<p style="font-size:12px;color:#666;line-height:1.5"><a href="https://intl.sienovo.cn" style="color:#666">intl.sienovo.cn</a> &middot; <a href="mailto:leo.liu@jytech.us" style="color:#666">leo.liu@jytech.us</a></p>
+<p style="font-size:12px;color:#666;line-height:1.5"><a href="https://intl.sienovo.cn" style="color:#666">intl.sienovo.cn</a> &middot; <a href="mailto:collin.liu@sienovo.cn" style="color:#666">collin.liu@sienovo.cn</a></p>
 <p style="font-size:11px;color:#999;line-height:1.4">P.S. Not the right contact? Reply with "remove" and I won't email again.</p>`;
 
 function normalize(html) {

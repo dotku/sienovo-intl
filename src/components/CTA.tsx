@@ -69,7 +69,7 @@ export default function CTA() {
             {t.scheduleDemo}
           </a>
           <span className="text-gray-500 text-sm">or</span>
-          <a href="mailto:leo.liu@jytech.us" className="text-accent hover:underline text-sm">leo.liu@jytech.us</a>
+          <a href="mailto:collin.liu@sienovo.cn" className="text-accent hover:underline text-sm">collin.liu@sienovo.cn</a>
         </div>
       </div>
     </section>

@@ -62,7 +62,7 @@ const SIGNATURE_HTML = `
 <p>Leo from Sienovo</p>
 <p style="font-size:12px;color:#666;line-height:1.5">
   <a href="https://intl.sienovo.cn" style="color:#666">intl.sienovo.cn</a> &middot;
-  <a href="mailto:leo.liu@jytech.us" style="color:#666">leo.liu@jytech.us</a>
+  <a href="mailto:collin.liu@sienovo.cn" style="color:#666">collin.liu@sienovo.cn</a>
 </p>
 <p style="font-size:11px;color:#999;line-height:1.4">P.S. Not the right contact? Reply with "remove" and I won't email again.</p>`.trim();
 
@@ -123,7 +123,7 @@ async function geminiDraft(contact, campaign, step, prevSubject) {
  * Defensive post-processor: strip whatever sign-off / signature / P.S. the
  * model wrote (it shouldn't, per the prompt, but rule-following on style
  * is unreliable) and append our canonical SIGNATURE_HTML so every email
- * has the same name + intl.sienovo.cn link + leo.liu@jytech.us + opt-out.
+ * has the same name + intl.sienovo.cn link + collin.liu@sienovo.cn + opt-out.
  */
 function normalizeSignoff(html) {
   let body = html.trim();
