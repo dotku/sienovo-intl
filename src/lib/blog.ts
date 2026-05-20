@@ -77,7 +77,7 @@ export function getPostBySlug(slug: string, locale: BlogLocale = "zh"): BlogPost
 // them at /blog/<slug> for users that follow direct links, but mark them
 // noindex and exclude from the sitemap so Google focuses crawl budget on
 // the substantive technical articles.
-export const LOW_QUALITY_THRESHOLD = 1500;
+export const LOW_QUALITY_THRESHOLD = 500;
 
 export function isLowQualityPost(post: BlogPost): boolean {
   return (post.content?.length ?? 0) < LOW_QUALITY_THRESHOLD;

@@ -5,15 +5,87 @@ slug: "6797596"
 tags: ["#Unix", "#Linux", "#Programming", "#FreeBSD", "#Function", "#Reference"]
 source: "https://blog.csdn.net/yeyuangen/article/details/6797596"
 originalTitle: "linux下《UNIX环境高级编程》(apue2)源码编译出错的处理方法汇总"
----
 
-**Troubleshooting Compilation Errors for 《Advanced Programming in the UNIX Environment》(APUE2) Source Code on Linux**
-Source: [http://www.diybl.com/course/3\_program/c++/cppjs/2008617/126036.html](http://www.diybl.com/course/3_program/c++/cppjs/2008617/126036.html)
+expanded: true
+---
+## Troubleshooting Compilation Errors for 《Advanced Programming in the UNIX Environment》(APUE2) Source Code on Linux
+
+### Introduction
 
 I believe many friends, like me, who are eager to learn Unix programming, might have been disheartened when they excitedly got their hands on 《Advanced Programming in the UNIX Environment》, only to encounter a slew of errors when trying to compile the first example, `myls`. Today, I'm writing down the solutions, partly for my own record, and partly to help others who are struggling with the same issues to quickly enter the wonderful world of Linux. (Linux systems only)
 
-First, you need to `make` the source code once.
+### Troubleshooting Compilation Errors
 
-Edit `Make.defines.linux` located in the `apue.2e` folder, which is generated after extracting the source code.
+The compilation errors in the APUE2 source code can be resolved by following these steps:
 
-Change `WKDIR=/home/var/apue.2e` to your `apue.2e` directory. For example, if my AP
+1.  First, you need to `make` the source code once.
+2.  Edit `Make.defines.linux` located in the `apue.2e` folder, which is generated after extracting the source code.
+3.  Change `WKDIR=/home/var/apue.2e` to your `apue.2e` directory. For example, if my APUE source code is extracted to `/usr/local/apue.2e`, I would change it to `WKDIR=/usr/local/apue.2e`.
+4.  Then, enter the `apue.2e/std` directory and edit `linux.mk`. Replace all instances of `nawk` with `awk`.
+5.  Finally, return to the `apue.2e` directory and execute the `make` command.
+
+### Error 1: `apue.h` Not Found
+
+If you encounter the following error:
+
+`myls.c:1:19: apue.h: No such file or directory`
+
+`myls.c: In function ‘main’:`
+
+`myls.c:13: error: ‘NULL’ undeclared (first use in this function)`
+
+`myls.c:13: error: (Each undeclared identifier is reported only once`
+
+`myls.c:13: error: for each function it appears in.)`
+
+The solution is to copy `apue.h` to the system's default header file directory:
+
+`$cp /usr/local/apue.2e/include/apue.h /usr/include`
+
+### Error 2: Undefined Reference to `err_quit` and `err_sys`
+
+If you encounter the following error:
+
+`/tmp/ccBBopm0.o(.text+0x2b): In function ‘main’:`
+
+`: undefined reference to ‘err_quit’`
+
+`/tmp/ccBBopm0.o(.text+0x5f): In function ‘main’:`
+
+`: undefined reference to ‘err_sys’`
+
+`collect2: ld returned 1 exit status`
+
+The solution is to create a new header file `myerr.h` in the `/usr/include` directory and copy the contents of the original `apue.h` file into it.
+
+### Understanding the Compilation Process
+
+The APUE2 source code compilation process can be complex, but understanding the basics can help you troubleshoot issues. Here are some key points to note:
+
+*   The `make` command is used to build the source code.
+*   The `Make.defines.linux` file contains system-specific settings, including the `WKDIR` variable, which specifies the location of the `apue.2e` directory.
+*   The `linux.mk` file contains Makefile rules for building the source code.
+*   The `apue.h` header file contains definitions for the APUE2 library.
+*   The `err_quit` and `err_sys` functions are used for error handling.
+
+### Compiling Individual Source Files
+
+If you want to compile individual source files, you can follow these steps:
+
+1.  First, make sure you have the `libapue.a` library file in the `lib` directory.
+2.  Then, modify the `apue.h` header file to include the correct path to the `apue.h` file.
+3.  Finally, compile the source file using the `gcc` command, including the `libapue.a` library file.
+
+For example, to compile the `fig1.3` source file, you would use the following command:
+
+`$gcc fig1.3.c lib/libapue.a`
+
+This will generate a executable file called `a.out`. You can then run the executable file using the following command:
+
+`$./a.out /home`
+
+This will list the files and directories in the `/home` directory.
+
+### Conclusion
+
+Troubleshooting compilation errors in the APUE2 source code can be challenging, but by following the steps outlined in this article, you should be able to resolve common issues. Remember to always check the `Make.defines.linux` file and the `linux.mk` file for system-specific settings, and to include the correct path to the `apue.h` header file when compiling individual source files.

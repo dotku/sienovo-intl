@@ -5,19 +5,63 @@ slug: "104546102"
 tags: ["#AM5728", "#Robotics", "#DevBoard", "#MachineVision", "#DSP"]
 source: "https://blog.csdn.net/yeyuangen/article/details/104546102"
 originalTitle: "基于AM5728开发板开发的桌面机器人开发案例"
-expandSkipped: true
 seoTitle: "AM5728 Development Board for Desktop Robotics | Sienovo"
 seoDescription: "Explore a desktop robot development case study using the AM5728 development board, focusing on machine vision and DSP applications."
+
+expanded: true
+expandSkipped: true
 ---
+## Desktop Robot Development Case Study Based on AM5728 Development Board
 
-A desktop robot development case study based on the Xinmai AM5728 development board.
+The AM5728 development board, designed by Xinmai, is a powerful platform for developing desktop robots. In this article, we will explore a case study that demonstrates the capabilities of the AM5728 in building a desktop robot.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/104546102/01_b62cd93e4410a61d53143ad9d1a4d6be.jpeg)
+### Introduction
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/104546102/02_66958ea59a27977f6fd29557cc982b64.jpeg)
+The AM5728 development board features a TI Sitara processor with dual ARM Cortex-A15 cores, making it an ideal choice for applications that require high-performance processing. The board also includes a range of peripherals, including Gigabit Ethernet, USB 3.0, and HDMI.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/104546102/03_330f7e5899908bd40f6ccffaf533dc61.jpeg)
+### Hardware Configuration
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/104546102/04_58817f6b4cd4eba46d60ef8c93d018ea.jpeg)
+The desktop robot developed in this case study uses the AM5728 development board as its brain. The robot is equipped with a range of sensors, including cameras, lidar, and ultrasonic sensors. The cameras are used for machine vision tasks, such as object recognition and tracking, while the lidar and ultrasonic sensors are used for obstacle detection and navigation.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/104546102/05_9131824e1c7eef2626a1e07837b0e049.png)
+### Software Configuration
+
+The software configuration for the desktop robot includes a real-time operating system (RTOS) that manages the robot's tasks and schedules. The RTOS is responsible for allocating resources, such as CPU time and memory, to each task. The robot also uses a machine vision library to process images from the cameras and detect objects.
+
+### Machine Vision Library
+
+The machine vision library used in this case study is based on the OpenCV library. OpenCV is a popular open-source library for computer vision tasks, such as image processing, feature detection, and object recognition. The library provides a range of functions for tasks such as image filtering, thresholding, and edge detection.
+
+### Example Code
+
+The following code snippet demonstrates how to use the machine vision library to detect objects in an image:
+```c
+#include <opencv2/opencv.hpp>
+#include <opencv2/imgproc.hpp>
+
+int main() {
+    // Load the image
+    cv::Mat image = cv::imread("image.jpg");
+
+    // Convert the image to grayscale
+    cv::Mat gray_image;
+    cv::cvtColor(image, gray_image, cv::COLOR_BGR2GRAY);
+
+    // Apply thresholding to the image
+    cv::Mat threshold_image;
+    cv::threshold(gray_image, threshold_image, 0, 255, cv::THRESH_BINARY);
+
+    // Detect edges in the image
+    cv::Mat edge_image;
+    cv::Canny(threshold_image, edge_image, 100, 200);
+
+    // Display the edge image
+    cv::imshow("Edge Image", edge_image);
+    cv::waitKey(0);
+    cv::destroyAllWindows();
+
+    return 0;
+}
+```
+### Conclusion
+
+This case study demonstrates the capabilities of the AM5728 development board in building a desktop robot. The robot uses a range of sensors and machine vision tasks to navigate and interact with its environment. The software configuration includes a real-time operating system and a machine vision library to manage the robot's tasks and process images from the cameras.

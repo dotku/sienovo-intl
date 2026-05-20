@@ -5,8 +5,48 @@ slug: "45032199"
 tags: ["#Multithreading"]
 source: "https://blog.csdn.net/yeyuangen/article/details/45032199"
 originalTitle: "多线程编程总结"
+
+expanded: true
 ---
+## Understanding Multithreaded Programming with pthread_join
 
-1. The role of pthread_join
+Multithreaded programming is a fundamental concept in concurrent programming, allowing a program to execute multiple threads or flows of execution concurrently. This can significantly improve the responsiveness and efficiency of a program, especially when dealing with computationally intensive tasks. However, multithreaded programming also introduces complexities, such as synchronization and thread management. In this article, we will explore the role of `pthread_join` in ensuring that created threads have the opportunity to execute.
 
-Without pthread_join in the code, the main thread may terminate quickly, causing the entire process to exit, which in turn terminates all created threads before they even have a chance to start executing. By adding pthread_join, the main thread will wait indefinitely until the targeted thread completes its execution, ensuring that the created thread has the opportunity to run.
+### The Importance of pthread_join
+
+In multithreaded programming, threads are created and managed using the POSIX Threads library, which provides a set of APIs for thread creation, synchronization, and management. One of the critical functions in this library is `pthread_join`, which allows a thread to wait for the completion of another thread. Without `pthread_join` in the code, the main thread may terminate quickly, causing the entire process to exit. This can result in created threads terminating before they even have a chance to start executing.
+
+### The Role of pthread_join
+
+To understand the role of `pthread_join`, let's consider an example. Suppose we create a thread using `pthread_create` and want to ensure that it has the opportunity to execute before the main thread terminates. Without `pthread_join`, the main thread will terminate quickly, and the created thread will be terminated before it can start executing. However, by adding `pthread_join`, the main thread will wait indefinitely until the targeted thread completes its execution. This ensures that the created thread has the opportunity to run and execute its tasks.
+
+### Example Code
+
+Here is an example code snippet that demonstrates the use of `pthread_join`:
+```c
+#include <pthread.h>
+
+void* thread_func(void* arg) {
+    // Thread function code here
+    printf("Thread is executing\n");
+    return NULL;
+}
+
+int main() {
+    pthread_t thread;
+    pthread_create(&thread, NULL, thread_func, NULL);
+
+    // Without pthread_join, the main thread will terminate quickly
+    // pthread_join(thread, NULL);
+
+    // With pthread_join, the main thread will wait indefinitely
+    pthread_join(thread, NULL);
+
+    return 0;
+}
+```
+In this example, we create a thread using `pthread_create` and pass a function pointer to the thread function. Without `pthread_join`, the main thread will terminate quickly, and the created thread will be terminated before it can start executing. However, by adding `pthread_join`, the main thread will wait indefinitely until the targeted thread completes its execution.
+
+### Conclusion
+
+In conclusion, `pthread_join` plays a critical role in ensuring that created threads have the opportunity to execute in multithreaded programming. By adding `pthread_join` to the code, the main thread will wait indefinitely until the targeted thread completes its execution, allowing the created thread to run and execute its tasks. This is an essential concept for concurrent programming and is widely used in various applications, including operating systems, web servers, and database systems.

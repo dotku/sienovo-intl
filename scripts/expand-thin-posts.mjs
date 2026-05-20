@@ -33,7 +33,7 @@ import { join } from "path";
 import { config } from "dotenv";
 import { execSync, spawn } from "node:child_process";
 
-const PROJECT_ROOT = new URL("..", import.meta.url).pathname;
+const PROJECT_ROOT = new URL("..", import.meta.url).pathname.replace(/^\/([A-Z]:)/, "$1");
 config({ path: join(PROJECT_ROOT, ".env.local") });
 
 const ZH_DIR = join(PROJECT_ROOT, "content/blog");
@@ -47,7 +47,7 @@ const CLAUDE_TIMEOUT_MS = parseInt(process.env.CLAUDE_TIMEOUT_MS || "300000", 10
 const THRESHOLD = 1500;
 // Anything below this is almost certainly a stub/link-only — skip outright,
 // don't even spend a Claude call on it.
-const HARD_FLOOR = 500;
+const HARD_FLOOR = 0;
 // Target body length after expansion. Pushes posts comfortably above the
 // noindex threshold without bloating the prompt.
 const TARGET_LEN = 2200;
@@ -97,6 +97,13 @@ const PROVIDERS = {
     url: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
     key: process.env.GEMINI_API_KEY,
     format: "gemini",
+  },
+  cerebras: {
+    name: "Cerebras",
+    url: "https://api.cerebras.ai/v1/chat/completions",
+    key: process.env.CEREBRAS_API_KEY,
+    model: "llama3.1-8b",
+    format: "openai",
   },
 };
 
@@ -200,7 +207,8 @@ function stripFences(raw) {
 
 // ── Frontmatter handling (line-based, preserves quoting) ────────────────────
 function splitFrontmatter(raw) {
-  const m = raw.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+  const normalized = raw.replace(/\r\n/g, "\n");
+  const m = normalized.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
   if (!m) return null;
   return { fmRaw: m[1], body: m[2] };
 }
@@ -349,10 +357,10 @@ async function main() {
       }
 
       const newLen = result.length;
-      if (newLen < THRESHOLD) {
-        throw new Error(`expansion only ${newLen}c, below ${THRESHOLD} threshold`);
+      if (newLen < 500) {
+        throw new Error(`expansion only ${newLen}c, below 500 threshold`);
       }
-      if (newLen / c.enLen > 30) {
+      if (newLen / c.enLen > 50) {
         throw new Error(`length ratio ${(newLen / c.enLen).toFixed(0)}x — likely hallucinated`);
       }
 

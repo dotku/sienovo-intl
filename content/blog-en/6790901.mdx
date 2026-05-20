@@ -5,8 +5,23 @@ slug: "6790901"
 tags: ["#socket", "#server", "#TCP"]
 source: "https://blog.csdn.net/yeyuangen/article/details/6790901"
 originalTitle: "socket通信，TCP协议，有多个客户端，服务器怎么向指定IP及端口的客户端发送数据！"
+
+expanded: true
 ---
+## Socket Communication with TCP Protocol: Sending Data to a Specific Client by IP and Port
 
-1. The server remains in a waiting state. When a socket connection is established, it obtains the endpoint address of the connected peer. Each client has a unique endpoint address.  
+When working with socket communication using the TCP protocol, understanding how a server sends data to a specific client by IP and port is crucial. In this article, we will delve into the details of how a server obtains the endpoint address of a connected client and how it handles multiple clients connected simultaneously.
 
-2. If the client connects directly without calling bind, the system assigns a random port to the client.
+### Obtaining the Endpoint Address of a Connected Client
+
+When a socket connection is established, the server remains in a waiting state until it receives a connection request from a client. Once the connection is established, the server obtains the endpoint address of the connected peer. This endpoint address is unique for each client and consists of both the IP address and the port number.
+
+### Randomly Assigned Ports when Directly Connecting without bind
+
+If a client connects directly to the server without calling the `bind` function, the system assigns a random port to the client. This is because the `bind` function is used to specify the local IP address and port number that the server will use to listen for incoming connections. Without calling `bind`, the system automatically assigns a random port to the client, which can lead to unpredictable behavior and potential issues with connection management.
+
+### Implications for Server-Client Communication
+
+Understanding how the server obtains the endpoint address of a connected client and how it handles multiple clients connected simultaneously is essential for efficient and reliable communication between the server and its clients. By using the `bind` function to specify the local IP address and port number, servers can ensure that they are listening for incoming connections on a specific port and can manage connections more effectively.
+
+In summary, when working with socket communication using the TCP protocol, it is essential to understand how the server obtains the endpoint address of a connected client and how it handles multiple clients connected simultaneously. By using the `bind` function to specify the local IP address and port number, servers can ensure reliable and efficient communication with their clients.

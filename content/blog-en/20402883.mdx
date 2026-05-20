@@ -5,9 +5,16 @@ slug: "20402883"
 tags: ["#Binary", "#BitManipulation", "#InterviewQuestion", "#Programming"]
 source: "https://blog.csdn.net/yeyuangen/article/details/20402883"
 originalTitle: "【面试】二进制妙用"
----
 
-1. Determine the return value of the following function (Microsoft)
+expanded: true
+---
+## Counting Set Bits with Binary Operations
+
+In this article, we will explore a clever use of binary operations to count the number of set bits in a given integer. This technique is often used in programming interviews and is a fundamental concept in computer science.
+
+The function in question is a simple C function that takes an integer `x` as input and returns the number of set bits (1s) in its binary representation. The function uses a while loop to repeatedly apply a binary operation to `x` until it becomes 0.
+
+### The Function
 
 ```c
 int func( x )
@@ -22,8 +29,42 @@ int func( x )
 }
 ```
 
-Approach: Convert x to its binary representation and count the number of set bits (1s).
+### Approach
 
-For example, if x=6, the answer is 2;
+The approach used in this function is based on the observation that the binary representation of a number can be manipulated using bitwise operations. Specifically, the expression `x&(x-1)` is used to clear the least significant set bit in `x`. This is because when `x` is subtracted by 1, the least significant set bit becomes 0, and the bitwise AND operation with `x` then clears this bit.
 
-If x=9999, the answer is 8.
+### Example Use Cases
+
+Let's consider two examples to illustrate how this function works.
+
+#### Example 1: x = 6
+
+The binary representation of 6 is `0110`. When we apply the binary operation `x&(x-1)`, we get:
+
+* `6 - 1 = 5` (`0101`)
+* `6 & 5 = 4` (`0100`)
+
+We repeat this process until `x` becomes 0:
+
+* `4 - 1 = 3` (`0011`)
+* `4 & 3 = 0` (`0000`)
+
+The function returns the count of set bits, which is 2.
+
+#### Example 2: x = 9999
+
+The binary representation of 9999 is `10011111111111`. When we apply the binary operation `x&(x-1)`, we get:
+
+* `9999 - 1 = 9998` (`10011111111110`)
+* `9999 & 9998 = 9998` (`10011111111110`)
+
+We repeat this process until `x` becomes 0:
+
+* `...`
+* `...`
+
+The function returns the count of set bits, which is 8.
+
+### Conclusion
+
+In this article, we have explored a clever use of binary operations to count the number of set bits in a given integer. This technique is a fundamental concept in computer science and is often used in programming interviews. By understanding how bitwise operations can be used to manipulate binary representations, we can write more efficient and effective code.

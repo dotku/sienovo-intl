@@ -5,25 +5,34 @@ slug: "92718549"
 tags: ["#AM5728", "#FactoryTest", "#eMMC"]
 source: "https://blog.csdn.net/yeyuangen/article/details/92718549"
 originalTitle: "AM5728核心板出厂测试笔记"
+
+expanded: true
 ---
+## AM5728 Core Board Factory Test Notes
 
-1. eMMC Formatting
+When working with industrial computing boards, thorough testing and validation are crucial to ensure reliable operation and prevent potential issues. In this article, we will cover the factory test notes for the AM5728 core board, including eMMC formatting, power testing, and SPI flash flashing.
 
-Reference: eMMC mounting, partitioning, and formatting [https://blog.csdn.net/u011975319/article/details/51803126](https://blog.csdn.net/u011975319/article/details/51803126)
+### eMMC Formatting
 
-1. Use a multimeter to check for power short circuits on the board.
+Before proceeding with the factory test, it's essential to format the eMMC storage. The eMMC mounting, partitioning, and formatting process is well-documented in the article "eMMC mounting, partitioning, and formatting" by [https://blog.csdn.net/u011975319/article/details/51803126](https://blog.csdn.net/u011975319/article/details/51803126). For the purpose of this article, we will assume that the eMMC has been properly formatted.
 
-2. Check if the input terminal power voltage and signal sequence are correct.
+### Power Testing
 
-3. After powering on, use a multimeter or oscilloscope to test if the voltage at various power test points on the board is correct. ------ Q1 is not conducting, so D1 (LED) is not lit. R9 resistance needs to be adjusted.
+The first step in the factory test is to check for power short circuits on the board using a multimeter. It's also essential to verify that the input terminal power voltage and signal sequence are correct. After powering on the board, use a multimeter or oscilloscope to test the voltage at various power test points. In this case, Q1 is not conducting, which means that the LED (D1) is not lit. To resolve this issue, the resistance value of R9 needs to be adjusted.
 
-4. Remove R330, R333, R328, R334. In the Windows system's sb_loader directory (cmd terminal), enter the command `sb_loader -f u-boot(2G).imx`. Use the sb_loader tool to flash the `u-boot(2G).imx` file into the board.
+### Removing Resistors and Flashing U-Boot
 
-5. Internal eFuse ------ For detailed operation methods, refer to the chapter 'IMX6 Internal eFuse Blowing'.
+To proceed with the test, remove R330, R333, R328, and R334. Then, navigate to the Windows system's sb_loader directory (cmd terminal) and enter the command `sb_loader -f u-boot(2G).imx`. This will use the sb_loader tool to flash the `u-boot(2G).imx` file into the board.
 
-6. SPI Flash Flashing File
+### Internal eFuse Blowing
 
-```
+For detailed operation methods on internal eFuse blowing, refer to the chapter 'IMX6 Internal eFuse Blowing'.
+
+### SPI Flash Flashing File
+
+To flash the SPI flash file, follow these steps:
+
+```bash
 > fatload mmc 0 10800000 u-boot.imx
 or ext4load mmc 2 10800000 u-boot.imx
 > sf probe
@@ -31,4 +40,7 @@ or ext4load mmc 2 10800000 u-boot.imx
 > sf write 10800000 0x400 $filesize
 > reset
 ```
-7. Insert the SDCARD boot card and power on again.
+
+### Final Steps
+
+After completing the SPI flash flashing process, insert the SDCARD boot card and power on the board again. This will complete the factory test notes for the AM5728 core board.

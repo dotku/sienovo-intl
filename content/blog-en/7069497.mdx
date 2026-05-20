@@ -5,8 +5,84 @@ slug: "7069497"
 tags: ["#Algorithm"]
 source: "https://blog.csdn.net/yeyuangen/article/details/7069497"
 originalTitle: "二叉树遍历的递归实现图解"
+
+expanded: true
 ---
+## Illustrated Explanation of Recursive Binary Tree Traversal
 
-[http://jsj.ccut.edu.cn/sjjgweb/index.php?option=com\_content&task=view&id=685](http://http://jsj.ccut.edu.cn/sjjgweb/index.php?option=com_content&task=view&id=685)
+Binary tree traversal is a fundamental operation in computer science, serving as the basis for various binary tree operations. Understanding the implementation process of binary tree traversal is essential to grasp the concepts of binary trees. In this article, we will delve into the recursive implementation of binary tree traversal, using the in-order traversal algorithm as an example.
 
-Binary tree traversal is fundamental to various binary tree operations, so it is essential to deeply understand its implementation process. Taking the binary tree shown in Figure 5-8 as an example, the execution process of the in-order traversal algorithm is illustrated in Figure 5-9.
+### Introduction to Binary Trees
+
+A binary tree is a data structure in which each node has at most two children, referred to as the left child and the right child. This structure allows for efficient storage and retrieval of data. Binary trees are commonly used in algorithms, data storage, and database systems.
+
+### In-Order Traversal Algorithm
+
+The in-order traversal algorithm visits the left subtree, the current node, and then the right subtree. This process is recursive, meaning that the algorithm calls itself for each subtree. The in-order traversal algorithm is essential in binary tree operations, such as searching, inserting, and deleting nodes.
+
+### Recursive Implementation of In-Order Traversal
+
+The recursive implementation of the in-order traversal algorithm can be represented as a function that takes a node as input and returns a list of node values in the order they are visited. Here is a step-by-step example of the recursive implementation:
+
+1.  If the input node is `NULL`, return an empty list.
+2.  Recursively call the function on the left subtree of the input node.
+3.  Append the value of the input node to the list of node values.
+4.  Recursively call the function on the right subtree of the input node.
+
+### Example Implementation in C
+
+Here is an example implementation of the recursive in-order traversal algorithm in C:
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+// Define the structure for a binary tree node
+typedef struct Node {
+    int value;
+    struct Node* left;
+    struct Node* right;
+} Node;
+
+// Function to create a new binary tree node
+Node* createNode(int value) {
+    Node* node = (Node*) malloc(sizeof(Node));
+    node->value = value;
+    node->left = NULL;
+    node->right = NULL;
+    return node;
+}
+
+// Function to perform in-order traversal recursively
+void inOrderTraversal(Node* node, int* result) {
+    if (node == NULL) {
+        return;
+    }
+
+    inOrderTraversal(node->left, result);
+    *result = node->value;
+    inOrderTraversal(node->right, result);
+}
+
+int main() {
+    // Create a sample binary tree
+    Node* root = createNode(5);
+    root->left = createNode(3);
+    root->right = createNode(7);
+    root->left->left = createNode(2);
+    root->left->right = createNode(4);
+    root->right->left = createNode(6);
+    root->right->right = createNode(8);
+
+    int result = 0;
+    inOrderTraversal(root, &result);
+
+    printf("In-order traversal: %d\n", result);
+
+    return 0;
+}
+```
+This implementation demonstrates the recursive nature of the in-order traversal algorithm, visiting the left subtree, the current node, and then the right subtree.
+
+### Conclusion
+
+In this article, we explored the recursive implementation of binary tree traversal using the in-order traversal algorithm as an example. Understanding the implementation process of binary tree traversal is essential to grasp the concepts of binary trees. The recursive implementation of the in-order traversal algorithm can be represented as a function that takes a node as input and returns a list of node values in the order they are visited. This implementation can be used as a building block for more complex binary tree operations.

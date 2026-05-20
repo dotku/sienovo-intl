@@ -5,8 +5,66 @@ slug: "8095539"
 tags: ["#c", "#linux"]
 source: "https://blog.csdn.net/yeyuangen/article/details/8095539"
 originalTitle: "二分查找实现 C代码"
+
+expanded: true
 ---
+## Binary Search Implementation (C Code)
 
-[http://blog.chinaunix.net/uid-21457204-id-3086480.html](http://blog.chinaunix.net/uid-21457204-id-3086480.html)[Binary Search Implementation (C Code)](http://blog.chinaunix.net/uid-21457204-id-3086480.html)
+Binary search is a fast search algorithm that finds the position of a target value within a sorted array. It compares the target value to the middle element of the array and eliminates half of the array from consideration at each step. This process continues until the target value is found or the search space is empty. In this article, we will explore a C code implementation of binary search.
 
-This link provides Linux source code for download, which is a good choice for beginners.
+### Introduction
+
+Binary search is particularly useful when dealing with large datasets, as it has a time complexity of O(log n), making it much faster than linear search (O(n)) for large datasets. However, it requires the data to be sorted, which can be a significant overhead in some cases.
+
+### Implementation
+
+Here is a simple C code implementation of binary search:
+```c
+#include <stdio.h>
+
+int binary_search(int arr[], int n, int target) {
+    int left = 0;
+    int right = n - 1;
+
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+
+        if (arr[mid] == target) {
+            return mid;
+        } else if (arr[mid] < target) {
+            left = mid + 1;
+        } else {
+            right = mid - 1;
+        }
+    }
+
+    return -1; // not found
+}
+
+int main() {
+    int arr[] = {2, 5, 8, 12, 16, 23, 38, 56, 72, 91};
+    int n = sizeof(arr) / sizeof(arr[0]);
+    int target = 23;
+
+    int result = binary_search(arr, n, target);
+
+    if (result != -1) {
+        printf("Target found at index %d\n", result);
+    } else {
+        printf("Target not found\n");
+    }
+
+    return 0;
+}
+```
+### Explanation
+
+The `binary_search` function takes three parameters: the array to search, the size of the array, and the target value to find. It uses two pointers, `left` and `right`, to represent the search space. The function iteratively calculates the middle index of the search space and compares the middle element to the target value. If the middle element is equal to the target value, the function returns the middle index. If the middle element is less than the target value, the function updates the `left` pointer to point to the element after the middle element. If the middle element is greater than the target value, the function updates the `right` pointer to point to the element before the middle element. The function continues this process until the target value is found or the search space is empty.
+
+### Example Use Case
+
+The `main` function demonstrates how to use the `binary_search` function to find a target value in a sorted array. The array is defined as `arr[]`, and the target value is defined as `target`. The function calls `binary_search` with the array, its size, and the target value, and prints the result. If the target value is found, the function prints the index of the target value. If the target value is not found, the function prints a message indicating that the target value is not found.
+
+### Conclusion
+
+Binary search is a fast and efficient search algorithm that is particularly useful when dealing with large datasets. The C code implementation of binary search provided in this article demonstrates how to use the algorithm to find a target value in a sorted array. With this implementation, developers can quickly and easily search large datasets and improve the performance of their applications.

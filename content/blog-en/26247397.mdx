@@ -5,9 +5,39 @@ slug: "26247397"
 tags: []
 source: "https://blog.csdn.net/yeyuangen/article/details/26247397"
 originalTitle: "已知二叉树后序遍历序列是DABEC 中序遍历列是 DEBAC ，它的前序遍历序列是"
----
 
-## Given a binary tree with post-order traversal sequence DABEC and in-order traversal sequence DEBAC, its pre-order traversal sequence is:
+expanded: true
+---
+## Determining the Pre-Order Traversal Sequence of a Binary Tree
+
+Given a binary tree with post-order traversal sequence DABEC and in-order traversal sequence DEBAC, you might be wondering how to find its pre-order traversal sequence. In this article, we will walk you through the step-by-step process of determining the pre-order traversal sequence using the given post-order and in-order traversal sequences.
+
+To start, let's recall the definitions of post-order and in-order traversal:
+
+* Post-order traversal: Left-Right-Root
+* In-order traversal: Left-Root-Right
+
+With these definitions in mind, let's analyze the given post-order traversal sequence DABEC and in-order traversal sequence DEBAC.
+
+### Step 1: Identify the Root Node
+
+From the post-order traversal sequence DABEC, we can see that C is the root node. This is because the post-order traversal sequence starts with the leftmost node, which is D, followed by the rightmost node, which is E, and finally the root node, C.
+
+### Step 2: Determine the Left Subtree
+
+From the in-order traversal sequence DEBAC, we can see that C has no right subtree. Considering the remaining post-order sequence DABE for the left subtree, E is the root node of this left subtree.
+
+### Step 3: Identify the Children of E
+
+From the in-order traversal sequence DEBA of E's subtree, we can see that D is E's left child. From the post-order traversal sequence DAB of E's subtree, B is the root of the remaining right part, thus B must be E's right child.
+
+### Step 4: Determine the Right Subtree of B
+
+From the in-order traversal sequence BA of B's subtree, we can see that A is B's right child.
+
+### Conclusion
+
+By following these steps, we can determine the pre-order traversal sequence of the binary tree. The pre-order traversal sequence is:
 
 ----C
 ---/
@@ -16,9 +46,7 @@ originalTitle: "已知二叉树后序遍历序列是DABEC 中序遍历列是 DEB
 D---B
 -----\\
 ------A
-I know the answer is this... What I want to ask is, why is it drawn this way??
 
-Post-order traversal is: Left-Right-Root. In-order traversal is: Left-Root-Right.
-1. From the post-order traversal (DABEC), C is the root node.
-2. From the in-order traversal (DEBAC), C has no right subtree. Considering the remaining post-order sequence (DABE) for the left subtree, E is the root node of this left subtree.
-3. From the in-order traversal (DEBA) of E's subtree, D is E's left child. From the post-order traversal (DAB) of E's subtree, B is the root of the remaining right part, thus B must be E's right child. From the in-order traversal (BA) of B's subtree, A is B's right child.
+This sequence is obtained by visiting the root node C, followed by its left subtree E, and then its right subtree B, which has D as its left child and A as its right child.
+
+In conclusion, determining the pre-order traversal sequence of a binary tree using post-order and in-order traversal sequences requires a step-by-step approach. By identifying the root node, determining the left subtree, identifying the children of the left subtree, and finally determining the right subtree of the right child, we can obtain the pre-order traversal sequence of the binary tree.

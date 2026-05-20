@@ -5,19 +5,65 @@ slug: "7361976"
 tags: ["#Semaphore", "#Work", "#Communication", "#Activity", "#Tool", "#Testing"]
 source: "https://blog.csdn.net/yeyuangen/article/details/7361976"
 originalTitle: "PV原语操作详解"
+
+expanded: true
 ---
+## Detailed Explanation of PV Primitive Operations
 
-**Detailed Explanation of PV Primitive Operations**
+PV primitives are a fundamental concept in operating systems, used to handle inter-process synchronization and mutual exclusion issues. In this article, we will delve into the details of PV primitives, exploring their core concepts, implementation, and practical applications.
 
-PV primitives handle inter-process synchronization and mutual exclusion issues by operating on semaphores. Their core is an indivisible and uninterruptible program segment.
-The concept of semaphores was proposed in 1965 by the renowned Dutch computer scientist Dijkstra. Its basic idea is to use a new variable type (semaphore) to record the number of currently available resources.
+### What are PV Primitives?
 
-There are two ways to implement semaphores:
+PV primitives are a pair of operations, P (short for "Proberen," the Dutch word for "to test") and V (short for "Verhogen," the Dutch word for "to increase"). These primitives are used to operate on semaphores, which are a type of variable used to control access to shared resources.
 
-1) The value of a semaphore must be greater than or equal to 0. A value of 0 indicates no free resources are currently available, while a positive number indicates the quantity of currently available free resources.
+### Semaphores
 
-2) The value of a semaphore can be positive or negative. The absolute value of a negative number indicates the number of processes currently waiting to enter the critical section.
+Semaphores were first proposed by the renowned Dutch computer scientist Edsger W. Dijkstra in 1965. The basic idea behind semaphores is to use a new variable type to record the number of currently available resources. There are two ways to implement semaphores:
 
-Semaphores are maintained by the operating system, and user processes can only access them through initialization and two standard primitives (P and V primitives). Initialization can specify a non-negative integer, which is the total number of free resources.
+1.  The value of a semaphore must be greater than or equal to 0. A value of 0 indicates no free resources are currently available, while a positive number indicates the quantity of currently available free resources.
+2.  The value of a semaphore can be positive or negative. The absolute value of a negative number indicates the number of processes currently waiting to enter the critical section.
 
-**P primitive**: P is the first letter of the Dutch word "Proberen" (to test). It is a blocking primitive, responsible for changing the current process from a running state to a blocked state until another process wakes it up. The operation is: request a free resource (decrement the semaphore by 1); if successful,
+### P Primitive
+
+The P primitive is a blocking primitive, responsible for changing the current process from a running state to a blocked state until another process wakes it up. The operation is:
+
+1.  Request a free resource (decrement the semaphore by 1).
+2.  If successful, the process continues execution.
+3.  If unsuccessful, the process is blocked and added to the waiting queue.
+
+### V Primitive
+
+The V primitive is a non-blocking primitive, responsible for waking up a blocked process. The operation is:
+
+1.  Release a used resource (increment the semaphore by 1).
+2.  If the semaphore value becomes positive, a blocked process is woken up from the waiting queue.
+
+### Practical Applications of PV Primitives
+
+PV primitives have numerous practical applications in operating systems, including:
+
+1.  **Mutual Exclusion**: PV primitives can be used to implement mutual exclusion, ensuring that only one process can access a shared resource at a time.
+2.  **Synchronization**: PV primitives can be used to synchronize processes, ensuring that they execute in a specific order or within a specific time frame.
+3.  **Resource Allocation**: PV primitives can be used to allocate and deallocate resources, such as memory or I/O devices.
+
+### Example 1: Mutual Exclusion
+
+Consider a scenario where multiple processes need to access a shared resource, such as a file or a database. To implement mutual exclusion, we can use PV primitives as follows:
+
+1.  Initialize a semaphore to 1, indicating that the resource is available.
+2.  When a process needs to access the resource, it decrements the semaphore using the P primitive.
+3.  If the semaphore value becomes 0, the process is blocked and added to the waiting queue.
+4.  When a process finishes accessing the resource, it increments the semaphore using the V primitive, waking up a blocked process.
+
+### Example 2: Synchronization
+
+Consider a scenario where multiple processes need to execute in a specific order. To implement synchronization, we can use PV primitives as follows:
+
+1.  Initialize a semaphore to 0, indicating that the process is not yet synchronized.
+2.  When a process needs to execute, it decrements the semaphore using the P primitive.
+3.  If the semaphore value becomes 1, the process is executed.
+4.  When the process finishes executing, it increments the semaphore using the V primitive, allowing another process to execute.
+
+### Conclusion
+
+In conclusion, PV primitives are a fundamental concept in operating systems, used to handle inter-process synchronization and mutual exclusion issues. By understanding the core concepts, implementation, and practical applications of PV primitives, developers can design and implement efficient and reliable operating systems.
