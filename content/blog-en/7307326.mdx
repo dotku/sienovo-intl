@@ -5,26 +5,56 @@ slug: "7307326"
 tags: ["#Linux", "#LinuxKernel", "#Cache", "#Platform"]
 source: "https://blog.csdn.net/yeyuangen/article/details/7307326"
 originalTitle: "__read_mostly变量含义（LINUX)"
+expanded: true
 ---
+This macro utilizes the `__attribute__((__section__("section_name")))` GCC extension. This attribute instructs the compiler to place the variable into a user-defined section named `.data.read_mostly` instead of the default `.data` (for initialized data) or `.bss` (for uninitialized data) sections.
 
-The `__read_mostly` primitive is defined to be stored in the `.data.read_mostly` section.
+### The Purpose of `__read_mostly`
 
-  include/asm/cache.h
+The primary goal of defining data as `__read_mostly` is stated clearly: "From this, it can be seen that we can define frequently accessed data as `__read_mostly` type. When the Linux kernel is loaded, this data will automatically be stored in the Cache, thereby improving the overall system's execution efficiency."
 
-#define __read_mostly __attribute__((__section__(".data.read_mostly")))  
+To understand this, consider the memory hierarchy in modern computing systems. CPUs operate at very high speeds, but accessing data from main system memory (DRAM) is significantly slower. To bridge this speed gap, CPUs employ multiple levels of cache (L1, L2, L3) that store frequently accessed data closer to the processor. A cache hit (finding data in cache) is much faster than a cache miss (having to fetch data from main memory).
 
-   From this, it can be seen that we can define frequently accessed data as `__read_mostly` type. When the Linux kernel is loaded, this data will automatically be stored in the Cache, thereby improving the overall system's execution efficiency.
+By grouping frequently read data into a specific `.data.read_mostly` section, the kernel, or more precisely, the bootloader and early kernel initialization routines, can potentially:
+1.  **Hint to the MMU/Cache Controller:** Configure the memory region corresponding to `.data.read_mostly` as highly cacheable.
+2.  **Pre-fetch Data:** In some advanced scenarios, a sophisticated bootloader or early kernel code might even pre-fetch portions of this section into the cache, ensuring critical data is immediately available upon kernel execution.
+3.  **Optimize Memory Layout:** Place this section in a memory region that is known to be optimized for cache performance on a specific architecture.
 
-   On the other hand, if the platform does not have a Cache, or if it has a Cache but does not provide an interface for storing data (i.e., it does not allow manual placement of data in the Cache), then data defined as `__read_mostly` type cannot be stored in the Linux kernel. It may even fail to be loaded into system memory for execution, leading to Linux kernel boot failure.
+This strategic placement aims to increase cache hit rates for these critical, frequently accessed kernel data structures, leading to a noticeable improvement in overall system responsiveness and execution efficiency.
 
-   There are two solutions:
+## The `.data.read_mostly` Section and Linker Scripts
 
-   Modify the `__read_mostly` definition in `include/asm/cache.h` to:
+The actual placement of the `.data.read_mostly` section into physical memory is handled by the kernel's linker script, typically `vmlinux.lds` (or an architecture-specific variant like `arch/arm/kernel/vmlinux.lds`). This script defines how different sections (like `.text`, `.data`, `.bss`, `.rodata`, and custom sections like `.data.read_mostly`) are mapped into the virtual and physical memory space of the system.
 
-   #define __read_mostly
+In an ideal setup, the linker script, in conjunction with the bootloader and the hardware's memory management unit (MMU) and cache controller, ensures that data within `.data.read_mostly` resides in a memory region that is optimally configured for caching. This might involve mapping it to a region with specific cache attributes (e.g., write-back, write-allocate) or even to a dedicated, highly optimized memory bank if available on the SoC.
 
-   Or modify `arch/xxx/kernel/vmlinux.S`
+## Platform-Specific Challenges: When Optimization Leads to Failure
 
-   Modify the location of the `.data.read_mostly` section to actual memory space, for example, placing it after the `.data` section, and so on.
+While `__read_mostly` is a powerful optimization, it introduces a dependency on the underlying hardware platform's memory architecture and the bootloader's capabilities. The original article highlights a critical scenario where this optimization can backfire:
 
-  Original URL:   [http://blog.chinaunix.net/u2/85263/showart_1743693.html](http://blog.chinaunix.net/u2/85263/showart_1743693.html)
+"On the other hand, if the platform does not have a Cache, or if it has a Cache but does not provide an interface for storing data (i.e., it does not allow manual placement of data in the Cache), then data defined as `__read_mostly` type cannot be stored in the Linux kernel. It may even fail to be loaded into system memory for execution, leading to Linux kernel boot failure."
+
+Let's break down these conditions:
+
+1.  **Platform without a Cache:** While less common for modern Linux-capable SoCs (which almost universally include caches), very low-end embedded processors or microcontrollers might lack a hardware cache. In such cases, the concept of placing data "into the Cache" becomes moot, and any special handling of the `.data.read_mostly` section based on caching assumptions could lead to issues if the linker script or bootloader attempts to map it to a non-existent or invalid cache-related memory region.
+
+2.  **Platform with Cache but No Interface for Manual Data Placement:** This is a more frequent and subtle issue, especially in diverse embedded hardware. Even if a platform has a CPU cache, the memory management unit (MMU) or cache controller might not expose fine-grained control for explicitly placing specific data into cache lines or configuring specific memory regions with unique cache attributes. More importantly, the bootloader (e.g., U-Boot, custom bootloaders) or the early kernel initialization code might not be designed or configured to handle the `.data.read_mostly` section specially.
+
+    If the linker script attempts to place `.data.read_mostly` in a memory region that:
+    *   Is not properly initialized or mapped by the bootloader.
+    *   Is marked as reserved or inaccessible.
+    *   Is expected to be handled by a non-existent or unconfigured cache mechanism.
+    *   Is simply not a valid physical memory address on that specific platform.
+
+    Then, when the kernel attempts to load or access data from this section during its early boot stages, it will encounter a memory access fault (e.g., a page fault, bus error, or data abort exception). Since many critical kernel data structures are defined with `__read_mostly`, such a fault can occur very early in the boot process, before the kernel has even fully initialized, leading directly to a "Linux kernel boot failure." The system might hang, reboot unexpectedly, or enter an unrecoverable state.
+
+## Troubleshooting and Solutions
+
+When faced with a Linux kernel boot failure attributed to `__read_mostly` on a specific embedded platform, there are two primary solutions, as outlined in the original text:
+
+### Solution 1: Disable `__read_mostly` Optimization
+
+The simplest and most direct solution is to effectively disable the special handling of `__read_mostly` variables.
+
+**Action:**
+Modify the `__read_mostly` definition in `include/asm/cache.h` to:

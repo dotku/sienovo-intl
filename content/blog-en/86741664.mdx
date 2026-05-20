@@ -5,24 +5,103 @@ slug: "86741664"
 tags: ["#CAN", "#Bus"]
 source: "https://blog.csdn.net/yeyuangen/article/details/86741664"
 originalTitle: "一文读懂CAN总线"
+expanded: true
 ---
-
 ## Introduction
 
-The application of CAN bus is becoming increasingly widespread. Our factory's equipment has evolved from the initial ARM9 and ARM7 platforms, through upgrades to Cortex-A8 and Cortex-M3 platforms, and now to the Cortex-M4 platform. We have developed a series of products around CAN, and the stability of the CAN bus is beyond doubt.
+The Controller Area Network (CAN) bus is a robust vehicle bus standard designed to facilitate communication among various electronic components without a host computer. Its applications have grown significantly in industrial and automotive environments due to its reliability and efficiency. This article delves into the physical structure and characteristics of the CAN bus, its signal representation, and key concepts that govern its operation.
 
 ## CAN Bus Physical Structure and Characteristics
 
 ### CAN Bus Network
 
-The CAN bus network primarily relies on CAN_H and CAN_L. Each node achieves serial differential signal transmission through these two lines. To prevent signal reflection and interference, a 120-ohm termination resistor is required between CAN_H and CAN_L. But why 120 ohms? This is because the characteristic impedance of the cable is 120 ohms.
+The CAN bus network operates primarily through two lines: CAN_H (high) and CAN_L (low). These lines enable serial differential signal transmission between nodes. To mitigate signal reflection and interference, it is essential to connect a 120-ohm termination resistor between CAN_H and CAN_L. This specific resistance value is chosen because it matches the characteristic impedance of the cable used in the network, ensuring optimal signal integrity.
 
 ### CAN Transceiver
 
-The function of a CAN transceiver is to convert between logic levels and signal levels.
-
-That is, logic levels are output from the CAN controller chip to the CAN transceiver, which then converts these logic levels into differential signals for output onto the CAN bus. Nodes on the CAN bus can decide whether they need the data on the bus. The specific pin definitions are as follows:
+The CAN transceiver plays a crucial role in the CAN bus system by converting logic levels from the CAN controller chip into differential signals suitable for transmission on the CAN bus. This conversion allows nodes on the bus to determine whether they need to process the data being transmitted. The transceiver ensures effective communication between the controller and the physical bus.
 
 ### Signal Representation
 
-The CAN bus uses Non-Return-to-Zero (NRZ) bit stuffing. This means that signals on the CAN bus have two different states: dominant (logic 0) and recessive (logic 1). After each transmission, the signal does
+The CAN bus employs Non-Return-to-Zero (NRZ) bit stuffing technique, which allows for two distinct signal states: dominant (logic 0) and recessive (logic 1). After each transmission, the signal does not need to return to a logic 0 level. 
+
+**Bit Stuffing Rule**: If the transmitter detects five consecutive bits of the same value, it automatically inserts a complementary bit into the bit stream to maintain synchronization.
+
+The relationship between the differential signal and its logical representation is summarized as follows:
+
+- When the voltage difference between CAN_H and CAN_L is less than 0.5V, the bus is in the recessive state, representing logic 1 (high).
+- When the voltage difference exceeds 0.9V, the bus is in the dominant state, representing logic 0 (low).
+
+This means that if at least one node pulls the bus to a dominant state (logic 0), the entire bus will reflect that state, regardless of the number of nodes in recessive state (logic 1). The bus will only be in the recessive state when all nodes are in that state.
+
+### Communication Rate and Distance
+
+The communication rate of the CAN bus is inversely related to the maximum transmission distance between any two nodes on the bus. The following table outlines the maximum distance based on different bit rates:
+
+| Bit Rate (kbps) | Maximum Distance (m) |
+|------------------|----------------------|
+| 1000             | 40                   |
+| 500              | 130                  |
+| 250              | 270                  |
+| 125              | 530                  |
+| 100              | 620                  |
+| 50               | 1300                 |
+| 20               | 3300                 |
+| 10               | 6700                 |
+| 5                | 10000                |
+
+As observed, lower bit rates allow for longer communication distances. For instance, at a rate of 5 kbps, the maximum distance can reach up to 10 kilometers. In practical applications, a common rate is 500 kbps, which has proven to be reliable in various tests.
+
+If longer distances are required (greater than 10 kilometers), it may be necessary to use multiple CAN controllers or integrate other communication protocols (such as RS-485 or TCP/IP) to meet the distance requirements.
+
+## Key Concepts of the CAN Bus
+
+### Arbitration
+
+When the bus is idle, any node can send a message. However, if multiple nodes attempt to transmit simultaneously, a bus access conflict may occur. CAN uses a bitwise arbitration method based on message identifiers to resolve these conflicts. During arbitration, each transmitter compares its transmitted level with the monitored bus level. If the levels match, the node can continue transmitting. If a node sends a recessive level while detecting a dominant level, it loses arbitration and must cease transmission.
+
+The lower the frame ID, the higher the priority. For example, data frames have a dominant RTR bit, while remote frames are recessive. In cases where the standard frame and extended frame share the same ID, the standard frame takes precedence.
+
+## CAN Bus Protocol
+
+The CAN bus operates as a broadcast network, allowing any node on the bus to listen to the data being transmitted. This means that data transmission is not point-to-point but rather one-to-many. However, how do nodes determine which data is relevant to them? The CAN hardware provides a local filtering function that allows nodes to filter out irrelevant data while retaining pertinent information.
+
+### Message Types
+
+The CAN standard defines four types of messages, each governed by a bitwise arbitration mechanism that controls access to the bus and assigns priority:
+
+- **Data Frame**: Transmits data from the sender to the receiver.
+- **Remote Frame**: Requests the transmission of a data frame with the same identifier.
+- **Error Frame**: Sent by any node that detects a bus error.
+- **Overload Frame**: Used to provide additional delay between adjacent data or remote frames.
+
+### Data Frame Structure
+
+The CAN bus supports two frame formats: standard (CAN 2.0 A) and extended (CAN 2.0 B). The main difference lies in the arbitration field format. The structure of the extended frame includes:
+
+- SOF: Start of Frame
+- SRR: Substitute Remote Request
+- IDE: Identifier Extension
+- RTR: Remote Transmission Request
+- CRC delimiter: CRC Delimiter
+- ACK delimiter: Acknowledgment Delimiter
+
+The basic frame structure can be summarized into several fields:
+
+- **Arbitration Field**: Determines the priority when multiple nodes contend for the bus.
+- **Data Field**: Contains 0 to 8 bytes of data.
+- **CRC Field**: Includes a 15-bit checksum for error detection.
+- **Acknowledgment Slot**: Any node that successfully receives a message sends an acknowledgment bit at the end of each message.
+
+### Error Handling Mechanisms
+
+The CAN protocol incorporates various error detection mechanisms, including:
+
+- **Bit Error**: Occurs when the transmitted bit does not match the monitored bit.
+- **Stuff Error**: Detected when six consecutive bits of the same value are found.
+- **CRC Error**: When the calculated CRC does not match the received CRC.
+- **Form Error**: Invalid bit in a fixed format position.
+
+Each node maintains an error counter to track the number of errors detected. If a node exceeds a certain threshold, it may enter a passive state or bus-off state to prevent further interference with communication.
+
+In summary, the CAN bus is a sophisticated communication protocol that ensures reliable data transmission in complex systems. Understanding its structure, operation, and error handling mechanisms is essential for engineers working with industrial and automotive applications.

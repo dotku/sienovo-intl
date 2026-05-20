@@ -5,11 +5,36 @@ slug: "7065849"
 tags: ["#DataStructures", "#Windows", "#Expansion", "#Compiler", "#Memory", "#OS"]
 source: "https://blog.csdn.net/yeyuangen/article/details/7065849"
 originalTitle: "堆栈区别"
+expanded: true
 ---
+## Stack vs. Heap Differences
 
-Memory occupied by programs compiled with C/C++:
-1. Stack — Automatically allocated and deallocated by the compiler, used to store function parameters, local variable values, etc. Its operation is similar to the stack data structure.
-2. Heap — Generally allocated and deallocated by the programmer. If not deallocated by the programmer, it might be reclaimed by the OS when the program ends. Note that it's different from the heap data structure; its allocation method is more similar to a linked list, haha.
+In this post, we will explore the fundamental differences between stack and heap memory in programs compiled with C/C++. Understanding these differences is crucial for effective memory management and can help prevent common programming errors such as memory leaks and stack overflows.
 
-Stack: In Windows, the stack is a data structure that expands towards lower memory addresses and is a contiguous memory region. This means that the stack's top address and maximum capacity are predetermined by the system. In Windows, the stack size is 2MB (some say 1MB, but it's a compile-time constant). If the requested space exceeds the remaining stack space, an overflow will be prompted. Therefore, the space obtainable from the stack is relatively small.
-Heap: The heap is a data structure that expands towards higher memory addresses and is a non-contiguous memory region. This is because the system uses a linked list to store free memory addresses, which are naturally non-contiguous, and the linked list traversal direction is from lower to higher addresses. The heap size is limited by the effective virtual memory in the computer system. Thus, the space obtainable from the heap is more flexible and larger.
+### Memory Allocation in C/C++
+
+When a program is compiled using C or C++, it utilizes two primary types of memory allocation: stack and heap. Each serves a distinct purpose and has its own characteristics.
+
+1. **Stack Memory**
+   - The stack is automatically allocated and deallocated by the compiler. It is primarily used to store function parameters, local variable values, and return addresses. The stack operates similarly to a stack data structure, following the Last In First Out (LIFO) principle.
+   - In Windows, the stack is a contiguous memory region that expands towards lower memory addresses. The maximum stack size is predetermined by the system, typically set to 2MB (though some sources may state 1MB). This size is a compile-time constant, meaning it cannot be changed during runtime.
+   - If a program attempts to allocate more space on the stack than is available, a stack overflow error will occur. This is why the space obtainable from the stack is relatively limited, making it suitable for small, temporary data.
+
+2. **Heap Memory**
+   - In contrast, the heap is generally allocated and deallocated by the programmer. It is used for dynamic memory allocation, where memory can be requested and released as needed during the program's execution. If the programmer fails to deallocate memory from the heap, it may be reclaimed by the operating system when the program terminates.
+   - The heap is a non-contiguous memory region that expands towards higher memory addresses. This non-contiguity arises because the system uses a linked list to manage free memory addresses. As a result, the available memory on the heap is more flexible and can accommodate larger data structures.
+   - The size of the heap is limited only by the effective virtual memory available in the computer system, allowing for more extensive memory allocation compared to the stack.
+
+### Summary of Key Differences
+
+| Feature               | Stack                          | Heap                           |
+|----------------------|--------------------------------|--------------------------------|
+| Allocation            | Automatic by compiler          | Manual by programmer           |
+| Memory Region         | Contiguous                     | Non-contiguous                 |
+| Growth Direction      | Towards lower addresses        | Towards higher addresses       |
+| Size Limit            | Typically 1MB-2MB (fixed)     | Limited by virtual memory      |
+| Usage                 | Local variables, function calls| Dynamic memory allocation      |
+
+### Conclusion
+
+Understanding the differences between stack and heap memory is essential for effective programming in C/C++. The stack is suitable for temporary storage of small data, while the heap provides flexibility for dynamic memory allocation. By recognizing these distinctions, programmers can make informed decisions about memory management, ultimately leading to more efficient and stable applications.

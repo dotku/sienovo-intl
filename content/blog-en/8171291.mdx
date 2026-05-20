@@ -5,28 +5,51 @@ slug: "8171291"
 tags: []
 source: "https://blog.csdn.net/yeyuangen/article/details/8171291"
 originalTitle: "C角度（一）——任何C程序，可理解为指针指向某一个字符，然后字符匹配"
+expanded: true
 ---
+## C Perspective - Understanding Character Matching in C Programs
 
-C Perspective - Any C program can be understood as a pointer pointing to a character, followed by character matching.
+In this article, we will explore the concept of character matching within C programs, focusing on the simple matching algorithm and the more advanced Knuth-Morris-Pratt (KMP) algorithm. Understanding these algorithms is crucial for anyone involved in string processing or searching tasks in programming.
 
-1) History of Character Matching
+### 1. History of Character Matching
 
-2) Character Matching Algorithms
+Character matching has a rich history in computer science, particularly in the context of string searching. The need for efficient algorithms to find substrings within larger strings has led to the development of various algorithms, each with its own advantages and trade-offs. 
 
-3) Program Implementation
+### 2. Character Matching Algorithms
 
-4) Applications and Interview Question Analysis
+#### I. Simple Matching Algorithm
 
-**I. Simple Matching Algorithm**
+Let's start with a straightforward example to illustrate the simple matching algorithm. Suppose we want to search for the substring T = "abcabd" within the string S = "abcabcabdabba". We can assume a 0-based indexing system for our characters.
 
-For example: To search for T=”abcabd” in string S=”abcabcabdabba” (we can assume 0-based indexing): first compare S[0] and T[0], then S[1] and T[1]... We find that they are equal until S[5] and T[5] are compared and found to be unequal. As shown in the figure:
+1. **Comparison Process**: 
+   We begin by comparing the characters of S and T sequentially:
+   - Compare S[0] with T[0]
+   - Compare S[1] with T[1]
+   - Continue this process until we reach S[5] and T[5], where we find a mismatch.
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/8171291/01_9e2d7a511327402bbc7959c84ebd6f98.jpg)
+   The comparison process can be visualized as follows:
 
-When such a mismatch occurs, the T index must backtrack to the beginning, the S index backtracks to the start of the current comparison, then increments by 1, and the comparison restarts. As shown in the figure:
+   ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/8171291/01_9e2d7a511327402bbc7959c84ebd6f98.jpg)
 
-This time, a mismatch occurred immediately, the T index again backtracked to the beginning, the S index incremented by 1, and the comparison restarted.
+2. **Handling Mismatches**: 
+   When a mismatch occurs, the algorithm requires backtracking:
+   - The index for T resets to the beginning (T[0]).
+   - The index for S backtracks to the start of the current comparison and then increments by 1.
+   - The comparison restarts from the new positions.
 
-The worst-case scenario for the simple matching algorithm is as follows: assuming the source string S has m characters and the target string T has n characters, the worst case involves (m-n)*n comparisons, which occurs when a match is found at the very end of the source string. How can we propose a more "intelligent" and "memory-efficient" algorithm? Let's look at the renowned KMP algorithm proposed by D.E.K. and others.
+   This process continues until either a match is found or all possibilities are exhausted.
 
-II. KMP Algorithm
+3. **Worst-Case Scenario**: 
+   The worst-case time complexity for the simple matching algorithm occurs when the source string S has m characters and the target string T has n characters. In this case, the maximum number of comparisons can reach (m-n)*n. This situation typically arises when the algorithm matches all characters up to the end of S without finding a complete match for T.
+
+### 3. KMP Algorithm
+
+To improve upon the simple matching algorithm's inefficiencies, we turn to the Knuth-Morris-Pratt (KMP) algorithm, which was developed by Donald Knuth, Vaughan Pratt, and James H. Morris. The KMP algorithm enhances the matching process by utilizing information gathered during the matching process to avoid unnecessary comparisons.
+
+The KMP algorithm preprocesses the pattern T to create a "partial match" table (also known as the "prefix" table) that indicates how far to backtrack in T when a mismatch occurs. This allows the algorithm to skip over sections of S that have already been matched, significantly reducing the number of comparisons needed.
+
+### 4. Applications and Interview Question Analysis
+
+Understanding character matching algorithms is not only essential for software development but also a common topic in technical interviews. Questions regarding string searching can often lead to discussions about the simple matching algorithm versus the KMP algorithm, as well as their respective time complexities and use cases.
+
+In summary, character matching is a fundamental concept in programming, particularly in C, where pointers and memory management play a crucial role. By grasping these algorithms, developers can write more efficient code for string searching and manipulation tasks.

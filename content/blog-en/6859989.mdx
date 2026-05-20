@@ -5,16 +5,78 @@ slug: "6859989"
 tags: ["#SearchEngine", "#FullTextSearch", "#Lucene", "#Google", "#Internet", "#Database"]
 source: "https://blog.csdn.net/yeyuangen/article/details/6859989"
 originalTitle: "搜索引擎技术之概要预览"
+expanded: true
 ---
-
-> > > > > #### Overview of Search Engine Technology
+## Overview of Search Engine Technology
 
 #### Foreword
 
-    Recently, I've been quietly reviewing my studies and organizing my thoughts at school (job hunting is on hold for now). In my spare time, I often read articles related to search engine technologies, encountering many concepts and techniques I hadn't touched before, such as web crawling, page fetching, word segmentation, indexing, querying, ranking, and so on. I was particularly amazed by each brilliant architectural diagram, which sparked an urge to document them for future reference.
+Recently, I've been quietly reviewing my studies and organizing my thoughts at school (job hunting is on hold for now). In my spare time, I often read articles related to search engine technologies, encountering many concepts and techniques I hadn't touched before, such as web crawling, page fetching, word segmentation, indexing, querying, ranking, and so on. I was particularly amazed by each brilliant architectural diagram, which sparked an urge to document them for future reference.
 
-    This article begins with the most basic concept of a search engine, moves to the concept of full-text search, explains web spiders, word segmentation technology, system architecture, and ranking (incorporating Google search engine's technical principles), then delves into the principles of image search, and finally concludes with an introduction to several open-source search engine software.
+This article begins with the most basic concept of a search engine, moves to the concept of full-text search, explains web spiders, word segmentation technology, system architecture, and ranking (incorporating Google search engine's technical principles), then delves into the principles of image search, and finally concludes with an introduction to several open-source search engine software.
 
-    As this article is my first foray into search engine technologies, I have **referenced numerous excellent articles and works from experts on the internet. Please forgive any inaccuracies.** Furthermore, due to my limited knowledge and shallow understanding, any questions or errors are welcome to be pointed out. At the same time, I am officially embarking on the study and research of search engine technology. Thank you.
+As this article is my first foray into search engine technologies, I have **referenced numerous excellent articles and works from experts on the internet. Please forgive any inaccuracies.** Furthermore, due to my limited knowledge and shallow understanding, any questions or errors are welcome to be pointed out. At the same time, I am officially embarking on the study and research of search engine technology. Thank you.
 
 #### **1. What is a Search Engine**
+
+A search engine is a system that automatically collects information from the internet and organizes it to provide users with a means to query that information. The vast amount of information available on the internet can be overwhelming and chaotic, resembling numerous small islands in an ocean, with hyperlinks acting as bridges connecting these islands. A search engine serves as a map, allowing users to easily navigate and access information at any time.
+
+The operation of a search engine can be described in simple terms as follows:
+
+1. **Collecting Information**: Initially, a program known as a web spider (or crawler) tracks hyperlinks across the internet. Since every webpage is interconnected through links, the spider starts from an initial webpage and follows these links, traversing from one page to another until it has crawled a significant portion of the web.
+2. **Organizing Information**: The process of organizing the collected information is called **indexing**. The search engine not only stores the information but also organizes it according to specific rules. This allows the search engine to quickly locate the required data without having to re-examine all stored information.
+3. **Accepting Queries**: Users submit queries to the search engine, which processes these requests and returns relevant information. Search engines handle a multitude of simultaneous queries from users, checking their index to find the necessary data and returning results in a very short amount of time.
+
+The processes of organizing information and accepting queries heavily utilize text retrieval techniques and incorporate additional information based on the characteristics of hypertext. The following sections will detail web spiders, word segmentation technology, system architecture, and ranking methods.
+
+#### **2. Web Spiders**
+
+A web spider, also known as a web crawler, is aptly named. If we liken the internet to a spider web, the spider is the program that crawls across the web. It finds webpages by following the links from a specific page (usually the homepage), reading the content, and discovering other links within the page. This process continues until the spider has crawled all the pages on that website. If we consider the entire internet as a single website, a web spider can use this principle to crawl and collect all webpages available online.
+
+When crawling webpages, web spiders typically employ two strategies: breadth-first and depth-first (illustrated below). The breadth-first strategy involves the spider first crawling all the links on the starting webpage before selecting one of those links to continue crawling. This method is commonly used as it allows the spider to process multiple pages simultaneously, enhancing its crawling speed. In contrast, the depth-first strategy involves the spider following one link at a time until it reaches the end of that path before moving on to the next starting page. While this method is easier to design, it can be less efficient.
+
+Due to the impossibility of crawling every webpage, some web spiders limit their access to certain levels of a website. For example, if the spider is set to access a maximum of two levels deep, it will not reach pages that are three levels deep. This can result in some pages being indexed by search engines while others remain unindexed. For web designers, a flatter website structure can facilitate better crawling by search engines.
+
+#### **3. Word Segmentation**
+
+Word segmentation is a critical technology in natural language processing, particularly for languages like Chinese where words are not separated by spaces. The process involves algorithms that help the computer understand which characters form words. 
+
+There are three primary categories of word segmentation algorithms:
+
+1. **String Matching-Based Methods**: This mechanical approach matches a string of characters against a sufficiently large dictionary. It can be further divided into forward matching and backward matching, as well as maximum and minimum matching strategies. Common methods include:
+   - Forward Maximum Matching
+   - Backward Maximum Matching
+   - Minimum Cutting
+
+   These methods can be combined for improved accuracy. For instance, the forward and backward maximum matching can be used together to create a bidirectional matching approach.
+
+2. **Understanding-Based Methods**: This method simulates human understanding of sentences, utilizing syntactic and semantic analysis to resolve ambiguities. It typically involves three components: a word segmentation subsystem, a syntactic-semantic subsystem, and a control unit.
+
+3. **Statistical Methods**: This approach relies on the frequency of co-occurrence of characters to determine word boundaries. It calculates the mutual information of character pairs based on their frequency in a corpus, allowing for the identification of potential words based on statistical significance.
+
+No single algorithm is universally superior; a mature segmentation system typically employs a combination of methods to achieve the best results.
+
+#### **4. System Architecture**
+
+* **Full-Text Search**
+
+Full-text search can be categorized into character-based and word-based searches. Character-based search indexes every character in a document, while word-based search focuses on semantic units (words). The latter is more complex in languages like Chinese, where segmentation is necessary to identify words properly.
+
+A full-text search system is designed to provide search services based on full-text retrieval principles, requiring capabilities like indexing and querying. Modern systems also feature user-friendly interfaces and APIs for application development. The core functions include indexing, query processing, and optimizing index structures.
+
+* **Differences Between Search Engines and Full-Text Retrieval**
+
+The technical barriers for search engines are significant, encompassing rapid data collection, massive indexing, relevance ranking, and distributed processing. The architecture of a search engine is crucial for its performance. 
+
+Search engines are built on the foundation of full-text retrieval technology, which has been studied since the 1960s. While both systems share similarities, they differ in data volume, content relevance, security, and the potential for personalization and intelligence.
+
+* **Search Engine System Architecture**
+
+The implementation of a search engine can be broken down into four main steps: crawling webpages, building an index database, searching within that database, and processing and ranking search results. 
+
+1. **Crawling Webpages**: This involves using web spiders to automatically collect webpages from the internet.
+2. **Building an Index Database**: The indexing system analyzes the collected data, extracting relevant information and establishing an index based on certain algorithms.
+3. **Searching the Index Database**: When a user submits a search query, the system retrieves relevant pages from the index.
+4. **Processing and Ranking Results**: The search engine ranks results based on relevance, returning the most pertinent pages to the user.
+
+This structured approach ensures that search engines can efficiently retrieve and rank vast amounts of information, providing users with quick and relevant search results.

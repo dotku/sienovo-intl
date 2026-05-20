@@ -5,18 +5,47 @@ slug: "6852411"
 tags: ["#Tools", "#Encryption", "#Terminal"]
 source: "https://blog.csdn.net/yeyuangen/article/details/6852411"
 originalTitle: "sng,png,文本格式转换"
+expanded: true
 ---
+## sng, png, Text Format Conversion
 
-[sng](http://sng.sourceforge.net/) can be described as a rather fascinating tool. When applied to a PNG image, it generates a corresponding text file that records information about the PNG image. Conversely, when applied to a text file formatted in a way sng can recognize, it can generate the corresponding PNG image.
+In this blog post, we will explore the functionality of the `sng` tool, which offers a unique method for converting PNG images into text files and vice versa. You'll learn how to manipulate image data in a text format, enabling creative applications such as image processing and even encryption.
 
-You might be wondering, what's the use of this tool? Isn't it just a gimmick? That's not true. As long as it can convert binary files into formatted text files, this software has its uses. sng's features allow it to process images in a text terminal. I can use `sed` to change all #0000ff (pure blue) colors in an image to #00ff00 (pure green). For example:
+### What is sng?
 
-```
-    $ sng sample-pic.png
-    $ sed 's/0000ff/00ff00/g' sample-pic.sng > sample-pic2.sng
-    $ sng sample-pic2.sng
-```
+[sng](http://sng.sourceforge.net/) is an intriguing tool that allows users to convert PNG format images into a corresponding text file that records the image's information. This two-way conversion capability means that not only can you generate a text representation of an image, but you can also take a formatted text file and convert it back into a PNG image. This functionality opens up various possibilities for image manipulation and processing.
 
-Alright, this way, the pure blue in the image can be changed to pure green.
+### Practical Use Cases
 
-Not only that, you can also manipulate the text file converted by sng as you wish. Just like in my graduation project, through sng's two-step conversion and intermediate text processing, an image was encrypted into a noise image, and only by using a key and sng's two-step conversion could the original image be viewed. (This way, you could secretly hide some photo albums, hehe)
+You might wonder about the practical applications of this tool. While it may seem like a novelty at first, the ability to convert binary files into formatted text files can be quite powerful. For instance, `sng` allows you to process images directly in a text terminal, which can be particularly useful for developers and engineers who prefer working in command-line environments.
+
+### Example: Changing Image Colors
+
+One interesting application of `sng` is the ability to modify image colors using standard text processing tools like `sed`. For example, if you want to change all instances of the color #0000ff (pure blue) in an image to #00ff00 (pure green), you can follow these steps:
+
+1. Convert the PNG image to a text file using `sng`:
+   ```bash
+   $ sng sample-pic.png
+   ```
+
+2. Use `sed` to replace the color codes in the generated text file:
+   ```bash
+   $ sed 's/0000ff/00ff00/g' sample-pic.sng > sample-pic2.sng
+   ```
+
+3. Convert the modified text file back to a PNG image:
+   ```bash
+   $ sng sample-pic2.sng
+   ```
+
+After these steps, the pure blue areas of the original image will now appear as pure green in the new PNG image.
+
+### Advanced Applications: Image Encryption
+
+Beyond simple color manipulation, `sng` can also be used for more advanced applications, such as image encryption. By converting an image into a text file, you can apply various transformations or obfuscations to the text data. For example, in my graduation project, I utilized `sng`'s two-step conversion process to encrypt an image into a noise pattern. The original image could only be viewed again by using a specific key and performing the conversion steps in reverse.
+
+This method can be particularly useful for securely storing sensitive images or hiding information within seemingly innocuous text files. The flexibility of manipulating the text representation of an image allows for creative solutions in data security.
+
+### Conclusion
+
+The `sng` tool provides a fascinating approach to image processing by bridging the gap between binary and text formats. Whether you're looking to modify image colors or explore encryption techniques, `sng` offers a unique set of capabilities that can be leveraged in various projects. With the ability to convert between PNG images and text files, the potential applications are limited only by your creativity.
