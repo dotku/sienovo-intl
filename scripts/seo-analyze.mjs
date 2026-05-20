@@ -118,7 +118,7 @@ if (lowCtr.length > 0) {
       .slice(0, 5)
       .map(
         (r) =>
-          `\`${r.keys[0].replace("https://sienovo.jytech.us", "")}\` — ${r.impressions} imp, pos ${r.position.toFixed(1)}, CTR ${(r.ctr * 100).toFixed(2)}%`,
+          `\`${r.keys[0].replace("https://intl.sienovo.cn", "")}\` — ${r.impressions} imp, pos ${r.position.toFixed(1)}, CTR ${(r.ctr * 100).toFixed(2)}%`,
       ),
   });
 }

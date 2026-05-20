@@ -73,7 +73,7 @@ const HTML = `<!doctype html>
 <strong>Collin Liu</strong><br>
 Sales Director, Sienovo / 深圳信迈<br>
 collin.liu@sienovo.cn<br>
-<a href="https://sienovo.jytech.us">https://sienovo.jytech.us</a></p>
+<a href="https://intl.sienovo.cn">https://intl.sienovo.cn</a></p>
 
 </body></html>`;
 
@@ -122,7 +122,7 @@ Best regards,
 Collin Liu
 Sales Director, Sienovo / 深圳信迈
 collin.liu@sienovo.cn
-https://sienovo.jytech.us`;
+https://intl.sienovo.cn`;
 
 const payload = {
   sender: SENDER,

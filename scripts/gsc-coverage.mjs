@@ -6,7 +6,7 @@
 import { google } from "googleapis";
 import fs from "node:fs";
 
-const SITE_URL = "https://sienovo.jytech.us";
+const SITE_URL = "https://intl.sienovo.cn";
 const SITE_URL_NORMALIZED = `${SITE_URL}/`; // GSC URL-prefix property always uses trailing slash
 
 const auth = new google.auth.GoogleAuth({

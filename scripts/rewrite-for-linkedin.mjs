@@ -33,7 +33,7 @@ const BLOG_EN_DIR = join(PROJECT_ROOT, "content/blog-en");
 const POSTS_DIR = join(PROJECT_ROOT, "data/posts");
 const APPROVED_FILE = join(PROJECT_ROOT, "data/approved.txt");
 
-const SIENOVO_BLOG_URL = process.env.REPLACE_WITH_BLOG_URL || "https://sienovo.jytech.us/blog";
+const SIENOVO_BLOG_URL = process.env.REPLACE_WITH_BLOG_URL || "https://intl.sienovo.cn/blog";
 
 mkdirSync(POSTS_DIR, { recursive: true });
 

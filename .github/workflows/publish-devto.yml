@@ -41,7 +41,7 @@ jobs:
         env:
           DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
           DEVTO_ORG_ID: ${{ secrets.DEVTO_ORG_ID }}
-          NEXT_PUBLIC_SITE_URL: https://sienovo.jytech.us
+          NEXT_PUBLIC_SITE_URL: https://intl.sienovo.cn
         run: |
           # workflow_dispatch supplies inputs.* explicitly; cron-fired runs leave
           # them empty, so default to limit=3 / published.
@@ -60,7 +60,7 @@ jobs:
         run: |
           if [ -n "$(git status --porcelain data/devto-published.jsonl)" ]; then
             git config user.name "sienovo-bot"
-            git config user.email "bot@sienovo.jytech.us"
+            git config user.email "bot@intl.sienovo.cn"
             git add data/devto-published.jsonl
             git commit -m "chore(devto): record published articles"
             git push

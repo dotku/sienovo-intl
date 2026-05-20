@@ -43,8 +43,8 @@ async function fetchAll() {
 const articles = await fetchAll();
 console.log(`fetched ${articles.length} dev.to articles for this account`);
 
-// Sienovo canonical: https://sienovo.jytech.us/blog/{slug}
-// also tolerate legacy https://sienovo.jytech.us/en/blog/{slug}
+// Sienovo canonical: https://intl.sienovo.cn/blog/{slug}
+// also tolerate legacy https://intl.sienovo.cn/en/blog/{slug}
 const SLUG_FROM_CANONICAL = /https?:\/\/sienovo\.jytech\.us\/(?:en\/)?blog\/([^\/?#]+)/;
 
 const rows = [];

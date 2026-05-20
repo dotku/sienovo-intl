@@ -145,7 +145,7 @@ export async function POST(req: NextRequest) {
           <p>${(message || "No message provided.").replace(/\n/g, "<br>")}</p>
           ${enrichmentHtml}
           <hr>
-          <p style="color:#888;font-size:12px;">Sent from sienovo.jytech.us contact form</p>
+          <p style="color:#888;font-size:12px;">Sent from intl.sienovo.cn contact form</p>
         `,
       }),
     });

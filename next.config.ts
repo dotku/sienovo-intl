@@ -47,7 +47,19 @@ const nextConfig: NextConfig = {
       {
         source: "/:path*",
         has: [{ type: "host", value: "sienovo-intl.vercel.app" }],
-        destination: "https://sienovo.jytech.us/:path*",
+        destination: "https://intl.sienovo.cn/:path*",
+        permanent: true,
+      },
+      {
+        // Legacy domain — keep the redirect so existing inbound links
+        // and Google's old indexed URLs still reach the canonical site,
+        // but the canonical / SITE_URL is now intl.sienovo.cn. Once
+        // Google reindexes everything to the new domain (a few weeks),
+        // this rule can be retired and jytech.us can be retired or
+        // re-pointed.
+        source: "/:path*",
+        has: [{ type: "host", value: "intl.sienovo.cn" }],
+        destination: "https://intl.sienovo.cn/:path*",
         permanent: true,
       },
     ];

@@ -9,7 +9,7 @@ import { google } from "googleapis";
 import fs from "node:fs";
 import path from "node:path";
 
-const SITE_URL = process.env.SITE_URL || "https://sienovo.jytech.us";
+const SITE_URL = process.env.SITE_URL || "https://intl.sienovo.cn";
 const OUT_DIR = path.join(process.cwd(), "data/seo-reports");
 fs.mkdirSync(OUT_DIR, { recursive: true });
 

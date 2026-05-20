@@ -4,7 +4,7 @@
  * into public/imported/, then process them into Google Ads PMax aspect ratios
  * and save to public/ads/.
  *
- * Internal asset reuse — szxinmai.com and sienovo.jytech.us are both
+ * Internal asset reuse — szxinmai.com and intl.sienovo.cn are both
  * Sienovo / 深圳信迈 properties. Do NOT point this at third-party domains.
  *
  * Usage:

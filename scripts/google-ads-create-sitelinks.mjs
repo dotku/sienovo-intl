@@ -28,37 +28,37 @@ const SITELINKS = [
     linkText: "INT-AIBOX-P-8",
     description1: "8-CH edge AI, 7.2 TOPS",
     description2: "From $1,299",
-    finalUrls: ["https://sienovo.jytech.us/products/int-aibox-p-8"],
+    finalUrls: ["https://intl.sienovo.cn/products/int-aibox-p-8"],
   },
   {
     linkText: "INT-AIBOX-RK-4",
     description1: "RK3588 NPU, 4-CH fanless",
     description2: "Entry-level $699",
-    finalUrls: ["https://sienovo.jytech.us/products/int-aibox-rk-4"],
+    finalUrls: ["https://intl.sienovo.cn/products/int-aibox-rk-4"],
   },
   {
     linkText: "Edge AI Server",
     description1: "192 TOPS, 1U rack",
     description2: "SE10-U0 enterprise",
-    finalUrls: ["https://sienovo.jytech.us/products/se10-u0"],
+    finalUrls: ["https://intl.sienovo.cn/products/se10-u0"],
   },
   {
     linkText: "IoT Gateway",
     description1: "RK3588, 4G/5G + 4xRJ45",
     description2: "XM3588-GW01 $549",
-    finalUrls: ["https://sienovo.jytech.us/products/xm3588-gw01"],
+    finalUrls: ["https://intl.sienovo.cn/products/xm3588-gw01"],
   },
   {
     linkText: "Marine IoT",
     description1: "Vessel tracking telemetry",
     description2: "Bait boat / patrol fleet",
-    finalUrls: ["https://sienovo.jytech.us/products/marine-system"],
+    finalUrls: ["https://intl.sienovo.cn/products/marine-system"],
   },
   {
     linkText: "Technical Blog",
     description1: "1300+ engineering articles",
     description2: "RK3588 / Jetson / edge AI",
-    finalUrls: ["https://sienovo.jytech.us/blog"],
+    finalUrls: ["https://intl.sienovo.cn/blog"],
   },
 ];
 

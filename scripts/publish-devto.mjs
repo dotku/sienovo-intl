@@ -18,7 +18,7 @@
  *
  * Env:
  *   DEVTO_API_KEY        required to actually POST
- *   NEXT_PUBLIC_SITE_URL canonical site URL (default: sienovo.jytech.us)
+ *   NEXT_PUBLIC_SITE_URL canonical site URL (default: intl.sienovo.cn)
  *   DEVTO_ORG_ID         optional — post under a Dev.to organization
  */
 import { readdirSync, readFileSync, existsSync, appendFileSync, mkdirSync } from "node:fs";
@@ -36,7 +36,7 @@ const REPO_ROOT = process.cwd();
 const BLOG_EN_DIR = join(REPO_ROOT, "content/blog-en");
 const STATE_FILE = join(REPO_ROOT, "data/devto-published.jsonl");
 const SITE_URL =
-  (process.env.NEXT_PUBLIC_SITE_URL || "https://sienovo.jytech.us").replace(/\/+$/, "");
+  (process.env.NEXT_PUBLIC_SITE_URL || "https://intl.sienovo.cn").replace(/\/+$/, "");
 
 const ORG_ID = process.env.DEVTO_ORG_ID;
 const API_KEY = process.env.DEVTO_API_KEY;

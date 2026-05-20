@@ -55,7 +55,7 @@ const SLIDES = [
   { img: "sq-02-1x1.jpg", headline: "40+ Built-in AI Algorithms", sub: "Detect · Recognize · Alert" },
   { img: "banner-04-1x1.jpg", headline: "Industrial Reliability",   sub: "-20°C to 60°C · 7×24" },
   { img: "sq-03-1x1.jpg", headline: "Customizable Solutions",   sub: "ARM + FPGA + AI" },
-  { img: "banner-07-1x1.jpg", headline: "Sienovo · 深圳信迈",   sub: "sienovo.jytech.us" },
+  { img: "banner-07-1x1.jpg", headline: "Sienovo · 深圳信迈",   sub: "intl.sienovo.cn" },
 ];
 
 const SLIDE_SEC = 3.0;

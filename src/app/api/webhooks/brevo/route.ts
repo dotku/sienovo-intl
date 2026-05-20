@@ -12,7 +12,7 @@ import { prisma } from "@/lib/prisma";
  *      to false so we never email them again.
  *
  * Configure in Brevo: Settings → Transactional → Webhooks → add URL
- *   https://sienovo.jytech.us/api/webhooks/brevo
+ *   https://intl.sienovo.cn/api/webhooks/brevo
  * and enable events: sent, hard_bounce, soft_bounce, spam, unsubscribe,
  * opened, click.
  *
