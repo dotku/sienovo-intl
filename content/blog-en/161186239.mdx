@@ -1,0 +1,34 @@
+---
+title: "Power Equipment with RK3568/RK3576 + FPGA: Multi-System Hybrid Deployment of Linux + RTOS RT-Thread for Strong Real-Time Performance"
+date: "2026-05-20"
+slug: "161186239"
+tags: ["#Linux", "#DevOps", "#Server", "#AI", "#EmbeddedHardware", "#FPGADev"]
+source: "https://blog.csdn.net/szxinmai/article/details/161186239"
+originalTitle: "电力设备RK3568/RK3576+FPGA，多系统混合部署Linux+RTOS RT-THREAD，强实时性"
+---
+
+Core Value of RTOS Real-Time Kernel for Relay Protection Devices  
+
+The RTOS real-time kernel delivers a foundational technology platform tailored to power grid security requirements, leveraging hard real-time performance, strong isolation, and high reliability. It addresses key industry challenges across four dimensions—fault response, operational safety, environmental adaptability, and cost control—while synergizing with Linux to maximize the efficiency of multi-system hybrid deployment. This makes RTOS a critical enabler for technological advancement and domestic localization of relay protection devices.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/161186239/01_ac1c7a81b52240ef8189fbfd640ace72.jpeg)
+
+1. Microsecond-Level Hard Real-Time Response Ensures Timely Fault Handling  
+
+RTOS employs a preemptive scheduling mechanism, keeping interrupt latency and task switching within microseconds, with predictable and precise execution timing. This completely eliminates the scheduling delays inherent in pure Linux systems. On the RK3568 platform, RTOS runs independently on dedicated cores, focusing exclusively on critical protection tasks such as current/voltage sampling and differential protection algorithms. Even while Linux handles non-real-time workloads like protocol communication and remote configuration, the protection logic remains guaranteed to execute within 20ms, enabling millisecond-precision fault isolation.
+
+2. Strong Isolation via AMP Architecture Protects Core Functions from Interference  
+
+The Linux + RTOS AMP (Asymmetric Multiprocessing) hybrid architecture on RK3568 enables independent partitioning and management of memory and hardware resources between the two systems. RTOS is solely responsible for safety-critical functions such as trip output and signal blocking, while Linux manages non-real-time tasks like human-machine interaction and data storage. The two systems exchange data through efficient inter-core communication, architecturally isolating non-critical operations to prevent anomalies—such as process contention or memory leaks—from compromising protection functions. This significantly enhances device stability in harsh substation environments with strong electromagnetic interference.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/161186239/02_b6ffeb69e59c4a24bfa97850d38e5a81.jpeg)
+
+3. Lightweight, High-Reliability Kernel Optimized for Industrial Environments  
+
+RTOS features a compact, minimal kernel with no redundancy, supporting fast startup and self-recovery from anomalies. With low failure probability and excellent environmental adaptability, it perfectly meets the 7×24-hour continuous operation demands of relay protection devices. Optimized for power terminal applications, RTOS can directly drive key peripherals such as ADC sampling, PWM outputs, and GPIO interlocks, reducing stability losses from intermediate software layers. Combined with hardware watchdog integration and task self-check mechanisms, it ensures reliable operation under extreme industrial conditions including wide temperature ranges and unattended deployment.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/161186239/03_26c2d253e0714257b28ddab9e37fc6d1.jpeg)
+
+4. Single-Chip Deployment Reduces Costs and Accelerates Mass Production  
+
+Leveraging the heterogeneous multi-core capabilities of RK3568, the Linux + RTOS dual-system runs on a single chip, enabling one hardware platform to simultaneously support real-time protection and intelligent functions. This eliminates the need for a dedicated control MCU in traditional "MCU + MPU" dual-chip designs, simplifying circuit design and reducing component and power costs. Standardized底层 drivers and BSP packages also significantly shorten development and debugging cycles. While ensuring protection performance, this approach delivers product advantages in high performance, high integration, and low cost, making it ideal for mass production in applications such as distribution automation and smart switchgear.
