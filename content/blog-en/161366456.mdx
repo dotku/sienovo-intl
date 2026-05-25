@@ -1,0 +1,133 @@
+---
+title: "Design and Implementation of an MPSoC-Based Hardware Platform for Autonomous Driving Multi-Sensor Fusion Localization"
+date: "2026-05-24"
+slug: "161366456"
+tags: ["#AI", "#ARMDev", "#EmbeddedHardware", "#FPGADev"]
+source: "https://blog.csdn.net/szxinmai/article/details/161366456"
+originalTitle: "基于 MPSoC 的无人驾驶多传感器融合定位硬件平台设计与实现"
+---
+
+## 
+
+### 1. Introduction
+
+High-precision localization is a core prerequisite for environmental perception, path planning, and vehicle motion control in autonomous driving. The accuracy and timing synchronization performance of localization directly determine the reliability and safety of autonomous driving systems. Currently, mainstream localization solutions mostly adopt a **discrete multi-module architecture**: multi-sensor data acquisition relies on independent hardware boards, while positioning computation and algorithm acceleration depend on industrial PCs, GPUs, or high-end CPUs.
+
+This separated architecture has several engineering drawbacks: hardware interconnection among multiple modules results in low system integration and bulky structure; inter-board communication introduces transmission latency, making it difficult to achieve microsecond-level time synchronization across sensors; general-purpose computing platforms tend to have high power consumption and heat dissipation, failing to meet automotive-grade requirements for wide temperature range, low power, and reliability.
+
+MPSoC integrates ARM processors and programmable FPGA logic on a single chip, enabling **hardware-software cooperative parallel computing**. The FPGA excels at high-precision timing control, synchronized multi-sensor data acquisition, and hardware acceleration of algorithms, while the ARM is adept at system scheduling, data fusion, and task management. Building an integrated localization hardware platform based on MPSoC enables tight integration of synchronized sensor acquisition, time reference establishment, and positioning algorithm acceleration—offering an effective technical solution to current hardware bottlenecks in autonomous driving localization.
+
+Based on multi-sensor localization theory and the characteristics of MPSoC heterogeneous architecture, this article presents the complete design of a high-precision localization hardware platform, including system architecture, modular circuit development, embedded software porting, and functional performance testing. Combined with industrial engineering practices, it also discusses the customization design methodology and key implementation considerations for MPSoC-based autonomous driving localization motherboards, providing valuable reference for similar navigation and positioning hardware development. ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/161366456/01_f7366e76a6b6434ca7c0850309aa8c78.png)
+
+### 2. Overall Scheme of Multi-Sensor Localization for Autonomous Driving
+
+#### 2.1 System Sensor Composition
+
+The localization system adopts a **GNSS + IMU + 3D LiDAR + wheel encoder** multi-source fusion architecture, with complementary functions among sensors:
+
+1.  **GNSS**: Provides global absolute position information and outputs PPS (pulse-per-second) and NMEA timing data, serving as the primary time reference for the system;
+2.  **IMU (Inertial Measurement Unit)**: Outputs high-frequency tri-axis acceleration and angular velocity data, compensating for positioning outages during satellite signal blockage;
+3.  **3D LiDAR**: Captures real-time environmental point cloud data, enabling high-precision relative localization through map matching;
+4.  **Wheel Encoder**: Outputs wheel rotation pulse signals for dead reckoning and vehicle motion state verification.
+
+**Time synchronization** and **spatial registration** across sensors are prerequisites for fusion localization. Only with temporally aligned sensor data can the accuracy and robustness of integrated positioning be effectively improved.
+
+#### 2.2 MPSoC Heterogeneous Task Allocation
+
+The system adopts a collaborative architecture between PS (Processing System) and PL (Programmable Logic), following the design principle of **"real-time tasks in hardware, complex tasks in software"**:
+
+1.  **PL (FPGA)**: Establishes a high-precision system time reference, parses GNSS PPS pulses, and calibrates clock signals using a high-stability oscillator; performs hardware-synchronized acquisition of IMU and encoder data; handles serial timing control, data buffering, and AXI bus data exchange; implements pipeline-based hardware acceleration of positioning algorithms.
+2.  **PS (ARM)**: Runs an embedded Linux system to manage task scheduling and peripherals; receives and parses LiDAR point cloud data; performs multi-sensor data fusion and positioning computation; handles host communication, parameter configuration, and data logging.
+
+#### 2.3 Overall Platform Architecture Diagram
+
+The system adopts a layered architecture: **Sensor Layer → Hardware Interface Layer → MPSoC Heterogeneous Processing Layer → Application Computation Layer**. All sensor signals are conditioned and fed into the MPSoC, where the PL handles synchronized timing and raw data acquisition, and the PS performs algorithm computation and outputs positioning results. This compact, streamlined architecture avoids timing delays and electromagnetic interference issues inherent in discrete designs.
+
+### 3. Overall Hardware Platform Design
+
+#### 3.1 Main Control Chip Selection
+
+The platform uses the Xilinx Zynq UltraScale+ series MPSoC as the main controller, while remaining compatible with industrial-grade heterogeneous processors such as Zynq7000 and TI AM5728/AM62x. The chip integrates multi-core ARM A53 and R5 real-time processing units, along with abundant programmable logic resources. It natively supports DDR4, Gigabit Ethernet, USB 3.0, mSATA, and high-speed serial interfaces, operating across a temperature range of -40°C to +85°C, meeting long-term stability requirements for automotive and industrial unmanned equipment.
+
+#### 3.2 Modular Hardware Design
+
+The hardware platform employs a modular, layered design, divided into five functional units:
+
+1.  **Minimal System Module**: Includes the MPSoC controller, DDR4 high-speed memory, eMMC solid-state storage, configuration circuitry, high-stability oscillator, and real-time clock unit, providing a stable operating foundation and timing reference.
+2.  **Sensor Interface Module**: Features dedicated signal conditioning circuits for IMU, GNSS, LiDAR, and encoder, performing differential level conversion, signal shaping, and isolation protection to comply with each sensor's electrical interface standards.
+3.  **Power Management Module**: Supports 20–36V wide-range automotive input, integrates overvoltage, undervoltage, and reverse-polarity protection, and implements multi-channel DC/DC voltage conversion following the MPSoC power-up sequence to deliver stable 1.2V, 1.8V, 3.3V, and 5V outputs for reliable module startup.
+4.  **High-Speed Communication and Storage Module**: Equipped with dual Gigabit Ethernet ports, USB 3.0, mSATA, and SD card interfaces to meet demands for high-bandwidth LiDAR data transmission, system image storage, and positioning log recording.
+5.  **Debug and Expansion Module**: Exposes JTAG and serial debug interfaces, status indicator LEDs, and reserved GPIO expansion pins for convenient hardware debugging, firmware updates, and functional extensions.
+
+#### 3.3 High-Precision Time Reference Design
+
+The system employs a **combined GNSS PPS pulse and high-stability oscillator** timing scheme: leveraging the long-term stability of GNSS timing and the short-term low-drift characteristics of the oscillator, a microsecond-precision timer is implemented in the PL. Under normal conditions, the local clock is continuously calibrated by the PPS pulse; during GNSS signal outages, the high-stability oscillator maintains the system time reference.
+
+For different sensor types, three synchronization modes are applied: **active synchronization, passive synchronization, and timing synchronization**. The IMU uses trigger-based active synchronization, the wheel encoder uses pulse-based passive synchronization, and the LiDAR uses PPS-based timing synchronization—achieving unified timing across all sensors with microsecond-level synchronization accuracy. ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/161366456/02_3da26dab63724e0e8c3cd37755074208.png)
+
+### 4. Core Circuit Module Design
+
+#### 4.1 Power Circuit Design
+
+The power circuit employs staged protection and sequenced power delivery. EMI filtering and reverse-polarity protection are implemented at the front end, while multi-channel power regulators generate core and peripheral voltages at the back end. The MPSoC power-up sequence is strictly followed to prevent chip lockup due to improper sequencing. Load current limiting and thermal protection are also added to adapt to complex automotive electrical environments.
+
+#### 4.2 Sensor Interface Circuit
+
+The IMU uses an RS422 differential interface, adapted to FPGA I/O levels via level-shifting chips to ensure noise immunity over long-distance transmission. The GNSS interface reserves independent serial and PPS lines with electrical isolation to prevent timing signal distortion. Differential encoder pulses are shaped and filtered using Schmitt triggers to suppress high-frequency noise. The LiDAR connects directly to a Gigabit PHY chip to meet real-time, high-bandwidth point cloud transmission requirements. ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/161366456/03_6f03f4b7ebea48adb3794d206e283bd0.png)
+
+#### 4.3 High-Speed Interface Circuit
+
+Industrial-grade PHY devices are used for Gigabit Ethernet, with RGMII routing rules followed, including impedance matching and length-matched traces to ensure high-speed communication stability. DDR4 memory is designed strictly according to high-speed PCB guidelines, controlling trace impedance, length, and spacing for reliable large-data read/write operations. ESD protection components are added to mSATA and USB 3.0 interfaces to enhance robustness in industrial environments.
+
+### 5. Embedded Software Design and Porting
+
+#### 5.1 Linux System Customization and Porting
+
+Using the Petalinux development environment, the embedded Linux system is customized and trimmed. Device trees are adapted to hardware peripherals, kernel drivers, file systems, and boot methods are configured, supporting dual boot modes from SD card and QSPI flash. PS-PL communication protocols are set up, and a multi-core task scheduling framework is established to meet real-time algorithm execution requirements.
+
+#### 5.2 FPGA PL Logic Design
+
+Verilog HDL is used for logic development, primarily implementing: high-precision time counter and PPS pulse calibration logic; state-machine-based timing control for multi-sensor data acquisition; serial command parsing and FIFO data buffering; AXI bus protocol adaptation for high-speed data transfer from PL to PS. The design follows a modular state-machine approach with efficient resource utilization and good timing convergence. ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/161366456/04_78d91218d12d407b8f54a73bd6a6d487.png)
+
+#### 5.3 ARM PS Application Software Design
+
+The PS software adopts a layered architecture: the lower layer includes drivers for serial, Ethernet, and sensors; the middle layer handles data parsing and temporal alignment; the upper layer implements multi-sensor fusion algorithms, positioning computation, host interaction, and data storage. The software uses time-sliced multitasking to ensure real-time performance of positioning tasks, while supporting online parameter configuration and offline log storage.
+
+### 6. System Function and Performance Testing
+
+#### 6.1 Basic Function Testing
+
+A static lab test platform was built, integrating LiDAR, IMU, GNSS, and wheel encoder for full-system integration testing. Results show all hardware interfaces function correctly, PS-PL command interaction is reliable, and all sensors can power up synchronously and stably acquire raw data without packet loss or timing anomalies. The system demonstrates stable hardware and software operation.
+
+#### 6.2 Time Synchronization Accuracy Testing
+
+Using an oscilloscope to compare the edge deviation between the GNSS standard PPS and the system's local clock signal, the time synchronization error remains within microsecond level under normal satellite lock conditions. During continuous 4-hour operation without GNSS signals, the cumulative time error is less than 140μs, maintaining high relative timing precision—meeting the requirements for multi-sensor fusion localization.
+
+#### 6.3 Algorithm Acceleration Performance Testing
+
+Using LiDAR point cloud feature extraction as the test algorithm, performance was compared across the MPSoC platform, an embedded GPU platform, and a desktop CPU platform. Results show that the MPSoC, leveraging FPGA pipeline acceleration, achieves computational efficiency close to that of a desktop CPU, while consuming significantly less power than general-purpose computing platforms. This demonstrates dual advantages of low power and high computing performance, making it ideal for embedded deployment in unmanned systems.
+
+#### 6.4 Platform Advantages
+
+1.  **High Integration**: A single MPSoC chip integrates data acquisition, timing, computation, and acceleration, eliminating the need for multiple discrete boards and reducing device size;
+2.  **High Timing Precision**: Microsecond-level multi-sensor time synchronization significantly improves fusion localization accuracy;
+3.  **Low Power and Automotive-Grade Compatibility**: Heterogeneous architecture enables on-demand compute allocation, with wide-temperature and noise-resistant design suitable for automotive and outdoor unmanned applications;
+4.  **Customizable Hardware and Software**: PL logic, PS software, and peripheral interfaces can be tailored to project needs;
+5.  **Easy Algorithm Iteration**: Positioning algorithms run on the ARM side, allowing upgrades and optimization without modifying hardware logic.
+
+### 7. Engineering Practice of Custom MPSoC Autonomous Driving Localization Motherboard
+
+From an industrialization perspective, devices such as autonomous vehicles, AGV inspection robots, agricultural machinery, and power line inspection robots all require customized MPSoC hardware platforms. Drawing on years of industrial motherboard development experience, Sienovo offers end-to-end customization services—from solution evaluation and schematic/PCB design to software/hardware development and mass production—based on full-series MPSoC chips from Xilinx, TI, and Intel.
+
+1.  **Custom Chip Solutions**: Core and full-board designs can be tailored to Zynq 7000/UltraScale+, TI AM5728/AM62x, and other heterogeneous platforms based on positioning accuracy, compute needs, and cost constraints.
+2.  **Customizable Interfaces**: Dedicated peripherals such as Gigabit LiDAR ports, differential serial interfaces for IMU/GNSS, encoder interfaces, CAN/RS485, 5G expansion, and multiple Ethernet ports can be customized to match diverse sensing and networking requirements.
+3.  **Industrial-Grade Reliability**: Designs support -40°C to +85°C wide temperature range, shock resistance, triple protection (moisture, dust, corrosion), dual power redundancy, and EMC compliance, meeting automotive and industrial safety standards.
+4.  **Turnkey Hardware and Software Delivery**: Services include Linux/Petalinux system porting, low-level driver development, PL logic design, and multi-sensor synchronization framework integration—enabling customers to focus on high-level positioning algorithms and application development, significantly shortening R&D cycles.
+
+### 8. Conclusion
+
+This article presents the design, circuit development, software porting, and performance testing of an MPSoC-based multi-sensor fusion localization hardware platform for autonomous driving. It addresses engineering challenges of traditional discrete platforms—low integration, poor timing synchronization, and high power consumption. By leveraging FPGA's real-time timing control and ARM's flexible algorithm scheduling, the platform achieves microsecond-level synchronized sensor acquisition and hardware-accelerated positioning algorithms, meeting stability and accuracy requirements for autonomous driving and intelligent navigation systems.
+
+As autonomous driving and outdoor unmanned equipment move toward industrialization, customized MPSoC industrial motherboards have become the mainstream choice in hardware development. The standardized core board + custom baseboard development model enables rapid adaptation to multi-sensor localization needs across diverse scenarios, providing reliable support for cost reduction, efficiency improvement, and shortened time-to-market for unmanned systems.
+
+Sienovo provides MPSoC customization and manufacturing services.

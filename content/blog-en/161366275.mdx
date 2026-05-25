@@ -1,0 +1,183 @@
+---
+title: "Architecture Design and Engineering Practice of Multi-Axis Servo Motor Drivers Based on ZYNQ MPSoC"
+date: "2026-05-24"
+slug: "161366275"
+tags: ["#FPGADev", "#EmbeddedHardware", "#ARMDev", "#AI", "#SpeechRecognition"]
+source: "https://blog.csdn.net/szxinmai/article/details/161366275"
+originalTitle: "基于ZYNQ MPSoC 在多轴伺服电机驱动器中的架构设计与工程实践"
+---
+
+##  
+
+### 1. Introduction
+
+In high-precision industrial applications such as **industrial robots, CNC machine tools, missile actuators, phased array antennas, and automated production lines**, the core requirement is **independent control + high-precision synchronization** of multi-axis servo motors.
+
+Currently, two mainstream traditional solutions both face clear bottlenecks:
+
+1.  **Pure DSP Software Approach**: Serial interrupt execution limits performance; single DSP computing power is insufficient for high-precision multi-axis control. Multi-DSP parallel configurations are costly, have low integration, and suffer from inter-axis desynchronization.
+2.  **Pure FPGA Hardware Approach**: Offers strong parallel real-time performance, but speed and position loop algorithms are hard-coded into hardware, resulting in poor versatility and inflexible parameter configuration or algorithm iteration.  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/161366275/01_e6c4babe6a1340d29e96bbb5273533fd.png)
+
+The emergence of **MPSoC (Multi-Processor System-on-Chip)** perfectly addresses these pain points. By leveraging an **ARM + FPGA/DSP heterogeneous architecture with software-hardware co-design**, all functions—main control, multi-axis servo control, industrial communication, and signal acquisition—are integrated within a single chip. This approach combines **high real-time performance, high synchronization accuracy, algorithm flexibility, and high integration**.
+
+This article comprehensively dissects the MPSoC-based multi-axis servo architecture, design methodology, experimental results, and hardware platform adaptation, based on academic engineering test cases and industrial deployment experience. It serves as a valuable reference for engineers working in motion control, servo drive, and FPGA/MPSoC hardware development.
+
+### 2. Comparison and Pain Points of Traditional Multi-Axis Servo Solutions
+
+#### 2.1 Advantages and Disadvantages of Three Mainstream Approaches
+
+| Solution Type           | Advantages                              | Critical Drawbacks                                      |
+|-------------------------|-----------------------------------------|----------------------------------------------------------|
+| Single DSP Solution     | Simple development, flexible algorithms, low cost | Poor real-time performance due to serial processing; weak multi-axis synchronization; unsuitable for high-precision multi-axis control |
+| Pure FPGA Hardware      | Parallel computing, ultra-low latency; ideal for current loop | Speed/position loop algorithms are fixed; difficult to modify parameters; poor generalization |
+| Discrete DSP + FPGA     | Clear division of labor; acceptable performance | Complex PCB wiring, high interference, low integration, large footprint |
+
+#### 2.2 Real Industry Requirements
+
+*   Single-chip implementation of **multi-axis independent operation without interference + precise synchronization**
+*   Microsecond-level low latency for current loop; fast speed loop response with minimal steady-state error
+*   Software and hardware modularity for post-deployment algorithm upgrades and online parameter configuration
+*   Native support for EtherCAT, CAN, Ethernet, and differential encoder interfaces  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/161366275/02_00ef1730e1fa444c8fb7a8f12b9bf38c.png)
+
+> These requirements make the **MPSoC heterogeneous architecture** the optimal solution for multi-axis servo systems.
+
+### 3. Overall Architecture Design of MPSoC-Based Multi-Axis Servo System
+
+#### 3.1 Core Design Principle: Software-Hardware Co-Design and Task Division
+
+This is the most critical design principle for implementing multi-axis servo control on MPSoC:
+
+*   **FPGA Logic Handles Fixed, High-Real-Time Tasks**:  
+    Current vector control, Clark/Park inverse transformation, CORDIC sine/cosine computation, phase current AD acquisition, encoder position/speed calculation, and SVPWM waveform generation.  
+    Control frequency can reach **100kHz** with minimal latency.
+    
+*   **ARM / Soft-Core Software Handles Flexible, Iterative Tasks**:  
+    Speed loop PID, position loop closure, multi-axis trajectory planning, host communication, inter-core data exchange, parameter configuration, and fault logic.  
+    Control frequency at **25kHz**, enabling easy algorithm modification and parameter tuning.
+
+#### 3.2 Overall Block Diagram of MPSoC On-Chip System
+
+plaintext
+
+```hljs
+Host Communication Module        ↓
+Main Processor ←→ MUTEX Core ←→ On-Chip Shared RAM
+        ↓
+┌─────┬─────┬─────┐
+│Slave│Slave│Slave│  Multi-Axis Slave Processor Array
+│Core1│Core2│CoreN│
+└─────┴─────┴─────┘
+    ↓      ↓      ↓
+Current IP1 Current IP2 Current IPN
+    ↓      ↓      ↓
+Power Driver & Signal Acquisition → Permanent Magnet Synchronous Motor
+```
+
+**Architectural Highlights**
+
+1.  All control executed internally within a single FPGA/MPSoC—no external multi-chip interconnect required;
+2.  Each motor has its own dedicated control module, enabling **parallel, interference-free operation**;
+3.  MUTEX core + shared RAM ensures conflict-free multi-core communication and high synchronization accuracy;
+4.  Standard modules pre-integrated: EPCS configuration, PLL clock, JTAG debugging, industrial Ethernet ports.
+
+#### 3.3 Internal Structure of Single-Axis Servo Control Module
+
+Single-axis module components: **Slave processor + On-chip RAM + Current loop hardware IP core + Bus interface**
+
+*   **Current Loop IP**: Implemented in Verilog, modularly encapsulated, directly reusable;
+*   **Slave Processor**: Developed in C, responsible for speed loop PID, interrupt scheduling, and interaction with IP core;
+*   **On-Chip RAM**: Stores program and runtime variables, ensuring real-time loading and computation.
+
+#### 3.4 Internal Timing Flow of Current Loop IP Core
+
+Sampling → Phase Current Processing → Clark Transform → Park Transform → Current PID → Inverse Park → SVPWM → PWM Output  
+Simultaneously in parallel: Encoder decoding, angle/speed calculation, CORDIC sine/cosine solving.  
+Entire process executed via hardware pipeline, achieving **significantly lower latency than software implementation**.  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/161366275/03_9282f9e1adb54d7bae8220fe265ef344.png)
+
+### 4. Hardware Setup of Experimental Platform
+
+#### 4.1 Main Control MPSoC Chip
+
+Adopted **Intel Cyclone V 5CEBA4F23C7N** MPSoC
+
+*   Logic Resources: 49K LE
+*   System Clock: 50MHz
+*   Dual-axis servo control consumes only **32% of logic resources**, leaving ample headroom for smooth expansion to 4, 6, or 8 axes.
+
+The design is also fully compatible with other MPSoC/DSP+ARM+FPGA platforms such as **Xilinx Zynq7020/7045, TI AM5728, AM62x, OMAPL138**.
+
+#### 4.2 Experimental Hardware Components
+
+*   Servo Motor: 200W surface-mounted permanent magnet synchronous motor
+*   Power Supply: 24V DC
+*   Peripherals: Driver board, current sensing circuit, incremental optical encoder, steel eccentric load
+*   Host Computer: PC for speed profile monitoring and parameter tuning
+
+#### 4.3 Key Control Parameters
+
+*   Current Loop Frequency: **100kHz**
+*   Speed Loop Frequency: **25kHz**
+*   Supported Axis Count: 2–8 axes, flexibly configurable via software and hardware
+
+### 5. Measured Waveforms and Performance Results
+
+#### 5.1 No-Load Trapezoidal Speed Response
+
+*   Axis 1: Trapezoidal speed from 600r/min → 1000r/min
+*   Axis 2: Reverse trapezoidal speed from -600r/min → -200r/min
+
+**Measured Performance**
+
+*   Speed reference and feedback curves nearly overlap, with minimal lag;
+*   Steady-state speed error: 0.25% for Axis 1, 0.32% for Axis 2;
+*   Dual-axis independent operation with excellent synchronization and no interference.
+
+#### 5.2 Dynamic Response Under Load
+
+With steel eccentric load applied, commanded speed ±1000r/min:
+
+*   Dynamic response time: 17.3ms (Axis 1), 18.5ms (Axis 2);
+*   Minor overshoot under load, quickly converging;
+*   Steady-state error controlled at 1.13% and 1.35%;
+*   Current loop responds rapidly with no significant oscillation and ultra-low latency.  
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/161366275/04_406eea74b6124820a2c5bb97829ee180.jpeg)
+
+#### 5.3 Summary of Core Advantages
+
+1.  **High Integration**: Single MPSoC replaces discrete multi-DSP+FPGA solutions, significantly reducing device size;
+2.  **High Real-Time Performance**: Microsecond-level latency in hardware current loop, suitable for high-speed, high-precision servo;
+3.  **Easy Scalability**: 2, 4, 6, or 8 axes can be flexibly configured via board resources and logic;
+4.  **Easy Iteration**: Speed loop and trajectory algorithms developed in software layer—upgradable without modifying hardware logic;
+5.  **Industrial-Grade Reliability**: Supports wide temperature range, anti-interference, EMC, and industrial bus networking.
+
+### 6. Key Considerations for MPSoC Multi-Axis Servo Industrial Motherboard Adaptation
+
+For motion control and servo equipment manufacturers, the biggest pain point is **long development cycles for in-house MPSoC motherboards, complex low-level drivers, and mismatched interfaces**.
+
+From an engineering deployment perspective, key aspects of customizing MPSoC-based multi-axis servo industrial motherboards include:
+
+1.  **Custom Chip Selection**: Based on Zynq, Cyclone, TI AM5728/AM62x/OMAPL138, etc., adopt **core board + base board** architecture tailored for 2–16 axis servo control.
+    
+2.  **Customizable Interfaces**: Include differential encoder interfaces, high-speed AD current acquisition, PWM drive interfaces, Gigabit EtherCAT, CAN-FD, RS485, multiple serial and Ethernet ports.
+    
+3.  **Resource and Cost Optimization**: Match DDR, eMMC, and FPGA logic resources to axis count—avoid hardware waste and control overall system cost.
+    
+4.  **Industrial-Grade Reliability**: Support -40°C to +85°C wide temperature range, shock/vibration resistance, dual power redundancy, EMC compliance—meeting standards for machine tools, robotics, rail transit, and power industries.
+    
+5.  **Turnkey Software-Hardware Delivery**: Pre-integrated with Linux/RT-Linux/TI-RTOS real-time operating systems, low-level drivers, and multi-core communication frameworks. Customers can focus solely on **upper-layer motion control algorithms and application logic**, reducing development cycles from 1–2 years to under 3 months.
+    
+
+Such MPSoC heterogeneous motherboards have already been deployed in volume across applications including **6-axis industrial robots, EtherCAT motion controllers, CNC machine tools, AGV logistics robots, and precision inspection equipment**.
+
+### 7. Conclusion
+
+The MPSoC heterogeneous architecture has become the mainstream technical approach for multi-axis servo drives, thanks to **software-hardware co-design, high single-chip integration, strong real-time performance, and flexible scalability**.
+
+By placing fixed, high-real-time algorithms in FPGA hardware and complex, iterative algorithms in ARM/DSP software, this architecture ensures both low control latency and high synchronization accuracy, while preserving the ability to upgrade algorithms and configure parameters flexibly.
+
+For industrial automation, motion control, and servo equipment manufacturers, **secondary development based on mature MPSoC industrial motherboards** represents the optimal choice to reduce costs, shorten development cycles, and improve system stability.
+
+Sienovo provides ZYNQ MPSoC motherboard solutions and manufacturing services.
