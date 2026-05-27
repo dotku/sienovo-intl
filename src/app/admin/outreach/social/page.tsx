@@ -210,7 +210,7 @@ export default function SocialSearchPage() {
                 onChange={(e) => setKeywords(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                 className="flex-1 px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-gray-900"
-                placeholder={t.socialKeywordsPlaceholder || "e.g. 工业视���检测, 边缘AI"}
+                placeholder={t.socialKeywordsPlaceholder || "e.g. 工业视频检测, 边缘AI"}
               />
               <button
                 onClick={handleSearch}
