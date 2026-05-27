@@ -4,39 +4,20 @@ date: "2020-12-27"
 slug: "111823712"
 tags: []
 source: "https://blog.csdn.net/yeyuangen/article/details/111823712"
+expanded: true
 ---
+该错误表明 `unrar` 包在当前的源中没有可用的安装候选，导致无法直接通过 `apt` 完成安装。下面提供一种基于官方 RAR Lab 下载的离线安装方案，帮助在 Ubuntu 16.04（以及其他兼容的 Linux 发行版）上顺利部署 RAR/UnRAR。
 
- 
+## 为什么会出现 “no installation candidate”
 
-背景：ubuntu 16.04
+- **仓库不完整**：Ubuntu 16.04 默认的 `main`、`universe`、`multiverse` 仓库中并未收录官方的 `unrar`（非自由版），而是提供了 `unrar-free`（功能受限的开源实现）。
+- **版权限制**：原版 `unrar` 属于专有软件，Ubuntu 出于版权合规的考虑不直接提供。
+- **源同步问题**：如果系统的 `sources.list` 中缺少 `multiverse` 源，`apt` 也会找不到对应的包。
 
-安装 rar /unrar时提示错误：
+如果只想使用开源的 `unrar-free`，可以直接执行 `sudo apt-get install unrar-free`；但如果需要完整的 RAR 功能（如创建 RAR 压缩包），仍需手动安装官方提供的二进制。
 
-```hljs
- sudo apt-get install unrarReading package lists... DoneBuilding dependency tree       Reading state information... DonePackage unrar is not available, but is referred to by another package.This may mean that the package is missing, has been obsoleted, oris only available from another source E: Package 'unrar' has no installation candidate
-```
+## 手动安装官方 RAR/UnRAR 的完整步骤
 
-解决 方法：
+### 1. 下载官方压缩包
 
-1.   打开https://www.rarlab.com/download.htm
-    
-2.   下载RAR 5.71 beta 2 for Linux(根据系统选取32位/64位下载)
-    
-
-如何判断 系统 是32位/64位： 
-
-```hljs
-root# getconf LONG_BIT64  # 64位系统
-```
-
-安装：
-
-```hljs
-tar -xzpvf rarlinux-x64-5.7.1b2.tar.gz cd rar make
-```
-
-输入 make 会提示:
-
-```hljs
-root:/home/work/rar# makemkdir -p /usr/local/binmkdir -p /usr/local/libcp rar unrar /usr/local/bincp rarfiles.lst /etccp default.sfx /usr/local/lib
-```
+打开 RAR 官方下载页面：
