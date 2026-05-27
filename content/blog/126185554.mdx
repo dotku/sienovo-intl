@@ -4,38 +4,136 @@ date: "2022-08-05"
 slug: "126185554"
 tags: ["#harmonyos", "#鸿蒙+RK3568", "#鸿蒙工业互联"]
 source: "https://blog.csdn.net/yeyuangen/article/details/126185554"
+expanded: true
+---
+## 搭载开源鸿蒙系统的嵌入式 XM‑RK3568 工业互联方案概述  
+
+随着工业互联网对算力、功耗、可靠性的要求日益提升，基于 **RK3568** 的硬件平台已经成为众多工业场景的首选。本文围绕 **信迈（XINMAI）** 提供的 XM‑RK3568 方案，结合开源鸿蒙系统（OpenHarmony），从芯片特性、软硬件优势、典型应用以及系统移植要点四个维度展开，帮助读者快速了解该方案的技术价值，并为后续的产品落地提供参考。
+
 ---
 
- 
+## 1. RK3568 芯片核心特性  
 
-RK3568芯片是一款定位中高端的通用型 SOC ，采用22nm制程工艺，集成4核A55处理器和Mali G52 GPU。内置独立的0.8T算力 NPU，芯片拥有丰富的外设接口，支持HDMI、EDP、MIPI、LVDS等屏幕外设，可通过GPIO、RS485、 RS232 、ADC等接口接入PLC编程控制器和光电转换模组传感器等。RK3568在工业主要用作物联网网关、NVR存储、工控平板、工业检测、工控盒等产品的处理器，广泛应用于工业巡检、进程控制、数据采集、控制计算机、IPC集中管理等场景。
+| 参数 | 说明 |
+|------|------|
+| 制程 | 22 nm 高密度工艺，兼具低功耗与高性能 |
+| CPU | 四核 Cortex‑A55，64 bit，最高 2.0 GHz |
+| GPU | Mali‑G52 MP4，支持 OpenGL ES 3.2/2.0/1.1 与 Vulkan 1.1 |
+| NPU | 独立 0.8 TOPS 计算单元，专用于 AI 推理 |
+| VPU | 支持 4K 60 fps H.265/H.264/VP9 解码，1080 p 100 fps 编码 |
+| 存储 | DDR4/LPDDR4，最大支持 8 GB |
+| 接口 | 2×USB 3.0、8×USB 2.0、MIPI‑DSI、eDP、HDMI、LVDS、I2C、UART、RS232、RS485、ADC、GPIO 等 |
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/126185554/01_95a703d7e8ab6c947dd31a6efe93eead.jpeg)
+> **工业场景匹配**：上述特性使 RK3568 能够满足 **IoT 网关、NVR 存储、工控平板、工业检测盒** 等对多媒体处理、边缘 AI 与丰富外设的统一需求。
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/126185554/02_1b07addccdd9038e9c2dde6fc95a949f.png)
+---
 
-**▌▌ 信迈R****K****工控产品方案**
+## 2. 信迈 XM‑RK3568 方案的产品优势  
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/126185554/03_7b3f0046b3cd53fa581170630105fa61.png)
+### 2.1 四核 64 bit 处理器  
 
-**信迈工控产品方案，有以下产品优势：**
+采用 RK3568 四核 Cortex‑A55，主频最高 2.0 GHz，提供比上一代 1.5 GHz 方案约 30%~40% 的性能提升。22 nm 工艺保证在高负载下仍保持低功耗，适合长时间运行的工业设备。
 
-●**四核64位处理器****：**
+### 2.2 大容量内存  
 
-采用瑞芯微RK3568四核64位Cortex-A55处理器，主频最高2.0GHz ， 效能有大幅提升；采用22nm先进工艺，具有低功耗高性能的特点。
+最高可配置 **8 GB DDR4**，为复杂的工业数据采集、实时视频分析以及多任务操作提供足够的内存空间，避免因内存瓶颈导致的卡顿或掉帧。
 
-●**最大8G内存****：**
+### 2.3 GPU/VPU/NPU 协同加速  
 
-最高可配 8GB DDR内存容量，满足大内存的产品应用场景要求。
+- **GPU**：Mali‑G52 支持 OpenGL ES 3.2 与 Vulkan 1.1，可实现流畅的 3D 可视化界面。  
+- **VPU**：硬件 4K 60 fps H.265/H.264/VP9 解码，满足高清视频监控、现场回放需求。  
+- **NPU**：0.8 TOPS AI 推理单元，适用于缺陷检测、目标跟踪等边缘 AI 场景。
 
-●**集成GPU/VPU/NPU协处理器****：**
+### 2.4 丰富的工业接口  
 
-双核心架构GPU，高性能VPU以及NPU 。支持 OpenGL ES3.2 /2.0 /1.1，Vulkan1.1；4K 60fps H.265 /H.264/VP9视频解码和1080P 100fps H.265/H.264视频编码。
+- **USB**：2×USB 3.0、8×USB 2.0，支持高速外设（如高速摄像头、U盘）和低速传感器。  
+- **显示**：MIPI‑DSI、eDP、HDMI、LVDS，兼容多种工业显示屏。  
+- **通讯**：UART、RS232、RS485、I2C、GPIO、ADC，直接对接 PLC、传感器、光电转换模块等现场设备。
 
-●**多种丰富接口，支持多种工业外设：**
+### 2.5 软件生态  
 
-拥有2个 USB3.0 、8个USB2.0、MiPi DSI、eDP、I2C、UART、ADC、GPIO 等接口，可应用于外部设备 控制 和扩展。
+信迈专注于国产操作系统软硬件一体化解决方案，提供 **开源鸿蒙系统（OpenHarmony）** 的完整适配包、驱动库以及参考案例，帮助客户快速构建工业级软硬件生态。
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/126185554/04_51559ebb7cdac4c8557141f9589277e2.png)
+---
 
-信迈专注于提供行业国产操作系统软硬件解决方案，并全力打造行业国产化、开源化的软硬系统生态平台。
+## 3. 开源鸿蒙系统在 RK3568 上的适配要点  
+
+### 3.1 系统选型与源码获取  
+
+- **OpenHarmony** 为完全开源的鸿蒙系统实现，代码托管在 Gitee（https://gitee.com/OpenHarmony）或 GitHub。  
+- 通过 `repo` 工具同步 `manifest`，即可获取对应的 BSP（Board Support Package）源码。BSP 中已包含 RK3568 的启动代码、设备树以及基本驱动。
+
+### 3.2 编译环境准备  
+
+| 环境 | 推荐配置 |
+|------|----------|
+| 主机 OS | Ubuntu 20.04 LTS（64 bit） |
+| 编译工具链 | aarch64-linux-gnu-gcc（版本 ≥ 9） |
+| 构建系统 | OpenHarmony 使用 `build.sh` 脚本，内部基于 `CMake` 与 `Make` |
+| 依赖库 | `libssl-dev`、`libncurses5-dev`、`python3` 等（可通过 `./build.sh --install-deps` 自动安装） |
+
+> **提示**：在企业内部网络环境下，建议使用离线镜像或内部源，以避免外网访问限制。
+
+### 3.3 设备树与驱动适配  
+
+- **设备树（.dts）**：RK3568 的标准设备树位于 `device/rockchip/rk3568` 目录。根据实际硬件（如外接 RS485 转换卡、ADC 采样通道）进行裁剪或新增节点。  
+- **驱动**：OpenHarmony 已提供 `rk3568-npu`、`rk3568-gpu`、`rk3568-vpu` 的驱动框架，若使用自定义外设（如特定 PLC 通讯卡），需在 `drivers` 目录下添加对应的 Linux 驱动并在 `Kconfig` 中打开。
+
+### 3.4 镜像生成与烧录  
+
+```bash
+# 1. 拉取源码
+repo init -u https://gitee.com/OpenHarmony/manifest -b master
+repo sync
+
+# 2. 配置目标板
+./build.sh --product xm_rk3568 --mode userdebug
+
+# 3. 编译镜像
+./build.sh --product xm_rk3568 --mode userdebug --make
+
+# 4. 生成 OTA 包或直接烧录
+./tools/flash_tool flash --image out/target/product/xm_rk3568/boot.img \
+                         --image out/target/product/xm_rk3568/system.img
+```
+
+- **烧录方式**：支持 **USB OTG**、**UART**（串口）以及 **SD 卡** 三种方式。生产线推荐使用 **USB OTG**，通过 `fastboot` 或 `adb` 实现快速刷机。
+
+### 3.5 系统调试与验证  
+
+| 步骤 | 操作 |
+|------|------|
+| 启动日志 | 通过串口查看 `kernel` 启动信息，确认 `device tree` 正确加载。 |
+| NPU 测试 | 使用 OpenHarmony 提供的 `npu_demo` 示例，运行 `yolo` 推理，观察 `npu_perf` 输出的 TOPS。 |
+| 视频编解码 | 通过 `media_player` 示例播放 4K H.265 视频，检查帧率是否达到 60 fps。 |
+| 外设通信 | 在 `uart_demo` 中发送/接收 RS485 数据，验证 PLC 控制指令的实时性。 |
+
+---
+
+## 4. 典型工业场景落地案例  
+
+### 4.1 边缘视频监控网关  
+
+- **硬件**：XM‑RK3568 主板 + 4K 摄像头（MIPI‑CSI）+ 8 GB DDR4 + 16 GB eMMC。  
+- **软件**：OpenHarmony + VPU 解码 + NPU 人脸识别。  
+- **实现**：摄像头实时推流至本地存储，NPU 对每帧进行人脸检测，检测结果通过 RS485 发送至现场 PLC，实现“有人进入即报警”功能。
+
+### 4.2 智能 PLC 数据采集盒  
+
+- **硬件**：XM‑RK3568 + 多路 ADC + RS232/RS485 通讯模块。  
+- **软件**：OpenHarmony + LiteOS‑Nano（轻量任务调度）+ MQTT 客户端。  
+- **实现**：周期性读取模拟传感器（温度、压力），经由 NPU 进行异常预测后，通过 MQTT 将数据上报至云平台，实现远程监控与预警。
+
+### 4.3 工业平板 HMI（Human‑Machine Interface）  
+
+- **硬件**：XM‑RK3568 + 10.1″ LVDS 显示屏 + USB‑Touch 触控。  
+- **软件**：OpenHarmony + ArkUI（鸿蒙 UI 框架）+ GPU 加速渲染。  
+- **实现**：基于 ArkUI 开发的可视化界面，展示生产线运行状态；GPU 提供流畅的动画效果，提升操作员体验。
+
+---
+
+## 5. 结语  
+
+信迈的 XM‑RK3568 方案凭借 **四核 64 bit 处理器、最大 8 GB 内存、GPU/VPU/NPU 协同加速** 以及 **丰富的工业接口**，为工业互联网提供了一个高性能、低功耗、易扩展的硬件基座。结合 **开源鸿蒙系统**，开发者可以在统一的软硬件生态中快速完成系统移植、功能验证以及产品化落地。  
+
+如果您正考虑在工业场景中引入边缘 AI、高清视频处理或多协议通讯，XM‑RK3568 + OpenHarmony 将是一个值得尝试的组合。欢迎关注信迈官方渠道获取最新的软硬件适配包、技术文档以及现场技术支持。

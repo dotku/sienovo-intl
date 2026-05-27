@@ -4,50 +4,37 @@ date: "2023-04-10"
 slug: "130063985"
 tags: ["#RK3399"]
 source: "https://blog.csdn.net/yeyuangen/article/details/130063985"
+expanded: true
+---
+下面逐项解释每个属性的意义以及调试时需要关注的要点。
+
+| 属性 | 含义 | 调试要点 |
+|------|------|----------|
+| `status = “okay”` | 启用 I²C 总线和传感器节点 | 确认父节点 `&i2c5` 已经被启用，否则驱动不会加载 |
+| `compatible = “gs_mxc6655xa”` | 匹配驱动的设备 ID | 驱动源码中 `of_match_table` 必须包含该字符串 |
+| `pinctrl-names = “default”` / `pinctrl-0 = <&mxc6655xa_irq_gpio>` | 指定中断引脚的复用配置 | 检查 `&mxc6655xa_irq_gpio` 在 `pinctrl` 节点中是否正确定义（如 pull‑up、驱动强度） |
+| `reg = <0x15>` | I²C 从设备地址（7 位） | 确认硬件实际地址与此一致，若不一致需修改 |
+| `irq-gpio = <&gpio3 RK_PC1 IRQ_TYPE_LEVEL_LOW>` | 中断引脚映射 | `gpio3` 对应的控制器号、引脚 `PC1` 必须与硬件连线对应；中断类型为低电平触发 |
+| `irq_enable = <1>` | 是否使能中断 | 若希望使用轮询方式可设为 `0`，但大多数工业场景推荐开启中断 |
+| `poll_delay_ms = <30>` | 轮询周期（毫秒） | 当中断失效时，系统会回退到轮询模式；可根据需求调节 |
+| `type = <SENSOR_TYPE_ACCEL>` | 传感器类型标识 | 驱动内部会根据该值选择对应的 IIO 通道 |
+| `power-off-in-suspend = <1>` | 挂起时关闭电源 | 确认电源管理（PMIC）能够响应此标记，否则可能导致挂起后无法恢复 |
+| `layout = <1>` | 坐标系布局 | 取值 0/1 对应不同的轴方向，依据机械装配决定 |
+
+> **实战技巧**：如果在编译后发现 `compatible` 未匹配成功，先在 `dmesg` 中搜索 `gs_mxc6655xa`，确认驱动是否已加载；若没有，检查 `CONFIG_INPUT_MXC6655XA`（或对应的 Kconfig）是否在内核配置中打开。
+
 ---
 
- 
+## 3. 调试步骤
 
-**1、RK3568 Linux麒麟系统陀螺仪驱动调试**
+### 3.1 环境准备
+1. **源码获取**：克隆瑞星微提供的 BSP（Board Support Package），确保包含 `arch/arm64/boot/dts/rockchip/rk3568.dtsi` 等文件。  
+2. **交叉编译**：使用 `aarch64-linux-gnu-` 工具链编译内核，生成 `zImage` 与 `rk3568.dtb`。  
+3. **烧写镜像**：通过 SD 卡或 eMMC 将编译产物写入开发板，确保启动的是最新的设备树。
 
-　　瑞星微开发板自带的陀螺仪型号MXC6655xa，硬件人员说我们的板子和开发板一样，因此检查设备 树 文件找到设备描述：
+### 3.2 修改设备树
+- 若硬件实际使用的 I²C 总线不是 `i2c5`，需将 `&i2c5` 替换为对应的节点（如 `&i2c2`）。  
+- 若中断引脚实际连接在 `RK_PB0`，则修改 `irq-gpio` 为 `<&gpio3 RK_PB0 IRQ_TYPE_LEVEL_LOW>`。  
+- 保存修改后，运行 `make dtbs` 重新生成 `.dtb` 文件。
 
-　　&i2c5 {
-
-　　status = “okay”;
-
-　　mxc6655xa： mxc6655xa@15 {
-
-　　status = “okay”;
-
-　　compatible = “gs\_mxc6655xa”;
-
-　　pinctrl-names = “default”;
-
-　　pinctrl-0 = 《&mxc6655xa\_irq\_gpio》;
-
-　　 reg \= 《0x15》;
-
-　　irq-gpio = 《&gpio3 RK\_PC1 IRQ\_TYPE\_LEVEL\_LOW》;
-
-　　irq\_enable = 《1》;
-
-　　poll\_delay\_ms = 《30》;
-
-　　type = 《SENSOR\_TYPE\_ACCEL》;
-
-　　power-off-in-suspend = 《1》;
-
-　　layout = 《1》;
-
-　　};
-
-　　};
-
-　　&pinctrl {
-
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/130063985/01_dccbdd61f7a5c1f0d60c53783ecaa3ea.jpeg)
-
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/130063985/02_9b5084112015ad06293330bcce096283.png)
-
- ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/130063985/03_bc917c6faef58aded74779cab01f0ceb.png)
+### 3.3 编译并加载驱动

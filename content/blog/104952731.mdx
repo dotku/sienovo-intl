@@ -4,17 +4,146 @@ date: "2020-03-18"
 slug: "104952731"
 tags: ["#AM5728", "#工业控制", "#工业总线", "#RPOFIBUS", "#EHTERCAT"]
 source: "https://blog.csdn.net/yeyuangen/article/details/104952731"
+expanded: true
+---
+## AM5728 DSP+ARM 在 EtherCAT、PROFIBUS、CAN、RS485 等工业总线中的使用简介  
+
+在工业自动化和边缘计算场景中，**TI AM5728** 以其强大的多核架构和丰富的外设接口，成为实现多协议工业总线的理想平台。本文将围绕 **AM5728** 对 **EtherCAT、EtherNet/IP、PROFIBUS、CAN、RS485、RS232** 等常见工业通信协议的支持进行展开，帮助读者了解如何在该平台上快速搭建工业组网、实现高精度运动控制以及结合 FPGA 进行图像处理的完整方案。
+
+> **原文核心描述**（保持原文不变）  
+> TI AM5728平台可以支持 EtherCAT，EtherNet/IP、PROFIBUS， CAN 总线，RS485，RS232等多种工业通信协议，产品可轻松实现各总线控制和工业组网；通过双 C66x DSP 实现更复杂的，更高精度的运动控制插补算法；并可通过 GPMC 总线连接 FPGA 的方案，实现更多的工业控制与图像处理功能。
+
+下面，我们将在上述要点的基础上，逐层拆解平台特性、硬件连接方式以及软件实现路径，帮助您快速上手。
+
 ---
 
- 
+## 1. AM5728 硬件概览  
 
-TI AM5728平台可以支持 EtherCAT，EtherNet/IP、PROFIBUS， CAN 总线，RS485，RS232等多种工业通信协议，产品可轻松实现各总线控制和工业组网；通过双 C66x DSP 实现更复杂的，更高精度的运动控制插补算法；并可通过 GPMC 总线连接 FPGA 的方案，实现更多的工业控制与图像处理功能。  
- 
+| 关键特性 | 说明 |
+|----------|------|
+| **处理器** | 双核 ARM Cortex‑A15（最高 1.5 GHz）+ 双 C66x DSP（最高 1.2 GHz） |
+| **内存** | DDR3/DDR4 支持，最大 2 GB |
+| **外设接口** | 多达 30+ UART、SPI、I2C、CAN、GMII、RGMII、MII、GPMC、PCIe、USB、HDMI、eDP 等 |
+| **工业总线** | 原生支持 EtherCAT、EtherNet/IP、PROFIBUS、CAN、RS485、RS232 等 |
+| **可扩展** | 通过 GPMC（General‑Purpose Memory Controller）可直接挂载 FPGA，实现高速并行计算或自定义协议处理 |
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/104952731/01_22931819c9225b4733fd19964b55cce4.jpeg)
+> **技术背景**：C66x DSP 是 TI 专为数字信号处理设计的向量处理器，擅长实时运动控制、滤波、图像处理等高算力任务；而 ARM Cortex‑A15 则负责系统管理、网络协议栈以及上层应用。
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/104952731/02_5a5924a5b44b487fb3412bc633eb5537.jpeg)
+---
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/104952731/03_7ee7a378c8832b21392e4e2945c2658f.jpeg)
+## 2. 多协议支持的实现路径  
+
+### 2.1 EtherCAT 与 EtherNet/IP  
+
+- **EtherCAT**（Ethernet for Control Automation Technology）是一种基于以太网的实时现场总线，采用“在帧上直接处理”方式，实现微秒级的周期性通信。  
+- **EtherNet/IP**（Ethernet Industrial Protocol）则是基于标准 TCP/IP 的工业协议，适用于对实时性要求相对宽松的场景。
+
+在 AM5728 上，这两种协议均可以通过 **TI EtherCAT Stack**（或第三方开源实现）直接加载到 ARM Cortex‑A15 上运行。DSP 可以在需要时承担 **从站（Slave）** 的实时插补计算，确保运动控制闭环的毫秒级响应。
+
+### 2.2 PROFIBUS  
+
+- **PROFIBUS**（Process Field Bus）是传统的现场总线，广泛用于 PLC 与传感器/执行器的互联。  
+- AM5728 的 **UART** 与 **CAN** 控制器经适配后即可实现 PROFIBUS DP（Decentralized Peripherals）或 PA（Process Automation）协议栈。  
+
+在实际部署中，**TI 的 PROFIBUS Stack** 提供了完整的协议层实现，开发者只需在 Linux 环境下配置对应的设备树（Device Tree）即可完成初始化。
+
+### 2.3 CAN、RS485、RS232  
+
+- **CAN**（Controller Area Network）在汽车、工业机器人中使用广泛。AM5728 的 CAN 控制器支持 **ISO 11898‑2**（高速）和 **ISO 11898‑3**（低速）两种模式。  
+- **RS485** 与 **RS232** 通过 UART 端口实现，适用于点对点或多点串行通信。  
+
+这些串行总线的驱动在 **Linux kernel** 中已有成熟实现，开发者只需在 **/dev** 目录下打开相应的串口设备（如 `/dev/ttyS0`、`/dev/can0`）即可进行读写。
+
+---
+
+## 3. 双 C66x DSP 在运动控制中的角色  
+
+### 3.1 为什么需要 DSP  
+
+在高精度运动控制（如数控机床、机器人关节）中，**插补算法**（如线性插补、圆弧插补）对计算时延有严格要求。传统的 ARM 核心在处理大量浮点运算时可能出现抖动，影响轨迹平滑度。C66x DSP 具备：
+
+- **向量指令**：一次性处理 4‑8 个浮点数，提升吞吐量。  
+- **低延迟中断**：实时响应外部触发（如编码器脉冲）。  
+- **专用寄存器组**：支持高速缓存，降低内存访问开销。
+
+### 3.2 实际部署示例  
+
+1. **初始化**：在启动脚本中加载 DSP 固件（`.out` 文件），并通过 **Remoteproc** 框架将其映射到用户空间。  
+2. **任务分配**：将运动控制核心（如 **S-curve**、**PID**）编写为 DSP 程序，使用 **TI DSP/BIOS** 或 **OpenCL** 接口调用。  
+3. **数据交互**：ARM 通过 **IPC（Inter‑Processor Communication）**（如 **MessageQ**、**Shared Memory**）与 DSP 交换目标位置、速度指令以及实时反馈。  
+
+这样，ARM 负责高层调度与网络通信，DSP 专注于毫秒级的运动插补，系统整体响应时间可控制在 **< 1 ms**（具体数值取决于实际负载）。
+
+---
+
+## 4. 通过 GPMC 总线连接 FPGA 的扩展方案  
+
+### 4.1 GPMC 简介  
+
+**GPMC（General‑Purpose Memory Controller）** 是 AM5728 为外部存储或外设提供的并行总线接口，支持 8‑bit、16‑bit、32‑bit宽度的同步访问。它常用于连接 **NOR Flash、NAND Flash、SRAM**，也可用于挂载 **FPGA**。
+
+### 4.2 FPGA 与工业总线的协同  
+
+- **自定义协议**：如果现场总线标准未覆盖特定需求（如自研高速同步协议），可以在 FPGA 中实现硬件层的协议解析，然后通过 GPMC 将数据映射到 AM5728 的内存空间，供 ARM/DSP 直接读取。  
+- **图像处理**：在机器视觉系统中，摄像头采集的原始图像可以先在 FPGA 中进行 **预处理**（去噪、颜色空间转换），再通过 GPMC 交给 ARM 进行更高层的 AI 推理。  
+- **实时控制**：将 **PID**、**模糊控制**等算法搬到 FPGA，实现 **硬件级** 的毫秒级响应，然后通过 GPMC 与 DSP 共享状态，实现软硬件协同控制。
+
+### 4.3 实际接线示例  
+
+| 信号 | AM5728 引脚 | FPGA 引脚 | 备注 |
+|------|-------------|-----------|------|
+| GPMC_AD0‑AD31 | `GPMC_AD0`‑`GPMC_AD31` | `D0`‑`D31` | 数据总线 |
+| GPMC_CLK | `GPMC_CLK` | `CLK` | 时钟，建议 100 MHz |
+| GPMC_OE_N | `GPMC_OE_N` | `OE` | 读使能 |
+| GPMC_WE_N | `GPMC_WE_N` | `WE` | 写使能 |
+| GPMC_CS0_N | `GPMC_CS0_N` | `CS` | 片选 |
+
+在 **Device Tree** 中添加对应的 `gpmc` 节点，指定 **address width**、**data width**、**timing parameters**，即可让 Linux 将 FPGA 映射为 **/dev/mem** 或 **/dev/gpmc0** 设备。
+
+---
+
+## 5. 软件生态与开发流程  
+
+| 步骤 | 关键工具 | 说明 |
+|------|----------|------|
+| **系统准备** | TI Processor SDK Linux | 包含内核、驱动、文件系统、示例代码 |
+| **协议栈集成** | EtherCAT Stack、PROFIBUS Stack、CANutils | 根据需求选择对应的协议实现 |
+| **DSP 开发** | Code Composer Studio (CCS) | 编写 C66x 插补算法、调试 Remoteproc |
+| **FPGA 设计** | Vivado / Quartus | 实现自定义协议或图像前处理 |
+| **IPC 配置** | TI IPC (MessageQ, Shared Memory) | ARM ↔ DSP ↔ FPGA 数据交互 |
+| **调试与验证** | Real‑Time Trace (RTT)、Scope | 监测总线时延、插补误差、数据完整性 |
+
+> **提示**：在调试 EtherCAT 或 PROFIBUS 时，建议使用 **Wireshark**（配合对应插件）捕获现场总线帧，验证帧格式与时序是否符合规范。
+
+---
+
+## 6. 典型应用场景  
+
+| 场景 | 使用的总线 | 关键技术点 |
+|------|------------|------------|
+| **高速数控机床** | EtherCAT + CAN | EtherCAT 负责主站同步，CAN 连接伺服驱动；DSP 进行实时插补 |
+| **工业机器人** | PROFIBUS DP + RS485 | PROFIBUS 连接 PLC，RS485 用于外部传感器；GPMC‑FPGA 实现视觉前处理 |
+| **智能传感网关** | EtherNet/IP + RS232 | EtherNet/IP 与上位系统通信，RS232 读取老旧传感器；ARM 负责协议转换 |
+| **嵌入式视觉检测** | GPMC‑FPGA + CAN | FPGA 预处理图像，CAN 发送检测结果；DSP 进行轻量 AI 推理 |
+
+---
+
+## 7. 小结  
+
+- **TI AM5728** 通过 **双 C66x DSP** 与 **ARM Cortex‑A15** 的协同，能够同时满足 **高实时性**（EtherCAT、PROFIBUS）和 **高算力**（运动插补、图像前处理）需求。  
+- 多种工业总线（EtherCAT、EtherNet/IP、PROFIBUS、CAN、RS485、RS232）均有成熟驱动和协议栈支持，开发者可以在 **Linux** 环境下快速部署。  
+- **GPMC 总线** 为 FPGA 的无缝接入提供了硬件桥梁，使系统在 **控制** 与 **视觉** 双方向上具备更强的可扩展性。  
+
+通过合理划分功能模块、利用 DSP 的实时计算优势以及 FPGA 的并行处理能力，AM5728 能够在工业自动化、边缘 AI、智能制造等领域构建出 **高可靠、高性能** 的综合解决方案。
+
+---
+
+## 8. 参考图片  
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/104952731/01_22931819c9225b4733fd19964b55cce4.jpeg)  
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/104952731/02_5a5924a5b44b487fb3412bc633eb5537.jpeg)  
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/104952731/03_7ee7a378c8832b21392e4e2945c2658f.jpeg)  
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/104952731/04_5afc700b2a5d4599224231c891e69f1e.jpeg)

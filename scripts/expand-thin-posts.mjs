@@ -102,9 +102,9 @@ const PROVIDERS = {
     name: "Cerebras",
     url: "https://api.cerebras.ai/v1/chat/completions",
     key: process.env.CEREBRAS_API_KEY,
-    model: "llama3.1-8b",
+    model: process.env.CEREBRAS_MODEL || "gpt-oss-120b",
     format: "openai",
-  },
+},
 };
 
 const args = process.argv.slice(2);
@@ -117,6 +117,8 @@ const SLUG = argVal("--slug");
 const FORCE_PROVIDER = argVal("--provider");
 const FORCE = args.includes("--force");
 const DRY_RUN = args.includes("--dry-run");
+const LOCALE = argVal("--locale") || "en";
+const TARGET_DIR = LOCALE === "zh" ? ZH_DIR : EN_DIR;
 
 const availableProviders = Object.entries(PROVIDERS)
   .filter(([, p]) => p.available ?? !!p.key)
@@ -229,8 +231,12 @@ function readTags(fmRaw) {
 }
 
 // ── Prompt ──────────────────────────────────────────────────────────────────
-function buildPrompt({ title, tags, zhBody, enBody }) {
-  return `You are a senior technical writer for Sienovo, an edge-AI / industrial computing company. You are salvaging an old, thin English blog post translated from a Chinese CSDN article.
+function buildPrompt({ title, tags, zhBody, enBody, locale }) {
+  const isChinese = locale === "zh";
+  const targetLang = isChinese ? "Chinese (Simplified)" : "English";
+  const sourceBody = isChinese ? zhBody : enBody;
+
+  return `You are a senior technical writer for Sienovo, an edge-AI / industrial computing company. You are expanding a thin blog post originally from a Chinese CSDN article.
 
 CRITICAL: First decide whether this article has substantive technical content worth expanding, or whether it is just an outline / table-of-contents / "see original" stub.
 
@@ -238,6 +244,7 @@ If the article is a stub (e.g. just a list of section titles with no actual cont
 SKIP
 
 If the article has real content (a debugging note, a code-walkthrough, a how-to, a comparison, a troubleshooting tip — even a short one), then expand it into a substantive ${TARGET_LEN}+ character blog post:
+- IMPORTANT: Write the entire expanded article in ${targetLang}.
 - Stay 100% truthful to the original technical content. Do NOT invent product names, version numbers, benchmark numbers, performance claims, or specific behaviour the source did not state.
 - You may add commonly-known background context for the technology (e.g. "AM5728 is a TI Sitara processor with dual ARM Cortex-A15 cores"), step-by-step elaboration, and standard troubleshooting hints, as long as those are domain knowledge a competent engineer would already know.
 - Preserve the original article's specific findings/observations exactly. The expansion goes around them, not on top of them.
@@ -249,17 +256,12 @@ If the article has real content (a debugging note, a code-walkthrough, a how-to,
 Article title: ${title}
 Tags: ${tags.join(", ") || "(none)"}
 
-Chinese source body (for context — the source of truth for what the post is actually about):
-<<<ZH_SOURCE
-${zhBody}
-ZH_SOURCE>>>
+Source body:
+<<<SOURCE
+${sourceBody}
+SOURCE>>>
 
-Current thin English body:
-<<<EN_CURRENT
-${enBody}
-EN_CURRENT>>>
-
-Decide: SKIP, or expanded markdown body.`;
+Decide: SKIP, or expanded markdown body in ${targetLang}.`;
 }
 
 async function expand(post) {
@@ -283,14 +285,14 @@ async function expand(post) {
 
 // ── Main ────────────────────────────────────────────────────────────────────
 async function main() {
-  const enFiles = readdirSync(EN_DIR)
+  const enFiles = readdirSync(TARGET_DIR)
     .filter((f) => f.endsWith(".mdx"))
     .filter((f) => !SLUG || f === `${SLUG}.mdx`)
     .sort();
 
   const candidates = [];
   for (const file of enFiles) {
-    const enRaw = readFileSync(join(EN_DIR, file), "utf-8");
+    const enRaw = readFileSync(join(TARGET_DIR, file), "utf-8");
     const enParts = splitFrontmatter(enRaw);
     if (!enParts) continue;
     if (!FORCE) {
@@ -318,7 +320,7 @@ async function main() {
     if (candidates.length >= LIMIT) break;
   }
 
-  console.log(`EN files scanned:        ${enFiles.length}`);
+  console.log(`Files scanned (${LOCALE}): ${enFiles.length}`);
   console.log(`Thin candidates [${HARD_FLOOR}-${THRESHOLD - 1}c]: ${candidates.length}`);
   if (candidates.length === 0) {
     console.log("Nothing to expand.");
@@ -345,11 +347,12 @@ async function main() {
         tags: c.tags,
         zhBody: c.zhBody.slice(0, 8000),
         enBody: c.enParts.body,
+        locale: LOCALE,
       });
 
       if (result.trim() === "SKIP") {
         const newFm = `${c.enParts.fmRaw}\nexpandSkipped: true`;
-        writeFileSync(join(EN_DIR, c.file), `---\n${newFm}\n---\n${c.enParts.body}`, "utf-8");
+        writeFileSync(join(TARGET_DIR, c.file), `---\n${newFm}\n---\n${c.enParts.body}`, "utf-8");
         skipped++;
         console.log(`SKIP (${provider})`);
         if (i < candidates.length - 1) await new Promise((r) => setTimeout(r, DELAY_MS));
@@ -366,7 +369,7 @@ async function main() {
 
       const newFm = `${c.enParts.fmRaw}\nexpanded: true`;
       const updated = `---\n${newFm}\n---\n${result.endsWith("\n") ? result : result + "\n"}`;
-      writeFileSync(join(EN_DIR, c.file), updated, "utf-8");
+      writeFileSync(join(TARGET_DIR, c.file), updated, "utf-8");
       expanded++;
       console.log(`done (${provider}) — ${c.enLen}c → ${newLen}c`);
     } catch (err) {

@@ -4,10 +4,146 @@ date: "2024-05-22"
 slug: "139112214"
 tags: ["#数智化"]
 source: "https://blog.csdn.net/yeyuangen/article/details/139112214"
+expanded: true
 ---
+## 设备概述
 
- 
+PXIe‑6124 是 NI（National Instruments）推出的一款 **同步采样** 多功能数据采集（DAQ）模块，专为 PXI（PCI eXtensions for Instrumentation）平台设计。本文将围绕该模块的主要特性、典型应用以及配套软件的使用方法展开，帮助读者快速上手并在实际项目中发挥其优势。
 
-### PXIe，4路AI（16位，4 MS/s/ch），2路AO，24路DIO，PXI多功能I/O模块
+## 硬件特性
 
-PXIe‑6124是一款同步采样的多功能DAQ设备。 该模块提供了模拟 I/O、数字I/O、两个32位计数器和模拟和数字触发。 PXIe‑6124适用于诸多应用，比如IF数字化；瞬时记录；通信行业的ISDN、ADSL和POTS制造测试；超声波和声纳测试和高能物理。 随附的NI‑DAQmx驱动程序和配置实用程序简化了配置和测量。![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/139112214/01_baeb8e1438993eb776af487cc951bb72.png)
+| 功能 | 规格 |
+|------|------|
+| **模拟输入（AI）** | 4 路，16 位分辨率，最高 4 MS/s/通道 |
+| **模拟输出（AO）** | 2 路，分辨率与 NI‑DAQmx 驱动匹配 |
+| **数字 I/O（DIO）** | 24 路，支持独立或组合配置 |
+| **计数器** | 两个 32 位计数器，可用于脉冲宽度测量、频率计数等 |
+| **触发** | 同步的模拟触发和数字触发，确保多通道数据在同一时刻采集 |
+| **同步采样** | 多通道同步采样，适合高精度时域分析 |
+
+> **同步采样的多功能DAQ设备**  
+> PXIe‑6124是一款同步采样的多功能DAQ设备。该模块提供了模拟 I/O、数字 I/O、两个32位计数器和模拟和数字触发。PXIe‑6124适用于诸多应用，比如IF数字化；瞬时记录；通信行业的ISDN、ADSL和POTS制造测试；超声波和声纳测试和高能物理。随附的NI‑DAQmx驱动程序和配置实用程序简化了配置和测量。
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/139112214/01_baeb8e1438993eb776af487cc951bb72.png)
+
+### 1. 模拟输入（AI）
+
+- **16 位分辨率** 能够捕获细微的电压变化，适合高精度测量。  
+- **4 MS/s/通道** 的采样率满足宽带信号的瞬时捕获需求，例如射频（RF）前端的 IF（Intermediate Frequency）信号。
+
+### 2. 模拟输出（AO）
+
+- 2 路输出可用于驱动功率放大器、控制电压源或实现闭环控制。  
+- 与 NI‑DAQmx 的配套驱动保持一致，支持多种波形（正弦、方波、任意波形）输出。
+
+### 3. 数字 I/O（DIO）
+
+- 24 路数字 I/O 提供灵活的布线方式，可用于触发、状态监测或与外部逻辑电路交互。  
+- 支持单端或差分模式，兼容多种工业协议。
+
+### 4. 计数器
+
+- 两个 32 位计数器为高速计数、脉冲宽度测量、频率计数等提供硬件支持。  
+- 与触发系统联动，可实现精准的事件捕获。
+
+## 典型应用场景
+
+### 1. IF（中频）数字化
+
+在射频前端的信号链路中，常需要将中频信号转换为数字域进行后续处理。PXIe‑6124 的 4 MS/s 采样率和 16 位分辨率能够完整保留信号的幅度与相位信息，为后续的 DSP（数字信号处理）提供可靠数据。
+
+### 2. 瞬时记录
+
+高能物理实验或冲击测试常出现极短的瞬时信号。同步采样保证了多通道在同一时刻捕获，避免了时序误差。24 路数字 I/O 可用于记录触发信号或同步外部设备。
+
+### 3. 通信行业测试
+
+- **ISDN、ADSL、POTS** 等传统通信技术的制造测试需要对模拟信号进行精确测量。PXIe‑6124 能够在实验室环境中快速完成信号完整性、噪声与失真分析。  
+- 计数器与触发功能帮助实现时钟同步与误码率（BER）测试。
+
+### 4. 超声波与声纳
+
+在海洋探测或医学成像中，超声波回波信号的采集对采样率和同步性要求极高。PXIe‑6124 的高速 AI 通道配合数字触发，可实现对回波信号的精准捕获与后续分析。
+
+### 5. 高能物理
+
+粒子探测器输出的脉冲信号往往极短且幅度变化大。利用 32 位计数器与同步触发，PXIe‑6124 能够实现对每一次粒子事件的完整记录，为实验数据提供可靠依据。
+
+## 软件支持与配置
+
+### NI‑DAQmx 驱动
+
+PXIe‑6124 随附 **NI‑DAQmx** 驱动程序，这是 NI 官方提供的统一数据采集 API，支持：
+
+- **LabVIEW**、**C/C++**、**Python**（通过 NI‑DAQmx Python 包）等多语言开发。  
+- **自动化配置**：通过 NI‑MAX（Measurement & Automation Explorer）可以快速检测硬件、创建通道、设置采样率、触发方式等。  
+- **实时监控**：提供波形显示、统计分析等功能，帮助用户在调试阶段快速定位问题。
+
+### 配置实用程序
+
+- **NI‑MAX**：图形化界面，适合首次使用时进行硬件检测与基本参数设置。  
+- **NI‑DAQmx API 示例**：NI 官方文档中提供了丰富的示例代码，涵盖单通道采样、同步多通道、计数器使用等场景。
+
+## 使用示例
+
+下面给出一个基于 **Python**（使用 NI‑DAQmx Python 包）的简易示例，演示如何配置 4 路 AI 同步采样并实时读取数据。代码仅作演示，实际项目中请根据具体需求进行参数调优。
+
+```python
+import nidaqmx
+from nidaqmx.constants import AcquisitionType
+import numpy as np
+import matplotlib.pyplot as plt
+
+# 创建任务
+with nidaqmx.Task() as task:
+    # 添加 4 路模拟输入通道（假设为 ai0~ai3）
+    task.ai_channels.add_ai_voltage_chan(
+        "PXIe-6124/ai0:3",
+        min_val=-10.0,
+        max_val=10.0,
+        terminal_config=nidaqmx.constants.TerminalConfiguration.RSE
+    )
+    # 设置同步采样参数
+    task.timing.cfg_samp_clk_timing(
+        rate=4e6,               # 4 MS/s per channel
+        sample_mode=AcquisitionType.CONTINUOUS,
+        samps_per_chan=1000    # 每通道缓冲 1000 点
+    )
+    # 启动任务并读取数据
+    task.start()
+    data = task.read(number_of_samples_per_channel=1000)
+
+# data 为 4×1000 的二维数组
+data = np.array(data)
+time_axis = np.arange(data.shape[1]) / 4e6
+
+# 绘制波形
+plt.figure(figsize=(10, 6))
+for i in range(4):
+    plt.plot(time_axis, data[i], label=f'Channel {i}')
+plt.xlabel('Time (s)')
+plt.ylabel('Voltage (V)')
+plt.title('PXIe-6124 4-Channel Synchronous AI')
+plt.legend()
+plt.show()
+```
+
+> **注意**  
+> - 示例中使用的通道名称 `PXIe-6124/ai0:3` 需要根据实际硬件在 NI‑MAX 中确认。  
+> - 采样率 4 MS/s 为每通道最高速率，实际使用时请确保 PXI chassis 的时钟资源足够。  
+> - 若需要触发同步采样，可在 `task.triggers.start_trigger.cfg_dig_edge_start_trig` 中配置数字触发源。
+
+### LabVIEW 快速配置
+
+1. 打开 **NI‑MAX**，确认 PXIe‑6124 已被识别。  
+2. 在 **Create New Task** 中选择 **Analog Input → Voltage → Multiple Channels**。  
+3. 选中 `ai0:3`，设置 **Minimum Value** 为 `-10 V`，**Maximum Value** 为 `+10 V`。  
+4. 在 **Timing** 选项卡中，将 **Sample Mode** 设为 **Continuous**, **Rate** 设为 `4e6`，**Samples per Channel** 设为 `1000`。  
+5. 在 **Trigger** 选项卡中，根据需求选择 **Analog Trigger** 或 **Digital Trigger**，完成后点击 **Finish**。  
+6. 将生成的 **DAQmx Read** VI 拖入前面板，运行即可实时观察波形。
+
+## 小结
+
+PXIe‑6124 以 **同步采样** 为核心，结合 **16 位高分辨率**、**4 MS/s** 的高速采样能力以及 **丰富的数字 I/O、计数器和触发** 资源，能够满足从射频前端数字化到高能物理实验等多领域的苛刻需求。配套的 **NI‑DAQmx** 驱动与 **NI‑MAX** 配置工具进一步降低了使用门槛，使工程师能够在短时间内完成硬件检测、参数配置以及数据采集。
+
+如果你正处于需要高精度、多通道同步采样的项目阶段，PXIe‑6124 是值得考虑的可靠选型。通过本文的介绍与示例代码，期待你能够快速上手并在实际应用中发挥其全部潜能。

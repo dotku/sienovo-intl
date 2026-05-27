@@ -4,9 +4,13 @@ date: "2023-09-25"
 slug: "133278182"
 tags: ["#LS1028", "#TSN", "#6网口"]
 source: "https://blog.csdn.net/yeyuangen/article/details/133278182"
+expanded: true
 ---
+## LS1028 + 六网口 TSN 硬交换 + QNX/Linux 实时系统解决方案在轨道交通系统的应用
 
- 
+在轨道交通系统中，对网络时延、可靠性以及系统的抗干扰能力都有极高的要求。本文围绕 **NXP LS1028A** 处理器平台，结合 **六网口 TSN 硬交换** 与 **QNX / Linux 实时操作系统**，详细介绍该方案在列车控制、车载信息娱乐、监控等子系统中的实际应用方式，帮助读者快速了解硬件选型、接口配置以及系统集成要点。
+
+### 1. 硬件概览
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/133278182/01_ba97cbb55257de976cc20d4537a0ec22.png)
 
@@ -14,37 +18,16 @@ source: "https://blog.csdn.net/yeyuangen/article/details/133278182"
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/133278182/03_46656bd78bb2db77ac4857cbee4fddcb.png)
 
-lS1028 + 六网口TSN 硬交换+QNX/ Linux 实时系统解决方案在轨道交通系统的应用以下是在轨道交通应用的实物：
-
-CPU
-
-NXP LS1028A
-
-架构双核Cortex-A72
-
-主频
-
-1.5GHz
-
-RAM
-
-2GB DDR4
-
-ROM
-
-8GB eMMC
-
-OS
-
-Ubuntu20.04
-
-供电
-
-DC 12V
-
-工作温度
-
-\-40℃~ +80℃
+| 参数 | 说明 |
+|------|------|
+| **CPU** | NXP LS1028A |
+| **架构** | 双核 Cortex‑A72 |
+| **主频** | 1.5 GHz |
+| **RAM** | 2 GB DDR4 |
+| **ROM** | 8 GB eMMC |
+| **OS** | Ubuntu 20.04（Linux）或 QNX |
+| **供电** | DC 12 V |
+| **工作温度** | -40 ℃ ~ +80 ℃ |
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/133278182/04_2da7785e258aec8f55b62c9f188adeba.png)
 
@@ -52,71 +35,97 @@ DC 12V
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/133278182/06_ba724220763c07f920b5fc9c47f79822.png)
 
-功能数量参数
+### 2. 关键功能与接口
 
-Display Port
+| 功能 | 数量/参数 |
+|------|-----------|
+| **Display Port** | ≤1 路，支持 DP1.3 与 eDP 1.4，最高 4K p60 |
+| **eSDHC** | ≤1 路，支持 SD 3.0 |
+| **IIS** | ≤6 路 |
+| **Ethernet** | ≤6 路，最高 2.5 Gbps；其中 5 个网口（SGMII 与 QSGMII）支持 TSN，并具备 1 个 4 口 TSN Switch，5 路网口通过 SerDes 配置支持（详见 SerDes 配置说明） |
+| **PCIe 3.0** | ≤2 路，最高速率 8 GT/s，通过 SerDes 配置支持 |
+| **SATA 3.0** | ≤1 路，最高速率 6 Gbps，通过 SerDes 配置支持 |
+| **USB 3.0** | ≤2 路，最高速率 5 Gbps |
+| **UART** | ≤4 路，支持 1 路 DUART 或 4 路 UART |
+| **CAN FD** | ≤2 路 |
+| **IIC** | ≤6 路 |
+| **SPI** | ≤2 路 |
+| **SerDes** | 1 路，1 个 4‑Lane SerDes，可组合 SGMII、QSGMII、PCIe、SATA 接口；常见组合如下：<br>**A**、SGMII + QSGMII + PCIe 2.0 x1 + SATA 3.0<br>**B**、PCIe 3.0 x1 + QSGMII + PCIe 3.0 x2<br>**C**、SGMII + QSGMII + PCIe 3.0 x2<br>**D**、PCIe 3.0 x2 + PCIe 3.0 x2<br>**E**、SGMII + QSGMII + PCIe 3.0 x1 + PCIe 3.0 x1<br>**F**、PCIe 3.0 x4<br>更多 SerDes 配置方案详见《LS1028ARM.pdf》 |
 
-≤1路支持DP1.3和eDP 1.4,最高支持4Kp60
+#### 2.1 TSN 硬交换的意义
 
-eSDHC
+TSN（Time Sensitive Networking）是 IEEE 802.1 标准族，用于在以太网中实现确定性时延、同步与流量整形。轨道交通系统的列控信号、车门控制、车载视频监控等业务对时延抖动的容忍度往往在毫秒甚至微秒级，传统以太网难以满足。LS1028A 通过 **5 条支持 TSN 的以太网口 + 1 条 4‑口 TSN Switch**，在硬件层面提供了：
 
-≤1路支持SD3.0
+- **时间同步**（IEEE 802.1AS）在所有节点间保持纳秒级时钟一致；
+- **流量整形**（IEEE 802.1Qav）确保关键业务流的带宽预留；
+- **冗余路径**（IEEE 802.1Qbu / 802.1CB）实现链路故障快速切换。
 
-IIS
+这些特性在列车内部网络中可以直接映射为“列控信号链路 + 车载娱乐链路 + 车载监控链路”三大子网的可靠分离。
 
-≤6路
+#### 2.2 硬交换与软件栈的协同
 
-Ethernet
+硬交换本身只负责帧的转发与时间戳标记，实际的调度策略仍由上层软件（如 QNX 的 **Time‑Critical Services** 或 Linux 的 **PTP**）完成。典型的实现步骤如下：
 
-≤6路最高支持2.5Gbps，其中5个网口（SGMII和QSGMII）支持TSN，并具备1个4口TSN Switch 其中5路网口通过SerDes配置支持，详见SerDes配置说明
+1. **系统启动**：在 QNX 或 Linux 中加载对应的 TSN 驱动（`tsn`、`ptp`）并初始化网卡；
+2. **时钟同步**：使用 PTP（Precision Time Protocol）在列车主控与车载设备之间建立 Grandmaster/Slave 关系；
+3. **流表配置**：通过 `ethtool` 或 QNX 的网络管理 API 将关键流（如列控报文）映射到特定的 VLAN/TC（Traffic Class）；
+4. **监控与诊断**：利用 `tsnctl`（Linux）或 QNX 的 **System Analyzer** 监控时延抖动、丢包率等指标，确保符合 IEC 60870‑5‑104 等行业标准。
 
-PCIe 3.0
+### 3. QNX 与 Linux 实时系统的选型
 
-≤2路最高速率支持8GT/s  
-通过SerDes配置支持
+| 项目 | QNX | Linux（Ubuntu 20.04） |
+|------|------|----------------------|
+| **实时性** | 微秒级硬实时内核，适合列控关键任务 | 通过 PREEMPT_RT 补丁可实现软实时，适合非关键业务 |
+| **安全认证** | 支持 IEC 61508 SIL 3 | 通过 SELinux、AppArmor 可提升安全性 |
+| **生态** | 丰富的工业中间件（e.g., **Neutrino**） | 开源社区活跃，驱动与工具链成熟 |
+| **开发成本** | 商业授权，需考虑许可证费用 | 免费开源，工具链成本低 |
+| **部署方式** | 单系统镜像（.img） | 支持容器化（Docker）或裸机镜像 |
 
-SATA 3.0
+在实际项目中，**列控核心** 常采用 QNX 以保证硬实时；**车载娱乐、监控** 则可使用 Linux，利用其丰富的多媒体库与网络堆栈。两者通过 TSN 交换机实现统一的时间基准，保证跨系统的时序一致性。
 
-≤1路最高速率支持6Gbps  
-通过SerDes配置支持
+### 4. 在轨道交通系统中的典型应用场景
 
-USB 3.0
+#### 4.1 列车控制系统（CBTC）
 
-≤2路最高速率支持5Gbps
+- **核心需求**：毫秒级时延、可靠的冗余链路、严格的安全认证。
+- **实现方式**：LS1028A 通过 5 条 TSN 以太网口构建双环冗余网络，配合 QNX 实时内核运行列控算法（如 ATP、ATO）。硬交换的时间同步功能确保所有车厢的传感器数据在同一时间基准下被采集与处理。
 
-UART
+#### 4.2 车载信息娱乐（IFE）
 
-≤4路支持1路DUART或4路UART
+- **核心需求**：高带宽视频传输、低时延交互、灵活的接口扩展。
+- **实现方式**：利用 DisplayPort（4K p60）输出车厢大屏，USB 3.0 接口连接外部媒体播放器，PCIe 3.0 用于高速 SSD 存储。Linux 系统提供 GStreamer、Qt 等框架，实现流媒体播放与触控交互。
 
-CAN FD
+#### 4.3 车载监控与诊断
 
-≤2路
+- **核心需求**：多路摄像头实时传输、CAN FD 与以太网混合网络、远程诊断。
+- **实现方式**：IIS（≤6 路）接入摄像头，CAN FD（≤2 路）采集车门、制动状态，统一通过 TSN 交换机转发至车载服务器。通过 QNX 的 **Diagnostics Services** 实现故障日志的实时上传。
 
-IIC
+### 5. 系统集成与调试要点
 
-≤6路
+1. **SerDes 配置**  
+   - 根据实际需求选择合适的 SerDes 组合（如 **A** 方案适合同时使用 SATA 与 PCIe），在《LS1028ARM.pdf》中对应的寄存器表进行配置。  
+   - 配置完成后使用 `lspci`、`ethtool -i` 等工具确认链路速率。
 
-SPI
+2. **电源与散热**  
+   - LS1028A 工作温度范围为 **-40 ℃ ~ +80 ℃**，在列车车厢的高温环境下建议使用散热片或风扇进行主动散热。  
+   - 供电为 **DC 12 V**，确保电源噪声低于 10 mV RMS，以免影响时钟同步。
 
-≤2路
+3. **时钟同步验证**  
+   - 在 Linux 中使用 `pmc`（Precision Time Protocol Management Client）检查 Grandmaster 状态。  
+   - 在 QNX 中通过 **System Analyzer** 查看 PTP 时钟偏差，确保偏差在 1 µs 以内。
 
-SerDes
+4. **网络流量监控**  
+   - 使用 `tcpdump`、`wireshark` 捕获 TSN 帧，检查 VLAN、Priority Tag 是否符合预期。  
+   - 对关键业务流（如列控报文）设置 QoS 策略，确保带宽占用率不超过 30 %。
 
-1路
+5. **软件容错**  
+   - 在 QNX 中配置 **Watchdog**，在任务卡死时自动重启对应进程。  
+   - 在 Linux 中使用 **systemd** 的 `Restart=` 选项，实现服务的自动恢复。
 
-1个4Lane SerDes，可配置SGMII、QSGMII、PCIe、SATA接口的组合；  
-几种常见组合为：
+### 6. 小结
 
-A、SGMII+QSGMII+PCIe2.0 x1+SATA3.0
+LS1028A 搭配六网口 TSN 硬交换以及 QNX / Linux 实时系统，为轨道交通领域提供了 **高可靠性、低时延、灵活扩展** 的完整解决方案。通过合理的 SerDes 配置、严格的时钟同步以及针对不同业务的 OS 选型，能够满足列控、车载娱乐、监控等多样化需求。希望本文的技术细节与实践经验能帮助系统集成商在设计阶段快速定位关键参数，缩短开发周期，实现安全、可靠的列车网络系统。
 
-B、PCIe3.0 x1+QSGMII+PCIe3.0 x2
+--- 
 
-C、SGMII+QSGMII+PCIe3.0 x2
-
-D、PCIe3.0 x2+PCIe3.0 x2
-
-E、SGMII+QSGMII+PCIe3.0 x1+PCIe3.0 x1
-
-F、PCIe3.0 x4
-
-更多SerDes配置方案详见《LS1028ARM.pdf》
+*如需更详细的 SerDes 配置说明，请参考《LS1028ARM.pdf》文档。*
