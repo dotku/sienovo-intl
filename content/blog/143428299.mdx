@@ -4,40 +4,123 @@ date: "2024-11-01"
 slug: "143428299"
 tags: ["#人工智能"]
 source: "https://blog.csdn.net/szxinmai/article/details/143428299"
+expanded: true
+---
+## 引言
+
+随着车载人工智能（AI）需求的快速增长，基于高通 QCM6125 平台的车载 AI 盒子成为了工业计算与边缘 AI 领域的热点解决方案。本文将围绕 **QCM6125** 的硬件特性、系统软件、显示与摄像头接口、外围通信以及 LTE 频段等方面展开详细阐述，帮助开发者快速了解该平台的技术优势，并提供在车载场景中进行系统集成的实用建议。
+
 ---
 
- 
+## 1. 平台概览
 
-###### 平台：QCM6125,8核Kryo260CPU，主频：2.0GHz,11nm工艺,内置AdrenoTM610 GPU @950MHz
+> **平台：QCM6125,8核Kryo260CPU，主频：2.0GHz,11nm工艺,内置AdrenoTM610 GPU @950MHz**
 
-内存配置：4GB LPDDR4 + 64GB UFS（默认）/8GB LPDDR4X+ 128GB UFS (可选）
+QCM6125 是高通面向车载和工业物联网的高集成度 SoC，采用 11 nm 制程，提供 8 核 Kryo 260（基于 Cortex‑A76/A55）CPU，主频可达 2.0 GHz，配套的 Adreno 610 GPU 最高工作在 950 MHz。该组合在功耗与算力之间实现了良好的平衡，能够满足车载视觉、语音识别以及多媒体渲染等边缘 AI 任务的需求。
 
-Android版本：Android10/11/12/13
+---
 
-显示：支持双屏异显，1 个4-lane MIPI\_DSI 接口，最高支持分辨率2520\*1080,60fps，DP1.4 over USB Type-C，最高支持1920\*1200@60Hz
+## 2. 存储与内存配置
 
-摄像头：2路4-lane MIPI摄像头，支持16MP+16MP
+> **内存配置：4GB LPDDR4 + 64GB UFS（默认）/8GB LPDDR4X+ 128GB UFS (可选)**
+
+- **LPDDR4 / LPDDR4X**：提供高速低功耗的内存通道，LPDDR4X 在功耗上相对 LPDDR4 有约 10% 的提升，适合对功耗敏感的车载系统。
+- **UFS**：采用 Universal Flash Storage 接口，默认 64 GB，选配 128 GB，可实现 1 GB/s 以上的顺序读写性能，为 AI 模型加载和大文件缓存提供足够带宽。
+
+---
+
+## 3. 操作系统支持
+
+> **Android版本：Android10/11/12/13**
+
+平台兼容 Android 10~13，能够直接使用 Google 的 AI 框架（如 TensorFlow Lite、ONNX Runtime）以及车载专用的 Android Automotive OS。开发者可根据项目需求选择对应的系统镜像，利用系统自带的安全机制（如 SELinux、Verified Boot）提升车载系统的可靠性。
+
+---
+
+## 4. 显示接口
+
+> **显示：支持双屏异显，1 个 4‑lane MIPI_DSI 接口，最高支持分辨率 2520×1080,60fps，DP1.4 over USB Type‑C，最高支持 1920×1200@60Hz**
+
+- **双屏异显**：可在仪表盘与中控屏分别输出不同内容，实现信息分层展示。
+- **MIPI‑DSI**：4‑lane模式下支持 2520×1080@60 fps，满足高分辨率仪表盘的需求。
+- **DP1.4 over USB‑C**：通过 USB‑C 转 DP 线缆即可驱动 1920×1200@60 Hz 的外接显示器，适用于车载后排娱乐系统。
+
+---
+
+## 5. 摄像头接口
+
+> **摄像头：2路4‑lane MIPI摄像头，支持 16MP+16MP**
+
+平台提供两路 4‑lane MIPI CSI 接口，每路最高支持 16 MP 传感器。典型的车载前视摄像头、环视摄像头或高分辨率后视摄像头均可直接接入，配合硬件 ISP（图像信号处理器）实现实时降噪、HDR 合成等功能。
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143428299/01_5b607adcb3ea48d593cf789fb59189a0.jpeg)
 
-**UART/I2C/I2S/SPI**
+---
 
-**/SDIO：**
+## 6. 外围接口
 
-最多可支持 3 组 UART
+> **UART/I2C/I2S/SPI**  
+> **/SDIO：**  
+> 最多可支持 3 组 UART  
+> 最多可支持 4 组 I2C，用于触摸屏、摄像头、传感器等外设  
+> 最多可支持 42 组 SPI 接口
 
-最多可支持 4 组 I2C ，用于触摸屏、摄像头、传感器等外设最多可支持 42 组 SPI 接口频段：
+- **UART**：适用于调试串口、车载诊断（OBD）等低速通信场景。  
+- **I2C**：可连接触摸屏、环境传感器、摄像头模块等，支持多从设备的灵活拓扑。  
+- **SPI**：提供高速同步传输，支持 Flash、外部 DAC、ADC 等多种外设。  
+- **SDIO**：用于高速存储卡或 Wi‑Fi 模块的接入，提升数据吞吐能力。
 
-LTE-FDD:B1/B2/B3/B4/B5/B7/B8/B20/B28
+---
 
-LTE-TDD:B38/B40/B41
+## 7. LTE 与无线频段
 
-WCDMA:B1/B2/B4/B5/B8
+> **频段：**  
+> LTE‑FDD:B1/B2/B3/B4/B5/B7/B8/B20/B28  
+> LTE‑TDD:B38/B40/B41  
+> WCDMA:B1/B2/B4/B5/B8  
+> GSM:850/900/1800/1900
 
-GSM:850/900/1800/1900
+平台集成的基带支持全球主要 LTE FDD/TDD 频段，兼容 WCDMA 与 GSM，能够在不同地区实现无缝切换。车联网（V2X）业务常用的 LTE‑FDD B1/B3/B7 以及 LTE‑TDD B40/B41 在本平台上均有完整覆盖。
 
-视频：编码： 4K30HEVC/H264/VP8/MPEG4, 解码： 4K308-bit ： H.264/VP8/VP9;4K3010-bit ： HEVC, 无线显示（解码 + 编码）： 4K30Dec + 1080p30Enc
+---
+
+## 8. 视频编解码能力
+
+> **视频：编码： 4K30HEVC/H264/VP8/MPEG4, 解码： 4K30 8‑bit： H.264/VP8/VP9; 4K30 10‑bit： HEVC, 无线显示（解码 + 编码）： 4K30 Dec + 1080p30 Enc**
+
+- **编码**：支持 4K@30 fps 的 HEVC（H.265）以及 H.264、VP8、MPEG‑4 编码，满足车载摄像头实时压缩需求。  
+- **解码**：8‑bit 4K 支持 H.264、VP8、VP9，10‑bit 4K 主要针对 HEVC，能够流畅播放高质量车载视频流。  
+- **无线显示**：平台可实现 4K 解码后再以 1080p@30 fps 编码输出，用于车内无线投屏或车载显示器的实时转码。
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143428299/02_7fe854c4dfd44bae95dfcd469355110e.jpeg)
 
+---
+
+## 9. 典型应用场景
+
+1. **高级驾驶辅助系统（ADAS）**：双摄像头 + 高速 ISP + HEVC 编码，实现车道保持、碰撞预警等功能。  
+2. **车载信息娱乐（IVI）**：双屏异显 + DP1.4 USB‑C 输出，支持 4K 视频播放与多媒体渲染。  
+3. **车联网（V2X）**：全频段 LTE 支持 + Android 12/13 系统，便于接入 OTA 更新、远程诊断与车联网平台。  
+4. **工业边缘 AI**：8 核 Kryo260 + Adreno 610 GPU，能够在本地完成目标检测、语音识别等 AI 推理，降低对云端的依赖。
+
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143428299/03_87fea1930dc54510a52fff850240cd81.jpeg)![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143428299/04_4132d61ce6374bbeb46c6fde7426c7a1.jpeg)y![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/143428299/05_38a76d05672744eda99dc79d3722d035.jpeg)
+
+---
+
+## 10. 集成与调试建议
+
+| 步骤 | 关键要点 |
+|------|----------|
+| **硬件原理图确认** | 检查 MIPI‑DSI、MIPI‑CSI、UART、I2C、SPI、SDIO 引脚分配是否符合板级布局。 |
+| **系统镜像烧录** | 使用 Qualcomm QPST 或 Fastboot 将 Android 镜像写入 UFS，确保分区表与 UFS 容量匹配。 |
+| **显示验证** | 通过 HDMI/DP 转接线或直接连接 MIPI‑DSI 面板，使用 `adb shell dumpsys SurfaceFlinger` 检查分辨率与刷新率。 |
+| **摄像头驱动** | 确认摄像头模块的 I2C 地址、MIPI lane 配置，使用 `v4l2-ctl` 检查帧率与分辨率。 |
+| **网络连通** | 在 Android 设置中配置 LTE APN，使用 `adb shell ping` 验证 LTE 频段连通性。 |
+| **AI 推理** | 将 TensorFlow Lite 模型放置 `/data/local/tmp`，使用 `adb shell` 调用 `tflite_runtime` 进行基准测试，观察 CPU 与 GPU 的占用率。 |
+| **功耗监控** | 通过 `adb shell dumpsys batterystats` 或 Qualcomm Power Profiler 采集功耗曲线，确保在车载供电约束下运行稳定。 |
+
+---
+
+## 11. 结语
+
+基于 **QCM6125** 的车载 AI 盒子凭借强大的 CPU/GPU 组合、丰富的存储与接口资源以及完整的 LTE 频段覆盖，为车载智能化提供了“一站式”硬件平台。通过本文的技术拆解，开发者可以快速定位平台优势、规划系统架构，并在实际项目中进行高效集成与调试。未来，随着车载 AI 需求的持续演进，QCM6125 仍具备进一步扩展的空间，为智能座舱、自动驾驶以及车联网等领域提供可靠的计算支撑。

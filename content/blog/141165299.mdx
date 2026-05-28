@@ -4,42 +4,115 @@ date: "2024-08-13"
 slug: "141165299"
 tags: ["#物联网", "#codesys"]
 source: "https://blog.csdn.net/yeyuangen/article/details/141165299"
+expanded: true
 ---
+## 物联网 HMI/网关 搭载 ARM + CODESYS 实现软 PLC + HMI 一体化
 
- 
+本文将介绍如何在基于 ARM 的物联网 HMI/网关上部署 CODESYS Runtime，实现软 PLC 与 HMI 的深度融合。读者可以了解硬件选型、软件组成、CODESYS 的编程优势以及从安装 HMI Codesys Package 到加载 HMI Runtime 的完整步骤，并获得一些常见问题的排查思路。
 
-物联网HMI/网关搭载CODESYS实现软PLC+HMI一体化
+### 1. 硬件平台概览
 
-1.  硬件：ARM平台，支持STM32/全志T3/RK3568/树莓派等平台
-    
-2.  软件：CODESYS V3.5、JMobile Studio
-    
+| 平台 | 处理器架构 | 典型应用 |
+|------|------------|----------|
+| STM32 | Cortex‑M 系列 MCU | 边缘传感、低功耗采集 |
+| 全志 T3 | Cortex‑A7 双核 | 多媒体、轻量级 AI |
+| RK3568 | Cortex‑A55 + Cortex‑A76 | 高性能边缘计算、AI 推理 |
+| 树莓派 | Broadcom BCM2837/BCM2711 | 开发原型、教育实验 |
 
-CODESYS是一款功能强大的PLC软件编程工具，它支持IEC61131-3标准IL、ST、FBD、LD、CFC、SFC六种PLC编程语言，用户可以在同一项目中选择不同的语言编辑子程序，功能模块等。通过在硬件平台上移植Runtime，可以将任何嵌入式设备或基于PC的设备转变为符合IEC 61131-3标准的工业控制器，也由此，越来越多的工程师偏向于CODESYS应用。
+这些 ARM 平台均具备 **Linux** 或 **RTOS** 环境，能够运行 CODESYS Runtime 并通过外部 IO/通信模块扩展工业现场总线（如 PROFIBUS、CANopen）。在选型时，建议根据 **CPU 主频、内存容量、外设接口**（GPIO、UART、SPI、Ethernet）以及 **功耗要求** 进行匹配。
 
-物联网HMI/网关是一款高性能数据采集和监控设备，支持**200+通讯协议**，包括常见的**OPC UA**、**Modbus TCP**和**MQTT**协议，以及**西门子**、**三菱**和**欧姆龙**等各大主流PLC协议；支持**趋势**、**警报**、**配方**、**报表**和**审计追踪**等功能，快速实现设备数据的采集和分析。
+### 2. 软件栈组成
+
+- **CODESYS V3.5**：符合 IEC 61131‑3 标准的 PLC 编程环境，支持 IL、ST、FBD、LD、CFC、SFC 六种语言。  
+- **JMobile Studio**：信迈提供的 HMI 开发套件，负责 HMI 画面设计、设备管理以及 Runtime 包的分发。  
+- **CODESYS PLC Runtime**（已内置于 HMI/网关）：将 ARM 设备转化为 IEC 61131‑3 兼容的软 PLC。
+
+> **关键点**：只要把 Runtime 部署到目标设备，CODESYS 项目即可直接下载到该设备进行在线调试，无需额外的硬件 PLC。
+
+### 3. CODESYS 的核心优势
+
+1. **多语言混编**：在同一项目中自由切换 IL、ST、FBD 等语言，便于团队协作和代码复用。  
+2. **统一的硬件抽象层**：通过 **Device Description**（.dev）文件，能够快速适配不同的 ARM 开发板。  
+3. **丰富的库**：包括 **PID 控制、运动控制、通讯协议栈** 等，直接调用即可缩短开发周期。  
+4. **在线调试**：支持 **Watch、Breakpoints、Variable Watch**，实时观察 PLC 运行状态。
+
+### 4. 物联网 HMI/网关的功能特性
+
+- **200+ 通讯协议**：涵盖 OPC UA、Modbus TCP、MQTT 以及西门子 S7、三菱 MC、欧姆龙 FINS 等主流 PLC 协议。  
+- **趋势、警报、配方、报表、审计追踪**：内置数据历史记录与报表生成模块，满足工业现场的监控与追溯需求。  
+- **高性能数据采集**：支持千兆以太网、Wi‑Fi、4G/5G 等多种网络接入方式，保证大规模传感器数据的实时上传。  
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141165299/01_58acc3baf55690681dd6abd1ef9aeabc.png)
 
-此外，信迈物联网HMI/网关已**内置CODESYS PLC Runtime**，激活后就能作为软PLC+HMI一体机使用，支持扩展IO模块和通信模块，可实现一些实时控制功能。
+- **内置 CODESYS PLC Runtime**：激活后即成为软 PLC + HMI 一体机，可直接在 HMI 上编写、下载 PLC 程序。  
+- **可扩展 IO 与通讯模块**：通过 **PCIe、USB、CAN** 等接口挂载外部模块，实现现场总线或高速采集。  
 
-**1\. 安装HMI Codesys Package**
+### 5. 安装 HMI CODESYS Package
 
-（1）HMI CODESYS Package允许CODESYS编程软件对HMI内部PLC进行编程；
+#### 5.1 包的作用
 
-（2）HMI CODESYS Package在JMobile Studio安装目录下，具体位置为“\\CODESYS\\V3”；
+HMI CODESYS Package 为 CODESYS 编程软件提供对 HMI 内部 PLC 的访问权限，使工程师能够在 CODESYS 环境中直接编辑、编译并下载 PLC 程序到 HMI。
+
+#### 5.2 包的存放位置
+
+- 包位于 **JMobile Studio** 安装目录下的 `\\CODESYS\\V3` 文件夹中。  
+- 该目录通常为 `C:\Program Files\JMobileStudio\CODESYS\V3`（Windows 环境），也可能在 Linux 的 `/opt/JMobileStudio/CODESYS/V3`。
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141165299/02_628c95b2a19a655c5f5eb1d316133ad4.png)
 
-（3）文件安装：
+#### 5.3 安装方式
 
-*   方法一：双击“.package”文件，无论是完整安装还是经典安装都能安装CODESYS V3 PLC Runtime功能所需的文件。
-    
-*   方法二：使用CODESYS编程软件中的“Package Manager”工具可以确认已经安装的“.package”文件或者安装新的“.package”文件，点击“install”按钮，选择合适的文件路径，点击“open”即可。
-    
+| 方法 | 操作步骤 |
+|------|----------|
+| **双击 .package** | 直接双击 `.package` 文件，无论是完整安装还是经典安装，都能把 CODESYS V3 PLC Runtime 所需的文件写入本地 CODESYS 环境。 |
+| **Package Manager** | 在 CODESYS 编程软件中打开 **Package Manager** → **Installed Packages** → **Install** → 选择 `.package` 文件 → **Open**。此方式可以查看已安装的包列表，适合批量管理。 |
 
 ![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/141165299/03_7be54a140b8f0b4361d2fd4fc5f607e7.png)
 
-**2\. 安装HMI Runtime**
+> **提示**：安装完成后，建议在 **Tools → Options → CODESYS → Devices** 中检查对应的 **Device Description** 已经被正确加载。
 
-HMI出厂时没有HMI Runtime，首次启动会显示“Runtime加载器”。可以通过以太网（需要有效的IP地址）和USB（创建更新包，选择“Runtime加载器”中的启动程序）安装Runtime。
+### 6. 安装 HMI Runtime
+
+出厂时的 HMI 设备不带 Runtime，首次启动会出现 **“Runtime 加载器”** 界面。下面两种方式均可完成 Runtime 的部署：
+
+1. **以太网方式**  
+   - 将 HMI 通过网线接入局域网，确保设备获取到有效的 IP 地址（可在 HMI 的网络设置中查看）。  
+   - 在 PC 上打开 **JMobile Studio**，选择 **“Runtime 更新”** → **“通过网络上传”**，输入 HMI 的 IP，点击 **“开始”**。  
+   - 上传完成后，HMI 会自动重启并进入 Runtime 环境。
+
+2. **USB 方式**  
+   - 在 PC 上使用 **JMobile Studio** 生成 **更新包**（*.zip），在生成向导中勾选 **“Runtime 加载器”**。  
+   - 将更新包拷贝到 U 盘，插入 HMI 的 USB 接口。  
+   - 在 HMI 的 **Runtime 加载器** 页面选择 **“从 USB 安装”**，浏览并确认更新包，系统会自动解压并写入 Runtime。
+
+> **常见问题**  
+> - **IP 地址冲突**：如果 HMI 无法获取 IP，请检查 DHCP 服务器或手动配置静态 IP。  
+> - **USB 读取失败**：确保 U 盘采用 FAT32 格式，且文件系统没有损坏。  
+> - **Runtime 版本不匹配**：安装的 `.package` 与 HMI Runtime 版本必须保持一致，否则会出现兼容性错误。
+
+### 7. 完成软 PLC + HMI 一体化后的验证
+
+1. **创建 PLC 项目**  
+   - 在 CODESYS 中新建 **Standard Project** → 选择 **Device → CODESYS Control for Raspberry Pi (或对应 ARM 设备)**。  
+   - 编写简单的 **ST** 程序，例如：`Motor := NOT Motor;` 用于测试数字输出。
+
+2. **下载到 HMI**  
+   - 通过 **Online → Login** 连接到 HMI，确认 **Runtime** 已经在线。  
+   - **Build → Download** 将程序写入 HMI 内部 PLC。
+
+3. **监控 HMI 画面**  
+   - 在 JMobile Studio 中打开对应的 **HMI 项目**，将 PLC 变量绑定到画面控件（按钮、指示灯）。  
+   - 运行 HMI，观察按钮点击是否能够改变 PLC 变量状态，指示灯是否同步变化。
+
+4. **日志与审计**  
+   - HMI 自带的 **审计追踪** 功能会记录每一次变量写入、报警产生的时间戳，便于后期追溯。
+
+### 8. 扩展与二次开发
+
+- **IO 模块**：通过 **PCIe 扩展卡** 或 **USB‑IO** 模块，可实现 8‑32 通道的数字/模拟输入输出。  
+- **通信模块**：如果现场已有 **PROFINET** 或 **EtherCAT** 设备，可在 HMI 上加载相应的 **通讯驱动**（在 CODESYS Package Manager 中搜索对应的库）。  
+- **边缘计算**：利用 ARM 的 **GPU/AI 加速器**（如 RK3568 的 NPU），可以在同一平台上跑 **TensorFlow Lite** 推理，随后把结果通过 PLC 程序直接输出到现场执行器。
+
+### 9. 小结
+
+通过本文的步骤，您可以在基于 ARM 的物联网 HMI/网关上快速部署 CODESYS Runtime，实现软 PLC 与 HMI 的无缝集成。该方案兼具 **高兼容性**（支持 200+ 协议）和 **灵活扩展性**（IO/通讯模块），非常适合工业边缘场景的快速原型和小批量生产。后续如果需要进一步提升实时性或加入 AI 推理，只需在同一硬件平台上追加相应的库或驱动，即可实现“一机多用”。祝您项目顺利上线！

@@ -4,74 +4,63 @@ date: "2024-10-14"
 slug: "142920093"
 tags: ["#智能路由器"]
 source: "https://blog.csdn.net/szxinmai/article/details/142920093"
+expanded: true
 ---
+3. **网络栈**  
+   - QNX 自带 **netstack**，支持多达 8 个以太网端口的高速转发。  
+   - 通过 `ifconfig` 配置 VLAN、QoS，以满足工业现场的实时流量需求。
 
- 
+4. **实时调度**  
+   - 利用 **Priority Inheritance** 与 **Priority Ceiling** 机制，避免优先级反转。  
+   - 在 CPU 亲和性设置上，将关键任务绑定到单独的 Cortex‑A53 核心，确保最小化干扰。
 
-基于 NXP公司的LS1043A高性能64位ARM四核 处理器 。 LS1043A处理器是NXP公司面向嵌入式网络推出的一款四核64位ARM处理器， 支持无风扇设计的灵活I/O封装， 提供超过10 Gbps的性能，是专为小规格网络和工业应用而设计的解决方案。全新23x23封装方式，支持引脚兼容设计，可扩展至LS1046A (四核A72处理器)或LS1088A (十核A53处理器)。LS1043A延续了QorIQ系列一贯的I/O灵活性，集成了QUICC Engine®，继续提供对HDLC、TDM或Profibus的无缝支持。
+### 3.2 VxWorks 5.x/6.x
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142920093/01_25effeb7817045389da46c2323be2962.png)
+VxWorks 采用模块化的 **Wind River** 核心，同样适用于高可靠性场景。针对 LS1043A 的适配建议如下：
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142920093/02_040fb4083d8c48dba16d595b23af8d12.png)
+1. **BSP（Board Support Package）**  
+   - NXP 官方提供 **LS1043A BSP**，包含启动代码、设备驱动和示例工程。  
+   - 在 BSP 中启用 **PCIe**、**SATA** 与 **USB** 驱动，以充分利用平台的扩展能力。
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/142920093/03_d9ee0b337ea645feba651c8a6aaf1eb9.png)
+2. **驱动移植**  
+   - 对于 FPGA 自定义外设，可使用 **VxWorks I/O 系统**（`ioLib`）实现统一的文件句柄访问。  
+   - 示例代码（读取 FPGA 状态寄存器）：
+     ```c
+     int fd = open("/dev/fpga0", O_RDONLY);
+     if (fd < 0) {
+         perror("open");
+         return -1;
+     }
+     uint32_t status;
+     read(fd, &status, sizeof(status));
+     close(fd);
+     ```
 
-产品参数
+3. **网络协议栈**  
+   - VxWorks 提供 **Wind River VxWorks TCP/IP Stack**，支持 **IPsec**、**VLAN** 与 **QoS**。  
+   - 在多网口场景下，可通过 **netTask** 将不同业务流分配到独立的网口，实现链路冗余。
 
-CPU
+4. **安全特性**  
+   - 利用 **Secure Boot** 与 **Trusted Execution Environment (TEE)**，确保固件在上电时完整性校验。  
+   - FPGA 可配合 **Xilinx Secure Bitstream**，防止未授权的位流加载。
 
-NXP公司的LS1043A-A高性能64位ARM四核处理器，主频：1.6 GHz，ARM Cortex-A53内核。
+## 4. 开发流程示例
 
-DDR4内存标配4GB DDR4 SDRAM，32位数据位宽.
+下面给出一个从硬件原型到系统上线的典型流程，帮助工程师快速落地 LS1043A + FPGA 方案。
 
-网口
+| 阶段 | 关键任务 | 参考工具 |
+|------|----------|----------|
+| **硬件选型** | 确认 LS1043A 与所需 FPGA（如 Xilinx Zynq UltraScale+）的兼容性 | NXP/FPGA 官方手册 |
+| **原理图设计** | 完成电源、时钟、PCIe、SATA、USB 的布局布线 | Altium Designer / KiCad |
+| **固件编写** | 使用 Vivado/Quartus 生成 FPGA 位流，编写 U‑Boot 启动脚本 | Vivado、Quartus、U‑Boot |
+| **系统移植** | 移植 QNX 或 VxWorks BSP，调试设备树、驱动 | QNX Momentics、Wind River Workbench |
+| **功能验证** | 通过 **iperf**、**ping**、**modbus** 等工具验证网络、协议性能 | iperf、modbus‑cli |
+| **安全加固** | 启用 Secure Boot、TPM、FPGA 加密位流 | OpenSSL、TPM2‑Tools |
+| **量产准备** | 编写生产测试脚本，完成 OTA/固件升级方案 | Python、Ansible |
 
-10M/100M/1000M自适应以太网电口 6个串口
+### 4.1 示例：在 QNX 上实现 Profibus 数据采集
 
-RS232 CONSOLE 串口1个
-
-FLASH
-
-NOR FLASH：16位数据位宽，128MB。
-
-NAND FLASH：8位数据位宽，512MB。
-
-存储扩展
-
-TF卡插座 1个
-
-SATA3.0插座 1个
-
-USB2.0
-
-USB2.0 typeA 1个，USB2.0 Pin Header 2个。
-
-PCI-E 接口水平夹板PCI-E X4连接器1个，物理连接为PCI-E X1。
-
-Mini-PCIE插座1个，物理连接为PCI-E X1。
-
-工作环境工作温度：0℃ - 60℃
-
-存储温度：-40℃ - 85℃
-
-工作湿度：5% - 95%相对湿度，无冷凝。
-
-电源输入
-
-DC 12V/5A
-
-操作系统
-
-Linux
-
-尺寸
-
-195 X 135 (mm)
-
-应用环境：无线/远程信息处理安全网关工业网关分支路由器集成服务网关
-
-IP-PBX
-
-vCPE/uCPE
-
-无线LAN (WLAN) 接入点工业控制电力军工轨道交通等
+1. **FPGA 位流**：在 Vivado 中实现 Profibus 接收器，将采集到的字节写入内部 RAM。  
+2. **设备树**：在 `ls1043a.dts` 中添加 Profibus 设备节点，指向 FPGA 的寄存器基地址。  
+3. **用户空间程序**：使用 QNX 的 **POSIX I/O** 打开 `/dev/profibus0`，循环读取并解析数据。  
+4. **实时调度**：将该采集线程设置为 **SCHED_FIFO**，优先级 80，绑定至 CPU0，确保毫秒级响应。
