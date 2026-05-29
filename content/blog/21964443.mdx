@@ -4,13 +4,16 @@ date: "2014-03-24"
 slug: "21964443"
 tags: []
 source: "https://blog.csdn.net/yeyuangen/article/details/21964443"
+expanded: true
+---
+**要点**  
+- 每个 `case` 结束时通常都要写 `break`，否则会出现 **贯穿（fall‑through）**，导致后续 `case` 也被执行。  
+- 正确使用 `break` 可以确保 `switch` 只执行匹配的分支，然后立即跳出 `switch`，避免出现“死循环”。（虽然在 `switch` 本身不会形成循环，但缺少 `break` 会让程序误以为仍在 `switch` 中执行，从而产生逻辑错误。）
+
 ---
 
- 
+## `break` 在循环语句中的使用  
 
-[break语句](http://zhidao.baidu.com/search?word=break%E8%AF%AD%E5%8F%A5&fr=qb_search_exp&ie=utf8)
-[break语句](http://zhidao.baidu.com/search?word=break%E8%AF%AD%E5%8F%A5&fr=qb_search_exp&ie=utf8)通常用在[循环语句](http://zhidao.baidu.com/search?word=%E5%BE%AA%E7%8E%AF%E8%AF%AD%E5%8F%A5&fr=qb_search_exp&ie=utf8)和开关语句中。当break用于开关语句[switch](http://zhidao.baidu.com/search?word=switch&fr=qb_search_exp&ie=utf8)中时,可使程序跳出[switch](http://zhidao.baidu.com/search?word=switch&fr=qb_search_exp&ie=utf8)而执行[switch](http://zhidao.baidu.com/search?word=switch&fr=qb_search_exp&ie=utf8)以后的语句；如果没有[break语句](http://zhidao.baidu.com/search?word=break%E8%AF%AD%E5%8F%A5&fr=qb_search_exp&ie=utf8),则将成为一个[死循环](http://zhidao.baidu.com/search?word=%E6%AD%BB%E5%BE%AA%E7%8E%AF&fr=qb_search_exp&ie=utf8)而无法退出。break在switch 中的用法已在前面介绍开关语句时的例子中碰到,这里不再举例。
-当break语句用于do-while、for、while[循环语句](http://zhidao.baidu.com/search?word=%E5%BE%AA%E7%8E%AF%E8%AF%AD%E5%8F%A5&fr=qb_search_exp&ie=utf8)中时,可使程序终止循环而执行循环后面的语句, 通常break语句总是与[if语句](http://zhidao.baidu.com/search?word=if%E8%AF%AD%E5%8F%A5&fr=qb_search_exp&ie=utf8)联在一起。即满足条件时便跳出循环。
-注意:
-1)       break语句对if-else的条件语句不起作用。
-2)       在多层循环中, 一个break语句只向外跳一层。
+> 当break语句用于`do-while`、`for`、`while`[循环语句](http://zhidao.baidu.com/search?word=%E5%BE%AA%E7%8E%AF%E8%AF%AD%E5%8F%A5&fr=qb_search_exp&ie=utf8)中时,可使程序终止循环而执行循环后面的语句, 通常break语句总是与[if语句](http://zhidao.baidu.com/search?word=if%E8%AF%AD%E5%8F%A5&fr=qb_search_exp&ie=utf8)联在一起。即满足条件时便跳出循环。
+
+### 1. `while` 循环示例

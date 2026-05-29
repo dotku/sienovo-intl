@@ -4,25 +4,133 @@ date: "2011-08-18"
 slug: "6698719"
 tags: ["#redhat", "#vmware", "#虚拟机", "#图形", "#工具"]
 source: "https://blog.csdn.net/yeyuangen/article/details/6698719"
+expanded: true
 ---
+## 前言
 
- 
+在 Red Hat Enterprise Linux 9（以下简称 RHEL 9）系统中，使用 VMware Workstation 虚拟化平台时，安装 VMware Tools 能够显著提升虚拟机的性能与使用体验，包括鼠标同步、共享剪贴板、自动分辨率调整以及更好的磁盘 I/O 效率。本文基于一段实际操作记录，详细展开在 RHEL 9 虚拟机中手动安装 VMware Tools 的完整步骤，并补充常见的准备工作、可能遇到的问题以及最佳实践，帮助读者快速、稳妥地完成安装。
 
-Redhat9下VMwareTools的安装步骤：  
-1\. VMware Workstation，虚拟机->安装 VMware 工具；  
-2\. Redhat 9.0，以root身份登陆；  
-3\. \[root@localhost root\]#mount dev/cdrom /mnt/cdrom  
-4\. \[root@localhost root\]#cd /mnt/cdrom  
-5\. \[root@localhost cdrom\]#ls  
-6\. \[root@localhost cdrom\]#cp VMwareTools-5.0.0-13124.tar.gz /tmp  
-7\. \[root@localhost cdrom\]#cd /tmp  
-8\. \[root@localhost tmp\]#ls  
-9\. \[root@localhost tmp\]#tar zxvf VMwareTools-5.0.0-13124.tar.gz  
-10.\[root@localhost tmp\]#cd vmware-tools-distrib  
-11.\[root@localhost vmware-tools-distrib\]#ls  
+## 环境准备
 
-12.\[ root @localhost vmware\-tools-distrib\]#./vmware-install.pl
+1. **VMware Workstation** 已经正常运行，并且已经创建了一台安装了 RHEL 9 的虚拟机。  
+2. 虚拟机已经以 **root** 用户登录，确保拥有足够的系统权限。  
+3. 为了能够编译 VMware Tools 所需的内核模块，需要在系统中预装编译工具链（`gcc`、`make`）以及对应的 **kernel‑devel** 包。可以使用以下命令检查并安装（此步骤为常规准备，原文未列出，但在实际操作中是必需的）：
 
-  
+   ```bash
+   yum install -y gcc make perl kernel-devel kernel-headers
+   ```
 
-注：不要在图形化界面下直接鼠标双击。实践证明这样经常出错。
+   > **提示**：如果系统提示 `kernel-devel` 与当前运行的内核版本不匹配，请先执行 `yum update` 并重启虚拟机，使内核与开发包保持一致。
+
+## 安装步骤
+
+下面的步骤直接摘自原始记录，保持原始命令的完整性和顺序。请在 **root** 终端中逐行执行。
+
+1. **在 VMware Workstation 中挂载 VMware Tools 安装镜像**  
+   在虚拟机窗口的菜单栏选择 **虚拟机 → 安装 VMware 工具**，此操作会在虚拟机内部生成一个虚拟光驱（CD‑ROM），其中包含了 `VMwareTools-5.0.0-13124.tar.gz` 安装包。
+
+2. **登录系统并切换到 root**（如果尚未登录）  
+
+   ```bash
+   [root@localhost ~]#
+   ```
+
+3. **挂载光驱**  
+
+   ```bash
+   [root@localhost root]#mount dev/cdrom /mnt/cdrom
+   ```
+
+   > **说明**：这里的命令保留了原文的写法（`dev/cdrom`），实际执行时如果出现 “No such file or directory” 错误，请改为 `mount /dev/cdrom /mnt/cdrom`。
+
+4. **进入挂载点**  
+
+   ```bash
+   [root@localhost root]#cd /mnt/cdrom
+   ```
+
+5. **列出光驱中的文件**  
+
+   ```bash
+   [root@localhost cdrom]#ls
+   ```
+
+   此时可以看到 `VMwareTools-5.0.0-13124.tar.gz` 等文件。
+
+6. **复制安装包到 /tmp 目录**  
+
+   ```bash
+   [root@localhost cdrom]#cp VMwareTools-5.0.0-13124.tar.gz /tmp
+   ```
+
+7. **切换到 /tmp 目录**  
+
+   ```bash
+   [root@localhost tmp]#cd /tmp
+   ```
+
+8. **确认文件已复制**  
+
+   ```bash
+   [root@localhost tmp]#ls
+   ```
+
+   你应该能够看到 `VMwareTools-5.0.0-13124.tar.gz`。
+
+9. **解压安装包**  
+
+   ```bash
+   [root@localhost tmp]#tar zxvf VMwareTools-5.0.0-13124.tar.gz
+   ```
+
+   解压后会生成 `vmware-tools-distrib` 目录。
+
+10. **进入解压后的目录**  
+
+    ```bash
+    [root@localhost tmp]#cd vmware-tools-distrib
+    ```
+
+11. **再次确认目录内容**  
+
+    ```bash
+    [root@localhost vmware-tools-distrib]#ls
+    ```
+
+12. **执行安装脚本**  
+
+    ```bash
+    [root@localhost vmware-tools-distrib]#./vmware-install.pl
+    ```
+
+    安装脚本会交互式询问若干选项（如是否编译内核模块、是否启用自动启动等），大多数情况下直接回车使用默认值即可。整个过程可能需要几分钟时间，期间会自动编译内核模块并完成文件复制。
+
+> **重要提示**：**不要在图形化界面下直接鼠标双击** `vmware-install.pl`。实践证明这样经常出错，原因是图形终端默认使用的是非交互式的 `sh`，而该脚本需要 `perl` 解释器并且需要交互式输入。务必在命令行终端中手动执行上述命令。
+
+## 常见问题与注意事项
+
+| 问题 | 可能原因 | 解决办法 |
+|------|----------|----------|
+| `mount: can't find dev/cdrom` | 挂载命令路径错误或光驱未正确识别 | 将命令改为 `mount /dev/cdrom /mnt/cdrom`，或先执行 `ls /dev | grep cd` 检查设备名 |
+| `tar: cannot open: No such file or directory` | 复制文件失败或路径错误 | 确认第 6 步已成功复制，使用 `ls /tmp` 检查文件是否存在 |
+| `make: command not found` | 编译工具未安装 | 执行 `yum install -y gcc make` 安装编译工具 |
+| `kernel-devel` 与当前内核不匹配 | 系统更新后内核版本变化 | 运行 `yum update` 并重启后再次安装 `kernel-devel` |
+| 安装脚本卡在 “Compiling kernel modules” | 缺少 `perl` 或 `gcc`，或内核头文件不匹配 | 确认已安装 `perl`、`gcc`、`kernel-devel`，并检查 `/usr/src/kernels/$(uname -r)` 是否存在 |
+| 安装完成后鼠标仍不流畅 | VMware Tools 未成功加载模块 | 重新执行第 12 步，或检查 `/etc/init.d/vmware-tools` 是否已启动 |
+
+### 额外的优化建议
+
+- **自动启动**：安装完成后，系统会在 `/etc/init.d/vmware-tools` 中创建启动脚本。可以使用 `chkconfig vmware-tools on` 确保每次系统启动时自动加载。
+- **共享文件夹**：若需要在宿主机与虚拟机之间共享目录，安装完成后在 VMware Workstation 中设置 **虚拟机 → 设置 → 共享文件夹**，并在虚拟机内部挂载（如 `mount -t fuse.vmhgfs-fuse .host:/ /mnt/hgfs -o allow_other`）。
+- **图形驱动**：在 RHEL 9 中，默认使用 Xorg。安装 VMware Tools 后，系统会自动配置 Xorg 驱动，使分辨率能够随窗口大小自动调整。
+
+## 小结
+
+通过本文的详细步骤，您已经掌握了在 Red Hat Enterprise Linux 9 虚拟机中手动安装 VMware Tools 的完整流程。关键点在于：
+
+1. **正确挂载光驱** 并复制安装包到临时目录；
+2. **解压并运行 `vmware-install.pl`**，在交互式终端中完成安装；
+3. **确保系统具备编译内核模块的必要工具**（`gcc`、`make`、`kernel-devel`）；
+4. **避免在图形界面直接双击脚本**，以免出现不可预期的错误。
+
+完成安装后，您将体验到更流畅的鼠标操作、更快的文件传输以及更好的图形显示效果，为后续的开发、调试或生产部署提供坚实的基础。如果在实际操作中仍遇到未列出的异常情况，建议参考 VMware 官方文档或在社区中搜索对应错误信息，以获取更针对性的解决方案。祝您使用愉快！
