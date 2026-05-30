@@ -17,6 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 const siteUrl = SITE_URL;
+const axonEventKey = process.env.AXON_EVENT_KEY;
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -170,6 +171,16 @@ export default function RootLayout({
             });
           `}
         </Script>
+        {axonEventKey && (
+          <Script id="axon-pixel" strategy="lazyOnload">
+            {`
+              var AXON_EVENT_KEY=${JSON.stringify(axonEventKey)};
+              !function(e,r){var t=["https://s.axon.ai/pixel.js","https://res4.applovin.com/p/l/loader.iife.js"];if(!e.axon){var a=e.axon=function(){a.performOperation?a.performOperation.apply(a,arguments):a.operationQueue.push(arguments)};a.operationQueue=[],a.ts=Date.now(),a.eventKey=AXON_EVENT_KEY;for(var n=r.getElementsByTagName("script")[0],o=0;o<t.length;o++){var i=r.createElement("script");i.async=!0,i.src=t[o],n.parentNode.insertBefore(i,n)}}}(window,document);
+              axon("init");
+              axon("track","page_view");
+            `}
+          </Script>
+        )}
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
