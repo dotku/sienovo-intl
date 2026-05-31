@@ -1,0 +1,58 @@
+name: Enrich contacts daily
+
+# Auto-enriches Contacts missing firmographics via Apollo (/people/match)
+# and pushes the filled attributes back to Brevo. Runs shortly BEFORE the
+# outreach-daily pipeline so drafts have complete company/title data to work
+# with. Only fills empty fields — never overwrites existing data.
+
+on:
+  schedule:
+    # 14:00 UTC = 07:00 PT — one hour before outreach-daily (15:00 UTC),
+    # weekdays only (matches the outreach cadence).
+    - cron: "0 14 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Max contacts to enrich this run (default 25)"
+        required: false
+        default: "25"
+      dry_run:
+        description: "Dry-run (no DB / Brevo writes)?"
+        required: false
+        default: "false"
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  enrich:
+    runs-on: ubuntu-latest
+    concurrency:
+      # Don't overlap with another enrich run (or race Brevo upserts).
+      group: enrich-contacts
+      cancel-in-progress: false
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install deps
+        run: npm i --no-fund --no-audit
+
+      - name: Enrich contacts
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          APOLLO_API_KEY: ${{ secrets.APOLLO_API_KEY }}
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+        run: |
+          LIMIT="${{ github.event.inputs.limit || '25' }}"
+          DRY="${{ github.event.inputs.dry_run || 'false' }}"
+          if [ "$DRY" = "true" ]; then
+            node scripts/enrich-contacts.mjs --limit "$LIMIT" --dry-run
+          else
+            node scripts/enrich-contacts.mjs --limit "$LIMIT"
+          fi
