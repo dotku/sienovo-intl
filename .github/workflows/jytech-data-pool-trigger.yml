@@ -91,32 +91,36 @@ jobs:
           MET=$(grep -c '^## ✅' /tmp/report.md || echo 0)
           SUBJECT="[jytech ops] ${SUBJECT} — ${MET}/3 met"
 
-          # Minimal markdown → HTML: headings, bold, code spans, bullets, hrs.
-          HTML=$(python3 - <<'PY' < /tmp/report.md
-          import sys, re, html
-          src = sys.stdin.read()
+          # Render markdown → HTML in a tiny Python helper. Reading the
+          # report by path (not stdin) sidesteps the heredoc/stdin
+          # collision that ate the previous attempt — the em-dashes in
+          # the markdown became "syntax" errors when Python tried to
+          # parse the report as code.
+          cat > /tmp/md2html.py <<'PY'
+          import re, html as h
+          src = open('/tmp/report.md', encoding='utf-8').read()
           lines = []
           for raw in src.splitlines():
               line = raw.rstrip()
               if line.startswith('### '):
-                  lines.append(f"<h3>{html.escape(line[4:])}</h3>")
+                  lines.append(f"<h3>{h.escape(line[4:])}</h3>")
               elif line.startswith('## '):
-                  lines.append(f"<h2>{html.escape(line[3:])}</h2>")
+                  lines.append(f"<h2>{h.escape(line[3:])}</h2>")
               elif line.startswith('# '):
-                  lines.append(f"<h1>{html.escape(line[2:])}</h1>")
+                  lines.append(f"<h1>{h.escape(line[2:])}</h1>")
               elif line.strip() == '---':
                   lines.append("<hr/>")
               elif line.startswith('- '):
-                  body = html.escape(line[2:])
-                  body = re.sub(r'`([^`]+)`', r'<code>\\1</code>', body)
-                  body = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\\1</strong>', body)
+                  body = h.escape(line[2:])
+                  body = re.sub(r'`([^`]+)`', r'<code>\1</code>', body)
+                  body = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', body)
                   lines.append(f"<li>{body}</li>")
-              elif line == '':
+              elif not line:
                   lines.append('')
               else:
-                  body = html.escape(line)
-                  body = re.sub(r'`([^`]+)`', r'<code>\\1</code>', body)
-                  body = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\\1</strong>', body)
+                  body = h.escape(line)
+                  body = re.sub(r'`([^`]+)`', r'<code>\1</code>', body)
+                  body = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', body)
                   lines.append(f"<p>{body}</p>")
           # Wrap consecutive <li> in <ul>.
           out = []
@@ -137,7 +141,7 @@ jobs:
           body = '\n'.join(out)
           print(f'<div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:680px;margin:auto;color:#111;line-height:1.55">{body}</div>')
           PY
-          )
+          HTML=$(python3 /tmp/md2html.py)
 
           jq -n \
             --arg from "jytech ops <noreply@sienovo.cn>" \
