@@ -87,8 +87,12 @@ jobs:
           set -euo pipefail
           # Headline = first non-blank line ("# jytech data-pool migration ...")
           SUBJECT=$(grep -m1 '^# ' /tmp/report.md | sed 's/^# //')
-          # Count met conditions for an at-a-glance subject tag.
-          MET=$(grep -c '^## ✅' /tmp/report.md || echo 0)
+          # Count met conditions for an at-a-glance subject tag. `grep -c`
+          # already prints the count (including 0) — use `|| true` to
+          # swallow the non-zero exit on 0 matches WITHOUT appending an
+          # extra "0" line (Resend rejects subjects containing \n with
+          # HTTP 422).
+          MET=$(grep -c '^## ✅' /tmp/report.md || true)
           SUBJECT="[jytech ops] ${SUBJECT} — ${MET}/3 met"
 
           # Render markdown → HTML in a tiny Python helper. Reading the
