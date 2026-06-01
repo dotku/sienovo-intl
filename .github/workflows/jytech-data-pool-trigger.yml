@@ -1,0 +1,157 @@
+name: jytech data-pool migration trigger check
+
+# Monthly audit: should jytech migrate the (planned) data pool off Neon
+# and onto AWS RDS Postgres yet? Hosted in sienovo-intl rather than in
+# the data-pool repo itself because sienovo-intl is public (unlimited
+# free Actions minutes) and is always active (no 60-day cron-pause
+# risk). The output is a markdown report — emitted to the Actions
+# summary page and emailed to dev@jytech.us.
+
+on:
+  schedule:
+    # 09:00 UTC on the 1st of each month = 02:00 PT = 17:00 Beijing time.
+    - cron: "0 9 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      # Public repo, no auth needed. Shallow clone keeps this fast.
+      - name: Clone jytechllc/autoclaw-web (for integration grep)
+        run: git clone --depth 1 https://github.com/jytechllc/autoclaw-web.git /tmp/autoclaw-web
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # CloudWatch lookups: 30d Invocations + token-count sums for Bedrock.
+      # Exported as $GITHUB_ENV so the Node script can read them. If the
+      # account hasn't published Bedrock metrics yet (no invocations
+      # within the window) CloudWatch returns an empty Datapoints array
+      # and we report zero rather than blowing up.
+      - name: Fetch Bedrock CloudWatch metrics
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
+          AWS_DEFAULT_REGION: us-east-1
+        run: |
+          set -euo pipefail
+          START="$(date -u -d '30 days ago' +%FT%TZ)"
+          END="$(date -u +%FT%TZ)"
+          fetch() {
+            local metric="$1"
+            aws cloudwatch get-metric-statistics \
+              --namespace AWS/Bedrock --metric-name "$metric" \
+              --start-time "$START" --end-time "$END" \
+              --period 86400 --statistics Sum --region us-east-1 \
+              --query 'Datapoints[*].Sum' --output text 2>/dev/null \
+              | tr '\t' '\n' | awk '{s+=$1} END {printf "%.0f\n", s+0}'
+          }
+          INV=$(fetch Invocations || echo 0)
+          IN_TOK=$(fetch InputTokenCount || echo 0)
+          OUT_TOK=$(fetch OutputTokenCount || echo 0)
+          echo "BEDROCK_INVOCATIONS=${INV}"   >> "$GITHUB_ENV"
+          echo "BEDROCK_INPUT_TOKENS=${IN_TOK}" >> "$GITHUB_ENV"
+          echo "BEDROCK_OUTPUT_TOKENS=${OUT_TOK}" >> "$GITHUB_ENV"
+          echo "(diagnostic) invocations=$INV  input=$IN_TOK  output=$OUT_TOK"
+
+      - name: Generate report
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AUTOCLAW_WEB_DIR: /tmp/autoclaw-web
+          # Set these as repo secrets after the jytech-data-pool DB is provisioned
+          # to enable automatic storage checks. Until then, condition 1 reports
+          # "Project not yet started" by design.
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+          NEON_DATABASE_NAME: ${{ secrets.NEON_DATABASE_NAME }}
+        run: |
+          node scripts/check-migration-triggers.mjs > /tmp/report.md
+          cat /tmp/report.md >> "$GITHUB_STEP_SUMMARY"
+          cat /tmp/report.md
+
+      # Convert the markdown to a minimal HTML email and hand it to Resend.
+      # No extra deps — sienovo.cn is already verified at Resend, so we send
+      # from the same noreply@sienovo.cn we use elsewhere.
+      - name: Email report to dev@jytech.us
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: |
+          set -euo pipefail
+          # Headline = first non-blank line ("# jytech data-pool migration ...")
+          SUBJECT=$(grep -m1 '^# ' /tmp/report.md | sed 's/^# //')
+          # Count met conditions for an at-a-glance subject tag.
+          MET=$(grep -c '^## ✅' /tmp/report.md || echo 0)
+          SUBJECT="[jytech ops] ${SUBJECT} — ${MET}/3 met"
+
+          # Minimal markdown → HTML: headings, bold, code spans, bullets, hrs.
+          HTML=$(python3 - <<'PY' < /tmp/report.md
+          import sys, re, html
+          src = sys.stdin.read()
+          lines = []
+          for raw in src.splitlines():
+              line = raw.rstrip()
+              if line.startswith('### '):
+                  lines.append(f"<h3>{html.escape(line[4:])}</h3>")
+              elif line.startswith('## '):
+                  lines.append(f"<h2>{html.escape(line[3:])}</h2>")
+              elif line.startswith('# '):
+                  lines.append(f"<h1>{html.escape(line[2:])}</h1>")
+              elif line.strip() == '---':
+                  lines.append("<hr/>")
+              elif line.startswith('- '):
+                  body = html.escape(line[2:])
+                  body = re.sub(r'`([^`]+)`', r'<code>\\1</code>', body)
+                  body = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\\1</strong>', body)
+                  lines.append(f"<li>{body}</li>")
+              elif line == '':
+                  lines.append('')
+              else:
+                  body = html.escape(line)
+                  body = re.sub(r'`([^`]+)`', r'<code>\\1</code>', body)
+                  body = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\\1</strong>', body)
+                  lines.append(f"<p>{body}</p>")
+          # Wrap consecutive <li> in <ul>.
+          out = []
+          in_list = False
+          for l in lines:
+              if l.startswith('<li>'):
+                  if not in_list:
+                      out.append('<ul>')
+                      in_list = True
+                  out.append(l)
+              else:
+                  if in_list:
+                      out.append('</ul>')
+                      in_list = False
+                  out.append(l)
+          if in_list:
+              out.append('</ul>')
+          body = '\n'.join(out)
+          print(f'<div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:680px;margin:auto;color:#111;line-height:1.55">{body}</div>')
+          PY
+          )
+
+          jq -n \
+            --arg from "jytech ops <noreply@sienovo.cn>" \
+            --arg to "dev@jytech.us" \
+            --arg subject "$SUBJECT" \
+            --arg html "$HTML" \
+            '{from: $from, to: [$to], subject: $subject, html: $html}' > /tmp/payload.json
+
+          RESP=$(curl -s -w "\n%{http_code}" -X POST https://api.resend.com/emails \
+            -H "Authorization: Bearer $RESEND_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d @/tmp/payload.json)
+          CODE=$(printf '%s' "$RESP" | tail -n1)
+          BODY=$(printf '%s' "$RESP" | sed '$d')
+          echo "Resend HTTP $CODE"
+          echo "$BODY" | head -c 300
+          [ "$CODE" = "200" ] || { echo "::error::Resend failed"; exit 1; }
