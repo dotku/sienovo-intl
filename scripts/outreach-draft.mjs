@@ -19,12 +19,38 @@ import { config } from "dotenv";
 config({ path: ".env.local" });
 
 import pg from "pg";
+import {
+  BedrockRuntimeClient,
+  InvokeModelCommand,
+} from "@aws-sdk/client-bedrock-runtime";
+import FirecrawlApp from "@mendable/firecrawl-js";
 
 const args = process.argv.slice(2);
 const limitArg = args.indexOf("--limit");
 const campaignArg = args.indexOf("--campaign");
 const LIMIT = limitArg !== -1 ? parseInt(args[limitArg + 1], 10) : 30;
 const CAMPAIGN_ID = campaignArg !== -1 ? args[campaignArg + 1] : null;
+
+// Bedrock is the primary drafter (better cold-email writing than Gemini Flash).
+// Gemini stays as a fallback when Bedrock fails or AWS creds are missing.
+// us. prefix = cross-region inference profile (works across all US regions).
+const BEDROCK_MODEL = "us.anthropic.claude-sonnet-4-5-20250929-v1:0";
+const AWS_REGION = process.env.AWS_REGION || "us-east-1";
+const bedrockReady = !!(
+  process.env.AWS_ACCESS_KEY_ID || process.env.AWS_PROFILE
+);
+const bedrockClient = bedrockReady
+  ? new BedrockRuntimeClient({ region: AWS_REGION })
+  : null;
+
+// Firecrawl is used for per-contact prospect research before drafting.
+// Optional — if the key is missing, drafts use only the Apollo enrichment
+// already on the Contact row, which still works (this is the pre-upgrade
+// behaviour).
+const firecrawlReady = !!process.env.FIRECRAWL_API_KEY;
+const firecrawl = firecrawlReady
+  ? new FirecrawlApp({ apiKey: process.env.FIRECRAWL_API_KEY })
+  : null;
 
 if (!process.env.GEMINI_API_KEY) {
   console.error("GEMINI_API_KEY missing in env");
@@ -66,11 +92,51 @@ const SIGNATURE_HTML = `
 </p>
 <p style="font-size:11px;color:#999;line-height:1.4">P.S. Not the right contact? Reply with "remove" and I won't email again.</p>`.trim();
 
-async function geminiDraft(contact, campaign, step, prevSubject) {
-  const lines = [SYSTEM_PROMPT];
-  if (campaign.productFocus) lines.push(`\nProduct focus: ${campaign.productFocus}`);
+// ── Prospect research (Firecrawl) ───────────────────────────────────────────
+// Pull 3 recent insights about the contact's company so the drafter can
+// open with something specific instead of "I noticed your company is in
+// the convenience store space". Cost is ~$0.001-0.005 per query; at 30
+// drafts/day this is well under $1/month even with no cache.
+async function researchContact(contact) {
+  if (!firecrawl) return null;
+  if (!contact.company) return null;
+
+  // Focused on the dimensions Sienovo's INT-AIBOX is built for: smoke/PPE
+  // detection, loss prevention, intrusion, fire, safety. The OR-query
+  // surfaces whichever angle the target has been talking about.
+  const query =
+    `"${contact.company}" ` +
+    `(video analytics OR AI surveillance OR loss prevention OR ` +
+    `safety detection OR smoke detection OR perimeter security)`;
+
+  try {
+    // Firecrawl v4 SDK groups results by source. Access `.web` directly —
+    // touching `.data` on the result object throws "Results are grouped by
+    // source" by design. Other source buckets (.news, .images) exist too
+    // but for cold-email research the web results are what we want.
+    const res = await firecrawl.search(query, { limit: 5 });
+    const items = Array.isArray(res?.web) ? res.web : [];
+    const insights = [];
+    for (const r of items.slice(0, 5)) {
+      const title = r.title || "";
+      const snippet = (r.description || r.snippet || "").trim();
+      if (!title && !snippet) continue;
+      insights.push(`- ${title}${snippet ? `: ${snippet}` : ""}`.slice(0, 240));
+      if (insights.length === 3) break;
+    }
+    return insights.length > 0 ? insights.join("\n") : null;
+  } catch (err) {
+    console.warn(`  ⚠ Firecrawl research failed: ${err.message}`);
+    return null;
+  }
+}
+
+// ── Prompt builder (shared by Bedrock + Gemini) ─────────────────────────────
+function buildPromptText(contact, campaign, step, prevSubject, researchSummary) {
+  const lines = [];
+  if (campaign.productFocus) lines.push(`Product focus: ${campaign.productFocus}`);
   if (campaign.aiContext) lines.push(`Additional context: ${campaign.aiContext}`);
-  lines.push(`\nSender name: ${campaign.senderName}`);
+  lines.push(`Sender name: ${campaign.senderName}`);
 
   lines.push(`\nRecipient:`);
   const name = [contact.firstName, contact.lastName].filter(Boolean).join(" ");
@@ -84,6 +150,17 @@ async function geminiDraft(contact, campaign, step, prevSubject) {
     );
   if (contact.companySize) lines.push(`- Company size: ${contact.companySize}`);
 
+  if (researchSummary) {
+    lines.push(`\nRecent public context about ${contact.company}:`);
+    lines.push(researchSummary);
+    lines.push(
+      `Use ONE concrete detail from the context above to ground the opening ` +
+      `sentence (e.g. a recent initiative, partnership, or pain point). ` +
+      `Do not list multiple. If nothing is genuinely relevant to ` +
+      `Sienovo's video-analytics use cases, ignore it and rely on title/industry.`,
+    );
+  }
+
   lines.push(`\nThis is step ${step.stepOrder} of the sequence.`);
   if (step.subject) lines.push(`Subject direction: ${step.subject}`);
   if (step.promptHint) lines.push(`Style instruction: ${step.promptHint}`);
@@ -94,18 +171,11 @@ async function geminiDraft(contact, campaign, step, prevSubject) {
     `\nReturn ONLY JSON:\n{ "subject": "...", "html": "<p>opening paragraph</p><p>middle paragraph</p><p>CTA paragraph</p>" }\n\nThe html field must end at the CTA. No sign-off, no name, no contact details, no P.S. — those are appended programmatically after your output.`,
   );
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${process.env.GEMINI_API_KEY}`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: lines.join("\n") }] }],
-      generationConfig: { temperature: 0.4, maxOutputTokens: 2048 },
-    }),
-  });
-  if (!res.ok) return null;
-  const data = await res.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  return lines.join("\n");
+}
+
+// ── Response parser (shared) ────────────────────────────────────────────────
+function parseDraftResponse(text) {
   if (!text) return null;
   const m = text.match(/\{[\s\S]*\}/);
   if (!m) return null;
@@ -117,6 +187,64 @@ async function geminiDraft(contact, campaign, step, prevSubject) {
   } catch {
     return null;
   }
+}
+
+// ── Bedrock drafter (primary) ───────────────────────────────────────────────
+async function bedrockDraft(contact, campaign, step, prevSubject, research) {
+  if (!bedrockClient) return null;
+  const userText = buildPromptText(contact, campaign, step, prevSubject, research);
+  const cmd = new InvokeModelCommand({
+    modelId: BEDROCK_MODEL,
+    contentType: "application/json",
+    body: JSON.stringify({
+      anthropic_version: "bedrock-2023-05-31",
+      max_tokens: 2048,
+      temperature: 0.4,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: "user", content: userText }],
+    }),
+  });
+  const resp = await bedrockClient.send(cmd);
+  const body = JSON.parse(new TextDecoder().decode(resp.body));
+  const text = body?.content?.[0]?.text;
+  return parseDraftResponse(text);
+}
+
+// ── Gemini drafter (fallback) ───────────────────────────────────────────────
+async function geminiDraft(contact, campaign, step, prevSubject, research) {
+  const userText = buildPromptText(contact, campaign, step, prevSubject, research);
+  // Gemini doesn't have a separate system slot in v1beta generateContent —
+  // prepend the system prompt to the user text. Bedrock's Anthropic format
+  // does have one, so we use it there.
+  const text = `${SYSTEM_PROMPT}\n\n${userText}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${process.env.GEMINI_API_KEY}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text }] }],
+      generationConfig: { temperature: 0.4, maxOutputTokens: 2048 },
+    }),
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  const out = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  return parseDraftResponse(out);
+}
+
+// ── Drafter with provider fallback ──────────────────────────────────────────
+async function draftWithFallback(contact, campaign, step, prevSubject, research) {
+  if (bedrockClient) {
+    try {
+      const r = await bedrockDraft(contact, campaign, step, prevSubject, research);
+      if (r) return { ...r, provider: "bedrock" };
+      console.warn(`  ⚠ Bedrock returned no parseable draft — falling back to Gemini`);
+    } catch (err) {
+      console.warn(`  ⚠ Bedrock invoke failed (${err.message}) — falling back to Gemini`);
+    }
+  }
+  const r = await geminiDraft(contact, campaign, step, prevSubject, research);
+  return r ? { ...r, provider: "gemini" } : null;
 }
 
 /**
@@ -161,6 +289,13 @@ function normalizeSignoff(html) {
 
   return `${body}\n${SIGNATURE_HTML}`;
 }
+
+console.log(
+  `Drafter providers: ` +
+    `${bedrockClient ? `bedrock(${BEDROCK_MODEL.split(":")[0].split(".").pop()})` : "bedrock=off"} ` +
+    `→ gemini fallback. ` +
+    `Research: ${firecrawl ? "firecrawl on" : "firecrawl off"}.`,
+);
 
 const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
 await client.connect();
@@ -211,11 +346,16 @@ outer: for (const campaign of campaigns.rows) {
     for (const contact of candidates.rows) {
       if (totals.drafted >= LIMIT) break outer;
       console.log(`  Drafting step 1 → ${contact.email}`);
-      const draft = await geminiDraft(contact, campaign, step1, null);
+      const research = await researchContact(contact);
+      if (research) {
+        console.log(`    + research: ${research.split("\n").length} insight(s) from Firecrawl`);
+      }
+      const draft = await draftWithFallback(contact, campaign, step1, null, research);
       if (!draft) {
         totals.failed++;
         continue;
       }
+      console.log(`    via ${draft.provider}`);
 
       await client.query(
         `INSERT INTO "OutreachEmail" (
@@ -266,11 +406,15 @@ outer: for (const campaign of campaigns.rows) {
     for (const row of due.rows) {
       if (totals.drafted >= LIMIT) break outer;
       console.log(`  Drafting step ${step.stepOrder} → ${row.email}`);
-      const draft = await geminiDraft(row, campaign, step, row.prev_subject);
+      // Skip Firecrawl for follow-ups — the prior email already grounded
+      // the conversation, the cost saving compounds, and follow-ups should
+      // primarily reference the previous email's subject.
+      const draft = await draftWithFallback(row, campaign, step, row.prev_subject, null);
       if (!draft) {
         totals.failed++;
         continue;
       }
+      console.log(`    via ${draft.provider}`);
 
       await client.query(
         `INSERT INTO "OutreachEmail" (

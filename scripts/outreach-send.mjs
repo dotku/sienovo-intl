@@ -175,6 +175,40 @@ for (const row of candidatesRes.rows) {
     .filter(Boolean)
     .join(" ");
 
+  // Global CC — gives stakeholders visibility into every outbound touch.
+  // Set OUTREACH_DEFAULT_CC=jay.lin@sienovo.cn (env / GH secret) and every
+  // send copies that address. Comma-separated for multiple. Leave unset
+  // and no cc is added — but the field must be OMITTED, not sent as [].
+  // Brevo rejects empty cc arrays with `missing_parameter: cc is missing`,
+  // which was silently failing every send (0 delivered) before this fix.
+  const ccList = (process.env.OUTREACH_DEFAULT_CC || "")
+    .split(",")
+    .map((e) => e.trim())
+    .filter(Boolean)
+    .map((email) => ({ email }));
+
+  const brevoPayload = {
+    sender: {
+      name: row.senderName,
+      email: row.senderEmail,
+    },
+    replyTo: row.replyTo ? { email: row.replyTo } : undefined,
+    to: [
+      {
+        email: row.contact_email,
+        name: recipientName || undefined,
+      },
+    ],
+    subject: row.subject,
+    htmlContent: row.htmlContent,
+    tags: ["outreach", `campaign:${row.campaignId}`],
+    headers: {
+      "X-Sienovo-Email-Id": row.id,
+      "X-Sienovo-Campaign-Id": row.campaignId,
+    },
+  };
+  if (ccList.length > 0) brevoPayload.cc = ccList;
+
   try {
     const res = await fetch("https://api.brevo.com/v3/smtp/email", {
       method: "POST",
@@ -182,35 +216,7 @@ for (const row of candidatesRes.rows) {
         "api-key": process.env.BREVO_API_KEY,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        sender: {
-          name: row.senderName,
-          email: row.senderEmail,
-        },
-        replyTo: row.replyTo ? { email: row.replyTo } : undefined,
-        to: [
-          {
-            email: row.contact_email,
-            name: recipientName || undefined,
-          },
-        ],
-        // Global CC — gives stakeholders visibility into every outbound
-        // touch. Set OUTREACH_DEFAULT_CC=jay.lin@sienovo.cn (env / GH
-        // secret) and every send copies that address. Comma-separated for
-        // multiple. Leave unset and no CC is added.
-        cc: (process.env.OUTREACH_DEFAULT_CC || "")
-          .split(",")
-          .map((e) => e.trim())
-          .filter(Boolean)
-          .map((email) => ({ email })),
-        subject: row.subject,
-        htmlContent: row.htmlContent,
-        tags: ["outreach", `campaign:${row.campaignId}`],
-        headers: {
-          "X-Sienovo-Email-Id": row.id,
-          "X-Sienovo-Campaign-Id": row.campaignId,
-        },
-      }),
+      body: JSON.stringify(brevoPayload),
     });
 
     if (res.ok) {

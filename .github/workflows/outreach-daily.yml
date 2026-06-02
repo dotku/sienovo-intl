@@ -1,6 +1,8 @@
 name: Outreach daily pipeline
 
-# Pulls Apollo leads → drafts emails via Gemini → sends through Brevo.
+# Pulls Apollo leads → drafts emails via Bedrock (Claude Sonnet 4.5)
+# with Firecrawl prospect research → sends through Brevo. Gemini is
+# kept as a per-call fallback if Bedrock errors out.
 # Runs once per business day. Warmup phase is intentionally conservative;
 # bump DAILY_CAP via workflow_dispatch input once domain reputation builds.
 
@@ -64,7 +66,15 @@ jobs:
         if: ${{ github.event.inputs.skip_draft != 'true' }}
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          # Bedrock (primary): Claude Sonnet 4.5 via the sienovo-intl IAM
+          # user. Gemini stays as the per-call fallback if Bedrock errors.
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          # Firecrawl: per-contact prospect research before drafting.
+          # Optional — drafts still work without it, just less personalized.
+          FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
         run: |
           CAP="${{ github.event.inputs.daily_cap || '30' }}"
           # Draft at the daily cap so we always have inventory to send.

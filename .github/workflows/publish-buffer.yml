@@ -1,0 +1,71 @@
+name: Publish to Buffer
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "queue (default — add to Buffer queue) or now (publish immediately)"
+        required: false
+        default: "queue"
+      dry_run:
+        description: "Dry-run: show what would be sent without calling Buffer (true/false)"
+        required: false
+        default: "false"
+  schedule:
+    # 17:00 UTC daily = 09:00 PT / 01:00 Beijing.
+    # Picks the next approved+rewritten article and adds it to the Buffer
+    # queue (Buffer itself decides the exact post time per its schedule).
+    - cron: "0 17 * * *"
+
+permissions:
+  contents: write          # so we can commit data/published.jsonl after each run
+  actions: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile --prod --ignore-scripts
+
+      - name: Publish next queued post
+        env:
+          BUFFER_ACCESS_TOKEN: ${{ secrets.BUFFER_ACCESS_TOKEN }}
+          BUFFER_CHANNEL_ID: ${{ secrets.BUFFER_CHANNEL_ID }}
+        run: |
+          # workflow_dispatch supplies inputs.* explicitly; cron-fired runs
+          # leave them empty, so default to queue mode, not-dry-run.
+          MODE="${{ github.event.inputs.mode }}"
+          DRY="${{ github.event.inputs.dry_run }}"
+          FLAGS=""
+          if [ "${MODE:-queue}" = "now" ]; then FLAGS="$FLAGS --now"; fi
+          if [ "$DRY" = "true" ]; then FLAGS="$FLAGS --dry-run"; fi
+          node scripts/publish-next.mjs $FLAGS
+
+      # Run even if "Publish next queued post" exited non-zero — partial
+      # successes already appended rows to data/published.jsonl, and skipping
+      # the commit lets Buffer and our state drift apart, leading to repeated
+      # publishes of the same article on subsequent runs.
+      - name: Commit published-state log
+        if: always()
+        run: |
+          if [ -n "$(git status --porcelain data/published.jsonl)" ]; then
+            git config user.name "sienovo-bot"
+            git config user.email "bot@intl.sienovo.cn"
+            git add data/published.jsonl
+            git commit -m "chore(buffer): record published article"
+            git push
+          else
+            echo "Nothing new to record."
+          fi

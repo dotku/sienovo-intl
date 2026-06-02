@@ -3,6 +3,7 @@ import { getUser } from "@/lib/auth0";
 import { prisma } from "@/lib/prisma";
 import { trackApiUsage } from "@/lib/api-usage";
 import { gatherRAGContext } from "@/lib/chat-context";
+import { bedrockChatStream, bedrockConfigured, BEDROCK_CHAT_MODEL_ID } from "@/lib/bedrock";
 
 const ZAI_MODEL = "GLM-4.7-Flash";
 const DEEPSEEK_MODEL = "deepseek-chat";
@@ -78,6 +79,13 @@ Guidelines:
     ...messages,
   ];
 
+  // Bedrock Claude is the primary provider; fall back to the cheaper
+  // OpenAI-compatible chain below if AWS is unavailable or errors out.
+  if (bedrockConfigured()) {
+    const bedrockResult = await tryBedrockStream(systemPrompt, messages, convId);
+    if (bedrockResult) return bedrockResult;
+  }
+
   // Build provider chain: Z.AI (free) → DeepSeek (cheap) → Cerebras (fallback)
   const providers: Provider[] = [];
 
@@ -122,6 +130,58 @@ Guidelines:
   }
 
   return NextResponse.json({ error: "AI service unavailable" }, { status: 503 });
+}
+
+// ── AWS Bedrock (Claude, true token streaming) ───────────────────────────────
+
+async function tryBedrockStream(
+  system: string,
+  messages: { role: "user" | "assistant"; content: string }[],
+  conversationId: string,
+): Promise<Response | null> {
+  let deltas: AsyncIterable<string>;
+  try {
+    // Awaiting here surfaces auth/model errors so we can fall back cleanly.
+    deltas = await bedrockChatStream(messages, { system, maxTokens: 4096 });
+  } catch {
+    trackApiUsage("bedrock", "customer_chat", false);
+    return null; // fall back to the OpenAI-compatible chain
+  }
+
+  trackApiUsage("bedrock", "customer_chat");
+
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      controller.enqueue(
+        encoder.encode(`data: ${JSON.stringify({ model: BEDROCK_CHAT_MODEL_ID, conversationId })}\n\n`),
+      );
+      let fullText = "";
+      try {
+        for await (const delta of deltas) {
+          fullText += delta;
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: delta })}\n\n`));
+        }
+      } finally {
+        if (fullText) {
+          await prisma.chatMessage.create({
+            data: {
+              conversationId,
+              role: "assistant",
+              content: fullText,
+              model: BEDROCK_CHAT_MODEL_ID,
+            },
+          });
+        }
+        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" },
+  });
 }
 
 // ── Generic OpenAI-compatible provider ───────────────────────────────────────

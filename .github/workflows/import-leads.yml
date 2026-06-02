@@ -1,0 +1,67 @@
+name: Import leads from AutoClaw library
+
+# Pulls potential customers from the AutoClaw enterprise resource library (S3)
+# into sienovo-intl's CRM: companies -> "Company", email-bearing contacts ->
+# "Contact" (leads) + Brevo list 5. Email-less contacts get resolved via Apollo
+# /people/match when possible. Feeds the outreach pipeline with fresh targets.
+
+on:
+  schedule:
+    # 13:00 UTC = 06:00 PT, weekdays — ahead of enrich (14:00) and outreach
+    # (15:00), so newly imported leads are enriched and drafted the same day.
+    - cron: "0 13 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "Library date to import (YYYY-MM-DD, default today)"
+        required: false
+      segments:
+        description: "Comma-separated segments (default all)"
+        required: false
+      resolve_email:
+        description: "Resolve missing emails via Apollo?"
+        required: false
+        default: "true"
+        type: boolean
+      dry_run:
+        description: "Dry-run (no DB / Brevo writes)?"
+        required: false
+        default: "false"
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: import-leads
+      cancel-in-progress: false
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install deps
+        run: npm i --no-fund --no-audit
+
+      - name: Import leads
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          LEADS_BUCKET: ${{ secrets.LEADS_BUCKET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
+          APOLLO_API_KEY: ${{ secrets.APOLLO_API_KEY }}
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+        run: |
+          FLAGS=""
+          [ -n "${{ github.event.inputs.date }}" ] && FLAGS="$FLAGS --date ${{ github.event.inputs.date }}"
+          [ -n "${{ github.event.inputs.segments }}" ] && FLAGS="$FLAGS --segments ${{ github.event.inputs.segments }}"
+          [ "${{ github.event.inputs.resolve_email }}" = "false" ] && FLAGS="$FLAGS --no-resolve-email"
+          [ "${{ github.event.inputs.dry_run }}" = "true" ] && FLAGS="$FLAGS --dry-run"
+          node scripts/import-leads-from-library.mjs $FLAGS
