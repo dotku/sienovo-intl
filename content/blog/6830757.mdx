@@ -4,37 +4,24 @@ date: "2011-09-28"
 slug: "6830757"
 tags: ["#file", "#stream", "#character", "#struct", "#token"]
 source: "https://blog.csdn.net/yeyuangen/article/details/6830757"
+expanded: true
 ---
+### 结构体成员解释
 
- 
+| 成员 | 类型 | 含义 |
+|------|------|------|
+| `level` | `short` | 表示缓冲区当前的使用程度，数值越大说明缓冲区越满。 |
+| `flags` | `unsigned` | 文件状态标志，例如是否已到达文件末尾、是否出错等。 |
+| `fd` | `char` | 实际的文件描述符（在底层系统调用中使用），通常是一个整数句柄。 |
+| `hold` | `unsigned char` | 用来暂存一个字符，常见于 `ungetc` 实现。 |
+| `bsize` | `short` | 缓冲区的大小（单位：字节），决定一次 I/O 能读取或写入的最大数据量。 |
+| `buffer` | `unsigned char *` | 指向分配的缓冲区起始地址。 |
+| `curp` | `unsigned char *` | 当前读写指针，指向缓冲区中下一个要处理的字节。 |
+| `istemp` | `unsigned` | 标记该文件是否为临时文件（如 `tmpfile` 创建的文件）。 |
+| `token` | `short` | 内部使用的令牌，用于区分不同的 I/O 状态。 |
 
-1）定义
+需要注意的是，这段结构体定义仅用于教学演示，真实的实现往往会更为复杂，且会隐藏在库内部，外部代码只能通过 `FILE *` 进行操作，而不能直接访问成员。
 
-FILE是一个在stdio.h中预先定义的一个文件类型。
+## 2）`FILE *` 的初始化
 
-要先声名一个文件指针变量然后用文件函数操作。  
-在书上看到过一个FILE类型  
-typedef struct{  
-short level;/\*缓冲区“满/空”的程度\*/  
-unsigned flags;/\*文件状态标志字\*/  
-char fd;  
-unsigned char hold;  
-short bsize;/\*缓冲区大小\*/  
-unsigned char \*buffer;/\*数据缓冲区的位置\*/  
-unsigned char \*curp;/\*当前读写位置指针\*/  
-unsigned istemp;  
-short token;  
-
-}FILE;
-
-FILE是一个结构体 指针 ，里面包括文件名啊，文件缓冲区啊什么的。  
-
-2）初始化
-
-FILE \*fpt = fopen("a.txt"," r ");  
-
-3） 程序 例
-
-```cpp
-　　#include <stdio.h>　　int main(void)　　{　　FILE *stream;　　/* open a file for reading */　　stream = fopen("DUMMY.FIL", "r");　　/* read a character from the file */　　fgetc(stream);　　/* check for EOF */　　if (feof(stream))　　printf("We have reached end-of-file\n");　　/* close the file */　　fclose(stream);　　return 0;　　}
-```
+在使用文件流之前，必须先打开文件并获取对应的 `FILE *`。最常见的方式是调用 `fopen`：

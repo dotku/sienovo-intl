@@ -4,15 +4,53 @@ date: "2011-09-14"
 slug: "6774530"
 tags: ["#linux", "#float"]
 source: "https://blog.csdn.net/yeyuangen/article/details/6774530"
+expanded: true
+---
+### 3.1 代码解释
+
+1. `clock_t start = clock();`  
+   - `clock()` 返回自程序启动以来消耗的 CPU 时钟滴答数（**CPU 时间**），不是墙钟时间。  
+2. `sleep(5);`  
+   - 让进程进入睡眠状态 5 秒，期间 CPU 不会为该进程分配时间片。  
+3. `clock_t end = clock();`  
+   - 再次获取 CPU 时钟滴答数。  
+4. `float time = (float)(end - start) / CLOCKS_PER_SEC;`  
+   - 计算两次 `clock()` 之间的 CPU 时间（单位为秒）。  
+5. `printf("Sleep clock:%f\n", time);`  
+   - 输出实际消耗的 CPU 时间。
+
+### 3.2 结果分析
+
+由于 `sleep` 期间进程不占用 CPU，`clock()` 计量的 **CPU 时间** 通常远小于 5 秒（在大多数系统上接近 0），这与真实的墙钟时间形成对比。如果想测量真实的经过时间，应使用 `time()`、`gettimeofday()` 或 `clock_gettime(CLOCK_MONOTONIC, …)`。
+
 ---
 
- 
+## 4. `sleep` 的基本实现思路（基于系统滴答数）
 
-sleep把进程的运行状态改为睡眠，将其从 系统 可执行队列去掉，这样系统就不会调度到该进程，不会分配CPU时间片。同时根据该进程的睡眠时间，将进程挂入相应的定时器 队列 中。
+首先獲取當前系統滴答數 A，然後再加上需要 sleep 的時長結合 CPU 時鐘頻率計算得到的滴答數 B。再來一個 while 循環，循環體中不停獲取當前滴答數，大於（A+B）時跳出循環，函數返回。
 
-同时内核维持一个定时器队列，每一次 时钟 中断处理，都把当前到期的队列中的进程唤醒，加入到可运行进程队列中。 同时对所有挂入定时器队列中的进程时间值减1，
+### 4.1 步骤拆解
 
-```cpp
-    clock_t start=clock();    sleep(5);    clock_t end=clock();    float time=(float)(end-start)/CLOCKS_PER_SEC;    printf("Sleep clock:%f\n",time);
-```
-首先獲取當前系統滴答數A，然後再加上需要sleep的時長結合CPU時鐘頻率計算得到的滴答數B。再來一個while循環，循環體中不停獲取當前滴答數，大於（A+B）時跳出循環，函數返回。
+| 步骤 | 说明 |
+|------|------|
+| **获取当前滴答数** | 通过读取 `jiffies`（或等价的系统计数器）得到当前系统时钟的计数值 A。 |
+| **计算目标滴答数** | `B = A + duration * HZ`，其中 `duration` 为用户请求的秒数，`HZ` 为每秒时钟中断次数。 |
+| **循环等待** | 进入 `while (current_jiffies < B) {}` 循环，不断检查当前滴答数是否已达到目标。 |
+| **返回** | 当 `current_jiffies >= B` 时，退出循环，函数返回，进程恢复可运行状态。 |
+
+### 4.2 为什么不直接使用忙等（busy‑wait）？
+
+虽然上述描述看起来像是 **忙等**（CPU 占用），但实际的 `sleep` 实现并不会在用户态进行循环。内核在将进程挂入定时器队列后，调度器会立即切换到其他可运行进程，**CPU 并未被占用**。只有在时钟中断触发、定时器到期时，内核才会将该进程重新放回可运行队列。
+
+---
+
+## 5. 常见误区与调试技巧
+
+| 误区 | 正确做法 |
+|------|----------|
+| 误以为 `sleep` 会阻塞 CPU | `sleep` 只阻塞进程本身，CPU 会调度其他进程。 |
+| 使用 `clock()` 测量 `sleep` 的墙钟时间 | 使用 `time()`、`gettimeofday()` 或 `clock_gettime(CLOCK_MONOTONIC, …)`。 |
+| 认为 `sleep` 的精度可以低于时钟中断粒度 | 实际精度受限于 `HZ`，在高精度需求下可使用 `nanosleep` 或 `clock_nanosleep`。 |
+| 在多线程程序中使用 `sleep` 进行同步 | `sleep` 只能提供时间延迟，不能保证顺序，建议使用条件变量、信号量等同步原语。 |
+
+### 5.1 使用 `strace` 查看系统调用

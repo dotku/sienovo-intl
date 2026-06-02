@@ -4,32 +4,109 @@ date: "2014-02-25"
 slug: "19918433"
 tags: ["#C++ virtual"]
 source: "https://blog.csdn.net/yeyuangen/article/details/19918433"
+expanded: true
+---
+## 引言
+
+在 C++ 中，面向对象的特性（尤其是多态）会对对象的布局和访问时间产生额外的开销。本文围绕 **virtual** 关键字展开，系统阐述 C++ 对象模型的实现细节，包括虚函数表（vtable）、对象内部指针（vptr）以及运行时类型识别（RTTI）的工作原理。阅读完本文后，您将清晰了解：
+
+- 为什么 virtual 会导致布局和访问上的额外负担；
+- vtable 与 vptr 的生成、存放位置以及它们在构造/析构/拷贝过程中的自动维护；
+- C++ 支持多态的三大手段及其实现细节。
+
 ---
 
- 
+## 1. C++ 在布局以及存取时间上的额外负担，主要是由 virtual 引起的
 
-  
+### 1.1 virtual function —— 执行期绑定
 
-**1.C++在布局以及存取时间上的额外负担，主要是由virtual引起的。**
+普通成员函数在编译期就确定了调用目标，而 **virtual function**（虚函数）则在运行时通过 **动态分派**（dynamic dispatch）决定实际调用的函数实现。这种执行期绑定（run‑time binding）需要额外的间接层，从而带来以下两方面的成本：
 
-（1）virtual function，即执行期绑定；
+1. **对象布局的额外成员**：每个包含虚函数的类的对象实例会额外携带一个指向虚函数表的指针（vptr），导致对象体积增大。
+2. **调用路径的间接跳转**：每一次虚函数调用都要先通过 vptr 访问 vtable，再取出对应的函数指针，最后跳转执行。这一步的间接跳转会影响 CPU 的分支预测和缓存命中率。
 
-（2）virtual class base，即基 类 。
+### 1.2 virtual class base —— 基类
 
-**2.表格驱动对象模型**
+当一个类被声明为 **virtual base class**（虚基类）时，编译器需要在对象布局中额外记录该基类的偏移信息，以保证在多继承或菱形继承结构中只保留唯一的基类子对象。这同样会导致对象体积的增加以及访问基类成员时的额外计算。
 
-（1）每个class产生出一堆指向virtual function的指针，放在表格之中，这个表格称之为virtual table(Vtbl)；
+---
 
-（2）每个class object被添加了一个指针，指向相关的vitural table。通常这个指针被称为vptr。vptr的设定和重置都由每一个class的constructor、destructor和copy assignment运算符自动生成。每个class所关联的type\_info object（用以支持 runtime type identification，RTTI）也经由virtual table被指出来，通常是放在表格的第一个slot处。
+## 2. 表格驱动对象模型
 
-![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/19918433/01_20140225170738500.png)  
+### 2.1 虚函数表（vtable / Vtbl）
 
-**3.C++以下列方法支持多态**
+> **每个 class 产生出一堆指向 virtual function 的指针，放在表格之中，这个表格称之为 virtual table (Vtbl)。**
 
-（1）经由一组隐含的转化操作，如把一个derived class转化为一个指向其base type class的指针。shape \*ps = new circle()；
+- **生成时机**：编译器在编译阶段为每个含有虚函数的类生成一张 **vtable**，表中按声明顺序排列对应的函数指针。
+- **共享性**：同一类的所有对象实例共享同一张 vtable，节省了重复存储的空间。
+- **RTTI 信息**：vtable 的第一个 slot 通常存放指向该类的 **type_info** 对象的指针，用于实现 **runtime type identification**（RTTI），即 `typeid` 与 `dynamic_cast` 的底层支撑。
 
-（2）virtual function机制；
+### 2.2 对象内部的 vptr
 
-（3）经由dynamic cast和typed id运算符
+> **每个 class object 被添加了一个指针，指向相关的 virtual table。通常这个指针被称为 vptr。vptr 的设定和重置都由每一个 class 的 constructor、destructor 和 copy assignment 运算符自动生成。**
 
-if (circle \*pc = dynamic cast <circle\*> (ps))...
+- **位置**：vptr 通常放在对象内存布局的最前面（但这不是标准强制的，只是常见实现）。
+- **初始化**：在类的 **构造函数** 中，编译器会把 vptr 指向对应的 vtable；在 **析构函数** 中，同样会根据当前对象的动态类型更新 vptr，以确保在基类析构期间仍能正确调用虚函数。
+- **拷贝与赋值**：拷贝构造函数和拷贝赋值运算符会把源对象的 vptr 直接复制到目标对象，从而保持相同的虚函数表指向。
+
+### 2.3 示例图
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/19918433/01_20140225170738500.png)
+
+上图展示了一个典型的对象布局：对象头部的 vptr 指向对应类的 vtable，vtable 中依次排列了虚函数指针、type_info 指针等信息。
+
+---
+
+## 3. C++ 以下列方法支持多态
+
+### 3.1 隐式转换 —— 基类指针/引用
+
+> **经由一组隐含的转化操作，如把一个 derived class 转化为一个指向其 base type class 的指针。**  
+> `shape *ps = new circle();`
+
+- **原理**：派生类对象可以隐式转换为基类指针或引用，这种转换不涉及额外的运行时检查，只是改变指针的静态类型。
+- **多态入口**：通过基类指针（或引用）调用虚函数时，实际执行的是派生类中覆盖的实现，这正是多态的核心。
+
+### 3.2 virtual function 机制
+
+> **virtual function 机制**（已在第 1 节阐述）
+
+- **实现**：每次调用 `ps->draw()`（假设 `draw` 为虚函数）时，编译器生成的代码会先读取 `ps` 对象的 vptr，随后在对应的 vtable 中查找 `draw` 的函数指针并跳转执行。
+
+### 3.3 RTTI —— dynamic_cast 与 typeid
+
+> **经由 dynamic cast 和 typed id 运算符**  
+> `if (circle *pc = dynamic_cast<circle*>(ps)) ...`
+
+- **dynamic_cast**：在运行时检查指针或引用的实际类型是否与目标类型兼容。如果兼容，返回指向目标子对象的指针；否则返回 `nullptr`（指针版本）或抛出 `std::bad_cast`（引用版本）。
+- **typeid**：通过 `typeid(*ps).name()` 可以获取对象的实际类型名称，底层依赖 vtable 中的 type_info 指针。
+
+---
+
+## 4. 进一步的实现细节与常见误区
+
+### 4.1 多继承下的 vptr 布局
+
+在多继承场景中，每个直接基类如果拥有虚函数，派生对象会拥有多个 vptr，每个 vptr 对应一个基类的 vtable。编译器会在对象内部为每个基类子对象分配独立的 vptr 区域，以保证各自的虚函数调用能够正确分派。
+
+### 4.2 虚基类的偏移表（virtual base offset）
+
+对于虚基类，编译器会在 vtable 中额外维护一个 **virtual base offset**（偏移表），用于在运行时定位唯一的虚基类子对象。这是菱形继承结构中避免重复基类子对象的关键机制。
+
+### 4.3 性能调优建议
+
+- **避免不必要的虚函数**：如果一个类的成员函数不会被多态调用，尽量不要将其声明为 `virtual`，以减少对象体积和调用间接层。
+- **慎用多继承**：每增加一个拥有虚函数的基类，就会导致对象额外的 vptr，进而增加内存占用和间接调用次数。
+- **利用 final**：在 C++11 之后，`final` 关键字可以标记类或虚函数为不可进一步覆盖，编译器有机会进行 **devirtualization**（消除虚调用），提升运行时性能。
+
+---
+
+## 5. 小结
+
+本文围绕 C++ 中 **virtual** 关键字的实现机制展开，系统阐述了：
+
+1. **virtual 引起的布局与访问成本**——对象内部额外的 vptr 与运行时的间接调用；
+2. **表格驱动对象模型**——vtable 的生成、vptr 的自动维护以及 RTTI 信息的存放方式；
+3. **多态的三大实现手段**——基类指针的隐式转换、virtual function 机制以及 RTTI（dynamic_cast、typeid）。
+
+理解这些底层细节有助于在实际项目中做出更合理的设计决策，既能充分利用 C++ 强大的多态特性，又能在性能敏感的工业计算场景中控制额外开销。希望本文能为您在 Edge‑AI 与工业计算平台上进行高效 C++ 开发提供有价值的参考。

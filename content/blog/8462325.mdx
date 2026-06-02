@@ -4,16 +4,31 @@ date: "2013-01-03"
 slug: "8462325"
 tags: []
 source: "https://blog.csdn.net/yeyuangen/article/details/8462325"
+expanded: true
+---
+- **初始化**：`p1` 指向原头节点，`p2` 指向第二个节点；把原头节点的 `next` 设为 `NULL`，为后面的翻转做准备。
+- **循环体**：先保存 `p2` 的后继 (`p1 = p2->next`)；再把 `p2->next` 指向当前的 `head`（已经翻转好的部分）；随后把 `head` 更新为 `p2`，相当于把 `p2` 插入到已翻转链表的最前端；最后把 `p2` 移动到 `p1`（即原链表的下一个节点）。
+- **终止条件**：当 `p2` 为 `NULL` 时，说明所有节点都已经处理完毕。
+
+### 2.3 复杂度分析
+
+- **时间复杂度**：`O(n)`，遍历一次链表即可完成翻转。
+- **空间复杂度**：`O(1)`，仅使用了常数个指针变量。
+
+### 2.4 常见错误与调试技巧
+
+| 错误情形 | 可能原因 | 解决办法 |
+|---|---|---|
+| 程序运行后链表出现环 | `p2->next=*head` 前未正确保存 `p2->next` | 确保在修改指针前先保存后继节点 (`p1 = p2->next`) |
+| 逆序后头指针仍指向原头节点 | 未把 `*head` 更新为 `p2` | 检查 `*head = p2;` 语句是否被遗漏 |
+| 空链表（`head == NULL`）导致崩溃 | 未对空指针做保护 | 在函数入口加入 `if (!head || !*head) return;` |
+
 ---
 
- 
+## 3. 方法二：利用栈的先进后出特性
 
-参考经典博文：[链表逆序](http://blog.csdn.net/niuer09/article/details/5961004)
+### 3.1 思路概述
 
-  
+栈（`std::stack`）天然具备 **后进先出**（LIFO）的特性。将链表的所有节点依次压入栈中后，弹出时的顺序正好是原链表的逆序。通过遍历栈并重新链接节点，即可得到翻转后的链表。
 
-给定单链表的头指针Head，可以将链表反向，一种方法利用指针直接赋值，一种借助stack先进后出的特性
-
-```cpp
-#include<iostream>#include<stack>using namespace std; struct node{    int i;    node* next;}; void reverse1(node** head){    node* p1;    node* p2;    p1=*head;    p2=p1->next;    (*head)->next=NULL;    while(p2)    ...{        p1=p2->next;        p2->next=*head;        *head=p2;        p2=p1;    } }void reverse2(node** head){    stack<node*> S;    node* temp=*head;    while(temp)    {        S.push(temp);        temp=temp->next;    }    *head=S.top();    S.pop();    temp=*head;    while(!S.empty())    {        temp->next=S.top();        S.pop();        temp=temp->next;        temp->next=NULL;    }} int main(){     node* head=new node;    head->i=0;    head->next=NULL;    node* temp=head;    int i;    for(i=1;i<10;++i)    {        temp->next=new node;        temp=temp->next;        temp->i=i;        temp->next=NULL;    }     temp=head;    while(temp)    {        cout<<temp->i<<endl;        temp=temp->next;    }     reverse1(&head);    temp=head;    while(temp)    {        cout<<temp->i<<endl;        temp=temp->next;    }     reverse2(&head);    temp=head;    while(temp)    {        cout<<temp->i<<endl;        temp=temp->next;    }      return 0;}
-```
+### 3.2 代码解析

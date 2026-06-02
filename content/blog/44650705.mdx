@@ -4,12 +4,35 @@ date: "2015-03-26"
 slug: "44650705"
 tags: []
 source: "https://blog.csdn.net/yeyuangen/article/details/44650705"
+expanded: true
+---
+- **进入等待**：`pthread_cond_wait()` 会先 **解锁** 传入的互斥锁（即自动 release mutex），随后把当前线程挂起到条件变量的等待队列中。  
+- **被唤醒**：当其他线程调用 `pthread_cond_signal()` 或 `pthread_cond_broadcast()` 时，等待队列中的一个（或全部）线程被标记为可运行。此时 `pthread_cond_wait()` 会 **重新获取** 互斥锁（自动 acquire），确保返回后线程仍然拥有对共享资源的独占访问权。
+
+### 1.2 “虚假唤醒”与循环检查  
+
+POSIX 标准允许 **虚假唤醒**（spurious wakeup），即线程可能在没有收到显式信号的情况下返回。因此，推荐的做法是把条件检查放在 `while` 循环中，而不是 `if`。这样即使出现虚假唤醒，线程也会重新判断条件是否真的满足。
+
 ---
 
- 
+## 2. `pthread_cond_signal()` 的行为细节  
 
-pthread\_cond\_wait() 用于阻塞当前线程，等待别的线程使用pthread\_cond\_signal()或pthread\_cond\_broadcast来唤醒它。 pthread\_cond\_wait() 必须与pthread\_mutex 配套使用。pthread\_cond\_wait()函数一进入wait状态就会自动release mutex。当其他线程通过pthread\_cond\_signal()或pthread\_cond\_broadcast，把该线程唤醒，使pthread\_cond\_wait()通过（返回）时，该线程又自动获得该mutex。
+> **原文**  
+> `pthread_cond_signal` 函数的作用是发送一个信号给另外一个正在处于阻塞等待状态的线程,使其脱离阻塞状态,继续执行.如果没有线程处在阻塞等待状态,`pthread_cond_signal` 也会成功返回。
 
-  pthread\_cond\_signal函数的作用是发送一个信号给另外一个正在处于阻塞等待状态的线程,使其脱离阻塞状态,继续执行.如果没有线程处在阻塞等待状态,pthread\_cond\_signal也会成功返回。
+### 2.1 单个线程的唤醒  
 
-  使用pthread\_cond\_signal一般不会有“惊群现象”产生，他最多只给一个线程发信号。假如有多个线程正在阻塞等待着这个条件变量的话，那么是根据各等待线程优先级的高低确定哪个线程接收到信号开始继续执行。如果各线程优先级相同，则根据等待时间的长短来确定哪个线程获得信号。但无论如何一个pthread\_cond\_signal调用最多发信一次。
+`pthread_cond_signal()` **只唤醒** 一个等待在同一条件变量上的线程。实现上，调度器会从等待队列中挑选 **最高优先级** 的线程进行唤醒；如果多个线程优先级相同，则通常采用 **先入先出（FIFO）** 的顺序，即等待时间最长的线程先得到机会。
+
+### 2.2 “惊群”现象的避免  
+
+> **原文**  
+> 使用 `pthread_cond_signal` 一般不会有“惊群现象”产生，他最多只给一个线程发信号。假如有多个线程正在阻塞等待着这个条件变量的话，那么是根据各等待线程优先级的高低确定哪个线程接收到信号开始继续执行。如果各线程优先级相同，则根据等待时间的长短来确定哪个线程获得信号。但无论如何一个 `pthread_cond_signal` 调用最多发信一次。
+
+所谓 **惊群（thundering herd）** 是指一次唤醒导致大量线程竞争同一资源，产生不必要的上下文切换。因为 `pthread_cond_signal()` 只针对 **单个** 线程发信号，天然避免了惊群问题。若希望一次性唤醒所有等待线程，则使用 `pthread_cond_broadcast()`，此时需要格外注意可能的竞争激烈。
+
+---
+
+## 3. 实际编码示例  
+
+下面给出一个经典的 **生产者-消费者** 场景，演示 `pthread_cond_wait` 与 `pthread_cond_signal` 的配合使用。

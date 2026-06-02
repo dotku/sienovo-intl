@@ -4,14 +4,24 @@ date: "2011-08-29"
 slug: "6728681"
 tags: ["#socket", "#编程", "#server", "#struct", "#stream", "#api"]
 source: "https://blog.csdn.net/yeyuangen/article/details/6728681"
+expanded: true
 ---
+下面将逐行解释代码的关键点，并补充常见的调试技巧。
 
- 
+## 1. 头文件与宏定义
 
-一、 代码 注释
+| 头文件 | 作用 |
+|--------|------|
+| `<sys/types.h>` | 定义基本数据类型，如 `size_t`、`pid_t` 等。 |
+| `<sys/socket.h>` | 声明 socket 相关函数（`socket`、`bind`、`listen`、`accept`、`recv` 等）。 |
+| `<netinet/in.h>` | 包含 IPv4 地址结构 `sockaddr_in` 以及网络字节序转换宏（`htons`、`ntohs`）。 |
+| `<unistd.h>` | 提供 `close`、`read`、`write` 等系统调用。 |
+| `<stdio.h>`、`<stdlib.h>`、`<string.h>`、`<errno.h>` | 标准 I/O、内存操作、错误处理等常用库。 |
 
-1.
+宏定义：
 
-```cpp
-#include <sys/types.h>#include <sys/socket.h>#include <stdio.h>#include <stdlib.h>#include <errno.h>#include <string.h>#include <unistd.h>#include <netinet/in.h>#define SERVPORT 3333#define BACKLOG 10#define MAX_CONNECTED_NO 10#define MAXDATASIZE 5 int main(){        struct sockaddr_in server_sockaddr,client_sockaddr;        int sin_size,recvbytes;        int sockfd,client_fd;        char buf[MAXDATASIZE];        if((sockfd = socket(AF_INET,SOCK_STREAM,0))==-1){                perror("socket");                exit(1);        }        printf("socket success!,sockfd=%d\n",sockfd);        server_sockaddr.sin_family=AF_INET;        server_sockaddr.sin_port=htons(SERVPORT);        server_sockaddr.sin_addr.s_addr=INADDR_ANY;        bzero(&(server_sockaddr.sin_zero),8);        if(bind(sockfd,(struct sockaddr *)&server_sockaddr,sizeof(struct sockaddr))==-1){                perror("bind");                exit(1);        }        printf("bind success!\n");        if(listen(sockfd,BACKLOG)==-1){                perror("listen");                exit(1);        }        printf("listening....\n");        if((client_fd=accept(sockfd,(struct sockaddr *)&client_sockaddr,&sin_size))==-1){                perror("accept");                exit(1);        }        if((recvbytes=recv(client_fd,buf,MAXDATASIZE,0))==-1){                perror("recv");                exit(1);        }        printf("received a connection :%s\n",buf);        close(sockfd);}
-```
+- **`SERVPORT 3333`**：服务器监听的端口号。可以根据实际需求修改。
+- **`BACKLOG 10`**：`listen` 时的等待队列长度，决定未完成握手的最大连接数。
+- **`MAXDATASIZE 5`**：一次 `recv` 能接收的最大字节数，这里仅作演示，实际应用应根据业务需求设定更大的缓冲区。
+
+## 2. 创建套接字 `socket`

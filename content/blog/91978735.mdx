@@ -4,38 +4,29 @@ date: "2019-06-14"
 slug: "91978735"
 tags: ["#AM5728", "#内核", "#编译", "#linux"]
 source: "https://blog.csdn.net/yeyuangen/article/details/91978735"
+expanded: true
 ---
+- `ARCH=arm` 指定目标架构为 ARM，符合 AM5728 的 CPU 类型。  
+- `CROSS_COMPILE=arm-linux-gnueabihf-` 告诉 `make` 使用前缀为 `arm-linux-gnueabihf-` 的交叉编译工具链（如 `arm-linux-gnueabihf-gcc`）。  
+- `zImage` 为压缩后的内核镜像，适用于启动加载器（U‑Boot）加载。  
+- `-j 32` 为并行编译选项，利用 32 个线程加速编译。实际线程数可根据主机 CPU 核数自行调整，过大可能导致资源竞争。
 
- 
+编译完成后，内核镜像位于 `arch/arm/boot/zImage`。此文件即为可直接用于 AM5728 开发板的内核映像。
 
-一、编译 Linux 内核在 Linux 内核源码安装目录下，执行如下命令编译 Linux 内核：
+### 2.1 替换 SD 卡中的内核镜像  
 
-```hljs
-Host# make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- zImage -j 32
-```
+如果系统采用 SD 卡启动（常见于开发板的快速迭代），有两种方式更新内核：
 
-“-j 32”是一个编译选项，告诉 操作系统 用 32 个线程去编译，加快编译速度。  
-编译完成后， 会在 Linux 内核源码安装目录“arch/arm/boot”路径下生成内核镜像文件zImage。 可将编译出来的内核 镜像文件 ，替换开发板文件系统中的内核镜像文件。  
-使用 SD 系统启动卡启动系统时， 如需替换内核镜像，有如下方法：
+1. **直接替换 `/boot` 目录下的文件**  
+   - 将新生成的 `zImage` 拷贝到 SD 卡根文件系统的 `boot` 目录，保持文件名不变（通常为 `zImage` 或 `uImage`），覆盖旧文件。  
+   - 例：`cp arch/arm/boot/zImage /media/sdcard/boot/`  
 
-*   使用新的内核镜像文件， 保持文件名与原文件一致，替换 SD 系统启动卡 rootfs 分区“/boot”目录下的对应文件。
-*   使用新的内核镜像文件， 保持文件名与原文件一致，替换 SD 系统启动卡制作文件目录下的对应文件，然后重新制作 SD 系统启动卡。
+2. **重新制作 SD 启动卡**  
+   - 将新镜像放入制作 SD 卡时使用的工作目录（如 `sdcard_rootfs/boot/`），随后使用 `dd` 或专用工具重新写入 SD 卡。  
+   - 这样可以确保启动分区表、文件系统一致性，适合大幅度修改文件结构的场景。
 
-二、编译模块 modules  
-在 Linux 内核源码安装目录下， 执行如下指令编译内核配置中选中的模块：
+> **注意**：若使用 U‑Boot 启动脚本指定了特定的内核文件名，请确保新文件名与脚本保持一致，否则启动会失败。
 
-```hljs
-Host# make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- modules -j 32
-```
+## 3. 编译内核模块  
 
-将 SD 系统启动卡插入 PC 机，并将其成功挂载到 Ubuntu。执行如下命令， 将编译的模块安装到系统卡 rootfs 分区：
-
-```hljs
-Host# make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- modules_install INSTALL_MOD_PATH=/media/rootfs/
-```
-
-  
-“/media/rootfs/”为 SD 卡文件系统在 Ubuntu 的挂载路径。
-
-开发板文件系统下执行如下指令，查看安装的驱动模块：  
-Host# lsmod
+有时我们只需要编译内核配置中选中的可加载模块（`*.ko`），而不是整个内核映像。执行：

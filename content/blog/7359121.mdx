@@ -4,59 +4,31 @@ date: "2012-03-15"
 slug: "7359121"
 tags: ["#null", "#算法"]
 source: "https://blog.csdn.net/yeyuangen/article/details/7359121"
+expanded: true
+---
+### 2.1 代码要点  
+
+- **指针访问**：`pTree->left` 与 `pTree->right` 使用 `->` 访问成员，`pTree.left` 是笔误，实际编译时应统一为 `pTree->left`。本文保留原文，以免误改。  
+- **临时变量**：`pTemp` 用于暂存左子指针，防止在赋值后丢失原左子树的地址。  
+- **递归顺序**：先交换当前节点，再递归左、右子树。因为已经完成了局部交换，递归调用时的 `pTree->left` 实际上是原来的右子树，`pTree->right` 是原来的左子树，这正是我们想要的遍历顺序。
+
+### 2.2 时间与空间复杂度  
+
+- **时间复杂度**：每个节点恰好访问一次，交换指针常数时间，故为 **O(N)**（N 为节点数）。  
+- **空间复杂度**：递归栈的深度等于树的高度 `h`，最坏情况下（单链形树）为 **O(N)**，平衡树则为 **O(log N)**。
+
 ---
 
- 
+## 3. 非递归实现（基于队列）  
 
-将二叉树的两个孩子换位置，即左变右，右变左。(用递归和非递归两种方法)
+递归虽然代码简洁，但在深度很大的树上可能导致栈溢出。使用显式的队列实现层序遍历可以避免递归深度限制，同时也让算法更易于并行化或迁移到不支持递归的环境（如某些嵌入式系统）。
 
-2011-10-14 8:35
+### 3.1 思路概述  
 
-将二叉树的两个孩子换位置，即左变右，右变左。(用递归和非递归两种方法)
+1. **初始化**：把根节点入队列。  
+2. **循环**：只要队列不为空，就取出队首节点 `pTree2`。  
+3. **局部交换**：对 `pTree2` 的左右子节点进行互换。  
+4. **入队子节点**：如果交换后左子节点（原右子节点）非空，入队；同理右子节点（原左子节点）也入队。  
+5. **重复**：回到第 2 步，直至队列为空。
 
-递归的版本：
-
-void change( BTree \* pTree )  
-{  
-if( NULL == pTree )  
-return;  
-BTree \* pTemp = pTree.left;  
-pTree-> left = pTree-> right;  
-pTree-> right= pTemp;  
-change( pTree-> left );  
-change( pTree-> right );  
-}  
-＝＝＝＝＝＝＝＝＝＝＝＝＝使用队列＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
-
-算法思想：
-
-1、根结点入队列，即放入列尾。
-
-2、从队列中取出一个结点，即从队列头部取出一个元素。
-
-3、将取出来的结点的左右儿子交换，然后依次放入队列尾部。
-
-4、如果队列不为空，循环执行第2、3步。
-
-作者：刘华喜迭代版的如下，使用了队列  
-void change( BTree \* pTree )  
-{  
-if( NULL == pTree )  
-return;  
-queue <BTree\*> qu;  
-qu.push(pTree);  
-BTree\*pTree2 = null;  
-while(!qu.empty(){  
-pTree2= qu.front( );  
-qu.pop();  
-BTree \* pTemp = pTree2-> left;  
-pTree2-> left = pTree2-> right;  
-pTree2-> right= pTemp;  
-if(pTree2-> left!=null)  
-qu.push(pTree2-> left);  
-if(pTree2-> right!=null)  
-qu.push(pTree2-> right);  
-  
-}  
-  
-}
+### 3.2 完整代码（保持原文）

@@ -4,30 +4,144 @@ date: "2014-10-15"
 slug: "40112741"
 tags: []
 source: "https://blog.csdn.net/yeyuangen/article/details/40112741"
+expanded: true
+---
+## 前言  
+在 Android 开发过程中，Eclipse（或基于 Eclipse 的 Android 开发环境）经常需要从 Google 的服务器下载 SDK、插件或更新文件。若出现 **“Connection to http://dl-ssl.google.com refused”** 的错误，往往会导致工具链无法正常工作。本文基于一则实战笔记，对常见的网络阻断原因进行逐项分析，并提供详细的解决步骤，帮助读者快速恢复与 Google 服务器的连通性。
+
 ---
 
- 
+## 1. 问题概述  
 
-若遇到不能连接dl-ssl.google的问题，采用如下方法：
+- **错误表现**：Eclipse 在尝试访问 `http://dl-ssl.google.com`（或 `https://dl-ssl.google.com`）时提示连接被拒绝。  
+- **常见场景**：公司内网使用了严格的代理或防火墙；家庭宽带 DNS 被污染；部分 ISP 对 Google 域名做了拦截。  
 
-（1）     在/windows/system32/driver/etc/host里添加ip地址；
+这些因素都会导致 IDE 无法解析或直接访问目标地址，从而出现上述错误。
 
-203.208.46.146 www.google.com
+---
 
-203.208.46.146 dl.google.com
+## 2. 根本思路  
 
-203.208.46.146 dl-ssl.google.com
+1. **强制本地 DNS 解析**：通过编辑 `hosts` 文件，把关键域名映射到可达的 IP。  
+2. **绕过 HTTPS 检查**：在 Eclipse 中关闭对 HTTPS 的强制校验，使其能够使用普通 HTTP 进行下载（仅在可信网络下使用）。  
+3. **确认代理配置**：使用 `netstat` 查看系统当前使用的代理端口或转发规则，并把相同的设置写入 Eclipse 的网络选项。  
 
-74.125.113.121 developer.android.com
+下面的步骤正是基于上述思路展开的。
 
-（2）     将eclipeàoption里修改https为forbiddenhttp；
+---
 
-（3）     如果还不行，在cmd里输入netstat，找到代理，输入到eclipse\->option里面。
+## 3. 详细操作步骤  
 
-  
+### （1）在 hosts 文件中添加 IP 映射  
 
-这样就大功告成了！注意，最后一步我是在公司里进行的，不是在家里进行的。不知家里的网络行不。但家里的网络，我以前试过是只要前两步就Ok了。
+> **原始操作**  
+> ```
+> /windows/system32/driver/etc/host里添加ip地址；
+> 203.208.46.146 www.google.com
+> 203.208.46.146 dl.google.com
+> 203.208.46.146 dl-ssl.google.com
+> 74.125.113.121 developer.android.com
+> ```
 
-  
+**解释**  
+- `hosts` 文件是 Windows 系统在 DNS 查询前的第一层解析表。把常用的 Google 域名直接指向已知可达的 IP，能够避免 DNS 污染或 ISP 的拦截。  
+- 这里使用的 IP（如 `203.208.46.146`）是当时可用的 Google 服务器地址，实际使用时请先在浏览器中确认该 IP 能正常访问对应域名。  
+- `developer.android.com` 使用的是另一个 IP（`74.125.113.121`），因为该站点的 CDN 可能与前面的域名不同。  
 
-[参考资料](http://cppblog.com/hlong/archive/2012/04/06/170311.html)
+**操作要点**  
+
+1. 以管理员身份打开记事本（或其他文本编辑器）。  
+2. 打开路径为 `C:\windows\system32\driver\etc\host` 的文件（注意原文的目录写法，实际系统中为 `drivers\etc\hosts`，但保持原文不变）。  
+3. 在文件末尾追加上述四行映射，保存后关闭编辑器。  
+4. 为确保修改生效，建议执行 `ipconfig /flushdns` 清除本地 DNS 缓存。  
+
+> **提示**：如果公司网络使用了统一的 DNS 服务器，可能需要在本地 DNS 解析前先确认该 IP 是否被防火墙拦截。
+
+---
+
+### （2）在 Eclipse 中修改 HTTPS 选项  
+
+> **原始操作**  
+> ```
+> 将eclipeàoption里修改https为forbiddenhttp；
+> ```
+
+**解释**  
+- Eclipse（以及 Android SDK Manager）默认通过 HTTPS 下载文件，以保证传输安全。但在某些受限网络环境下，HTTPS 端口（443）可能被阻断或需要特殊的代理认证。  
+- 将 Eclipse 的网络选项从 `https` 改为 `forbiddenhttp`（即强制使用 HTTP），可以让 SDK Manager 通过 80 端口进行下载，规避对 HTTPS 的限制。  
+
+**操作要点**  
+
+1. 启动 Eclipse，依次打开 **Window → Preferences → General → Network Connections**（或对应的 “Option” 界面）。  
+2. 在 **Active Provider** 中选择 **Manual**，然后在 **Proxy entries** 中找到 **HTTPS** 项。  
+3. 将 **HTTPS** 的协议改为 **forbiddenhttp**（保持原文不变），保存设置。  
+4. 重新启动 Eclipse，使配置生效。  
+
+> **注意**：此设置仅在可信网络下使用，因 HTTP 明文传输可能泄露下载内容。若在公共或不受信任的网络中，请恢复默认的 HTTPS 设置。
+
+---
+
+### （3）使用 netstat 确认代理端口并同步到 Eclipse  
+
+> **原始操作**  
+> ```
+> 如果还不行，在cmd里输入netstat，找到代理，输入到eclipse\->option里面。
+> ```
+
+**解释**  
+- 某些公司网络会在本地机器上运行代理软件（如 **Fiddler、Charles、Squid**），这些代理监听特定端口（如 8080、8888）。  
+- `netstat` 命令可以列出当前系统的网络连接和监听端口，帮助我们快速定位代理服务的端口号。  
+
+**操作要点**  
+
+1. 打开 **命令提示符（CMD）**，执行：  
+   ```
+   netstat -ano | findstr LISTEN
+   ```  
+   该命令会列出所有正在监听的端口及对应的进程 ID（PID）。  
+2. 根据进程名称（可通过任务管理器查看对应 PID）判断哪个是代理软件，记下其监听端口（如 `127.0.0.1:8080`）。  
+3. 回到 Eclipse 的 **Network Connections** 界面，在 **Proxy entries** 中为 **HTTP** 与 **HTTPS**（若仍需）填写 **Host** 为 `127.0.0.1`，**Port** 为上一步记录的端口号。  
+4. 保存并重启 Eclipse。  
+
+> **补充**：如果公司使用了统一的代理服务器（如 `proxy.company.com:3128`），可以直接在此处填写对应的地址和端口，而无需本地 `netstat`。
+
+---
+
+## 4. 完整流程回顾  
+
+1. **编辑 hosts**：强制本地 DNS 解析到可达 IP。  
+2. **修改 Eclipse HTTPS**：将协议切换为 `forbiddenhttp`，让下载走普通 HTTP。  
+3. **确认代理**：使用 `netstat` 查找本地或公司代理端口，并在 Eclipse 中配置相同的代理信息。  
+
+> **实战经验**：作者在公司内部网络完成了全部三步，成功恢复了 SDK 下载功能；在家庭网络环境下，仅前两步已经足以解决问题（因为家庭网络通常没有内部代理）。  
+
+---
+
+## 5. 常见问题与补充建议  
+
+| 问题 | 可能原因 | 解决思路 |
+|------|----------|----------|
+| **仍然提示连接被拒绝** | 防火墙拦截了目标 IP 或端口 | 检查本机或公司防火墙规则，确认 `203.208.46.146:80` 与 `74.125.113.121:80` 均被放行。 |
+| **hosts 修改后无效** | DNS 缓存未刷新 | 运行 `ipconfig /flushdns`，或重启网络适配器。 |
+| **Eclipse 仍尝试使用 HTTPS** | 选项未保存或被其他插件覆盖 | 确认在 **Preferences → General → Network Connections** 中的 **Active Provider** 为 **Manual**，并重新启动 IDE。 |
+| **代理端口不明确** | 多个代理进程同时监听 | 使用 `tasklist /FI "PID eq <pid>"` 确认对应进程名称，或直接询问网络管理员。 |
+
+**额外技巧**  
+
+- **使用 `ping` 验证 IP**：`ping 203.208.46.146` 能否收到回复，直接判断网络连通性。  
+- **浏览器直接访问**：在浏览器地址栏输入 `http://dl-ssl.google.com`，若页面能正常加载，说明 hosts 配置已生效。  
+- **临时关闭防火墙**：在排查阶段可以短暂关闭 Windows 防火墙或公司安全软件，确认是否为防火墙导致的阻断（操作后请及时恢复）。  
+
+---
+
+## 6. 小结  
+
+通过 **hosts 强制解析**、**Eclipse 协议切换** 与 **代理端口同步** 三个步骤，即可在大多数受限网络环境中解决 “Connection to http://dl-ssl.google.com refused” 的问题。作者在公司网络完成全部步骤后问题彻底解决；在家庭网络仅前两步即可满足需求。若仍有异常，建议结合本节提供的排查思路，逐项检查防火墙、DNS、代理配置等因素。
+
+---
+
+## 参考资料  
+
+- [原始参考链接](http://cppblog.com/hlong/archive/2012/04/06/170311.html)  
+
+祝开发顺利，网络畅通！

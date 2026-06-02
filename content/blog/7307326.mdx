@@ -4,28 +4,31 @@ date: "2012-02-29"
 slug: "7307326"
 tags: ["#linux", "#linux内核", "#cache", "#平台"]
 source: "https://blog.csdn.net/yeyuangen/article/details/7307326"
+expanded: true
 ---
+- `__attribute__((__section__(...)))` 是 GCC 的扩展，用于把变量或函数强制放入指定的 ELF 段（section）。
+- 这里的段名为 **.data.read_mostly**，它在链接脚本中会被映射到一个实际的物理内存区域。
 
- 
+> **原文摘录**：`\_\_read_mostly原语将定义为存放在.data.read_mostly段中`
 
-\_\_read\_mostly原语将定义为存放在.data.read\_mostly段中
+### 2. 为什么要使用 \_\_read_mostly
 
-  include/asm/cache.h
+在多数处理器上，CPU Cache 对于提升内存访问速度至关重要。若某块数据在运行期间几乎只读不写，提前把它放入 Cache 可以显著降低访问延迟。Linux 内核在加载时会把 **.data.read_mostly** 段的内容预先写入 Cache，达到“热数据”预热的效果。
 
-#define \_\_read\_mostly \_\_attribute\_\_((\_\_section\_\_(".data.read\_mostly")))  
+> **原文摘录**：`我们可以将经常需要被读取的数据定义为 __read_mostly 类型, 这样 Linux 内核被加载时, 该数据将自动被存放到 Cache 中, 以提高整个系统的执行效率.`
 
-    由此可见,我们可以将经常需要被读取的数据定义为 \_\_read\_mostly类型, 这样Linux内核被加载时,该数据将自动被存放到Cache中,以提高整个系统的执行效率.
+### 3. 平台限制与启动失败的风险
 
-   另一方面,如果所在的平台没有Cache,或者虽然有Cache,但并不提供存放数据的接口,(也就是并不允许人工放置数据在Cache中), 这样定义为 \_\_read\_mostly类型的数据将不能存放在Linux内核中,甚至也不能够被加载到系统内存去执行,将造成Linux 内核启动失败.
+并非所有硬件平台都具备可编程的 Cache，或者提供将数据显式放入 Cache 的机制。如果在这些平台上仍然使用 **\_\_read_mostly**，链接器会尝试创建 **.data.read_mostly** 段，但在运行时找不到对应的物理位置，导致：
 
-   解决的方法有两种:
+- 数据无法被映射到实际内存；
+- 内核启动阶段出现段错误或缺页异常；
+- 最终表现为 **Linux 内核启动失败**。
 
-   修改include/asm/cache.h中的\_\_ready\_mostly定义为:
+> **原文摘录**：`如果所在的平台没有 Cache,或者虽然有 Cache,但并不提供存放数据的接口,(也就是并不允许人工放置数据在 Cache 中), 这样定义为 __read_mostly 类型的数据将不能存放在 Linux 内核中,甚至也不能够被加载到系统内存去执行,将造成 Linux 内核启动失败.`
 
-   #define \_\_read\_mostly
+### 4. 两种常见的解决办法
 
-   或者修改arch/xxx/kernel/vmlinux.S
+#### 4.1 直接屏蔽宏
 
-   修改.data.read\_mostly段的位置到实际内存空间中去,例如放置在 .data段之后等等
-
-  原文地址:   [http://blog.chinaunix.net/u2/85263/showart\_1743693.html](http://blog.chinaunix.net/u2/85263/showart_1743693.html)
+把 **\_\_read_mostly** 定义为空宏，使其对编译器不产生任何段属性影响：

@@ -4,34 +4,24 @@ date: "2019-06-17"
 slug: "92718549"
 tags: ["#AM5728", "#出厂测试", "#emmc"]
 source: "https://blog.csdn.net/yeyuangen/article/details/92718549"
+expanded: true
+---
+`sb_loader` 会自动识别目标芯片（AM5728）并将 **u-boot(2G).imx** 镜像写入 **eMMC** 的 **boot 分区**。烧写完成后，系统会提示 **“Programming successful”**，此时可以重新焊回阻值电阻或保持移除状态进行后续调试。
+
 ---
 
- 
+## 4. 内部 efuse 配置  
 
-1.emmc格式化
+> 5. 内部efuse------详细操作方法见“IMX6内部efuse熔断”篇章。
 
-参考：emmc挂载，分区及格式化 [https://blog.csdn.net/u011975319/article/details/51803126](https://blog.csdn.net/u011975319/article/details/51803126)
+AM5728 采用 **内部 efuse**（一次性熔断的电子保险丝）来存储 **安全启动**、**加密密钥**、**CPU 频率限制** 等关键信息。虽然本文不展开具体步骤，但建议参考 **IMX6 efuse** 章节的操作流程，主要包括：
 
-  
-1.用万用表检查板上有无电源短路现象。
+- 使用 **NXP 官方工具**（`efuseprog`）或 **Sienovo 定制工具**读取当前 efuse 状态。  
+- 根据产品需求，选择 **熔断位**（如 **BOOT_CFG**、**JTAG_DISABLE**）并执行 **写入**。  
+- 完成后务必 **再次读取** 验证，确保熔断位已生效。
 
-2.检查接入端子电源电压以及信号顺序是否正确。
+---
 
-3.通电后，用万用表或者 示波器 测试板上各处电源测试点电压是否正确。------Q1没有导通，所以D1（LED）没有亮。需要调整R9阻值。
+## 5. SPI Flash 烧写流程  
 
-4.去掉R330 R333 R328 R334,在 windows 系统sb\_loader目录下（cmd）终端，输入命令sb\_loader -f u-boot(2G).imx。用sb\_loader工具将u-boot(2G).imx文件烧入板中 。
-
-5.内部efuse------详细操作方法见“IMX6内部efuse熔断”篇章。
-
-6. SPI Flash 烧写文件
-
-\> fatload mmc 0 10800000 u-boot.imx  
-or ext4load mmc 2 10800000 u-boot.imx  
-\> sf probe
-
-\> sf erase 0 0xc0000
-
-\> sf write 10800000 0x400 $filesize
-
-\> reset  
- 7.插入SDCARD启动卡重新上电。
+以下命令在 **U‑Boot** 环境下执行，适用于 **SPI Flash**（如 64 MB MX25L128）：

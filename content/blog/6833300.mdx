@@ -4,40 +4,36 @@ date: "2011-09-29"
 slug: "6833300"
 tags: ["#linux", "#windows", "#图形", "#虚拟机", "#终端", "华为开发者空间", "加入社区"]
 source: "https://blog.csdn.net/yeyuangen/article/details/6833300"
+expanded: true
+---
+如果你不确定系统使用的是哪种 init，可以查看 `/proc/1/comm`，若显示 `systemd` 则说明是 systemd。
+
+#### 1.3 虚拟机键盘切换技巧
+
+在 Windows 虚拟机（如 VirtualBox、VMware）中，`Ctrl+Alt+F1~F7` 常被宿主系统拦截，导致无法切换虚拟终端。社区中流传的组合键 `Ctrl+Alt+Space+F1`（进入命令行）和 `Ctrl+Alt+Space+F7`（返回图形）在多数情况下有效，原因是 `Space` 键在虚拟机软件中被用作“释放键”，可以让宿主系统把后续的功能键交给客机。
+
+> **提示**：如果上述组合仍然失效，尝试在虚拟机设置里打开“键盘捕获”或使用“全屏模式”，这样 `Ctrl+Alt+F1` 系列键就能直接传递给 Linux。
+
 ---
 
- 
+### 2. 从命令行模式切换回图形界面
 
-**问1**：linux在虚拟机下咋么从图形模式切换到 命令 行模式的啊
+**原始回答**  
+> **答**：`startx`、`xdm`、`gdm`、`kdm` 都行，如果进不了 X WINDOWS 可能是 X WINDOWS 设置不正确，这时可耻下场用 `Xconfigurator` 命令对其进行重新设置!!  
+> - `logout`  注销  
+> - `reboot`  重启  
+> - `startx`  启动图形界面  
+> - `gdm`  进入 GNOME 图形界面  
+> - `kdm` 进入 KDE 登陆界面  
 
-**答**：运行 init 3
+#### 2.1 常见启动方式的区别
 
-**_NOTE_**：在windows虚拟机模式下，Ctrl+Alt+F1~F7,是失效的。
+| 命令 | 说明 | 适用场景 |
+|------|------|----------|
+| `startx` | 手动启动 X Server 并运行默认的 `.xinitrc` 脚本 | 轻量桌面、没有完整的显示管理器 |
+| `xdm` | X Display Manager，最早的显示管理器 | 老旧系统或需要最小化依赖的环境 |
+| `gdm` | GNOME Display Manager，提供 GNOME 桌面登录 | GNOME 桌面环境 |
+| `kdm` | KDE Display Manager，提供 KDE 桌面登录 | KDE 桌面环境（已被 `sddm` 取代） |
+| `sddm` | Simple Desktop Display Manager，现代 KDE/Plasma 默认 | KDE Plasma 5+ |
 
-**但如下却屡试不爽（特别感谢乐乐）：**
-
-**终端模式-->命令行模式：Ctrl+Alt+Space+F1**
-
-**命令行模式-->终端模式：Ctrl+Alt+Space+F7**  
-
-**问2**：Linux下如何从命令行模式切换到图形界面模式？
-
-**答**：startx xdm gdm kdm都行,如果进不了X WINDOWS 可能是X WINDOWS设置不正确,这时可耻下场用Xconfigurator 命令对其进行重新设置!!
-
-logout  注销
-
-reboot  重启
-
-startx 启动图形界面
-
-gdm  进入gnome图形界面
-
-kdm 进入 kde 登陆界面
-
-**问3**： 程序 怎么看起来像死机一样
-
-**答**：su root 刷新
-
-**问4**：自己编写的程序进入死循环怎么办？如何杀死进程？
-
-**答**：ctrl+c
+如果系统已经配置了 `systemd`，最直接的方式是：
