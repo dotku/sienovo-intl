@@ -4,6 +4,7 @@ import { gatherContext, gatherRAGContext } from "@/lib/chat-context";
 import { trackApiUsage } from "@/lib/api-usage";
 import { prisma } from "@/lib/prisma";
 import { executeTool, TOOL_DESCRIPTIONS } from "@/lib/chat-tools";
+import { bedrockChat, bedrockConfigured, BEDROCK_CHAT_MODEL_ID } from "@/lib/bedrock";
 
 const GEMINI_MODEL = "gemini-2.5-flash";
 const CEREBRAS_MODEL = "qwen-3-235b-a22b-instruct-2507";
@@ -17,7 +18,8 @@ export async function POST(req: NextRequest) {
   const geminiKey = process.env.GEMINI_API_KEY;
   const cerebrasKey = process.env.CEREBRAS_API_KEY;
   const openrouterKey = process.env.OPENROUTER_API_KEY;
-  if (!geminiKey && !cerebrasKey && !openrouterKey) {
+  const bedrockReady = bedrockConfigured();
+  if (!bedrockReady && !geminiKey && !cerebrasKey && !openrouterKey) {
     return NextResponse.json({ error: "No AI API key configured" }, { status: 500 });
   }
 
@@ -93,7 +95,14 @@ Guidelines:
 - Use web search when asked about current market trends, competitor info, or real-time company data
 - When searching the web, cite sources when relevant`;
 
-  // Try Gemini first, fallback to Cerebras on 429
+  // Try Bedrock Claude first (primary), then fall back to the cheaper/free
+  // providers if AWS is unavailable or errors out.
+  if (bedrockReady) {
+    const bedrockStream = await tryBedrock(systemPrompt, messages, convId);
+    if (bedrockStream) return bedrockStream;
+  }
+
+  // Fallback to Gemini
   if (geminiKey) {
     const geminiStream = await tryGemini(geminiKey, systemPrompt, messages, convId);
     if (geminiStream) return geminiStream;
@@ -116,7 +125,7 @@ Guidelines:
   const errorStream = new ReadableStream({
     start(controller) {
       controller.enqueue(encoder.encode(`data: ${JSON.stringify({ model: "none", conversationId: convId })}\n\n`));
-      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: "⚠️ AI 服务暂时繁忙，所有模型（Gemini / Cerebras / OpenRouter）均不可用。请稍等几秒后重试。" })}\n\n`));
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: "⚠️ AI 服务暂时繁忙，所有模型（Bedrock / Gemini / Cerebras / OpenRouter）均不可用。请稍等几秒后重试。" })}\n\n`));
       controller.enqueue(encoder.encode("data: [DONE]\n\n"));
       controller.close();
     },
@@ -333,6 +342,85 @@ async function openrouterFollowUp(
   } catch {
     return null;
   }
+}
+
+// ── AWS Bedrock (Claude via InvokeModel; Anthropic Messages format) ──────────
+// Primary provider. Like Cerebras, we collect the full response first, check
+// for tool calls, execute them, run a follow-up, then stream the final text.
+
+async function tryBedrock(
+  systemPrompt: string,
+  messages: { role: "user" | "assistant"; content: string }[],
+  conversationId: string,
+): Promise<Response | null> {
+  let fullText: string;
+  try {
+    const first = await bedrockChat(messages, { system: systemPrompt });
+    fullText = first.text;
+  } catch {
+    trackApiUsage("bedrock", "chat", false);
+    return null; // fallback to next provider
+  }
+
+  trackApiUsage("bedrock", "chat");
+
+  // Check for tool calls and execute them
+  const statusMessages: string[] = [];
+  const toolExec = await executeToolCalls(fullText, (status) => {
+    statusMessages.push(status);
+  });
+  if (toolExec) {
+    try {
+      // Follow-up call with tool results. The assistant turn must be
+      // non-empty to keep the Messages API's alternation valid.
+      const follow = await bedrockChat(
+        [
+          ...messages,
+          { role: "assistant", content: toolExec.cleanText || "Running the requested tools." },
+          {
+            role: "user",
+            content: `工具执行完毕，结果如下:\n\n${toolExec.toolResults}\n\n请将以上结果整理为清晰的中文总结。用 ✅ 标记成功，❌ 标记失败，用表格展示数据（必须包含所有邮箱地址）。不要使用 <tool> 标签。`,
+          },
+        ],
+        { system: systemPrompt, maxTokens: 16384 },
+      );
+      const followText = follow.text || toolExec.toolResults;
+      fullText = (toolExec.cleanText ? toolExec.cleanText + "\n\n" : "") + followText;
+    } catch {
+      fullText = (toolExec.cleanText ? toolExec.cleanText + "\n\n" : "") + toolExec.toolResults;
+    }
+  }
+
+  // Stream the final text to the client
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ model: BEDROCK_CHAT_MODEL_ID, conversationId })}\n\n`));
+      if (statusMessages.length > 0) {
+        const statusText = statusMessages.map((s) => `> ${s}`).join("\n") + "\n\n";
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: statusText })}\n\n`));
+      }
+      // Stream in chunks for a typing effect
+      const words = fullText.split(/(?<=\s)/);
+      let buffer = "";
+      for (const word of words) {
+        buffer += word;
+        if (buffer.length >= 20) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: buffer })}\n\n`));
+          buffer = "";
+        }
+      }
+      if (buffer) {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: buffer })}\n\n`));
+      }
+      const savedText = (statusMessages.length > 0 ? statusMessages.map((s) => `> ${s}`).join("\n") + "\n\n" : "") + fullText;
+      saveAssistantMessage(conversationId, savedText, BEDROCK_CHAT_MODEL_ID);
+      controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+      controller.close();
+    },
+  });
+
+  return new Response(stream, { headers: SSE_HEADERS });
 }
 
 // ── Gemini ───────────────────────────────────────────────────────────────────
