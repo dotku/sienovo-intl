@@ -29,7 +29,9 @@ export async function GET(req: NextRequest) {
   }
 
   // Folder: explicit env override, else the folder saved via the admin "watch"
-  // UI (drive_watch_folder_id setting).
+  // UI (drive_watch_folder_id setting). May be absent — we still index any
+  // already-synced pending files below, so the cron is useful before a folder
+  // is configured.
   let folderId = process.env.DRIVE_KNOWLEDGE_FOLDER_ID || null;
   if (!folderId) {
     const saved = await prisma.setting.findUnique({
@@ -37,39 +39,33 @@ export async function GET(req: NextRequest) {
     });
     folderId = saved?.value || null;
   }
-  if (!folderId) {
-    return NextResponse.json(
-      { error: "No knowledge folder configured (set DRIVE_KNOWLEDGE_FOLDER_ID or watch a folder)" },
-      { status: 400 }
-    );
-  }
 
-  // Cron is unattended — service account only, never the interactive OAuth path.
-  const token = await getDriveServiceToken();
-  if (!token) {
-    return NextResponse.json(
-      { error: "Service account not configured (GA_SERVICE_ACCOUNT_KEY)" },
-      { status: 500 }
-    );
-  }
-
-  // 1. Sync new files from Drive → R2 + KnowledgeFile.
-  let files;
-  try {
-    files = await listFolderFilesRecursive(token, folderId);
-  } catch (err) {
-    return NextResponse.json(
-      { error: `Drive list failed: ${(err as Error).message}` },
-      { status: 502 }
-    );
-  }
-
-  let synced = 0, skipped = 0, failed = 0;
-  for (const df of files) {
-    const status = await syncDriveFile(token, df);
-    if (status === "synced") synced++;
-    else if (status === "exists") skipped++;
-    else failed++;
+  // 1. Sync new files from Drive → R2 + KnowledgeFile (when a folder is set).
+  let seen = 0, synced = 0, skipped = 0, failed = 0;
+  if (folderId) {
+    // Cron is unattended — service account only, never the interactive OAuth path.
+    const token = await getDriveServiceToken();
+    if (!token) {
+      return NextResponse.json(
+        { error: "Service account not configured (GA_SERVICE_ACCOUNT_KEY)" },
+        { status: 500 }
+      );
+    }
+    try {
+      const files = await listFolderFilesRecursive(token, folderId);
+      seen = files.length;
+      for (const df of files) {
+        const status = await syncDriveFile(token, df);
+        if (status === "synced") synced++;
+        else if (status === "exists") skipped++;
+        else failed++;
+      }
+    } catch (err) {
+      return NextResponse.json(
+        { error: `Drive list failed: ${(err as Error).message}` },
+        { status: 502 }
+      );
+    }
   }
 
   // 2. Embed still-pending files into the vector store (bounded batch).
@@ -94,7 +90,7 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     folderId,
-    seen: files.length,
+    seen,
     synced,
     skipped,
     failed,
