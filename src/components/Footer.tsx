@@ -9,6 +9,7 @@ export default function Footer() {
   const nav = dict.nav;
   const blogHref = locale === "zh" ? "/zh/blog" : "/blog";
   const pressHref = locale === "zh" ? "/zh/press" : "/press";
+  const contactHref = locale === "zh" ? "/zh/contact" : "/contact";
 
   return (
     <footer className="bg-gray-900 text-gray-400 border-t border-gray-800">
@@ -27,6 +28,7 @@ export default function Footer() {
               <li><a href="#platform" className="hover:text-white transition-colors">{nav.platform}</a></li>
               <li><a href={blogHref} className="hover:text-white transition-colors">{nav.blog}</a></li>
               <li><a href={pressHref} className="hover:text-white transition-colors">{nav.press || "Press"}</a></li>
+              <li><a href={contactHref} className="hover:text-white transition-colors">{nav.contact || (locale === "zh" ? "联系我们" : "Contact")}</a></li>
             </ul>
           </div>
           <div>
