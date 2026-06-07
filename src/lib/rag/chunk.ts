@@ -8,6 +8,29 @@ const TARGET_CHUNK_SIZE = 600;
 const MAX_CHUNK_SIZE = 1000;
 const OVERLAP_WORDS = 25;
 
+// Cohere (Bedrock) rejects any single text over 2048 chars before truncation.
+// The token estimate (chars/4) badly under-counts CJK text, so a "600-token"
+// chunk can be ~2400 chars. Hard-cap chunk length in characters to stay safe.
+const MAX_CHUNK_CHARS = 1800;
+
+// Guarantee no chunk exceeds MAX_CHUNK_CHARS by slicing over-long ones, then
+// renumber. Belt-and-suspenders with the embed-layer truncation.
+function enforceCharLimit(chunks: Chunk[]): Chunk[] {
+  const out: Chunk[] = [];
+  let idx = 0;
+  for (const c of chunks) {
+    if (c.content.length <= MAX_CHUNK_CHARS) {
+      out.push({ ...c, index: idx++ });
+      continue;
+    }
+    for (let i = 0; i < c.content.length; i += MAX_CHUNK_CHARS) {
+      const slice = c.content.slice(i, i + MAX_CHUNK_CHARS).trim();
+      if (slice) out.push({ content: slice, index: idx++, tokenCount: estimateTokens(slice) });
+    }
+  }
+  return out;
+}
+
 function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4);
 }
@@ -75,5 +98,5 @@ export function chunkText(text: string): Chunk[] {
     });
   }
 
-  return chunks;
+  return enforceCharLimit(chunks);
 }

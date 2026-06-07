@@ -31,6 +31,10 @@ export const BEDROCK_EMBED_REGION =
 export const EMBED_DIMENSIONS = 1024;
 // Cohere's Bedrock endpoint caps a single call at 96 input texts.
 export const BEDROCK_EMBED_BATCH = 96;
+// ...and each text at 2048 characters — validated BEFORE truncate:END kicks in,
+// so an over-length text is rejected outright. We hard-cap here as a safety net
+// on top of the chunker's own size bound.
+export const EMBED_MAX_CHARS = 2048;
 
 // Bedrock is usable whenever the shared AWS credentials are present.
 export function bedrockConfigured(): boolean {
@@ -72,7 +76,9 @@ export async function bedrockEmbed(
       contentType: "application/json",
       accept: "application/json",
       body: JSON.stringify({
-        texts,
+        texts: texts.map((t) =>
+          t.length > EMBED_MAX_CHARS ? t.slice(0, EMBED_MAX_CHARS) : t,
+        ),
         input_type: inputType,
         truncate: "END",
       }),
