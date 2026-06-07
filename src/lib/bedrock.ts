@@ -20,6 +20,18 @@ export const BEDROCK_HAIKU_MODEL_ID =
 export const BEDROCK_CHAT_MODEL_ID =
   process.env.BEDROCK_CHAT_MODEL_ID || BEDROCK_SONNET_MODEL_ID;
 
+// Cohere Embed Multilingual v3 — bilingual (zh/en) retrieval embeddings, 1024
+// dims. Lives in the same Bedrock account as chat. If Cohere isn't available in
+// BEDROCK_REGION, point AWS_BEDROCK_EMBED_REGION at one that has it (e.g.
+// us-east-1) without moving chat.
+export const BEDROCK_EMBED_MODEL_ID =
+  process.env.BEDROCK_EMBED_MODEL_ID || "cohere.embed-multilingual-v3";
+export const BEDROCK_EMBED_REGION =
+  process.env.AWS_BEDROCK_EMBED_REGION || BEDROCK_REGION;
+export const EMBED_DIMENSIONS = 1024;
+// Cohere's Bedrock endpoint caps a single call at 96 input texts.
+export const BEDROCK_EMBED_BATCH = 96;
+
 // Bedrock is usable whenever the shared AWS credentials are present.
 export function bedrockConfigured(): boolean {
   return Boolean(
@@ -27,18 +39,49 @@ export function bedrockConfigured(): boolean {
   );
 }
 
-let _client: BedrockRuntimeClient | null = null;
-function client(): BedrockRuntimeClient {
-  if (!_client) {
-    _client = new BedrockRuntimeClient({
-      region: BEDROCK_REGION,
+const _clients = new Map<string, BedrockRuntimeClient>();
+function client(region: string = BEDROCK_REGION): BedrockRuntimeClient {
+  let c = _clients.get(region);
+  if (!c) {
+    c = new BedrockRuntimeClient({
+      region,
       credentials: {
         accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
       },
     });
+    _clients.set(region, c);
   }
-  return _client;
+  return c;
+}
+
+/**
+ * Embed up to {@link BEDROCK_EMBED_BATCH} texts with Cohere Embed Multilingual
+ * v3. `inputType` is Cohere's asymmetric hint: "search_document" when indexing
+ * corpus chunks, "search_query" when embedding a user query — using the right
+ * one materially improves retrieval. Returns one 1024-d vector per input.
+ */
+export async function bedrockEmbed(
+  texts: string[],
+  inputType: "search_document" | "search_query",
+): Promise<number[][]> {
+  if (texts.length === 0) return [];
+  const res = await client(BEDROCK_EMBED_REGION).send(
+    new InvokeModelCommand({
+      modelId: BEDROCK_EMBED_MODEL_ID,
+      contentType: "application/json",
+      accept: "application/json",
+      body: JSON.stringify({
+        texts,
+        input_type: inputType,
+        truncate: "END",
+      }),
+    }),
+  );
+  const data = JSON.parse(new TextDecoder().decode(res.body)) as {
+    embeddings: number[][];
+  };
+  return data.embeddings;
 }
 
 export interface BedrockMessage {

@@ -1,17 +1,25 @@
+const DOCX_MIME =
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
 export async function extractText(
   buffer: Buffer,
   mimeType: string,
   fileName: string
 ): Promise<string> {
-  if (mimeType === "application/pdf") {
-    // pdf-parse v2 API — use dynamic require to avoid type issues
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { PDFParse } = require("pdf-parse");
-    const parser = new PDFParse(buffer);
-    await parser.load();
-    const result = await parser.getText();
-    parser.destroy();
-    return typeof result === "string" ? result : result?.text || "";
+  // PDF — unpdf bundles a serverless build of pdf.js that works in Node
+  // without a DOM (the old pdf-parse path threw "DOMMatrix is not defined").
+  if (mimeType === "application/pdf" || fileName.endsWith(".pdf")) {
+    const { extractText: pdfExtract, getDocumentProxy } = await import("unpdf");
+    const pdf = await getDocumentProxy(new Uint8Array(buffer));
+    const { text } = await pdfExtract(pdf, { mergePages: true });
+    return text;
+  }
+
+  // Word (.docx)
+  if (mimeType === DOCX_MIME || fileName.endsWith(".docx")) {
+    const mammoth = (await import("mammoth")).default;
+    const { value } = await mammoth.extractRawText({ buffer });
+    return value;
   }
 
   // CSV, plain text, markdown, etc.
