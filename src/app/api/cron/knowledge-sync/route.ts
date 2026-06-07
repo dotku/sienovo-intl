@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
       const files = await listFolderFilesRecursive(token, folderId);
       seen = files.length;
       for (const df of files) {
-        const status = await syncDriveFile(token, df);
+        const status = await syncDriveFile(df);
         if (status === "synced") synced++;
         else if (status === "exists") skipped++;
         else failed++;

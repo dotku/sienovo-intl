@@ -3,6 +3,8 @@ import { extractText } from "./extract";
 import { chunkText } from "./chunk";
 import { embedTexts } from "./embed";
 import { trackApiUsage } from "@/lib/api-usage";
+import { getDriveServiceToken } from "@/lib/google-drive-token";
+import { downloadDriveFile } from "@/lib/google-drive";
 
 export async function indexKnowledgeFile(fileId: string): Promise<void> {
   const file = await prisma.knowledgeFile.update({
@@ -11,13 +13,26 @@ export async function indexKnowledgeFile(fileId: string): Promise<void> {
   });
 
   try {
-    // 1. Download from R2
-    const response = await fetch(file.url);
-    if (!response.ok) throw new Error(`Failed to download file: ${response.status}`);
-    const buffer = Buffer.from(await response.arrayBuffer());
+    // 1. Get the file bytes — straight from Drive for synced files (no blob
+    //    duplication), or from R2 for direct uploads.
+    let buffer: Buffer;
+    let mimeType = file.mimeType;
+    let fileName = file.name;
+    if (file.source === "google_drive" && file.driveFileId) {
+      const token = await getDriveServiceToken();
+      if (!token) throw new Error("Drive service account not configured");
+      const dl = await downloadDriveFile(token, file.driveFileId, file.mimeType, file.name);
+      buffer = dl.buffer;
+      mimeType = dl.mimeType;
+      fileName = dl.fileName;
+    } else {
+      const response = await fetch(file.url);
+      if (!response.ok) throw new Error(`Failed to download file: ${response.status}`);
+      buffer = Buffer.from(await response.arrayBuffer());
+    }
 
     // 2. Extract text
-    const text = await extractText(buffer, file.mimeType, file.name);
+    const text = await extractText(buffer, mimeType, fileName);
     if (!text.trim()) throw new Error("No text extracted from file");
 
     // 3. Chunk

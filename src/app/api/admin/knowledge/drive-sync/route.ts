@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
         const df = driveFiles[i];
         send({ type: "progress", current: i + 1, total, synced, skipped, file: df.name, status: "downloading" });
 
-        const status = await syncDriveFile(accessToken, df);
+        const status = await syncDriveFile(df);
         if (status === "synced") synced++;
         else skipped++;
 

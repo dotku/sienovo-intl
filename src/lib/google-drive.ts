@@ -7,7 +7,6 @@
  */
 
 import { prisma } from "@/lib/prisma";
-import { uploadFile } from "@/lib/r2";
 
 export interface DriveFile {
   id: string;
@@ -90,69 +89,71 @@ export async function listFolderFilesRecursive(
   return files;
 }
 
-// Google Workspace files (Docs/Sheets/Slides) aren't downloadable as-is; they
-// must be exported to a concrete format.
+// Google Workspace files (Docs/Sheets/Slides) have no binary form — they must be
+// exported. Export straight to text so the extractor gets clean content with no
+// PDF round-trip.
 const EXPORT_TYPES: Record<string, { mime: string; ext: string }> = {
-  "application/vnd.google-apps.document": { mime: "application/pdf", ext: ".pdf" },
+  "application/vnd.google-apps.document": { mime: "text/plain", ext: ".txt" },
   "application/vnd.google-apps.spreadsheet": { mime: "text/csv", ext: ".csv" },
-  "application/vnd.google-apps.presentation": { mime: "application/pdf", ext: ".pdf" },
+  "application/vnd.google-apps.presentation": { mime: "text/plain", ext: ".txt" },
 };
 
 export type SyncStatus = "synced" | "exists" | "failed";
 
 /**
- * Download one Drive file (exporting Workspace docs as needed), store it in R2,
- * and record a KnowledgeFile row. Idempotent: returns "exists" without
- * re-downloading when the driveFileId is already known. Shared by the admin SSE
- * route and the cron.
+ * Record a Drive file as a pending KnowledgeFile — metadata only, no download.
+ * The bytes are pulled straight from Drive at index time (see downloadDriveFile),
+ * so documents are never duplicated into blob storage. Idempotent on driveFileId.
  */
-export async function syncDriveFile(token: string, df: DriveFile): Promise<SyncStatus> {
+export async function syncDriveFile(df: DriveFile): Promise<SyncStatus> {
   const existing = await prisma.knowledgeFile.findUnique({
     where: { driveFileId: df.id },
   });
   if (existing) return "exists";
 
   try {
-    let fileBuffer: Buffer;
-    let fileName = df.name;
-    let mimeType = df.mimeType;
-
-    const exportType = EXPORT_TYPES[df.mimeType];
-    if (exportType) {
-      const exportRes = await fetch(
-        `https://www.googleapis.com/drive/v3/files/${df.id}/export?mimeType=${encodeURIComponent(exportType.mime)}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (!exportRes.ok) return "failed";
-      fileBuffer = Buffer.from(await exportRes.arrayBuffer());
-      mimeType = exportType.mime;
-      if (!fileName.endsWith(exportType.ext)) fileName += exportType.ext;
-    } else {
-      const dlRes = await fetch(
-        `https://www.googleapis.com/drive/v3/files/${df.id}?alt=media`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (!dlRes.ok) return "failed";
-      fileBuffer = Buffer.from(await dlRes.arrayBuffer());
-    }
-
-    const key = `knowledge/${Date.now()}-${fileName}`;
-    const url = await uploadFile(fileBuffer, key, mimeType);
-
     await prisma.knowledgeFile.create({
       data: {
-        name: fileName,
-        key,
-        url,
-        size: fileBuffer.length,
-        mimeType,
+        name: df.name,
+        key: "",
+        url: `https://drive.google.com/file/d/${df.id}/view`,
+        size: df.size ? parseInt(df.size, 10) || 0 : 0,
+        mimeType: df.mimeType,
         driveFileId: df.id,
         source: "google_drive",
       },
     });
-
     return "synced";
   } catch {
     return "failed";
   }
+}
+
+/**
+ * Fetch a Drive file's bytes for indexing, exporting Workspace docs to text.
+ * Returns the buffer with the effective mime/filename so the extractor knows how
+ * to parse it. Throws on a failed download/export so the caller marks it errored.
+ */
+export async function downloadDriveFile(
+  token: string,
+  fileId: string,
+  mimeType: string,
+  fileName: string,
+): Promise<{ buffer: Buffer; mimeType: string; fileName: string }> {
+  const exp = EXPORT_TYPES[mimeType];
+  if (exp) {
+    const res = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}/export?mimeType=${encodeURIComponent(exp.mime)}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (!res.ok) throw new Error(`Drive export failed (${res.status})`);
+    const name = fileName.endsWith(exp.ext) ? fileName : fileName + exp.ext;
+    return { buffer: Buffer.from(await res.arrayBuffer()), mimeType: exp.mime, fileName: name };
+  }
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  if (!res.ok) throw new Error(`Drive download failed (${res.status})`);
+  return { buffer: Buffer.from(await res.arrayBuffer()), mimeType, fileName };
 }
