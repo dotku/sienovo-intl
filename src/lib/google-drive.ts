@@ -6,6 +6,9 @@
  * sync route and the daily cron alike.
  */
 
+import { prisma } from "@/lib/prisma";
+import { uploadFile } from "@/lib/r2";
+
 export interface DriveFile {
   id: string;
   name: string;
@@ -85,4 +88,71 @@ export async function listFolderFilesRecursive(
 
   await walk(folderId, "", 0);
   return files;
+}
+
+// Google Workspace files (Docs/Sheets/Slides) aren't downloadable as-is; they
+// must be exported to a concrete format.
+const EXPORT_TYPES: Record<string, { mime: string; ext: string }> = {
+  "application/vnd.google-apps.document": { mime: "application/pdf", ext: ".pdf" },
+  "application/vnd.google-apps.spreadsheet": { mime: "text/csv", ext: ".csv" },
+  "application/vnd.google-apps.presentation": { mime: "application/pdf", ext: ".pdf" },
+};
+
+export type SyncStatus = "synced" | "exists" | "failed";
+
+/**
+ * Download one Drive file (exporting Workspace docs as needed), store it in R2,
+ * and record a KnowledgeFile row. Idempotent: returns "exists" without
+ * re-downloading when the driveFileId is already known. Shared by the admin SSE
+ * route and the cron.
+ */
+export async function syncDriveFile(token: string, df: DriveFile): Promise<SyncStatus> {
+  const existing = await prisma.knowledgeFile.findUnique({
+    where: { driveFileId: df.id },
+  });
+  if (existing) return "exists";
+
+  try {
+    let fileBuffer: Buffer;
+    let fileName = df.name;
+    let mimeType = df.mimeType;
+
+    const exportType = EXPORT_TYPES[df.mimeType];
+    if (exportType) {
+      const exportRes = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${df.id}/export?mimeType=${encodeURIComponent(exportType.mime)}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (!exportRes.ok) return "failed";
+      fileBuffer = Buffer.from(await exportRes.arrayBuffer());
+      mimeType = exportType.mime;
+      if (!fileName.endsWith(exportType.ext)) fileName += exportType.ext;
+    } else {
+      const dlRes = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${df.id}?alt=media`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (!dlRes.ok) return "failed";
+      fileBuffer = Buffer.from(await dlRes.arrayBuffer());
+    }
+
+    const key = `knowledge/${Date.now()}-${fileName}`;
+    const url = await uploadFile(fileBuffer, key, mimeType);
+
+    await prisma.knowledgeFile.create({
+      data: {
+        name: fileName,
+        key,
+        url,
+        size: fileBuffer.length,
+        mimeType,
+        driveFileId: df.id,
+        source: "google_drive",
+      },
+    });
+
+    return "synced";
+  } catch {
+    return "failed";
+  }
 }
