@@ -18,14 +18,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
           node-version: 24
-          cache: "npm"
+          cache: "pnpm"
 
+      # No --prod: the scraper needs Playwright, which is a devDependency.
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       # Cache the downloaded browser binaries (~150MB) keyed on the lock file,
       # so the Chromium download only runs when the playwright version changes.
@@ -33,7 +38,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+          key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
 
       # The CDN download has stalled for a full hour before (the job's
       # timeout-minutes used to swallow it). Cap this step at 15 min and retry
@@ -42,7 +47,7 @@ jobs:
         timeout-minutes: 15
         run: |
           for i in 1 2 3; do
-            npx playwright install chromium --with-deps && break
+            pnpm exec playwright install chromium --with-deps && break
             echo "playwright install attempt $i failed; retrying in 15s..."
             sleep 15
           done
