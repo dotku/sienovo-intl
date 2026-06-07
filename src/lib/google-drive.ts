@@ -24,7 +24,12 @@ const FOLDER_MIME = "application/vnd.google-apps.folder";
 // arrayBuffer(). Skip them; everything else (docs, sheets, slides, PDFs,
 // images) flows through.
 function isSkippable(mimeType: string): boolean {
-  return mimeType.startsWith("video/");
+  // Videos carry no embeddable text; shortcuts are pointers (downloading one
+  // 403s) — the file they reference is listed separately if it's shared.
+  return (
+    mimeType.startsWith("video/") ||
+    mimeType === "application/vnd.google-apps.shortcut"
+  );
 }
 
 async function listChildren(
