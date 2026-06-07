@@ -122,6 +122,8 @@ async function topTierSitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/zh/blog/all`, lastModified: now, changeFrequency: "daily", priority: 0.7 },
     { url: `${SITE_URL}/press`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
     { url: `${SITE_URL}/zh/press`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
+    { url: `${SITE_URL}/contact`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
+    { url: `${SITE_URL}/zh/contact`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
   ];
 
   let productEntries: MetadataRoute.Sitemap = [];
