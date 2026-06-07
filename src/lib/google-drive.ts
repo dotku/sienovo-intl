@@ -18,31 +18,32 @@ export interface DriveFile {
 }
 
 const FOLDER_MIME = "application/vnd.google-apps.folder";
+const SHORTCUT_MIME = "application/vnd.google-apps.shortcut";
 
-// Videos are huge and carry no text for embedding — pulling them into R2 wastes
-// storage and risks the serverless function OOMing on a multi-hundred-MB
-// arrayBuffer(). Skip them; everything else (docs, sheets, slides, PDFs,
-// images) flows through.
-function isSkippable(mimeType: string): boolean {
-  // Videos carry no embeddable text; shortcuts are pointers (downloading one
-  // 403s) — the file they reference is listed separately if it's shared.
-  return (
-    mimeType.startsWith("video/") ||
-    mimeType === "application/vnd.google-apps.shortcut"
-  );
+interface DriveChild {
+  id: string;
+  name: string;
+  mimeType: string;
+  size?: string;
+  shortcutDetails?: { targetId?: string; targetMimeType?: string };
 }
 
-async function listChildren(
-  token: string,
-  folderId: string
-): Promise<Array<{ id: string; name: string; mimeType: string; size?: string }>> {
-  const out: Array<{ id: string; name: string; mimeType: string; size?: string }> = [];
+// Videos carry no embeddable text — skip them. Shortcuts are handled separately
+// (followed to their target). Everything else (docs, sheets, slides, PDFs,
+// images) flows through.
+function isSkippable(mimeType: string): boolean {
+  return mimeType.startsWith("video/");
+}
+
+async function listChildren(token: string, folderId: string): Promise<DriveChild[]> {
+  const out: DriveChild[] = [];
   let pageToken: string | undefined;
 
   do {
     const params = new URLSearchParams({
       q: `'${folderId}' in parents and trashed=false`,
-      fields: "nextPageToken,files(id,name,mimeType,size)",
+      fields:
+        "nextPageToken,files(id,name,mimeType,size,shortcutDetails(targetId,targetMimeType))",
       pageSize: "1000",
       supportsAllDrives: "true",
       includeItemsFromAllDrives: "true",
@@ -80,12 +81,28 @@ export async function listFolderFilesRecursive(
     if (depth > maxDepth || seenFolders.has(id)) return;
     seenFolders.add(id);
 
-    const children = await listChildren(token, id);
+    let children: DriveChild[];
+    try {
+      children = await listChildren(token, id);
+    } catch (err) {
+      if (depth === 0) throw err; // the root must be readable
+      return; // an inaccessible sub-branch (e.g. a shortcut target) is skipped
+    }
+
     for (const child of children) {
-      if (child.mimeType === FOLDER_MIME) {
-        await walk(child.id, path ? `${path}/${child.name}` : child.name, depth + 1);
-      } else if (!isSkippable(child.mimeType)) {
-        files.push({ ...child, path });
+      // Follow shortcuts to their target — a shortcut is just a pointer, so we
+      // index what it points at (folder → recurse, file → treat as that file).
+      let targetId = child.id;
+      let mimeType = child.mimeType;
+      if (mimeType === SHORTCUT_MIME && child.shortcutDetails?.targetId) {
+        targetId = child.shortcutDetails.targetId;
+        mimeType = child.shortcutDetails.targetMimeType || "";
+      }
+
+      if (mimeType === FOLDER_MIME) {
+        await walk(targetId, path ? `${path}/${child.name}` : child.name, depth + 1);
+      } else if (mimeType && !isSkippable(mimeType)) {
+        files.push({ id: targetId, name: child.name, mimeType, size: child.size, path });
       }
     }
   }
