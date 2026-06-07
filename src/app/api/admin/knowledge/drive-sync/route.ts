@@ -1,15 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isAdmin } from "@/lib/auth0";
-import { getGoogleAccessToken } from "@/lib/google-token";
+import { getDriveAccessToken } from "@/lib/google-drive-token";
+import { listFolderFilesRecursive, type DriveFile } from "@/lib/google-drive";
 import { uploadFile } from "@/lib/r2";
-
-interface DriveFile {
-  id: string;
-  name: string;
-  mimeType: string;
-  size?: string;
-}
 
 // Extract folder ID from Google Drive URL
 function extractFolderId(url: string): string | null {
@@ -37,57 +31,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid Google Drive folder URL" }, { status: 400 });
   }
 
-  let accessToken = await getGoogleAccessToken();
-  if (!accessToken) {
+  // Service account (durable) first, user OAuth as fallback.
+  const auth = await getDriveAccessToken();
+  if (!auth) {
     return NextResponse.json(
       { error: "reauth", redirectUrl: "/api/admin/google/authorize?returnTo=/admin/system/knowledge" },
       { status: 401 }
     );
   }
+  const accessToken = auth.token;
 
-  // List files in folder
-  const listUrl = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+trashed=false&fields=files(id,name,mimeType,size)&pageSize=100`;
-  let listRes = await fetch(listUrl, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-
-  // If token failed, force refresh and retry once
-  if (listRes.status === 401 || listRes.status === 403) {
-    // Clear cached token to force refresh
-    await prisma.setting.update({
-      where: { key: "google_access_token" },
-      data: { updatedAt: new Date(0) },
-    }).catch(() => {});
-
-    accessToken = await getGoogleAccessToken();
-    if (!accessToken) {
-      return NextResponse.json(
-        { error: "reauth", redirectUrl: "/api/admin/google/authorize?returnTo=/admin/system/knowledge" },
-        { status: 401 }
-      );
-    }
-
-    listRes = await fetch(listUrl, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-  }
-
-  if (!listRes.ok) {
-    if (listRes.status === 401 || listRes.status === 403) {
-      return NextResponse.json(
-        { error: "reauth", redirectUrl: "/api/admin/google/authorize?returnTo=/admin/system/knowledge" },
-        { status: 401 }
-      );
-    }
-    const err = await listRes.text();
+  // Walk the folder tree (paginated, recursing into subfolders).
+  let driveFiles: DriveFile[];
+  try {
+    driveFiles = await listFolderFilesRecursive(accessToken, folderId);
+  } catch (err) {
     return NextResponse.json(
-      { error: `Failed to list Drive folder: ${err}` },
+      { error: `Failed to list Drive folder: ${(err as Error).message}` },
       { status: 502 }
     );
   }
-
-  const listData = await listRes.json();
-  const driveFiles: DriveFile[] = listData.files || [];
 
   if (driveFiles.length === 0) {
     return NextResponse.json({ synced: 0, skipped: 0, total: 0, message: "No files found in folder." });
@@ -105,17 +68,10 @@ export async function POST(req: NextRequest) {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
       };
 
-      send({ type: "start", total });
+      send({ type: "start", total, tokenSource: auth.source });
 
       for (let i = 0; i < driveFiles.length; i++) {
         const df = driveFiles[i];
-
-        // Skip folders
-        if (df.mimeType === "application/vnd.google-apps.folder") {
-          skipped++;
-          send({ type: "progress", current: i + 1, total, synced, skipped, file: df.name, status: "skipped" });
-          continue;
-        }
 
         // Check if already synced
         const existing = await prisma.knowledgeFile.findUnique({
