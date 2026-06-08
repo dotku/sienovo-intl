@@ -85,10 +85,10 @@ About Sienovo INT-AIBOX:
 // might have produced (defense in depth against rule-following slips).
 const SIGNATURE_HTML = `
 <p>Best,</p>
-<p>Leo from Sienovo</p>
+<p>Jay Lin</p>
 <p style="font-size:12px;color:#666;line-height:1.5">
   <a href="https://intl.sienovo.cn" style="color:#666">intl.sienovo.cn</a> &middot;
-  <a href="mailto:collin.liu@sienovo.cn" style="color:#666">collin.liu@sienovo.cn</a>
+  <a href="mailto:jay.lin@sienovo.cn" style="color:#666">jay.lin@sienovo.cn</a>
 </p>
 <p style="font-size:11px;color:#999;line-height:1.4">P.S. Not the right contact? Reply with "remove" and I won't email again.</p>`.trim();
 
@@ -262,7 +262,7 @@ function normalizeSignoff(html) {
   // these keywords mid-text are safe.
   const SIGNATURE_LIKE =
     /^<p[^>]*>\s*(Best|Thanks|Thank you|Regards|Cheers|Sincerely|Kind regards|Warm regards|Yours)\s*[,.]/i;
-  const NAME_LIKE = /^<p[^>]*>\s*(Leo from Sienovo|Leo,|leo@|leo\.liu|intl\.sienovo)/i;
+  const NAME_LIKE = /^<p[^>]*>\s*(Jay Lin|Jay,|jay\.lin|Leo from Sienovo|Leo,|leo@|leo\.liu|intl\.sienovo)/i;
   const PS_LIKE = /^<p[^>]*>\s*P\.?\s*S\.?[\s.:]/i;
   const MIN_BODY_TEXT = 60; // chars of plain text — guard against over-stripping
 
