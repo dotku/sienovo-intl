@@ -1,3 +1,5 @@
+import { isAltiumCad, extractCadText } from "./cad-extract";
+
 const DOCX_MIME =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
@@ -6,6 +8,12 @@ export async function extractText(
   mimeType: string,
   fileName: string
 ): Promise<string> {
+  // Altium binary CAD (.PcbDoc/.SchDoc) — no prose, but the streams carry IC
+  // part numbers, interfaces and nets. Mine them and narrate via Bedrock.
+  if (isAltiumCad(fileName)) {
+    return await extractCadText(buffer, fileName);
+  }
+
   // PDF — unpdf bundles a serverless build of pdf.js that works in Node
   // without a DOM (the old pdf-parse path threw "DOMMatrix is not defined").
   if (mimeType === "application/pdf" || fileName.endsWith(".pdf")) {
