@@ -1,4 +1,5 @@
 import { isAltiumCad, extractCadText } from "./cad-extract";
+import { isZip, extractZipText } from "./zip-extract";
 
 const DOCX_MIME =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -8,6 +9,12 @@ export async function extractText(
   mimeType: string,
   fileName: string
 ): Promise<string> {
+  // Archive — list the manifest and extract text from readable entries (e.g. a
+  // bundled schematic PDF). Recurses through extractText for those entries.
+  if (isZip(mimeType, fileName)) {
+    return await extractZipText(buffer, fileName, extractText);
+  }
+
   // Altium binary CAD (.PcbDoc/.SchDoc) — no prose, but the streams carry IC
   // part numbers, interfaces and nets. Mine them and narrate via Bedrock.
   if (isAltiumCad(fileName)) {
