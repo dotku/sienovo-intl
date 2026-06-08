@@ -18,7 +18,7 @@
  * behavior. Weekly / monthly stubs throw until implemented in Phases 2 / 3.
  */
 import { execSync } from "node:child_process";
-import { readdirSync, statSync } from "node:fs";
+import { readdirSync, statSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 // ---------- args ----------
@@ -503,7 +503,23 @@ async function gatherDbMetrics({ sinceISO, untilISO }) {
       params
     )).rows;
 
-    return { summary, apiUsage, outreachByStatus, ordersByStatus };
+    // Knowledge base / RAG health — current snapshot (not windowed). Surfaces
+    // silent failures: errors piling up, or chunks stored without an embedding.
+    const kbStatus = (await client.query(
+      `SELECT "indexStatus", COUNT(*)::int AS total
+         FROM "KnowledgeFile" WHERE "trashedAt" IS NULL
+        GROUP BY "indexStatus" ORDER BY total DESC`
+    )).rows;
+    let kbChunks = { chunks: 0, embedded: 0 };
+    try {
+      kbChunks = (await client.query(
+        `SELECT COUNT(*)::int AS chunks, COUNT(embedding)::int AS embedded FROM "KnowledgeChunk"`
+      )).rows[0];
+    } catch {
+      // embedding column may not exist on an un-migrated DB
+    }
+
+    return { summary, apiUsage, outreachByStatus, ordersByStatus, kbStatus, kbChunks };
   } finally {
     await client.end();
   }
@@ -594,6 +610,26 @@ function renderOtherProjectsSection(others) {
             </table>`;
 }
 
+function renderKbHealth(kbStatus, kbChunks) {
+  const get = (s) => (kbStatus || []).find((r) => r.indexStatus === s)?.total || 0;
+  const indexed = get("indexed");
+  const error = get("error");
+  const unsupported = get("unsupported");
+  const pending = get("pending") + get("processing");
+  const chunks = kbChunks?.chunks || 0;
+  const embedded = kbChunks?.embedded || 0;
+  const warn = error > 0 || pending > 0 || chunks !== embedded;
+  const red = (n) => `<span style="color:#a04040"><b>${n}</b></span>`;
+  return `<p style="margin:0;font-size:13px">
+    已索引 <b>${indexed}</b> ·
+    error ${error > 0 ? red(error) : "<b>0</b>"} ·
+    unsupported <b>${unsupported}</b> ·
+    pending ${pending > 0 ? red(pending) : "<b>0</b>"} ·
+    向量 ${chunks === embedded ? `<b>${chunks}</b>` : red(`${embedded}/${chunks}`)}
+    ${warn ? ' <span style="color:#a04040">⚠ 需关注</span>' : " ✅"}
+  </p>`;
+}
+
 function renderDbSection(db, prevDb) {
   if (!db || !db.summary) return "";
   const s = db.summary;
@@ -639,6 +675,40 @@ function renderDbSection(db, prevDb) {
             <h3 style="margin:24px 0 8px;font-size:15px">API 调用 (Top 8)</h3>
             <table cellpadding="6" style="border-collapse:collapse;width:100%;font-size:13px">
               ${apiRows}
+            </table>
+
+            <h3 style="margin:24px 0 8px;font-size:15px">知识库 / RAG 健康</h3>
+            ${renderKbHealth(db.kbStatus, db.kbChunks)}`;
+}
+
+// Reads the latest data/seo-reports/*.json (written by gsc-pull.mjs) and renders
+// a compact Search Console snapshot. Returns "" when no report exists.
+function renderSeoSection() {
+  let rep;
+  try {
+    const dir = join(process.cwd(), "data/seo-reports");
+    // Only the date-named gsc-pull reports (YYYY-MM-DD.json) — skip the
+    // coverage-*.json files, which sort later but have a different shape.
+    const files = readdirSync(dir).filter((f) => /^\d{4}-\d{2}-\d{2}\.json$/.test(f)).sort();
+    if (!files.length) return "";
+    rep = JSON.parse(readFileSync(join(dir, files[files.length - 1]), "utf8"));
+  } catch {
+    return "";
+  }
+  const o = rep.overall || {};
+  const w = rep.window || {};
+  const ctr = o.ctr != null ? (o.ctr * 100).toFixed(2) + "%" : "—";
+  const top = (rep.byPage || [])[0];
+  const cell = "border-bottom:1px solid #eee";
+  const topRow = top
+    ? `<tr><td style="${cell}">曝光最高页面</td><td style="${cell};text-align:right;font-size:12px">${htmlEscape((top.keys?.[0] || "").replace("https://intl.sienovo.cn", ""))} <b>${top.impressions}</b></td></tr>`
+    : "";
+  return `
+            <h3 style="margin:24px 0 8px;font-size:15px">SEO / 搜索表现 <span style="color:#999;font-size:12px;font-weight:normal">(${w.start || ""} ~ ${w.end || ""})</span></h3>
+            <table cellpadding="8" style="border-collapse:collapse;width:100%;font-size:14px">
+              <tr><td style="${cell}">曝光 / 点击</td><td style="${cell};text-align:right"><b>${o.impressions ?? 0}</b> / <b>${o.clicks ?? 0}</b></td></tr>
+              <tr><td style="${cell}">CTR</td><td style="${cell};text-align:right"><b>${ctr}</b></td></tr>
+              ${topRow}
             </table>`;
 }
 
@@ -652,6 +722,7 @@ function renderHtml({ metrics, summary, config }) {
       : `<b>${metrics.commitsTotal}</b> 条`;
 
   const dbSection = config.dbEnabled ? renderDbSection(metrics.db, metrics.previous?.db) : "";
+  const seoSection = config.dbEnabled ? renderSeoSection() : "";
   const otherProjectsSection = renderOtherProjectsSection(metrics.otherProjects);
   const prev = metrics.previous;
 
@@ -684,7 +755,7 @@ function renderHtml({ metrics, summary, config }) {
               <tr><td style="${cellBorder}">最新同步任务</td><td style="${cellBorder};text-align:right"><a href="${metrics.syncUrl}">${statusLabel(metrics.syncStatus)}</a></td></tr>
               <tr><td style="${cellBorder}">最新翻译任务</td><td style="${cellBorder};text-align:right"><a href="${metrics.translateUrl}">${statusLabel(metrics.translateStatus)}</a></td></tr>
               <tr><td>${metrics.windowLabel} 功能提交</td><td style="text-align:right">${commitsCell}${deltaSpan(metrics.commitsTotal, prev?.commitsTotal)}</td></tr>
-            </table>${dbSection}${otherProjectsSection}${summaryBlock}${aiDisclaimer}${confidentialNotice}
+            </table>${dbSection}${seoSection}${otherProjectsSection}${summaryBlock}${aiDisclaimer}${confidentialNotice}
             <p style="color:#999;font-size:12px;margin-top:16px">来自 <a href="https://github.com/${REPO}">${REPO}</a></p>
           </div>`;
 }
