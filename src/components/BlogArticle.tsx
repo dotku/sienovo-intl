@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { MDXRemote } from "next-mdx-remote/rsc";
 import remarkGfm from "remark-gfm";
+import SienovoCallout from "./SienovoCallout";
 import type { BlogPost, BlogLocale } from "@/lib/blog";
 
 export default function BlogArticle({
@@ -64,6 +65,9 @@ export default function BlogArticle({
           }}
         />
       </div>
+
+      {/* Brand context + internal links on every article */}
+      <SienovoCallout locale={locale} />
 
       {/* Source link */}
       {post.source && (
