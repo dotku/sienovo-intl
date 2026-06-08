@@ -33,10 +33,14 @@ jobs:
 
       - name: Write service-account key
         env:
+          # Prefer the autoclaw-analytics SA (granted on the intl.sienovo.cn GSC
+          # property); GCP_SA_KEY is the legacy fallback. Set one of these
+          # secrets to the autoclaw-analytics service-account JSON.
+          GA_SERVICE_ACCOUNT_KEY: ${{ secrets.GA_SERVICE_ACCOUNT_KEY }}
           GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
         run: |
-          echo "$GCP_SA_KEY" > /tmp/sa.json
-          test -s /tmp/sa.json || { echo "::error::GCP_SA_KEY secret missing or empty"; exit 1; }
+          printf '%s' "${GA_SERVICE_ACCOUNT_KEY:-$GCP_SA_KEY}" > /tmp/sa.json
+          test -s /tmp/sa.json || { echo "::error::No GSC service-account secret set (GA_SERVICE_ACCOUNT_KEY or GCP_SA_KEY)"; exit 1; }
 
       - name: Pull search analytics + coverage
         env:

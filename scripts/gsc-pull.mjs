@@ -8,15 +8,27 @@
 import { google } from "googleapis";
 import fs from "node:fs";
 import path from "node:path";
+import { config } from "dotenv";
+
+config({ path: ".env.local" });
 
 const SITE_URL = process.env.SITE_URL || "https://intl.sienovo.cn";
 const OUT_DIR = path.join(process.cwd(), "data/seo-reports");
 fs.mkdirSync(OUT_DIR, { recursive: true });
 
+// Prefer inline JSON — GA_SERVICE_ACCOUNT_KEY is the autoclaw-analytics service
+// account that's actually granted access to the intl.sienovo.cn GSC property.
+// The old sienovo-intl-sa.json key file had zero GSC access, so this script was
+// silently returning empty reports. Fall back to a key file if no inline key.
+const inlineKey = process.env.GA_SERVICE_ACCOUNT_KEY || process.env.GCP_SA_KEY;
 const auth = new google.auth.GoogleAuth({
-  keyFile:
-    process.env.GOOGLE_APPLICATION_CREDENTIALS ||
-    `${process.env.HOME}/.gcp-keys/sienovo-intl-sa.json`,
+  ...(inlineKey
+    ? { credentials: JSON.parse(inlineKey) }
+    : {
+        keyFile:
+          process.env.GOOGLE_APPLICATION_CREDENTIALS ||
+          `${process.env.HOME}/.gcp-keys/autoclaw-analytics-sa.json`,
+      }),
   scopes: ["https://www.googleapis.com/auth/webmasters.readonly"],
 });
 const sc = google.searchconsole({ version: "v1", auth });

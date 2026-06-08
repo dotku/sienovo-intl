@@ -5,12 +5,20 @@
 
 import { google } from "googleapis";
 import fs from "node:fs";
+import { config } from "dotenv";
+
+config({ path: ".env.local" });
 
 const SITE_URL = "https://intl.sienovo.cn";
 const SITE_URL_NORMALIZED = `${SITE_URL}/`; // GSC URL-prefix property always uses trailing slash
 
+// Prefer inline JSON (GA_SERVICE_ACCOUNT_KEY = autoclaw-analytics, granted on
+// the intl.sienovo.cn GSC property); fall back to a key file.
+const inlineKey = process.env.GA_SERVICE_ACCOUNT_KEY || process.env.GCP_SA_KEY;
 const auth = new google.auth.GoogleAuth({
-  keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+  ...(inlineKey
+    ? { credentials: JSON.parse(inlineKey) }
+    : { keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS }),
   scopes: ["https://www.googleapis.com/auth/webmasters.readonly"],
 });
 const sc = google.searchconsole({ version: "v1", auth });
