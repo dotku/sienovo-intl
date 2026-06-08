@@ -1,0 +1,32 @@
+name: Outreach engagement check
+
+on:
+  schedule:
+    # 09:00 America/Los_Angeles (PDT = UTC-7) → 16:00 UTC
+    - cron: "0 16 * * *"
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Outreach engagement digest
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          OUTREACH_REPORT_TO: ${{ secrets.OUTREACH_REPORT_TO }}
+        run: node scripts/outreach-engagement-check.mjs
