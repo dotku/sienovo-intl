@@ -2,6 +2,30 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+
+// Tight markdown styling for chat bubbles (links clickable, external in a new tab).
+const MD_COMPONENTS = {
+  p: (p: { children?: React.ReactNode }) => <p className="mb-2 last:mb-0">{p.children}</p>,
+  ul: (p: { children?: React.ReactNode }) => <ul className="mb-2 list-disc space-y-0.5 pl-4">{p.children}</ul>,
+  ol: (p: { children?: React.ReactNode }) => <ol className="mb-2 list-decimal space-y-0.5 pl-4">{p.children}</ol>,
+  strong: (p: { children?: React.ReactNode }) => <strong className="font-semibold">{p.children}</strong>,
+  code: (p: { children?: React.ReactNode }) => <code className="rounded bg-gray-200 px-1 text-xs">{p.children}</code>,
+  a: (p: { href?: string; children?: React.ReactNode }) => (
+    <a
+      href={p.href}
+      target={p.href?.startsWith("http") ? "_blank" : undefined}
+      rel="noopener noreferrer"
+      className="text-accent underline"
+    >
+      {p.children}
+    </a>
+  ),
+  h1: (p: { children?: React.ReactNode }) => <p className="mb-1 font-semibold">{p.children}</p>,
+  h2: (p: { children?: React.ReactNode }) => <p className="mb-1 font-semibold">{p.children}</p>,
+  h3: (p: { children?: React.ReactNode }) => <p className="mb-1 font-semibold">{p.children}</p>,
+};
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -129,11 +153,21 @@ export default function SupportChat() {
               {messages.map((m, i) => (
                 <div key={i} className={m.role === "user" ? "flex justify-end" : "flex justify-start"}>
                   <div
-                    className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-3.5 py-2 text-sm leading-relaxed ${
-                      m.role === "user" ? "bg-accent text-white" : "bg-gray-100 text-gray-800"
+                    className={`max-w-[85%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed ${
+                      m.role === "user"
+                        ? "whitespace-pre-wrap bg-accent text-white"
+                        : "bg-gray-100 text-gray-800"
                     }`}
                   >
-                    {m.content || "…"}
+                    {m.role === "user" ? (
+                      m.content
+                    ) : m.content ? (
+                      <ReactMarkdown remarkPlugins={[remarkGfm]} components={MD_COMPONENTS}>
+                        {m.content}
+                      </ReactMarkdown>
+                    ) : (
+                      "…"
+                    )}
                   </div>
                 </div>
               ))}
