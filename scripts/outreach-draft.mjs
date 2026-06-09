@@ -167,6 +167,22 @@ function buildPromptText(contact, campaign, step, prevSubject, researchSummary) 
   if (prevSubject)
     lines.push(`Previous email subject was: "${prevSubject}" — reference it naturally.`);
 
+  // Warm-lead follow-up: the prospect engaged with the previous email, so be
+  // more direct and offer a concrete next step instead of a generic ask.
+  if (contact.prev_clicked || contact.prev_opened) {
+    const signal = contact.prev_clicked
+      ? "opened your previous email and clicked a link in it"
+      : "opened your previous email";
+    lines.push(
+      `\nIMPORTANT — this is a WARM lead: they ${signal}, so they're paying ` +
+      `attention. Acknowledge their interest naturally (do NOT mention tracking, ` +
+      `pixels, or that you "saw" they opened it — that's creepy). Be more ` +
+      `confident and specific, and offer a concrete next step: a short demo, a ` +
+      `relevant gas-station case study, or specific results from similar pump ` +
+      `sites — not a generic "let me know if interested".`,
+    );
+  }
+
   lines.push(
     `\nReturn ONLY JSON:\n{ "subject": "...", "html": "<p>opening paragraph</p><p>middle paragraph</p><p>CTA paragraph</p>" }\n\nThe html field must end at the CTA. No sign-off, no name, no contact details, no P.S. — those are appended programmatically after your output.`,
   );
@@ -379,12 +395,15 @@ outer: for (const campaign of campaigns.rows) {
     const prevStep = steps[i - 1];
 
     const due = await client.query(
-      `SELECT c.*, prev.subject AS prev_subject, prev."sentAt" AS prev_sent_at
+      `SELECT c.*, prev.subject AS prev_subject, prev."sentAt" AS prev_sent_at,
+              prev."openedAt" AS prev_opened, prev."clickedAt" AS prev_clicked
        FROM "OutreachEmail" prev
        JOIN "Contact" c ON c.id = prev."contactId"
        WHERE prev."campaignId" = $1
          AND prev."stepId" = $2
-         AND prev.status = 'sent'
+         -- 'delivered' counts as sent: the Brevo webhook moves a delivered
+         -- email's status off 'sent', and those still need follow-ups.
+         AND prev.status IN ('sent', 'delivered')
          AND prev."sentAt" < NOW() - ($3::int * INTERVAL '1 day')
          AND NOT EXISTS (
            SELECT 1 FROM "OutreachEmail" next
