@@ -5,52 +5,21 @@ slug: "6830757"
 tags: ["#File", "#Stream", "#Character", "#Struct", "#Token"]
 source: "https://blog.csdn.net/yeyuangen/article/details/6830757"
 originalTitle: "FILE *p 是什么类型的指针呢"
+expanded: true
 ---
+The `FILE` structure includes several fields, such as:
+- `level`: Indicates how full or empty the buffer is.
+- `flags`: Contains the status flags for the file.
+- `fd`: Represents the file descriptor.
+- `hold`: A temporary storage for characters.
+- `bsize`: Specifies the size of the buffer.
+- `buffer`: A pointer to the data buffer.
+- `curp`: Points to the current position for reading or writing.
+- `istemp`: Indicates if the file is temporary.
+- `token`: Used for various internal purposes.
 
-1) Definition
+Overall, the `FILE` pointer serves as a handle for file operations, encapsulating all necessary information about the file.
 
-FILE is a file type predefined in stdio.h.
+## Initialization of FILE Pointer
 
-You must first declare a file pointer variable and then operate on it using file functions.  
-In textbooks, you may have seen the FILE type defined as:  
-```cpp
-typedef struct{  
-short level; /* degree of "full/empty" in buffer */  
-unsigned flags; /* file status flags */  
-char fd;  
-unsigned char hold;  
-short bsize; /* buffer size */  
-unsigned char *buffer; /* location of data buffer */  
-unsigned char *curp; /* pointer to current read/write position */  
-unsigned istemp;  
-short token;  
-}FILE;
-```
-
-FILE is a structure pointer that contains information such as the file name, file buffer, and so on.
-
-2) Initialization
-
-```cpp
-FILE *fpt = fopen("a.txt", "r");
-```
-
-3) Program Example
-
-```cpp
-#include <stdio.h>
-int main(void)
-{
-    FILE *stream;
-    /* open a file for reading */
-    stream = fopen("DUMMY.FIL", "r");
-    /* read a character from the file */
-    fgetc(stream);
-    /* check for EOF */
-    if (feof(stream))
-        printf("We have reached end-of-file\n");
-    /* close the file */
-    fclose(stream);
-    return 0;
-}
-```
+Before you can perform any operations on a file, you must first declare and initialize a `FILE` pointer. This is done using the `fopen` function, which opens a file and returns a pointer to the `FILE` structure associated with that file. Here’s how you can initialize a `FILE` pointer:

@@ -5,6 +5,69 @@ slug: "9092455"
 tags: []
 source: "https://blog.csdn.net/yeyuangen/article/details/9092455"
 originalTitle: "Linux中从普通用户启动Wireshark抓包"
+expanded: true
 ---
+## Starting Wireshark Packet Capture as a Regular User in Linux
 
-[Starting Wireshark Packet Capture as a Regular User in Linux](http://blog.csdn.net/sanitizer/article/details/5675526), the above link provides a very clear explanation.
+Wireshark is a powerful network protocol analyzer that allows users to capture and interactively browse the traffic running on a computer network. While it is often run with root privileges to access raw network packets, there are ways to configure it to allow regular users to perform packet captures. This article will guide you through the steps necessary to set up Wireshark for use by non-root users in a Linux environment.
+
+### Why Run Wireshark as a Regular User?
+
+Running Wireshark as a regular user instead of root can enhance security by minimizing the risk of accidental system changes or vulnerabilities that could be exploited. It also helps in maintaining a clean separation between user-level applications and system-level operations.
+
+### Prerequisites
+
+Before proceeding, ensure you have the following:
+
+- A Linux distribution with Wireshark installed. You can install it using your package manager. For example, on Debian-based systems, you can run:
+  ```bash
+  sudo apt-get install wireshark
+  ```
+- Administrative privileges to modify group memberships and permissions.
+
+### Steps to Allow Regular Users to Capture Packets
+
+1. **Add User to the Wireshark Group**
+
+   By default, Wireshark creates a user group called `wireshark`. You need to add your user account to this group to grant the necessary permissions for packet capturing.
+
+   Run the following command, replacing `username` with your actual username:
+   ```bash
+   sudo usermod -aG wireshark username
+   ```
+
+   After executing this command, you may need to log out and log back in for the changes to take effect.
+
+2. **Set the Correct Permissions on Dumpcap**
+
+   Wireshark uses a program called `dumpcap` to capture packets. By default, this program requires root privileges. To allow users in the `wireshark` group to run `dumpcap` without root privileges, you need to change its permissions.
+
+   Run the following command:
+   ```bash
+   sudo chgrp wireshark /usr/bin/dumpcap
+   sudo chmod 750 /usr/bin/dumpcap
+   ```
+
+   This command changes the group ownership of `dumpcap` to `wireshark` and sets the permissions to allow group members to execute it.
+
+3. **Verify the Configuration**
+
+   To ensure that the configuration is correct, you can run the following command:
+   ```bash
+   dumpcap -D
+   ```
+
+   If everything is set up properly, you should see a list of available capture interfaces without any permission errors.
+
+4. **Start Wireshark**
+
+   Now that you have configured the permissions, you can start Wireshark as a regular user. Simply launch Wireshark from your applications menu or by running:
+   ```bash
+   wireshark
+   ```
+
+   You should now be able to select a network interface and begin capturing packets without needing root access.
+
+### Conclusion
+
+By following the steps outlined above, you can successfully configure Wireshark to allow regular users to perform packet captures on a Linux system. This not only enhances security but also streamlines the workflow for network analysis. Remember to always adhere to your organization's policies regarding network monitoring and data privacy. For further reading and advanced configurations, you can refer to the official Wireshark documentation.

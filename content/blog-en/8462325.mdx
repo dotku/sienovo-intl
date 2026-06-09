@@ -5,12 +5,10 @@ slug: "8462325"
 tags: []
 source: "https://blog.csdn.net/yeyuangen/article/details/8462325"
 originalTitle: "【面试】4.单链表的反向"
+expanded: true
 ---
+In this code, we maintain two pointers, `p1` and `p2`. The `p1` pointer traverses the list, while `p2` reverses the direction of the pointers. Initially, we set the head's next pointer to `NULL`, effectively marking the end of the reversed list. As we iterate through the list, we update the pointers until all nodes are reversed.
 
-Refer to the classic blog post: [Linked List Reversal](http://blog.csdn.net/niuer09/article/details/5961004)
+### Method 2: Using a Stack
 
-Given the head pointer `Head` of a singly linked list, the linked list can be reversed. One method uses direct pointer assignment, and another leverages the LIFO (Last-In, First-Out) property of a stack.
-
-```cpp
-#include<iostream>#include<stack>using namespace std; struct node{    int i;    node* next;}; void reverse1(node** head){    node* p1;    node* p2;    p1=*head;    p2=p1->next;    (*head)->next=NULL;    while(p2)    ...{        p1=p2->next;        p2->next=*head;        *head=p2;        p2=p1;    } }void reverse2(node** head){    stack<node*> S;    node* temp=*head;    while(temp)    {        S.push(temp);        temp=temp->next;    }    *head=S.top();    S.pop();    temp=*head;    while(!S.empty())    {        temp->next=S.top();        S.pop();        temp=temp->next;        temp->next=NULL;    }} int main(){     node* head=new node;    head->i=0;    head->next=NULL;    node* temp=head;    int i;    for(i=1;i<10;++i)    {        temp->next=new node;        temp=temp->next;        temp->i=i;        temp->next=NULL;    }     temp=head;    while(temp)    {        cout<<temp->i<<endl;        temp=temp->next;    }     reverse1(&head);    temp=head;    while(temp)    {        cout<<temp->i<<endl;        temp=temp->next;    }     reverse2(&head);    temp=head;    while(temp)    {        cout<<temp->i<<endl;        temp=temp->next;    }      return 0;}
-```
+The second method leverages the Last-In, First-Out (LIFO) property of a stack to reverse the linked list. This method is also O(n) in time complexity but requires O(n) space for the stack. Here’s how this method is implemented:
