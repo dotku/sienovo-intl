@@ -4,6 +4,7 @@ import { Analytics } from "@vercel/analytics/next";
 import Script from "next/script";
 import { I18nProvider } from "@/lib/i18n/context";
 import { SITE_URL } from "@/lib/site";
+import SupportChat from "@/components/SupportChat";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -186,6 +187,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <I18nProvider>{children}</I18nProvider>
+        <SupportChat />
         <Analytics />
       </body>
     </html>

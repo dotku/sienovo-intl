@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { MDXRemote } from "next-mdx-remote/rsc";
+import remarkGfm from "remark-gfm";
+import SienovoCallout from "./SienovoCallout";
 import type { BlogPost, BlogLocale } from "@/lib/blog";
 
 export default function BlogArticle({
@@ -58,9 +60,14 @@ export default function BlogArticle({
       <div className="prose prose-gray max-w-none prose-headings:font-semibold prose-img:rounded-lg prose-img:border prose-img:border-gray-200 prose-a:text-accent prose-a:no-underline hover:prose-a:underline">
         <MDXRemote
           source={post.content}
-          options={{ mdxOptions: { format: "md" } }}
+          options={{
+            mdxOptions: { format: "md", remarkPlugins: [remarkGfm] },
+          }}
         />
       </div>
+
+      {/* Brand context + internal links on every article */}
+      <SienovoCallout locale={locale} />
 
       {/* Source link */}
       {post.source && (

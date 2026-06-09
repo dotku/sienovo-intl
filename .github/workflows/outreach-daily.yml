@@ -47,13 +47,17 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: "npm"
+          cache: "pnpm"
 
       - name: Install deps
-        run: npm i --no-fund --no-audit
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Pull Apollo leads
         if: ${{ github.event.inputs.skip_pull != 'true' }}
@@ -84,6 +88,7 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+          OUTREACH_DEFAULT_CC: ${{ secrets.OUTREACH_DEFAULT_CC }}
         run: |
           CAP="${{ github.event.inputs.daily_cap || '30' }}"
           DRY="${{ github.event.inputs.dry_run || 'false' }}"

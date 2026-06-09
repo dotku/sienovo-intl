@@ -21,8 +21,6 @@ export const revalidate = 3600;
 // Low-quality posts (content < LOW_QUALITY_THRESHOLD) are excluded from
 // every child sitemap and are also marked `noindex` on their detail page.
 
-const TOP_N = 100;
-
 export async function generateSitemaps() {
   return [{ id: 0 }, { id: 1 }, { id: 2 }];
 }
@@ -122,6 +120,8 @@ async function topTierSitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/zh/blog/all`, lastModified: now, changeFrequency: "daily", priority: 0.7 },
     { url: `${SITE_URL}/press`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
     { url: `${SITE_URL}/zh/press`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
+    { url: `${SITE_URL}/contact`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
+    { url: `${SITE_URL}/zh/contact`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
   ];
 
   let productEntries: MetadataRoute.Sitemap = [];
@@ -142,55 +142,70 @@ async function topTierSitemap(): Promise<MetadataRoute.Sitemap> {
     console.error("[sitemap] prisma.product.findMany failed", err);
   }
 
-  const enTop = safeUrls("en-top", () =>
-    topPostsByLocale("en", 0, TOP_N).map((post) => ({
+  // ALL product-channel posts (not just top 100) go in the top tier at high
+  // priority — this is the content we want crawled first.
+  const enBrand = safeUrls("en-brand", () =>
+    brandPosts("en").map((post) => ({
       url: `${SITE_URL}/blog/${post.slug}`,
       lastModified: post.date ? new Date(post.date) : new Date(),
       changeFrequency: "monthly" as const,
-      priority: 0.6,
+      priority: 0.8,
     })),
   );
 
-  const zhTop = safeUrls("zh-top", () =>
-    topPostsByLocale("zh", 0, TOP_N).map((post) => ({
+  const zhBrand = safeUrls("zh-brand", () =>
+    brandPosts("zh").map((post) => ({
       url: `${SITE_URL}/zh/blog/${post.slug}`,
       lastModified: post.date ? new Date(post.date) : new Date(),
       changeFrequency: "monthly" as const,
-      priority: 0.5,
+      priority: 0.7,
     })),
   );
 
-  return [...staticEntries, ...productEntries, ...enTop, ...zhTop];
+  return [...staticEntries, ...productEntries, ...enBrand, ...zhBrand];
 }
 
-// ── ID 1: EN long tail (ranked 101+) ────────────────────────────────────────
+// ── ID 1: EN filler long tail (non-product channels) ────────────────────────
 function enLongTailSitemap(): MetadataRoute.Sitemap {
-  return safeUrls("en-long", () =>
-    topPostsByLocale("en", TOP_N, Number.MAX_SAFE_INTEGER).map((post) => ({
+  return safeUrls("en-rest", () =>
+    nonBrandPosts("en").map((post) => ({
       url: `${SITE_URL}/blog/${post.slug}`,
       lastModified: post.date ? new Date(post.date) : new Date(),
       changeFrequency: "monthly" as const,
-      priority: 0.4,
+      priority: 0.3,
     })),
   );
 }
 
-// ── ID 2: ZH long tail (ranked 101+) ────────────────────────────────────────
+// ── ID 2: ZH filler long tail (non-product channels) ────────────────────────
 function zhLongTailSitemap(): MetadataRoute.Sitemap {
-  return safeUrls("zh-long", () =>
-    topPostsByLocale("zh", TOP_N, Number.MAX_SAFE_INTEGER).map((post) => ({
+  return safeUrls("zh-rest", () =>
+    nonBrandPosts("zh").map((post) => ({
       url: `${SITE_URL}/zh/blog/${post.slug}`,
       lastModified: post.date ? new Date(post.date) : new Date(),
       changeFrequency: "monthly" as const,
-      priority: 0.4,
+      priority: 0.3,
     })),
   );
 }
 
-// ── Shared ranking + slicing ────────────────────────────────────────────────
-function topPostsByLocale(locale: "en" | "zh", from: number, to: number) {
+// ── Channel-aware ranking ───────────────────────────────────────────────────
+// szxinmai (深圳信迈's own CSDN) and ARM_FPGA_AI are Sienovo's product content —
+// the SEO asset. yeyuangen is a third-party programmer's blog we mirror for the
+// long tail. We put the product channels in the top-tier sitemap at high
+// priority so Google spends crawl budget there first, and demote the filler.
+function isBrandChannel(post: { source?: string }): boolean {
+  return /\/(szxinmai|ARM_FPGA_AI)\//i.test(post.source || "");
+}
+
+function brandPosts(locale: "en" | "zh") {
   return getAllPosts(locale)
-    .filter((post) => !isLowQualityPost(post))
-    .sort((a, b) => (b.content?.length ?? 0) - (a.content?.length ?? 0))
-    .slice(from, to);
+    .filter((post) => !isLowQualityPost(post) && isBrandChannel(post))
+    .sort((a, b) => (b.content?.length ?? 0) - (a.content?.length ?? 0));
+}
+
+function nonBrandPosts(locale: "en" | "zh") {
+  return getAllPosts(locale)
+    .filter((post) => !isLowQualityPost(post) && !isBrandChannel(post))
+    .sort((a, b) => (b.content?.length ?? 0) - (a.content?.length ?? 0));
 }

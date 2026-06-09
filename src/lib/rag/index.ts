@@ -3,6 +3,9 @@ import { extractText } from "./extract";
 import { chunkText } from "./chunk";
 import { embedTexts } from "./embed";
 import { trackApiUsage } from "@/lib/api-usage";
+import { getDriveServiceToken } from "@/lib/google-drive-token";
+import { downloadDriveFile } from "@/lib/google-drive";
+import { parseWithLlama, isLlamaParseable, llamaParseConfigured } from "./llamaparse";
 
 export async function indexKnowledgeFile(fileId: string): Promise<void> {
   const file = await prisma.knowledgeFile.update({
@@ -11,14 +14,41 @@ export async function indexKnowledgeFile(fileId: string): Promise<void> {
   });
 
   try {
-    // 1. Download from R2
-    const response = await fetch(file.url);
-    if (!response.ok) throw new Error(`Failed to download file: ${response.status}`);
-    const buffer = Buffer.from(await response.arrayBuffer());
+    // 1. Get the file bytes — straight from Drive for synced files (no blob
+    //    duplication), or from R2 for direct uploads.
+    let buffer: Buffer;
+    let mimeType = file.mimeType;
+    let fileName = file.name;
+    if (file.source === "google_drive" && file.driveFileId) {
+      const token = await getDriveServiceToken();
+      if (!token) throw new Error("Drive service account not configured");
+      const dl = await downloadDriveFile(token, file.driveFileId, file.mimeType, file.name);
+      buffer = dl.buffer;
+      mimeType = dl.mimeType;
+      fileName = dl.fileName;
+    } else {
+      const response = await fetch(file.url);
+      if (!response.ok) throw new Error(`Failed to download file: ${response.status}`);
+      buffer = Buffer.from(await response.arrayBuffer());
+    }
 
-    // 2. Extract text
-    const text = await extractText(buffer, file.mimeType, file.name);
-    if (!text.trim()) throw new Error("No text extracted from file");
+    // 2. Extract text — free local extractors first (unpdf/mammoth/text), then
+    //    LlamaParse for what they can't handle (spreadsheets, legacy .doc,
+    //    images via OCR, scanned PDFs). LlamaParse throwing falls through to the
+    //    catch as a retryable "error".
+    let text = await extractText(buffer, mimeType, fileName);
+    if (!text.trim() && llamaParseConfigured() && isLlamaParseable(mimeType, fileName)) {
+      text = await parseWithLlama(buffer, fileName, mimeType);
+    }
+    if (!text.trim()) {
+      // No extractable text (archive, shortcut, blank image, or LlamaParse
+      // returned nothing) — terminal, so the cron stops retrying it.
+      await prisma.knowledgeFile.update({
+        where: { id: fileId },
+        data: { indexStatus: "unsupported", indexError: "No extractable text" },
+      });
+      return;
+    }
 
     // 3. Chunk
     const chunks = chunkText(text);

@@ -29,6 +29,7 @@ export default function Header() {
 
   const pressHref = locale === "zh" ? "/zh/press" : "/press";
   const blogHref = locale === "zh" ? "/zh/blog" : "/blog";
+  const contactHref = locale === "zh" ? "/zh/contact" : "/contact";
 
   const NAV_ITEMS = [
     { href: "/#products", label: t.products },
@@ -39,6 +40,7 @@ export default function Header() {
     { href: "/#platform", label: t.platform },
     { href: blogHref, label: t.blog },
     { href: pressHref, label: t.press || "Press" },
+    { href: contactHref, label: t.contact || (locale === "zh" ? "联系" : "Contact") },
   ];
 
   return (
