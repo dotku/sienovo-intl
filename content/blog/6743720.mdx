@@ -4,33 +4,20 @@ date: "2011-09-02"
 slug: "6743720"
 tags: ["#struct", "#linux", "#class", "#编程"]
 source: "https://blog.csdn.net/yeyuangen/article/details/6743720"
+
+expanded: true
 ---
+这个 `struct` 定义了一个名为 `p_base` 的结构体，它包含两个整型成员 `p_name` 和 `p_len`，以及一个构造函数。在工业控制、物联网 (IoT) 或边缘 AI 设备中，数据通常以特定协议格式传输。一个协议消息通常包含一个标识符（如 `protocol_code`）和消息体的长度（如 `protocol_len`）。`p_base` 提供了一个简洁的方式来封装这些基本信息。
 
- 
+它的构造函数 `p_base(int protocol_code, int protocol_len):p_name(protocol_code),p_len(protocol_len){}` 允许在创建 `p_base` 对象时直接初始化 `p_name` 和 `p_len`。
 
-问：
+## C++ 中 `struct` 与 `class` 的异同
 
-// 协议基 类  
-struct p\_base  
-{  
-p\_base(int protocol\_code,int protocol\_len):p\_name(protocol\_code),p\_len(protocol\_len)  
-{}  
-int p\_name;  
-int p\_len;  
-};
+C++ 中的 `struct` 和 `class` 在功能上非常相似，但存在一个关键的区别：默认的成员访问权限和默认的继承访问权限。
 
-答：这个就相当于class p\_base  
-{  
-public:  
-int p\_name;  
-int p\_len;  
-public:  
-p\_base(int protocol\_code,int protocol\_len)  
-{  
-p\_name = protocol\_code;  
-p\_len = protocol\_len;  
-}  
-};
+*   **`struct`**: 默认成员访问权限是 `public`，默认继承访问权限也是 `public`。
+*   **`class`**: 默认成员访问权限是 `private`，默认继承访问权限也是 `private`。
 
-参考：struct p\_base 不解(页1) - Linux环境编程- ChinaUnix. net \- Powered  
-[http://bbs.chinaunix.net/archiver/tid-3580489.html](http://http//bbs.chinaunix.net/archiver/tid-3580489.html)
+除了这个默认访问权限的区别，`struct` 和 `class` 在C++中几乎是等价的。这意味着你可以为 `struct` 定义构造函数、析构函数、成员函数、运算符重载，甚至可以进行继承。
+
+原始文章中给出了 `struct p_base` 的 `class` 等价形式，这完美地说明了这一点：

@@ -4,53 +4,18 @@ date: "2012-12-21"
 slug: "8364466"
 tags: []
 source: "https://blog.csdn.net/yeyuangen/article/details/8364466"
+
+expanded: true
+---
+或者直接使用语言提供的互斥锁 API（如 `std::mutex`、`pthread_mutex_t`、`std::lock_guard` 等）。
+
 ---
 
- 
+## 3. 计数信号量（Counting Semaphore）与 Mutex 的根本区别  
 
-多线程编程中，常常会遇到这两个概念：Mutex和Semaphore，两者之间区别如下:
+### 3.1 计数器的意义  
 
- 
+- **Semaphore**：内部维护一个 **计数器**（count），可以被 **显式增加**（Signal）或 **减少**（Unsignal）。计数器的取值范围是 **0 到 max_count**，因此可以控制 **并发访问的上限**。  
+- **Mutex**：只有 **0 与 1** 两种状态，表示 **已锁定** 与 **未锁定**。没有计数概念，也没有上限的概念。
 
-有人做过如下类比：
-
-Mutex是一把钥匙，一个人拿了就可进入一个房间，出来的时候把钥匙交给队列的第一个，一般的用法是用于串行化对临界区代码的访问，保证这段代码不会被并行的运行。
-
-Semaphore是一件可以容纳N人的房间，如果人不满就可以进去，如果人满了，就要等待有人出来。
-
-对于N=1的情况，称为binary semaphore，一般的用法是，用于限制对于某一[资源](http://www.haogongju.net/tag/%E8%B5%84%E6%BA%90 "资源")的同时访问。在有的[系统](http://www.haogongju.net/tag/%E7%B3%BB%E7%BB%9F "系统")中Binary semaphore与Mutex是没有差异的
-
- 
-
-信号量可以设置计数器，而互斥锁只有0和1的关系。
-
-Semaphore semaphore = new Semaphore(1);表示同时访问资源的许可数量只有一个。这个语义可以实现一个Mutex互斥锁：
-
-  
-class semaphore
-
-{
-
-public:
-
-    Semaphore(int count, int max\_count);
-
-    ~Semaphore();
-
-    void Unsignal();//等待操作P,count--，如果count==0则等待
-
-    void Signal();//释放操作V，count++
-
-}
-
-classmutex
-
-{
-
-public:
-
-    waitMutex();//阻塞线程，直到其它线程释放互斥锁
-
-    releaseMutex();//释放线程
-
-}
+> **原文代码**（保持不变）：

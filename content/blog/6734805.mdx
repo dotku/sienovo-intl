@@ -4,25 +4,27 @@ date: "2011-08-31"
 slug: "6734805"
 tags: ["#vim", "#centos"]
 source: "https://blog.csdn.net/yeyuangen/article/details/6734805"
+expanded: true
+---
+### 1.1 `set number` – 显示行号
+
+- **作用**：在编辑窗口左侧显示每行的行号，便于定位代码行、快速跳转以及在调试时引用特定行。
+- **注意**：`set number` 只影响当前会话的显示，不会影响文件内容本身。
+
+### 1.2 `set tabstop=4` – 制表符宽度
+
+- **作用**：将一个 `Tab` 键的宽度定义为 4 个空格，这在多数 C/C++、Python、Java 项目中是默认的编码规范。
+- **补充**：如果还希望在按 `Tab` 键时自动插入空格而不是实际的 `Tab` 字符，可额外加入 `set expandtab`（本文未涉及，但可自行实验）。
+
+### 1.3 `set ai` – 自动缩进
+
+- **作用**：打开自动缩进（auto‑indent），编辑器会在新行自动复制上一行的缩进空格或 `Tab`，大幅提升代码书写效率。
+- **常见问题**：有时 `set ai` 会被注释掉（前面加了双引号 `"`），导致功能失效。只需要去掉注释即可。
+
+> **小技巧**：在 `vimrc` 中加入上述三条指令后，保存并退出编辑器。重新打开任意文本文件，即可看到行号、制表符宽度以及自动缩进已经生效。
+
 ---
 
- 
+## 2. 为 `root` 用户单独配置别名
 
-用vim打开/etc/vimrc  
-vi /etc/vimrc  
-在最下面加入：  
-set number  
-set tabstop=4  
-如果在vimrc文件里已经有了  
-set ai  
-只是被用双引号注释掉了，那么就把双引号拿掉就好了  
-如果没有set ai，那么加在最下面。  
-  
-  
-我用的是CentOS5.3，经过如上设置后，发现普通用户的vim已经设置好了，但是root用户当使用vi命令的时候，打开的是vi而不是vim，所以还不能自动缩进和显示行号，解决方法如下：  
-打开root用户的.bashrc文件  
-vi /root/.bashrc  
-在里面加入一行：  
-alias vi=vim  
-保存，退出root用户，再登录，就好了  
-文章出处：飞诺网(www.diybl.com):http://www.diybl.com/course/6\_system/linux/Linuxjs/20090426/165430.html
+在 CentOS 系统中，`root` 用户默认使用 `vi` 命令启动编辑器，而 `vi` 实际上是 `vim` 的兼容模式，某些自定义的 `vimrc` 配置（如 `set ai`）在兼容模式下可能不被加载。为了解决这一问题，需要为 `root` 用户创建一个别名，使其调用 `vim` 而不是 `vi`。

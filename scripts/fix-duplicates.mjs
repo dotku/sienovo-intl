@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync, readdirSync } from "fs";
 import { join } from "path";
 
-const dir = "C:\\Users\\vince\\sienovo-intl\\content\\blog-en";
+const dir = new URL("../content/blog-en", import.meta.url).pathname.replace(/^\/([A-Z]:)/, "$1");
 const files = readdirSync(dir).filter(f => f.endsWith(".mdx"));
 let fixed = 0;
 

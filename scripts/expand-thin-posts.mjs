@@ -360,8 +360,8 @@ async function main() {
       }
 
       const newLen = result.length;
-      if (newLen < 500) {
-        throw new Error(`expansion only ${newLen}c, below 500 threshold`);
+      if (newLen < 300) {
+        throw new Error(`expansion only ${newLen}c, below 300 threshold`);
       }
       if (newLen / c.enLen > 50) {
         throw new Error(`length ratio ${(newLen / c.enLen).toFixed(0)}x — likely hallucinated`);

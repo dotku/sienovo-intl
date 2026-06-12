@@ -4,52 +4,159 @@ date: "2011-08-18"
 slug: "6698501"
 tags: ["#终端", "#makefile", "#编译器", "#windows", "#linux", "#测试"]
 source: "https://blog.csdn.net/yeyuangen/article/details/6698501"
+
+expanded: true
 ---
+在嵌入式Linux开发中，通过串口终端进行文件传输是一项基本且常用的操作，尤其是在网络环境不便或系统尚未完全配置好的早期阶段。`rz` 和 `sz` 命令（通常作为 `rzsz` 软件包的一部分）是实现这一功能的利器，它们基于Zmodem协议，允许开发者在宿主机PC与目标开发板之间可靠地传输文件。然而，许多精简的嵌入式Linux发行版或自定义的根文件系统默认不包含这些实用工具。本文将详细指导您如何在嵌入式Linux目标板上编译、部署并使用 `rz` 和 `sz` 命令，以便通过串口高效地传输文件。
 
- 
+## 为什么需要 `rz` 和 `sz`？
 
-移植新下载的linux源码中是没有超级终端的 命令 的，需要自己添加。添加完了，开发板就可以PC通过串口传输文件了。
+在嵌入式开发过程中，我们经常需要将编译好的应用程序、配置文件、脚本或其他数据从开发主机（PC）传输到目标板，或者将目标板上的日志、测试结果等文件传回PC进行分析。虽然有多种文件传输方式，例如NFS、FTP、SCP或ADB（针对Android），但它们通常依赖于网络连接或特定的驱动程序。在以下场景中，`rz` 和 `sz` 显得尤为重要：
 
-步骤：
+1.  **早期开发阶段：** 目标板的网络驱动尚未稳定，或者IP地址配置不正确。
+2.  **调试阶段：** 系统可能处于不稳定状态，网络服务无法正常启动。
+3.  **资源受限环境：** 目标板硬件资源有限，无法运行复杂的网络服务。
+4.  **简单快捷：** 只需要传输少量文件，通过串口终端操作更为直接。
 
-1、  下载软件 rzsz-3.48. tar.gz 。 [http://freeware.sgi.com/source/rzsz/rzsz-3.48.tar.gz](http://freeware.sgi.com/source/rzsz/rzsz-3.48.tar.gz)下载。
+`rz` 和 `sz` 命令利用Zmodem协议，通过串行端口进行数据传输，具有错误校验和断点续传等特性，确保了在不稳定串口连接下的数据完整性。
 
-2、解压 tar zxvf  rzsz-3.48.tar.gz
+## 准备工作：下载 `rzsz` 软件包
 
-3、安装  cd src
+`rzsz` 是一个包含 `rz` (receive Zmodem) 和 `sz` (send Zmodem) 等命令的开源软件包，它也支持Xmodem和Ymodem协议。
 
-       vi Makefile
+1.  **下载软件：** 您需要从官方或镜像站点下载 `rzsz` 软件包的源码。
+    ```
+    rzsz-3.48.tar.gz
+    ```
+    下载链接：[http://freeware.sgi.com/source/rzsz/rzsz-3.48.tar.gz](http://freeware.sgi.com/source/rzsz/rzsz-3.48.tar.gz)
 
-       修改CC=arm-linux-gcc
+## 编译 `rzsz` 软件包
 
-       保存退出
+由于我们的目标是嵌入式Linux开发板，通常其处理器架构与开发主机（PC）不同（例如，PC是x86，开发板是ARM），因此我们需要使用交叉编译工具链来编译 `rzsz`。
 
-       make posix 。
+1.  **解压源码包：**
+    首先，将下载的 `rzsz-3.48.tar.gz` 文件解压到您的工作目录。
+    ```bash
+    tar zxvf rzsz-3.48.tar.gz
+    ```
 
-    注意：这个软件安装与常规的GNU软件不同—没有configure(配置)及make install (安装过程)。
+2.  **进入源码目录：**
+    解压后会生成一个名为 `rzsz-3.48` 的目录，进入其 `src` 子目录。
+    ```bash
+    cd rzsz-3.48/src
+    ```
 
-        我的是 S3C2410的交叉编译器，不同的平台只是交叉编译器不一样而已。
+3.  **修改 Makefile：**
+    `rzsz` 软件包的编译方式与常规的GNU软件有所不同，它没有 `configure` 脚本来自动检测系统环境和交叉编译工具链。因此，我们需要手动修改 `Makefile` 文件，指定正确的交叉编译器。
+    ```bash
+    vi Makefile
+    ```
+    在 `Makefile` 中找到 `CC=` 这一行，并将其修改为您的交叉编译器名称。例如，如果您的开发板是基于ARM架构的三星S3C2410处理器，那么交叉编译器通常是 `arm-linux-gcc`。
+    ```makefile
+    CC=arm-linux-gcc
+    ```
+    **注意：** 这里的 `arm-linux-gcc` 只是一个示例，您需要根据您实际使用的开发板平台和交叉编译工具链来替换。例如，对于TI Sitara AM5728处理器，可能是 `arm-linux-gnueabihf-gcc`；对于MIPS架构，可能是 `mips-linux-gcc` 等。请确保您的交叉编译工具链已正确安装并配置到系统PATH中。修改完成后，保存并退出 `Makefile`。
 
-        输入命令make posix后，如果编译成功，在输入 ls命令，你将发现，多了很多文件
+4.  **执行编译：**
+    `rzsz` 软件包的编译命令是 `make posix`，而不是常见的 `make` 或 `make install`。
+    ```bash
+    make posix
+    ```
+    `make posix` 命令会编译出符合POSIX标准的 `rz`、`sz` 等工具。如果编译成功，您将不会看到明显的错误信息。
 
-        COPYING   gz         minirb.c    rc      rz.c    sz       undos.doc  zmodem.h
+5.  **验证编译结果：**
+    编译成功后，在当前 `src` 目录下执行 `ls` 命令，您会发现生成了许多新的可执行文件和目标文件。
+    ```bash
+    ls
+    ```
+    您应该能看到以下类似的文件列表（其中 `rz`、`sz`、`sx`、`rx`、`rb`、`sb` 是我们主要关注的可执行文件）：
+    ```
+    COPYING    gz          minirb.c    rc      rz.c    sz          undos.doc   zmodem.h
+    crc.c      mailer.rz   minirb.doc  README  rz.doc  sz.c        zcommand    zmr.c
+    crc.doc    Makefile    rb          rx      sb      sz.doc      zcommandi   zupl.t
+    crctab.c   Makefile~   rbsb.c      rz      sx      undos.c     zm.c
+    ```
 
-        crc.c     mailer.rz  minirb.doc  README  rz.doc  sz.c     zcommand   zmr.c
+## 部署 `rzsz` 到目标板根文件系统
 
-        crc.doc   Makefile   rb          rx      sb      sz.doc   zcommandi  zupl.t
+编译成功后，我们需要将生成的可执行文件拷贝到目标板的根文件系统中。
 
-        crctab.c  Makefile~  rbsb.c      rz      sx      undos.c  zm.c
+1.  **拷贝可执行文件：**
+    将 `rb`, `rx`, `rc`, `rz`, `sb`, `sx`, `sz`, `zcommand`, `zcommandi` 这些可执行文件拷贝到您制作的根文件系统的 `bin` 目录下。`/bin` 目录通常用于存放系统启动和运行所需的基本命令。
+    ```bash
+    # 假设您的根文件系统挂载在 /mnt/rootfs
+    cp rb rx rc rz sb sx sz zcommand zcommandi /mnt/rootfs/bin/
+    ```
 
-    将rb,rx,rc,rz,sb,sx,sz,zcommand zcommandi拷贝到你制作的根文件系统的bin目录下，然后在将交叉编译器下的ld-2.5.so      libc-2.5.so      libcrypt.so.1  libgcc\_s.so.1  libm.so.6 ld-linux.so.3  libcrypt-2.5.so  libc.so.6      libm-2.5.so等库（可能版本不同，相应的数字，但只要是这几个文件即可）拷贝到根文件系统的lib目录下，然后再重新制作该根文件系统，下载到 开发板，重新启动，可以试一下rz和sz命令。
+2.  **处理动态链接库（重要观察）：**
+    通常情况下，如果编译出的程序是动态链接的，那么它们会依赖一些动态链接库（如 `libc.so.6`, `ld-linux.so.3` 等）。这些库也需要被拷贝到目标板根文件系统的 `lib` 目录下。原始文章中提到了一些可能需要的库文件：
+    ```
+    ld-2.5.so   libc-2.5.so   libcrypt.so.1   libgcc_s.so.1   libm.so.6
+    ld-linux.so.3   libcrypt-2.5.so   libc.so.6   libm-2.5.so
+    ```
+    **然而，这里有一个非常重要的发现：**
+    “在我具体操作中，我用 `ldd` 命令查看 `rz` 等命令所依赖的动态文件库，发现它们并没有依赖任何动态库，这里我只查看了 `rz` 与 `sx` 两个命令，其它的就不知道了，所以我在制作文件系统时，并没有将以上所讲到的动态库移植到 `lib` 中，最后在用 `rz` 命令测试时确实能够用。”
 
-命令用法：
+    这意味着，在某些编译环境下，`rz` 和 `sx` 命令可能是静态链接的，或者只依赖于目标板上已经存在的少数基本库。**因此，强烈建议您在拷贝文件之前，使用 `ldd` 命令来检查编译出的 `rz` 和 `sz` 等可执行文件的实际依赖关系。**
 
-    sz  /文件名 ，然后打开windows下的超级终端，右击选择接收文件，设置接收文件的目录，确定就OK了。
+    **如何使用 `ldd` 命令：**
+    在您的开发主机上，进入 `rzsz-3.48/src` 目录，并对编译出的可执行文件运行 `ldd` 命令，例如：
+    ```bash
+    # 假设您的交叉编译工具链的ldd在PATH中，或者您需要指定完整路径
+    /path/to/your/cross-toolchain/bin/arm-linux-ldd rz
+    /path/to/your/cross-toolchain/bin/arm-linux-ldd sz
+    ```
+    如果 `ldd` 的输出显示 "not a dynamic executable" 或 "statically linked"，则表示该程序是静态链接的，不需要额外的动态库。如果显示了依赖列表，那么您就需要将这些列出的库文件从交叉编译工具链的 `sysroot/lib` 目录中拷贝到目标板根文件系统的 `/lib` 目录。
 
-    rz           ，在超级终端中右击选择发送的文件即可。
+    **故障排除提示：**
+    “注意，如果命令用不了，你就应该用 `ldd` 命令查看它是否有依赖动态文件库，再将其移植到文件系统中。这样就能用了~~哈哈~~”
+    这条经验非常宝贵。如果您的 `rz` 或 `sz` 命令在目标板上执行时报错（例如 "No such file or directory" 或 "segmentation fault"），很可能是缺少了某个动态链接库。此时，使用 `ldd` 检查是定位问题的关键一步。
 
-在我具体操作中，我用ldd命令查看rz等命令所依赖的动态文件库，发现他们并没有依赖任何动态库，这里我只查看了rz与sx两个命令，其它的就不知道了，所以我在制作文件系统时，并没有将以上所讲到的动态库移植到lib中，最后在用rz命令测试时确实能够用。
+## 制作并烧写根文件系统
 
-注意，
+将所有必要的文件（包括 `rz`、`sz` 等可执行文件和可能需要的动态库）拷贝到根文件系统目录后，您需要重新制作根文件系统镜像（例如 `rootfs.img` 或 `jffs2.img`），然后将其烧写到您的开发板上。烧写完成后，重新启动开发板。
 
-     如果命令用不了，你就应该用ldd命令查看它是否有依赖动态文件库，再将其移植到文件系统中。这样就能用了~~哈哈~~
+## 使用 `rz` 和 `sz` 命令进行文件传输
+
+开发板重新启动后，您就可以通过串口终端来测试 `rz` 和 `sz` 命令了。在PC端，您可以使用任何支持Zmodem协议的串口终端软件，例如Windows下的超级终端（HyperTerminal）、PuTTY（通过第三方插件或外部工具）、SecureCRT，或者Linux下的minicom。
+
+### 1. 从目标板发送文件到PC (`sz`)
+
+当您需要将开发板上的文件传输到PC时，使用 `sz` 命令。
+
+*   **在目标板上执行命令：**
+    ```bash
+    sz /path/to/your/filename
+    ```
+    例如，要发送 `/tmp/log.txt` 文件：
+    ```bash
+    sz /tmp/log.txt
+    ```
+    执行此命令后，目标板会进入等待状态，等待PC端发起接收。
+
+*   **在PC端操作：**
+    打开您的串口终端软件（例如Windows超级终端），右击终端窗口，选择“接收文件”（Receive File）或类似选项。在弹出的对话框中，设置您希望保存文件的目录，然后点击“确定”或“开始”。文件传输将自动开始。
+
+### 2. 从PC发送文件到目标板 (`rz`)
+
+当您需要将PC上的文件传输到目标板时，使用 `rz` 命令。
+
+*   **在目标板上执行命令：**
+    ```bash
+    rz
+    ```
+    执行此命令后，目标板会进入等待状态，等待PC端发起发送。
+
+*   **在PC端操作：**
+    打开您的串口终端软件，右击终端窗口，选择“发送文件”（Send File）或类似选项。在弹出的对话框中，选择您想要发送的文件。选择文件后，点击“确定”或“开始”。文件传输将自动开始。
+
+## 常见问题与故障排除
+
+*   **命令找不到或权限问题：** 确保 `rz` 和 `sz` 等可执行文件被拷贝到了目标板根文件系统的 `/bin` 目录下，并且具有可执行权限 (`chmod +x /bin/rz`)。同时，确认 `/bin` 目录在目标板的 `PATH` 环境变量中，或者您使用完整路径执行命令（例如 `/bin/rz`）。
+*   **缺少动态库：** 如前所述，如果命令无法运行，请务必使用 `ldd` 命令检查其动态库依赖，并将缺少的库拷贝到目标板的 `/lib` 目录。
+*   **串口参数不匹配：** 确保PC端串口终端软件的波特率、数据位、停止位、奇偶校验等参数与目标板串口驱动的设置一致。
+*   **Zmodem协议问题：** 确保PC端的串口终端软件支持Zmodem协议。
+
+## 总结
+
+通过本文的详细步骤，您应该已经成功地在您的嵌入式Linux开发板上编译、部署并使用了 `rz` 和 `sz` 命令。这些工具极大地简化了在没有网络或其他高级传输手段时，通过串口进行文件传输的复杂性，是嵌入式开发人员工具箱中不可或缺的一部分。掌握它们的使用，将使您的开发和调试工作更加高效便捷。

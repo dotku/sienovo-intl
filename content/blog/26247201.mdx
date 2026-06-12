@@ -4,21 +4,28 @@ date: "2014-05-19"
 slug: "26247201"
 tags: []
 source: "https://blog.csdn.net/yeyuangen/article/details/26247201"
+expanded: true
 ---
+function buildTree(postorder, inorder):
+    if postorder is empty:
+        return null
 
- 
+    // 1. 根节点是后序序列的最后一个元素
+    rootVal = postorder[-1]
+    root = new TreeNode(rootVal)
 
-## 已知二叉树后序遍历序列是DABEC 中序遍历列是 DEBAC ，它的前序遍历序列是：
+    // 2. 在中序序列中找到根节点的位置
+    idx = inorder.index(rootVal)
 
-\----C 
----/ 
---E 
--/-\\ 
-D---B 
------\\ 
-------A
-我知道答案思念是这个....我想问的是...为什么是这么画？？
+    // 3. 划分左右子树
+    leftInorder  = inorder[0:idx]
+    rightInorder = inorder[idx+1:]
 
-  
+    leftPostorder  = postorder[0:len(leftInorder)]
+    rightPostorder = postorder[len(leftInorder):-1]
 
-后序遍历就是：左右根，中序遍历就是：左根右。1.后序遍历得C为根节点。2.中序得C无右子树，后序得C下一个根节点为E。3，中序DEBA得D为E的左子树，后序DAB得B为E的下一个根节点，只能为E的右子树了，中序BA得A为B的右之树。
+    // 4. 递归构造左右子树
+    root.left  = buildTree(leftPostorder,  leftInorder)
+    root.right = buildTree(rightPostorder, rightInorder)
+
+    return root

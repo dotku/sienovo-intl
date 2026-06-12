@@ -4,10 +4,24 @@ date: "2015-04-13"
 slug: "45032199"
 tags: []
 source: "https://blog.csdn.net/yeyuangen/article/details/45032199"
+
+expanded: true
 ---
+- **`thread`**：待等待的子线程的 ID（由 `pthread_create` 返回）。
+- **`retval`**：子线程的返回值指针。如果不关心返回值，可传 `NULL`。
+- **返回值**：成功返回 `0`，失败返回错误码（如 `EINVAL`、`ESRCH`、`EDEADLK`）。
 
- 
+### 3. `pthread_join` 与 `pthread_detach` 的区别
 
-1.pthread\_join的作用
+| 特性               | `pthread_join`                              | `pthread_detach`                              |
+|--------------------|--------------------------------------------|----------------------------------------------|
+| 是否阻塞调用线程   | 阻塞，直到目标线程结束                     | 不阻塞，立即返回                              |
+| 资源回收方式       | 自动回收（线程的栈、线程描述符等）          | 需要自行确保资源不泄漏（如使用 `pthread_exit`） |
+| 是否可以多次调用   | 只能对同一线程调用一次                     | 只能对同一线程调用一次（调用后不可再 `join`）   |
+| 适用场景           | 需要获取子线程返回值或确保子线程完成后再退出 | 线程独立运行，主线程不关心其结束状态           |
 
-代码中如果没有[pthread\_join](http://baike.baidu.com/view/2925158.htm)[主线程](http://baike.baidu.com/view/536183.htm)会很快结束从而使整个进程结束，从而使创建的线程没有机会开始执行就结束了。加入[pthread\_join](http://baike.baidu.com/view/2925158.htm)后，[主线程](http://baike.baidu.com/view/536183.htm)会一直等待直到等待的线程结束自己才结束，使创建的线程有机会执行。
+在实际项目中，**如果子线程的执行结果需要被主线程使用**（例如返回计算结果、错误码），则必须使用 `pthread_join`；如果子线程是“后台任务”，且不需要主线程等待，则可以将其 **detach**，让系统自行回收资源。
+
+### 4. `pthread_join` 的典型使用流程
+
+下面给出一个完整的示例，演示从创建线程到使用 `pthread_join` 等待线程结束的全过程。代码保持简洁，便于聚焦 `pthread_join` 的行为。

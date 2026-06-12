@@ -4,65 +4,16 @@ date: "2014-05-20"
 slug: "26371817"
 tags: ["#ubuntu", "#mysql"]
 source: "https://blog.csdn.net/yeyuangen/article/details/26371817"
+
+expanded: true
 ---
+**命令解释：**
 
- 
+*   `sudo apt-get autoremove --purge mysql-server-5.0`: 这条命令尝试彻底删除特定版本的MySQL服务器（例如5.0）。`--purge`选项确保删除软件包的同时也清除其系统范围的配置文件。`autoremove`会移除因`mysql-server-5.0`而安装但现在已无其他用途的依赖包。
+*   `sudo apt-get remove mysql-server`: 移除通用`mysql-server`元包。即使没有指定版本，这条命令也能帮助清理。
+*   `sudo apt-get autoremove mysql-server`: 再次运行`autoremove`，以确保在`mysql-server`被移除后，其不再需要的依赖项也被清理。
+*   `sudo apt-get remove mysql-common`: **非常重要**。`mysql-common`是一个包含MySQL客户端和服务器共享的通用文件、库和配置的软件包。卸载它对于彻底清除MySQL环境至关重要，因为它可能包含`/etc/mysql`目录下的核心配置文件。
 
-[Ubuntu下彻底卸载mysql](http://www.blogjava.net/yjhmily/articles/336926.html)
+### 2. 清理残留的配置文件
 
-  
-1、删除 mysql  
-  
-
-1  sudo apt \- get autoremove  \-- purge mysql \- server \- 5.0  
-2  sudo apt \- get remove mysql \- server  
-3  sudo apt \- get autoremove mysql \- server  
-4  sudo apt \- get remove mysql \- common (非常重要)  
-
-上面的其实有一些是多余的，建议还是按照顺序执行一遍清理残留数据  
-  
-
-dpkg  \- l  | grep  ^ rc | awk  ' {print $2} '   | sudo xargs dpkg  \- P  
-
-提示：
-
-dpkg: warning: while removing mysql-common, directory '/etc/mysql' not empty so not removed.
-
-手动将debian.cnf重命名，也就是让其失效：
-
-yeyuangen@ubuntu:/$ cd /etc/mysql/
-yeyuangen@ubuntu:/etc/mysql$ ls
-debian.cnf
-yeyuangen@ubuntu:/etc/mysql$ mv debian.cnf debian.cnf1
-
-2、安装 mysql
-
-1  sudo apt \- get install mysql \- server  
-2  sudo apt \- get install mysql \- client  
-3  sudo apt \- get install php5 \- mysql (安装php5-mysql 是将php和mysql连接起来  )   
-
- 
-
-一旦安装完成，MySQL 服务器应该自动启动。您可以在终端提示符后运行以下命令来检查 MySQL 服务器是否正在运行：
-
-1  sudo netstat  \- tap  |  grep mysql
-
-  
-
-当您运行该命令时，您可以看到类似下面的行：
-
-tcp 0 0 localhost.localdomain:mysql \*:\* LISTEN -
-
-如果服务器不能正常运行，您可以通过下列命令启动它：
-
-  
-
-1  sudo  / etc / init.d / mysql restart
-
-  
-
-3、进入mysql
-
-$mysql -u root -p 管理员密码  
-
-1  sudo mysql  \- u root -p
+即使使用了`--purge`选项，有时系统上仍可能存在一些被标记为“已删除但配置未清除”的软件包。我们可以使用`dpkg`命令来查找并彻底清除这些残留配置。
