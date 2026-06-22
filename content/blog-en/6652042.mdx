@@ -9,5 +9,7 @@ originalTitle: "linux 0.11  namei.c 注释"
 
 expanded: true
 expandSkipped: true
+seoTitle: "Understanding Linux 0.11 namei.c Functionality | Sienovo"
+seoDescription: "Explore the Linux 0.11 namei.c function, its checks for device links, user IDs, and file access in this technical overview."
 ---
 The `permission()` function first checks if the i-node has a corresponding device but no links. If so, it returns 0, indicating that the file is deleted and cannot be accessed. Otherwise, it checks if the effective user ID (euid) of the current process matches the user ID of the file. If so, it shifts the file's mode to the left by 6 bits, effectively ignoring the user ID. If the euid does not match the user ID, it checks if the effective group ID (egid) of the current process matches the group ID of the file. If so, it shifts the file's mode to the left by 3 bits, effectively ignoring the group ID.

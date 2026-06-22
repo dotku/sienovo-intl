@@ -5,6 +5,8 @@ slug: "6763073"
 tags: ["#Linux", "#Struct", "#Thread", "#Embedded", "#Assembly", "#Null"]
 source: "https://blog.csdn.net/yeyuangen/article/details/6763073"
 originalTitle: "Linux进程切换以及内核线程的返回值"
+seoTitle: "Linux Process Switching Explained | Sienovo"
+seoDescription: "Discover how Linux process switching works and the return values of kernel threads for efficient execution in embedded systems."
 ---
 
 The process in Linux is a fundamental concept. A process has two starting points when transitioning from the run queue to execution: one is label 1 in the `switch_to` macro: `"1:\t"`, and the other is `ret_from_fork`. Almost all processes that are not newly created start from label 1 mentioned above. The `switch_to` macro is a mandatory path for all processes except the kernel itself to go through in order to run. Thus, although the Linux process system and scheduling mechanism are highly complex, the overall structure resembles an hourglass, with the `switch_to` macro representing the narrowest point in the middle. To move from one end to the other, every process must pass through this point. For non-newly-created processes, execution always begins at label 1. Let's first examine how this works:
