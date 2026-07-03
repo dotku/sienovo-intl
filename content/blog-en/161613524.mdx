@@ -1,0 +1,32 @@
+---
+title: "Design Solution for a Precision Multi-Axis Real-Time Motion Control Card Based on ARM+FPGA, Applicable to High-Precision Fields such as Semiconductor Equipment (Part 1)"
+date: "2026-06-02"
+slug: "161613524"
+tags: ["#ARM", "#FPGA", "#MotionControl", "#SemiconductorEquipment", "#HighPrecision", "#RealTime", "#CNC", "#MultiAxisControl"]
+source: "https://blog.csdn.net/szxinmai/article/details/161613524"
+originalTitle: "基于 ARM+FPGA精密多轴实时运动控制卡设计方案，适用于半导体设备等高精度领域（一）"
+---
+
+In both CNC systems and robotics control, multi-axis motion control systems are required to achieve high-precision, high-stability, and high-efficiency motion control. A high-performance motion control system needs to be ensured through many aspects, such as high-precision position sensors, control loops with fast response and small tracking errors, and high-performance interpolation and acceleration/deceleration control modules.
+
+Digital control technology is a strategic core technology. Five-axis and above simultaneous CNC systems and machine tools are even more of a strategic material, reflecting a nation's advanced manufacturing technology level and representing a key area of competition among major powers.![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/161613524/01_e8e100cc9f674a8193ec0dd22474ce65.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/161613524/02_6c16f1797cbd483da77c4b2abd8c309e.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/161613524/03_21602a5061624d4a8a4a946ebb88f3b5.png)
+
+With the continuous advancement of mechanical manufacturing technology, microelectronics technology, and precision measurement technology, the processing capability of motion control systems has rapidly improved. MEMS technology has made it possible for CNC equipment to be equipped with feature-rich, higher-precision sensors. Motion controllers also need to further develop towards high speed, high precision, and intelligence.
+
+(1) High Speed. With the development of integrated circuit technology, high-performance processing chips such as FPGAs, ARMs, and DSPs are widely used in the control field. Motion controllers often adopt architectures like FPGA+ARM or FPGA+DSP, combining the advantages of FPGA's high parallelism, fast computation speed, flexibility, and high real-time performance with ARM's and DSP's strong control capabilities and proficiency in floating-point multiplication and division, significantly enhancing the processing power of motion controllers. On the other hand, with the development of advanced servo drive technologies such as precision manufacturing technology, pulse width modulation technology, and vector control, and the application of high-performance servo motors, spindle rotation speed and cutting speed have increased.![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/161613524/04_e4cb005d7c42434488d4f815646f246e.png)
+
+(2) High Precision. The following measures are taken in motion control systems to improve precision:
+
+(a) Employing high-resolution position encoders, such as high-precision grating encoders, to improve position detection accuracy.
+
+(b) Position servo systems often use methods such as feedforward and nonlinear control to improve the response characteristics of the servo system, for example, Heidenhain's PMAC series motion control cards.
+
+(c) To eliminate the crawling phenomenon caused by the nonlinearity of dynamic and static friction in machine tools, in addition to mechanical measures such as air-bearing guides and rolling guides to reduce static friction, high-end servo control systems also feature automatic compensation functions. These compensation functions are not limited to dynamic and static friction in mechanical systems but also include torque compensation, tool compensation, and backlash compensation.
+
+(3) Real-time Intelligent Monitoring Function. Most CNC equipment integrates infrared, ultrasonic, and laser detection devices in their hardware circuits, which requires the motion control system to achieve real-time monitoring of the machining process. Through built-in hardware and software fault self-diagnosis functions, it can promptly stop machining and save the machining progress if a fault occurs during the process, allowing machining to resume after the fault is cleared without scrapping the workpiece.
+
+(1) Design the hardware circuit of a motion control card based on an ARM+FPGA architecture to achieve micron-level milling. Due to FPGA's high parallelism and fast execution speed, to maximize the performance of the motion control card, specific peripheral functions, such as encoder interfaces, control loops, and acceleration/deceleration control, should be implemented in the FPGA rather than the ARM core. However, given FPGA's relatively poor floating-point support and less flexible control, an ARM microcontroller model LM3S6911 is also
