@@ -1,0 +1,24 @@
+---
+title: "End-to-End Implementation of Infrared Image Processing Algorithms Based on ZYNQ UltraScale+ MPSoC"
+date: "2026-07-17"
+slug: "162961611"
+tags: ["#ZYNQUltraScaleMPSoC", "#InfraredImageProcessing", "#ImageProcessing", "#AlgorithmImplementation", "#EmbeddedLinux", "#QTFramework", "#OpenCV", "#OpenGLES", "#GPUAcceleration"]
+source: "https://blog.csdn.net/szxinmai/article/details/162961611"
+originalTitle: "基于ZYNQ UltraScale+ MPSoC的红外图像处理算法全流程落地"
+---
+
+## 1. Introduction
+
+This article focuses on the research and implementation of infrared image processing algorithms based on the ZYNQ UltraScale+ MPSoC hardware platform. By porting a Linux system to the ZYNQ UltraScale+ MPSoC, cross-compiling QT and OpenCV applications, and connecting an external infrared camera, monitor, and network cable, a working environment suitable for infrared image acquisition and image processing algorithm implementation was established. First, the V4L2 interface, provided by the Linux kernel to applications, is used to capture 8-bit depth infrared images from an infrared camera in real-time. Then, the `imread()` method is called to read 16-bit depth high dynamic range (HDR) raw infrared images stored on an SD card. Subsequently, within the QT application, OpenGL ES commands are invoked to accelerate the proposed infrared image enhancement algorithm via the kernel-driven GPU. The same algorithm is also implemented on the ARM side using OpenCV with C++ programming language, with the processed results displayed on the monitor in real-time.
+
+## 2. Environment Setup for Infrared Image Acquisition and Processing Algorithm Implementation
+
+This chapter elaborates on the working environment established in this article for infrared image acquisition and processing algorithm implementation, as well as the sources and acquisition methods for infrared images.
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/162961611/01_b81499efd23d449aa9e94628e1b60a91.png)
+
+![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/162961611/02_87637fc81d424a6db6a1df83b70e7f90.png)
+
+### 2.1 Introduction to the ZYNQ UltraScale+ MPSoC Platform
+
+The ZYNQ UltraScale+ MPSoC hardware platform adopts a core board plus baseboard architecture. The core board primarily consists of a minimal system comprising ZU3EG, 5 DDR4 modules, eMMC, and 1 QSPI FLASH. The ZU3EG chip integrates a quad-core ARM Cortex™-A53 processor running at up to **1.2GHz**, an FPGA, and a GPU onto a single chip, leveraging Processor System (PS) + Programmable Logic (PL) technology. This provides both the flexibility of a processor, the programmability of logic, and the parallel computing capabilities of a GPU. Furthermore, the PS side is equipped with four DDR4 modules totaling **4GB**, while the PL side has one DDR
