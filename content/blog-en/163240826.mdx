@@ -1,0 +1,226 @@
+---
+title: "Key Design Points for PT/CT AC Sampling in Microgrid/Coordination Controllers: 4U Modular and 1U Simplified Designs"
+date: "2026-07-27"
+slug: "163240826"
+tags: []
+source: "https://blog.csdn.net/szxinmai/article/details/163240826"
+originalTitle: "微网控制器/协调控制器 PT/CT 交流采样设计要点，4U模块化与1U简约式"
+---
+
+Key Design Points for PT/CT AC Sampling in Energy Storage Coordination Controllers
+
+In energy storage coordination controllers (PCS/EMS/BMS coordinated control), **PT/CT AC sampling** is a core component for power calculation, protection logic, grid-connection point monitoring, and PQ regulation. It directly impacts control accuracy, grid stability, and protection reliability. The key design points are summarized below.![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/163240826/01_7585a6371c9f4dfdb8f91d2cc99900d3.webp)
+
+* * *
+
+### I. General Design Principles
+
+1.  **Meet grid-connection metering-grade accuracy.** General requirements: Voltage/current sampling accuracy **≤0.2%\\****0.5%\*\* (sic), active/reactive power accuracy \*\*≤0.5%\\****1%** (sic).
+    
+2.  **Strong anti-interference.** Energy storage sites often experience harmonics, switching noise, and large current impacts, so isolation, filtering, and grounding are essential.
+    
+3.  **Wide range and overload capability.** Support voltage sags, swells, and short-circuit impacts. CT/PT requires **1.2~2 times the rated range**.
+    
+4.  **Synchronous sampling.** Three-phase voltage and current must be **sampled simultaneously**, otherwise, power calculation errors will be significant.
+    
+5.  **Meet protection speed requirements.** Total sampling delay (including conditioning + ADC + calculation) should ideally be **<1ms** to meet over/under voltage, overcurrent, and islanding protection responses.
+    
+
+* * *
+
+### II. PT/CT Selection and Electrical Interface Key Points
+
+#### 1. Voltage Transformer (PT)
+
+*   Common transformation ratios: **10kV/0.1kV, 0.4kV/0.1kV**
+    
+*   Accuracy class: **0.2 class / 0.5 class**, not recommended to be lower than 0.5 class
+    
+*   Output: **100V (line voltage) or 57.7V (phase voltage)**
+    
+*   Secondary side must not be short-circuited; requires **fuses / miniature circuit breakers**
+    
+*   Isolation withstand voltage: ≥**2.5~3kV**, meeting safety regulations and common-mode interference requirements
+    
+
+#### 2. Current Transformer (CT)
+
+*   Transformation ratio selected based on rated current: e.g., **200/5A, 400/5A, 800/5A**
+    
+*   Accuracy: **0.2S/0.5S class** (accuracy is more critical at low currents)
+    
+*   Secondary side must not be open-circuited; must be short-circuited or connected to the sampling circuit
+    
+*   Supports **through-hole / busbar type** installation for convenient engineering wiring
+    
+*   Energy storage inverters have high harmonics, so prioritize **low remanence, anti-saturation CTs**![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/163240826/02_5a3a48c165a34b92b50dea68bdaeb2a0.jpeg)
+    
+
+#### 3. Signal Conditioning Methods
+
+*   Current side: CT 5A → **Precision sampling resistor (20~50mΩ)** → Voltage signal
+    
+*   Voltage side: PT 100V → **Precision resistive voltage divider network** → Low voltage signal
+    
+*   Before entering ADC: **Op-amp buffer + second-order active low-pass filter**
+    
+
+* * *
+
+### III. Signal Conditioning and Hardware Circuit Key Points
+
+1.  **Electrical Isolation**
+    
+    1.  Must use **linear optocouplers / isolated op-amps / isolated ADCs**
+        
+    2.  Strictly separate power ground and signal ground to avoid ground loops introducing interference
+        
+2.  **Filtering Design**
+    
+    1.  Cut-off frequency: **100~200Hz** to filter out switching harmonics
+        
+    2.  While retaining the fundamental wave (50/60Hz) to avoid phase shift
+        
+3.  **Bias Shifting**
+    
+    1.  Shift the AC signal to a common-mode voltage of **1.25V/2.048V/2.5V**
+        
+    2.  To adapt to unipolar ADC input ranges (0\\3.3V or 0\\5V) (sic)
+        
+4.  **Anti-aliasing Filtering**
+    
+    1.  ADC sampling rate is typically ≥**16kHz**
+        
+    2.  An anti-aliasing filter must be present at the front end to prevent high-frequency noise aliasing
+        
+5.  **Temperature Drift Control**
+    
+    1.  Sampling resistors and voltage divider resistors should be selected for **low temperature drift (within ±25ppm/℃)**
+        
+    2.  Op-amps should be low offset, low drift types
+        
+
+* * *
+
+### IV. ADC and Synchronous Sampling Key Points
+
+1.  **Multi-channel Synchronous Sampling**
+    
+    1.  Three-phase Ua, Ub, Uc, Ia, Ib, Ic must be **sampled simultaneously**
+        
+    2.  It is recommended to use **simultaneous sampling ADCs** (e.g., ADS8568, AD7606, etc.)
+        
+2.  **Sampling Frequency**
+    
+    1.  For a 50Hz fundamental wave, **32 points/cycle or 64 points/cycle** are commonly used
+        
+    2.  i.e., sampling rate: **1.6kHz / 3.2kHz**, meeting harmonic and protection calculation requirements
+        
+3.  **Phase Calibration**
+    
+    1.  PT/CT and filtering circuits can introduce **phase shift**
+        
+    2.  Software compensation is essential; otherwise, power factor and reactive power errors will be significant
+        
+4.  **Reference Source Accuracy**
+    
+    1.  External high-precision reference source (e.g., **2.048V/4.096V**)
+        
+    2.  Avoid using the MCU's internal reference source, which may lead to insufficient accuracy
+        
+
+* * *
+
+### V. Software Algorithm Design Key Points
+
+1.  **RMS Calculation**
+    
+    1.  One-cycle integration method:
+        
+        U\_{rms}=\\sqrt{\\frac{1}{N}\\sum u\_i^2},\\quad I\_{rms}=\\sqrt{\\frac{1}{N}\\sum i\_i^2U\_{rms}=\\sqrt{\\frac{1}{N}\\sum u\_i^2},\\quad I\_{rms}=\\sqrt{\\frac{1}{N}\\sum i\_i^2
+        
+2.  **Power Calculation**
+    
+    1.  Instantaneous power method:
+        
+        P=\\frac{1}{N}\\sum u\_i i\_i,\\quad Q=\\text{正交分量积分P=\\frac{1}{N}\\sum u\_i i\_i,\\quad Q=\\text{正交分量积分
+        
+3.  **Frequency Tracking**
+    
+    1.  Zero-crossing detection or Software Phase-Locked Loop (Software PLL)
+        
+    2.  Ensure accurate one-cycle sampling even when not at 50Hz
+        
+4.  **Harmonic Suppression**
+    
+    1.  Supports calculation or filtering of at least the **13th harmonic**
+        
+    2.  Meets energy storage grid-connection power quality monitoring requirements
+        
+5.  **Anomaly Detection**
+    
+    1.  Disconnection detection (PT/CT open circuit)
+        
+    2.  Overvoltage, overcurrent, and spike impact rejection
+        
+    3.  Prevent false protection trips![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/163240826/03_ef03de7a530147daa2d2883ab12bdabe.webp)
+        
+
+* * *
+
+### VI. Engineering and Reliability Key Points
+
+1.  **Wiring Specifications**
+    
+    1.  PT/CT secondary wiring should use **shielded twisted pair cables**
+        
+    2.  Shielding should be grounded at one end to avoid multiple ground loops
+        
+2.  **Grounding Design**
+    
+    1.  Separate power ground, signal ground, and protection ground
+        
+    2.  Sampling board single-point grounding to reduce common-mode interference
+        
+3.  **Temperature Drift and Long-term Stability**
+    
+    1.  Implement **automatic calibration / zero-point calibration** mechanisms
+        
+    2.  Support external standard source calibration
+        
+4.  **Protection Logic Coordination**
+    
+    1.  Sampling data is used for:
+        
+        *   Over/undervoltage protection
+            
+        *   Overcurrent/short-circuit protection
+            
+        *   Islanding protection
+            
+        *   Grid synchronization detection
+            
+5.  **EMC Design**
+    
+    1.  Add TVS diodes, varistors, and common-mode inductors
+        
+    2.  To prevent lightning strikes and surges from damaging the sampling circuit
+        
+
+* * *
+
+### VII. Typical Performance Indicators
+
+*   Voltage sampling accuracy: ≤±0.5%
+    
+*   Current sampling accuracy: ≤±0.5%
+    
+*   Active/reactive power accuracy: ≤±1%
+    
+*   Phase error: ≤±0.5°
+    
+*   Total delay: ＜1ms
+    
+*   Supported frequency range: 45~55Hz
+    
+*   Anti-interference compliance: EN61000-6-2 / EFT, surge immunity level
