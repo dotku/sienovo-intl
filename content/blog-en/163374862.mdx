@@ -1,0 +1,89 @@
+---
+title: "A New Paradigm for Integrated Drive and Control: A Comprehensive Analysis of the RK3576+FPGA+CODESYS Industrial Real-time AI Control Architecture"
+date: "2026-07-31"
+slug: "163374862"
+tags: ["#RK3576", "#FPGA", "#CODESYS", "#IndustrialControl", "#IntegratedDriveControl", "#IndustrialAI", "#MotionControl", "#SmartEquipment", "#EdgeComputing", "#IndustrialAutomation"]
+source: "https://blog.csdn.net/szxinmai/article/details/163374862"
+originalTitle: "驱控一体新范式：RK3576+FPGA+CODESYS工业实时AI控制架构全解"
+---
+
+A New Paradigm for Integrated Drive and Control: A Comprehensive Analysis of the RK3576+FPGA+CODESYS Industrial Real-time AI Control Architecture
+
+### I. Introduction: Pain Points of Traditional Industrial Control Architectures and the Urgent Need for Upgrades
+
+Traditional industrial automation, motion control, and smart equipment scenarios have long adopted a stacked architecture of **"PLC industrial PC + vision AI box + IO acquisition card"**. This approach involves multiple hardware layers, complex wiring, and high costs, along with critical performance shortcomings that prevent it from meeting the demands of new-generation intelligent industrial equipment:
+
+1.  **Real-time Performance Fragmentation**: Standard PLCs excel at logic control but lack AI compute power, while AI industrial PCs have sufficient compute power but run non-real-time Linux systems. This prevents synchronous intelligent inference and motion control, leading to control jitter and response delays.
+    
+2.  **Insufficient IO and High-Speed Signal Capability**: Native PLCs struggle to handle high-frequency encoders, high-speed PWM, parallel AD acquisition, EtherCAT high-speed buses, and other high-precision timing signals. This often results in frame loss and step errors in high-speed motion control scenarios.
+    
+3.  **Tight Hardware-Software Coupling**: Traditional industrial control solutions are often closed, making secondary development difficult and preventing flexible customization of exclusive functions such as high-speed acquisition, hardware encryption, and timing error correction.
+    
+4.  **High Overall Cost and Large Footprint**: The stacked architecture of multiple devices occupies significant cabinet space, and numerous peripherals increase the failure rate, leading to persistently high long-term operation and maintenance costs.
+    
+
+Amidst the trends of industrial intelligence, integrated drive and control, and edge AI deployment, the **RK3576+FPGA+CODESYS** heterogeneous fusion architecture emerges as an optimal solution. Leveraging RK3576's AI compute power and system scheduling capabilities, FPGA's high-speed hardware real-time processing capabilities, and CODESYS's standardized PLC real-time control capabilities, this architecture achieves a trinity of **AI intelligent analysis + industrial real-time control + high-speed hardware acquisition**. It thoroughly resolves the fragmentation issues of traditional industrial control architectures and is currently the mainstream upgrade solution for small and medium-sized smart equipment, mobile robots, and automated production lines.
+
+### II. Dissecting the Capabilities of the Three Core Components
+
+The core advantage of this architecture lies in **each component fulfilling its role and mutually empowering the others**. The three hardware/software modules are precisely divided, covering the entire industrial control chain, while balancing standardization, high performance, and customizability.
+
+#### 2.1 RK3576: The Core SoC for Industrial Compute-Control Integration
+
+The RK3576 is a high-end heterogeneous SoC specifically designed by Rockchip for industrial AI control and edge intelligence scenarios. It integrates general-purpose computing, AI inference, real-time coprocessing, and multimedia processing capabilities, serving as the scheduling and intelligent core of the entire architecture:
+
+*   **Compute Architecture**: Quad-core Cortex-A72 CPU, coupled with 6TOPS peak NPU compute power, supporting multi-channel image recognition, defect detection, posture inference, path planning, and other edge AI tasks.
+    
+*   **Real-time Safeguard Design**: Built-in Cortex-M0 real-time coprocessor can independently handle low-latency control tasks, mitigating Linux system scheduling jitter and ensuring basic control stability.
+    
+*   **Rich Industrial Interfaces**: Natively equipped with dual CAN-FD (5Mbps), high-speed SAI, USB3.0, Gigabit Ethernet, and multi-channel PWM and ADC interfaces, compatible with most industrial peripherals.
+    
+*   **Strong System Adaptability**: Supports Ubuntu, Buildroot, and RT-Linux real-time systems, capable of stably running CODESYS soft PLC, ROS, and AI inference frameworks, adapting to normal industrial operation requirements.![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/163374862/01_9539bddfc27b40f5ad6a46b0b6e9fd4f.jpeg)
+    
+
+#### 2.2 FPGA: The Core for High-Speed Hardware Real-time Acceleration and Signal Expansion
+
+As the **hardware real-time layer** of the entire architecture, the FPGA compensates for the ARM processor's shortcomings in inaccurate timing and weak high-speed signal processing capabilities, undertaking high-precision, highly parallel, and hard real-time tasks:
+
+*   **High-Speed Timing Processing**: Pure hardware logic implements high-frequency encoder decoding, 100kHz-level PWM output, multi-channel AD parallel acquisition, and pulse timing error correction, achieving nanosecond-level timing accuracy without software latency jitter.
+    
+*   **Bus Protocol Hardware Acceleration**: Can independently implement industrial protocols such as EtherCAT, SPI, I2C, and high-speed differential buses, with hardware handling protocol parsing and data transmission/reception, without occupying main control compute power.
+    
+*   **Data Preprocessing Offloading**: Performs filtering, noise reduction, and cropping preprocessing on sensor point cloud, image data, and high-speed sampling data, reducing the AI inference pressure on the RK3576.
+    
+*   **Flexible IO Expansion**: Breaks through the main controller's IO quantity and electrical limitations, allowing on-demand expansion of multi-channel isolated IO, differential signals, and high-speed acquisition channels to meet customized equipment requirements.
+    
+
+#### 2.3 CODESYS: Standardized Industrial Real-time Control Software Stack
+
+CODESYS is a widely used soft PLC development platform in the industrial sector, compliant with the IEC61131-3 international standard. It addresses the issues of a lack of unified industrial control standards in embedded development, difficulty in reusing control logic, and challenging debugging:
+
+*   **Multi-Programming Language Adaptation**: Supports standard industrial control languages such as LD, FBD, ST, IL, and SFC, allowing traditional PLC engineers to quickly get started without rebuilding their development system.
+    
+*   **Hard Real-time Control Capability**: Runs in an RT-Linux environment, with task scheduling cycles reaching microsecond levels, stably performing core industrial control tasks such as motion interpolation, logic interlocking, and timing control.
+    
+*   **Rich Industrial Control Library Support**: Built-in motion control libraries, bus protocol libraries, PID control libraries, and safety interlocking libraries, supporting complex motion control like multi-axis synchronization, electronic cam, and trajectory planning.
+    
+*   **Visualized Debugging and O&M**: Supports online monitoring, variable debugging, program download, and fault diagnosis, significantly reducing the long-term operation, maintenance, and iteration costs of industrial equipment.
+    
+
+### III. RK3576+FPGA+CODESYS Overall Architecture and Collaborative Logic
+
+The entire solution adopts a three-layer hierarchical architecture: **FPGA for low-level hardware real-time acquisition → RK3576 for mid-level AI computation and scheduling → CODESYS for top-level industrial control decision-making**. Each layer fulfills its role and collaborates efficiently, completely connecting the entire chain of hardware acquisition, intelligent analysis, and industrial control.
+
+#### 3.1 Detailed Division of Labor in the Three-Layer Architecture
+
+1.  **Bottom Hardware Layer (FPGA)**: Responsible for all hard real-time, high-precision, and highly parallel hardware tasks. This includes high-speed IO acquisition, encoder decoding, PWM driving, bus protocol parsing, and data filtering preprocessing. It uploads the organized effective data to the RK3576 at high speed and simultaneously receives upper-layer control commands to drive actuators, all without software jitter.
+    
+2.  **Middle Intelligent Scheduling Layer (RK3576)**: Receives hardware data uploaded by the FPGA and performs intelligent computations such as AI vision detection, intelligent recognition, fault diagnosis, and path planning via the NPU. It also manages system networking, human-machine interaction, data storage, and log statistics, achieving intelligent decision-making and unified system resource scheduling.
+    
+3.  **Top Control Decision Layer (CODESYS)**: Based on hardware data acquired by the FPGA and AI decision results from the RK3576, it executes standardized industrial control logic, completing multi-axis motion control, equipment interlocking, timing scheduling, abnormal protection, and bus communication output. It outputs precise control commands to ensure stable equipment operation.![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/163374862/02_4483f013a0df400cba99abd08b5cbe23.jpeg)
+    
+
+#### 3.2 Core Data Interaction Mechanism
+
+The RK3576 and FPGA achieve bidirectional high-speed data transmission via **high-speed SAI/FlexBus**, with a throughput rate of over 280MB/s, meeting the real-time interaction demands of high-speed acquisition data. CODESYS runs on the RK3576 real-time system, quickly reading hardware data and issuing control commands through memory mapping, eliminating redundant data copying and achieving a **millisecond-level closed-loop** for **AI decision-making → control logic → hardware execution**.
+
+### IV. Core Advantages of the Architecture (Compared to Traditional Industrial Control Solutions)
+
+| Comparison Dimension         | Traditional PLC+AI Box Stacked Solution                                    | RK3576+FPGA+CODESYS Integrated Solution
