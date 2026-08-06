@@ -1,0 +1,128 @@
+---
+title: "ZYNQ-Based 8-Channel Synchronous IEPE Vibration Acquisition System | 1MSPS Full-Channel Synchronous Sampling for Industrial Vibration Monitoring"
+date: "2026-08-02"
+slug: "163408721"
+tags: ["#ZYNQ", "#IEPE", "#VibrationMonitoring", "#DataAcquisition", "#1MSPS", "#SynchronousSampling", "#FPGADev", "#ARM", "#EmbeddedSystems", "#IIoT"]
+source: "https://blog.csdn.net/szxinmai/article/details/163408721"
+originalTitle: "ZYNQ实现8路同步IEPE振动采集系统｜1MSPS全通道同步采样 工业振动监测完整方案"
+---
+
+ZYNQ-Based 8-Channel Synchronous IEPE Vibration Acquisition System | 1MSPS Full-Channel Synchronous Sampling for Industrial Vibration Monitoring
+
+**📝 Article Series**: ZYNQ High-Speed Data Acquisition in Practice
+
+**🎯 Applicable Scenarios**: Industrial equipment vibration monitoring, motor fault diagnosis, bearing vibration analysis, multi-point synchronous vibration testing, structural modal testing
+
+**✅ Key Metrics**: 8-channel IEPE full-channel synchronous acquisition, 1MSPS sampling rate per channel, channel phase synchronization error < 1μs, FPGA ping-pong buffer with no data loss, Gigabit Ethernet real-time upload
+
+**💡 Foreword**
+
+In the previous article, "ZYNQ 1M Sampling Rate IEPE Sensor Data Acquisition Card Design," we achieved **single-channel 1MSPS IEPE high-speed acquisition**, which can meet the needs for single-point vibration signal acquisition. However, in practical industrial engineering, equipment fault diagnosis, modal analysis, and complete machine vibration testing often require multi-channel synchronous data from **multiple points, at the same time, with no phase difference**.
+
+Conventional time-division multiplexing multi-channel solutions suffer from severe phase shift and timing desynchronization issues, making them unsuitable for spectrum analysis, phase analysis, or mode shape calculation. Therefore, this article, based on the ZYNQ heterogeneous architecture, **upgrades to implement an 8-channel IEPE fully synchronous 1M high-speed acquisition system**, perfectly addressing engineering pain points such as multi-channel timing offset, high-speed data packet loss, and large-volume data transmission stuttering.
+
+* * *
+
+### I. Project Requirements and Technical Challenges Analysis
+
+#### 1.1 Project Requirements
+
+*   Number of Channels: 8 independent IEPE vibration sensor signal acquisition channels
+    
+*   Sampling Rate: 1MSPS independently per channel, no frequency division, no degradation
+    
+*   Synchronization Requirements: 8 channels strictly synchronized for subsequent modal, phase, and frequency domain analysis
+    
+*   Sensor Adaptability: Supports standard IEPE 4mA constant current excitation piezoelectric sensors
+    
+*   Data Transmission: High-speed cache + Gigabit Ethernet real-time upload to host PC
+    
+*   System Stability: Supports 7x24h long-term continuous acquisition with no data loss![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/163408721/01_a92f0e2996b649a0b151b81c9cb01a86.jpeg)
+    
+
+#### 1.2 Pain Points of Traditional Multi-Channel Solutions
+
+*   **MCU Polling Acquisition**: Time-division acquisition, extremely large channel time differences, completely unusable for vibration phase analysis; low sampling rate, unable to achieve 1M high-speed acquisition.
+    
+*   **Ordinary FPGA Time-Division Acquisition**: Multi-channel sequential sampling, with fixed phase offsets, preventing multi-channel data alignment.
+    
+*   **Commercial Acquisition Cards**: Expensive, bulky, difficult for secondary development, and not suitable for embedded integration.
+    
+*   **Single-Channel Expansion Solutions**: Multiple ADCs acquire independently without a synchronization mechanism, leading to timing errors and data mismatch.
+    
+
+#### 1.3 Core Advantages of This Solution
+
+Leveraging the ZYNQ **PL (FPGA) high-speed parallel timing control + PS (ARM) high-speed data processing** architecture:
+
+*   FPGA provides a unified global sampling clock, with 8 ADCs simultaneously triggered, converted, and latched, achieving hardware-level strict synchronization;
+    
+*   Multiple independent ping-pong FIFO buffers solve the concurrent overflow problem of large data volumes from 8 channels;
+    
+*   AXI HP high-speed bus for bulk data transfer, with ample bandwidth, ensuring no stuttering or packet loss;
+    
+*   ARM Linux is responsible for data parsing, calibration, packaging, and Gigabit Ethernet transmission, offering flexible and scalable operations.
+    
+
+* * *
+
+### II. Overall System Architecture Design
+
+#### 2.1 System Architecture Block Diagram
+
+IEPE Sensor Array → 8 Independent Constant Current Excitation + Signal Conditioning Circuits → 8 High-Speed ADC Array → FPGA Synchronous Acquisition and Timing Control → Multi-Channel Ping-Pong FIFO Buffer → AXI High-Speed Interface → ARM Data Processing → Gigabit Ethernet/Local Storage/Host PC Display
+
+#### 2.2 Software and Hardware Division of Labor (Core)
+
+**PL Side FPGA (High-Speed Real-Time Layer)**
+
+*   Global unified 1MHz synchronous sampling clock generation and constraint
+    
+*   8-channel ADC parallel synchronous timing drive
+    
+*   8 independent FIFO ping-pong buffers to prevent data overflow
+    
+*   Multi-channel data timing alignment, frame header and footer packaging
+    
+*   AXI high-speed DMA data transfer
+    
+
+**PS Side ARM Linux (Business Processing Layer)**
+
+*   Reads multi-channel raw acquisition data from the PL side
+    
+*   Data verification, deframing, calibration, noise reduction filtering
+    
+*   Multi-channel timestamp synchronization correction
+    
+*   Vibration feature calculation: RMS value, peak-to-peak value, kurtosis, frequency components
+    
+*   TCP Gigabit Ethernet real-time upload to host PC, local data storage
+    
+
+* * *
+
+### III. Key Points of Hardware Circuit Design
+
+#### 3.1 8-Channel IEPE Signal Conditioning Circuit
+
+Each channel is completely independent to eliminate channel crosstalk, forming the basis for high-precision multi-channel acquisition:
+
+*   Each channel has an independent **4mA high-precision constant current excitation source** to ensure stable operating points for each IEPE sensor and high channel consistency;
+    
+*   Low-noise instrumentation amplifier differential amplification to suppress common-mode interference and adapt to industrial long-distance transmission;
+    
+*   Second-order anti-aliasing low-pass filtering, matching the 1MSPS sampling rate, to eliminate spectral aliasing;
+    
+*   8-channel analog circuit partitioned layout, with analog ground and digital ground connected at a single point, to avoid inter-channel interference.
+    
+
+#### 3.2 8-Channel Synchronous ADC Hardware Design
+
+Multiple 16-bit high-speed ADCs are used, with all ADCs sharing the **same FPGA global sampling clock and trigger signal**, which is key to hardware synchronization:
+
+*   All ADC clocks and trigger signals are from the same source and in phase, with no phase deviation;
+    
+*   Independent reference voltage sources ensure consistent sampling accuracy across 8 channels;
+    
+*   Analog power supply uses a separate LDO for noise reduction,
