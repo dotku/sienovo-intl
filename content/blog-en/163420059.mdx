@@ -1,0 +1,217 @@
+---
+title: "Multi-Channel GMSL Camera Synchronous Acquisition and Low-Latency Image Preprocessing System Based on Zynq MPSoC | High-Speed Automotive Vision Solution"
+date: "2026-08-02"
+slug: "163420059"
+tags: ["#ZynqMPSoC", "#GMSL", "#AutomotiveCamera", "#MultiChannelSyncAcquisition", "#ImagePreprocessing", "#LowLatencyVision", "#FPGAImageAcceleration"]
+source: "https://blog.csdn.net/szxinmai/article/details/163420059"
+originalTitle: "基于Zynq MPSoC的多路GMSL相机同步采集与低延迟图像预处理系统｜车载视觉高速解决方案"
+---
+
+Multi-Channel GMSL [Camera](#) Synchronous Acquisition and Low-Latency Image Preprocessing System Based on Zynq MPSoC | High-Speed Automotive Vision Solution
+
+Computer Components
+
+**📌 Article Summary**: Automotive autonomous driving, surround view, and perception systems commonly use GMSL coaxial HD cameras. Compared to traditional MIPI and USB cameras, GMSL offers advantages such as long-distance transmission, strong anti-interference, high resolution, and high frame rates. However, multi-channel GMSL cameras present engineering challenges like **timing asynchrony, high transmission latency, data bandwidth congestion, and time-consuming image preprocessing**. This article leverages the Xilinx Zynq MPSoC heterogeneous architecture, utilizing the PL-side FPGA's hardware parallel processing capabilities to achieve real-time synchronous decoding, frame buffering, and timing alignment for multi-channel GMSL cameras. This is complemented by the PS-side multi-core ARM for lightweight preprocessing such as image denoising, scaling, and color correction, resulting in a microsecond-level low-latency image acquisition and processing chain. This system is perfectly suited for industrial automotive vision scenarios like surround view, driving perception, and automotive testing.
+
+**🔑 Keywords**: Zynq MPSoC, GMSL, Automotive Camera, Multi-Channel Synchronous Acquisition, Image Preprocessing, Low-Latency Vision, FPGA Image Acceleration![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/163420059/01_b1a97a8fde534c0a98b48254effce908.jpeg)
+
+### 1. Project Background and Industry Pain Points
+
+With the rapid iteration of autonomous driving, smart cockpit, and automotive active safety technologies, automotive vision systems have evolved from single-channel cameras to **4-channel, 6-channel, or even 8-channel multi-camera synchronous perception**. GMSL (Gigabit Multimedia Serial Link) has become the mainstream transmission solution for automotive industrial cameras due to its coaxial cable transmission, strong anti-electromagnetic interference, long transmission distance, and support for ultra-high resolution and high frame rate video.
+
+Neurology
+
+Currently, mainstream multi-channel GMSL vision solutions face numerous engineering pain points, severely impacting automotive perception accuracy and real-time performance:
+
+*   **Multi-channel Timing Misalignment**: Each camera independently decodes and acquires data without a unified timing reference, leading to inconsistent frame exposure and acquisition times. This results in surround view stitching misalignment, ranging deviation, and perception algorithm failure.
+    
+*   **High Latency with Pure [Software](#) Processing**: Traditional ARM software processes images after acquisition, leading to low frame rates and high latency, which cannot meet the low-latency perception requirements of autonomous driving.
+    
+*   **Bandwidth Congestion and Frame Loss**: Multi-channel high-definition GMSL video generates a large amount of data. Traditional caching architectures are highly prone to bandwidth contention, data overflow, and random frame loss.
+    
+*   **Single Functionality of Traditional FPGA Architectures**: Pure FPGAs can only achieve acquisition and decoding, unable to perform flexible image preprocessing and parameter configuration, resulting in poor scalability.
+    
+*   **High Cost and Proprietary Nature of Commercial Solutions**: Mature automotive vision acquisition solutions are expensive, difficult to secondary develop, and cannot adapt to customized equipment requirements.
+    
+
+**Zynq MPSoC is the optimal solution for automotive multi-channel GMSL vision**: Featuring a quad-core ARM + dual-core FPGA heterogeneous architecture, the PL side is responsible for hard real-time, highly parallel [camera](#) decoding, synchronous acquisition, and hardware image preprocessing; the PS side handles algorithm scheduling, parameter configuration, [data](#) transmission, and upper-layer applications. It combines **nanosecond-level real-time performance with software flexibility**, perfectly addressing the core pain points of multi-channel GMSL acquisition.
+
+### 2. System Core Design Metrics
+
+This system is designed for automotive autonomous driving, surround view imaging, and automotive vision testing scenarios, with core engineering metrics aligned with industrial automotive standards:
+
+*   **Acquisition Channels**: Supports synchronous acquisition from up to 8 GMSL cameras, compatible with mainstream 1080P/60fps and 2K/30fps automotive cameras.
+    
+*   **Synchronization Accuracy**: Hardware frame synchronization for multi-channel cameras, with a frame timing deviation of <1μs, eliminating surround view stitching misalignment.
+    
+*   **Processing Latency**: FPGA hardware pipeline preprocessing, with microsecond-level latency per frame, significantly lower than pure software solutions.
+    
+*   **Stability**: Long-term continuous acquisition without frame loss, screen tearing, or timing errors, adapting to complex automotive electromagnetic environments.
+    
+*   **Preprocessing Capability**: Hardware real-time image denoising, color correction, resolution scaling, and histogram equalization.
+    
+*   **Data Output**: Supports high-speed DMA transfer, local caching, and real-time Gigabit/10 Gigabit Ethernet transmission.
+    
+*   **Scalability**: Supports online configuration of frame rate, resolution, and preprocessing parameters, enabling rapid integration with AI perception algorithms.![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/163420059/02_b38056dd4eb849b59878c192750a651e.jpeg)
+    
+
+### 3. Overall System Architecture Design
+
+Based on the typical Zynq MPSoC heterogeneous architecture, a layered design is adopted with **PL hardware parallel acquisition acceleration + PS multi-core [software](#) application processing**. This decouples software and hardware, allowing each to perform its specialized tasks and maximizing the heterogeneous computing power advantages of MPSoC.
+
+#### 3.1 FPGA (PL-side) Core Hardware Layer
+
+The PL side, as the real-time core of the system, executes entirely through a hardware pipeline, free from system scheduling jitter:
+
+*   GMSL Decoding Module: Parses multi-channel coaxial serial video signals, performing serial-to-parallel conversion and video data recovery.
+    
+*   Global Frame Synchronization Module: Provides a unified clock reference and outputs synchronous trigger signals to enable simultaneous exposure and acquisition for multiple cameras, ensuring complete alignment of image frame headers across all channels.
+    
+*   Multi-level Frame Buffer Architecture: Establishes a ping-pong frame buffer array to resolve bandwidth conflicts for large multi-channel data and prevent data overflow.
+    
+*   Hardware Image Preprocessing IP: Parallelly implements denoising, scaling, color correction, and histogram equalization.
+    
+*   High-Speed DMA Transfer: Real-time transfers processed image data to PS-side memory via the HP high-speed bus.
+    
+
+#### 3.2 ARM (PS-side) Core Application Layer
+
+The PS side, based on a Linux system, leverages multi-core computing power for flexible application scheduling without interfering with the underlying real-time timing:
+
+*   [Camera](#) Parameter Configuration: Online adjustment of resolution, frame rate, exposure, and white balance parameters.
+    
+*   Preprocessing Algorithm Secondary Optimization: Software fine-tuning of image parameters to adapt to different lighting conditions in automotive scenarios.
+    
+*   [Data](#) Management: Image data caching, fragmented storage, abnormal frame detection and removal.
+    
+*   Data Transmission: Network packaging and real-time upload to the host computer, supporting real-time video stream preview.
+    
+*   Status Monitoring: Real-time monitoring of camera connection status, frame rate, latency, and error reporting.
+    
+
+#### 3.3 Overall Data Flow Link
+
+GMSL Coaxial Video Signal → Decoder Chip → FPGA Serial-to-Parallel Parsing → Global Frame Synchronization and Alignment → Hardware Image Preprocessing → Ping-Pong Buffer Caching → DMA High-Speed Transfer → PS-side Memory → Software Optimization/Storage/Upload → Host Computer Real-time Preview and Algorithm Invocation
+
+### 4. Key FPGA Core Technology Implementation
+
+#### 4.1 Multi-Channel GMSL Hardware Frame Synchronization Solution
+
+The core challenge of multi-channel surround view imaging is **timing synchronization**. In traditional solutions, each camera operates independently, with random frame start times, directly leading to ghosting, misalignment, and distortion in surround view stitching.
+
+This system establishes a global clock synchronization unit on the PL side. By outputting a unified frame trigger signal from the FPGA, all GMSL cameras are synchronously driven for exposure and acquisition. The image frame headers of all channels are perfectly aligned, eliminating multi-channel timing deviations at the hardware level and meeting the high-precision timing requirements for automotive surround view and stereo vision.
+
+#### 4.2 Multi-Channel Ping-Pong Frame Buffer Array Design
+
+Simultaneous transmission of 8 channels of 1080P HD video generates extremely high instantaneous bandwidth. A single-buffer architecture is highly prone to data overwriting, frame loss, and screen tearing. This design addresses the characteristics of multi-channel video by implementing a **multi-channel independent ping-pong frame buffer array**:
+
+*   Each camera channel is configured with an independent dual frame buffer, allowing parallel acquisition and read/write operations.
+    
+*   Inter-channel bandwidth isolation prevents a single channel anomaly from affecting the global data flow.
+    
+*   An automatic frame verification mechanism discards incomplete or abnormal frames, ensuring image integrity.
+    
+
+This architecture completely resolves the bandwidth congestion and data overflow issues of multi-channel HD GMSL video, ensuring 24/7 stable acquisition.
+
+#### 4.3 Pipelined Hardware Image Preprocessing
+
+To reduce system latency and alleviate the PS-side computing burden, all basic image preprocessing operations are implemented on the FPGA side using a **pipelined parallel architecture**, achieving continuous processing at a single-pixel clock level without pauses or accumulated delays:
+
+*   **Image Denoising**: Hardware implementation of Gaussian and mean filters to remove salt-and-pepper noise and high-frequency interference in automotive environments.
+    
+*   **Resolution Scaling**: Supports arbitrary image scaling ratios to adapt to different algorithm input sizes.
+    
+*   **Color Correction**: Corrects color cast in automotive backlight and low-light scenarios, improving image quality.
+    
+*   **Histogram Equalization**: Enhances image details in low-light scenarios, improving nighttime automotive perception.![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/163420059/03_bc6ec1ce01cd4833acf886f3fe01b55c.jpeg)
+    
+
+#### 4.4 High-Speed DMA Bandwidth Optimization
+
+The MPSoC PL and PS are connected via the HP high-speed bus to a DMA controller. Configuring an ultra-large burst transfer length reduces bus interaction times, significantly improving image [data](#) transfer efficiency. Additionally, a dynamic bandwidth allocation mechanism is designed to prioritize critical channel video transmission, preventing frame rate drops and increased latency under high loads.
+
+### 5. PS-side [Software](#) System Design
+
+#### 5.1 Device Driver Adaptation
+
+Based on a custom Petalinux system, dedicated GMSL acquisition drivers and DMA transfer drivers are developed to enable power-on initialization, parameter configuration, and data channel binding for PL-side hardware devices. This allows the user layer to directly call hardware resources without tedious low-level adaptation.
+
+#### 5.2 Multi-threaded Application Architecture
+
+A multi-threaded separation design is adopted to avoid frame rate drops caused by application blocking:
+
+*   Data Reading Thread: Real-time reading of DMA-transferred image data to ensure no data accumulation.
+    
+*   Image Processing Thread: Software secondary optimization and adaptive parameter adjustment.
+    
+*   Network Transmission Thread: Packages and pushes video streams to ensure real-time preview on the host computer.
+    
+*   Device Monitoring Thread: Real-time detection of [camera](#) status, frame rate, latency, and abnormal alarms.
+    
+
+#### 5.3 Adaptive Parameter Adjustment
+
+For automotive scenarios with drastic day-night lighting changes, the software implements automatic exposure and automatic white balance parameter fine-tuning to adapt to complex automotive conditions such as strong light, low light, and backlight, ensuring stable image quality around the clock.
+
+### 6. Automotive Anti-Interference and Stability Optimization
+
+Automotive environments are subject to strong electromagnetic interference, voltage fluctuations, and high/low temperature variations. This system has undergone comprehensive industrial-grade optimization for automotive scenarios:
+
+*   GMSL coaxial transmission shielding design to suppress high-frequency electromagnetic interference from automotive motors and power supplies.
+    
+*   FPGA-side data fault tolerance verification, automatically correcting transmission errors and incomplete frames.
+    
+*   Strict power-up timing constraints to prevent multi-channel camera startup timing misalignment.
+    
+*   Abnormal reconnection mechanism, allowing cameras to automatically resume acquisition after momentary disconnections without affecting system operation.
+    
+*   High and low temperature adaptation optimization to ensure stable timing and image quality under extreme automotive temperatures.
+    
+
+### 7. System Actual Performance Verification
+
+An automotive actual test platform was set up to conduct comprehensive performance testing of the system:
+
+*   **Synchronization Performance**: 8-channel camera frame synchronization deviation consistently <1μs, with no misalignment or ghosting in surround view stitching.
+    
+*   **Latency Performance**: Total latency for single-channel 1080P/60fps image acquisition + preprocessing <20ms, meeting the low-latency requirements of autonomous driving.
+    
+*   **Stability**: 72 hours of continuous power-on operation without frame loss, screen tearing, or system freezes.
+    
+*   **Image Quality Effect**: Significantly reduced image noise after preprocessing, clear details in low light, and excellent color correction.
+    
+*   **Bandwidth Performance**: Stable bandwidth under multi-channel full-load conditions, no [data](#) congestion, and no frame rate degradation.
+    
+
+### 8. Solution Advantages and Innovations
+
+*   **Hardware-level Precise Synchronization**: Global unified timing trigger completely solves the pain point of multi-channel GMSL camera timing misalignment, suitable for high-precision surround view imaging.
+    
+*   **Software-Hardware Collaborative Low Latency**: FPGA pipeline preprocessing + PS multi-core scheduling results in significantly lower latency than pure [software](#) acquisition solutions.
+    
+*   **High Bandwidth Stable Transmission**: Ping-pong buffer array + DMA bandwidth optimization ensures no frame loss or stuttering under multi-channel full load.
+    
+*   **Automotive Industrial-Grade Reliability**: Specialized optimization for automotive electromagnetic interference and temperature fluctuations, adapting to complex automotive operating conditions.
+    
+*   **Highly Customizable and Scalable**: Freely configurable number of channels, resolution, and preprocessing algorithms to adapt to various automotive vision devices.
+    
+
+### 9. Application Scenarios
+
+*   Automotive 360° Panoramic Surround View Imaging Systems
+    
+*   Autonomous Driving Multi-Camera Perception Data Acquisition Equipment
+    
+*   Automotive Driving Safety Monitoring and Blind Spot Monitoring Equipment
+    
+*   Automotive Vision Algorithm Training Data Acquisition Platforms
+    
+*   Smart Cockpit Multi-Screen Video Acquisition and Streaming Systems
+    
+
+### 10. Summary and Future Expansion Directions
+
+This article presents the design and implementation of a **multi-channel GMSL [camera](#) synchronous acquisition and low-latency image preprocessing system** based on the Zynq MPSoC heterogeneous architecture. Leveraging the high parallelism and hard real-time characteristics of the PL-side FPGA, it addresses the engineering pain points of traditional solutions such as multi-channel timing asynchrony, high latency, easy frame loss, and poor image quality. Utilizing the multi-core ARM on the PS side, it achieves flexible parameter configuration, status monitoring, and data streaming, perfectly meeting the high-precision, low-latency, and high-stability requirements of automotive vision. The entire solution offers controllable cost, strong customizability, and high industrial stability, making it directly applicable to various intelligent automotive vision devices.
+
+**❤️ Focusing on Zynq MPSoC, GMSL automotive vision, FPGA image acceleration, and embedded heterogeneous development! Like and bookmark for continuous updates on complete automotive industrial vision engineering solutions and source code!**
