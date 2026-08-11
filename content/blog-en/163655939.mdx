@@ -1,0 +1,102 @@
+---
+title: "RK3588+RT-Linux Hard Real-time Optimization | A Solution to Eradicate Millisecond Jitter in Industrial EtherCAT Motion Control"
+date: "2026-08-11"
+slug: "163655939"
+tags: ["#RK3588", "#RTLinux", "#PREEMPT-RT", "#HardRealtime", "#EtherCAT", "#MotionControl", "#IndustrialRealtime", "#LinuxKernelOptimization", "#SoftPLC", "#SystemJitter"]
+source: "https://blog.csdn.net/szxinmai/article/details/163655939"
+originalTitle: "RK3588+RT-Linux硬实时优化｜工业工控EtherCAT运动控制毫秒抖动根治方案"
+---
+
+RK3588+RT-Linux Hard Real-time Optimization | A Solution to Eradicate Millisecond Jitter in Industrial EtherCAT Motion Control
+
+**Tags: RK3588, RT-Linux, PREEMPT-RT, Hard Real-time, EtherCAT, Motion Control, Industrial Real-time, Linux Kernel Optimization, SoftPLC, System Jitter**
+
+**Abstract:** With its ultra-high computing power, low power consumption, and high integration, the RK3588 has become a mainstream platform for domestic industrial control, semiconductor equipment, lithium battery automation, and robot main controllers. However, the standard Linux kernel is inherently a time-sharing scheduling system, suffering from random scheduling delays, timer jitter, and interrupt preemption interference. This directly leads to large EtherCAT cycle jitter, unsmooth motion interpolation, SoftPLC task drift, and system stuttering during high-speed operation. Many developers encounter a common pitfall: despite the RK3588's powerful performance, running 1ms/2ms industrial control cycles still exhibits **tens to hundreds of microseconds of random jitter**, failing to meet the mass production requirements for precision motion equipment. This article, based on the RK3588 platform, provides an in-depth explanation of the **complete PREEMPT-RT kernel porting and an industrial-grade full-stack hard real-time optimization solution**. It covers kernel compilation, scheduling policies, interrupt isolation, CPU core affinity, memory locking, power management policies, and background process trimming, comprehensively eliminating soft jitter issues in Linux systems. After optimization, the measured maximum system jitter is controlled to **within 15μs**, fully meeting the hard real-time requirements for EtherCAT, CODESYS SoftPLC, and precision motion control. By reading this article, you will master: the fundamental reasons for poor real-time performance on RK3588, RT-Linux kernel compilation and deployment, industrial-grade full-stack real-time optimization techniques, zero-jitter EtherCAT configuration, and pitfalls to avoid for mass-produced industrial control systems.![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/163655939/01_96a9ddfcfe284c45870ee4ad3da6cc86.jpeg)
+
+### I. Industry Pain Point: Why is RK3588's Computing Power Strong but Industrial Real-time Performance Poor?
+
+Currently, domestic industrial control equipment is undergoing a large-scale migration from X86 and Zynq platforms to the **RK3588 localized platform**. The RK3588 boasts super computing power with 4*A55 + 4*A76 cores, supporting AI vision, multiple serial ports, Gigabit Ethernet, and high-speed USB, making it highly suitable for "PLC + Vision + HMI + Motion Control" integrated devices.
+
+However, many engineers encounter a fatal problem after deployment: **extremely high benchmarks and powerful computing, but severe jitter when running industrial control cycles.**
+
+Standard Linux (non-RT) on RK3588 typically exhibits jitter of **30~150μs** when running 1ms periodic tasks, and can even exceed **300μs+** under high load.
+
+This jitter is imperceptible in ordinary embedded devices, but in precision industrial control scenarios, it directly leads to critical failures:
+
+*   Unstable EtherCAT bus cycles, instantaneous servo step loss, distorted trajectories;
+*   CODESYS SoftPLC task drift, delayed logic execution, safety task timeouts;
+*   Unsmooth multi-axis interpolation motion, jitter during high-speed start/stop, abnormal equipment noise;
+*   Misalignment of vision capture and motion timing, reduced alignment accuracy;
+*   Random stuttering and occasional alarms in mass-produced equipment, extremely difficult to pinpoint.
+
+**Core Reason: Standard Linux is a "Fair Scheduling System," not a Real-time System**
+
+Ordinary Linux prioritizes throughput, resource utilization, and fairness, without guaranteeing task deadlines. It suffers from four real-time killers:
+
+*   Numerous non-preemptible critical sections in the kernel, preventing high-priority tasks from being scheduled immediately;
+*   Coarse timer ticks and clock source drift;
+*   Frequent interrupt preemption and process scheduling jitter;
+*   Random CPU preemption by background daemon processes, GPU, DDR, logging, and disk I/O.
+
+For the RK3588 to handle **industrial hard real-time control, EtherCAT motion control, and functional safety tasks**, it must undergo **PREEMPT-RT kernel patching + full-stack industrial-grade real-time optimization**.
+
+### II. Real-time Solution Comparison: Standard Linux / RT-Linux / Hard Real-time MCU
+
+Currently, there are three mainstream real-time solutions in the industrial control field, with significant differences in applicable scenarios and performance, which are key selection criteria:
+
+#### 2.1 Standard Linux (Non-RT)
+
+*   **Advantages:** Most comprehensive ecosystem, mature drivers, suitable for vision and AI;
+*   **Disadvantages:** Extremely high jitter, no real-time guarantee, **strictly prohibited for precision motion control**;
+*   **Applicable:** HMI interfaces, video decoding, data uploading, non-real-time operations.
+
+#### 2.2 PREEMPT-RT Hard Real-time Linux (This Article's Solution)
+
+*   **Advantages:** User-space tasks are fully preemptible, microsecond-level determinism, retains the entire Linux ecosystem;
+*   **Disadvantages:** Requires kernel compilation, system trimming and optimization;
+*   **Applicable:** EtherCAT bus, SoftPLC, multi-axis motion, precision temperature control, functional safety tasks.
+
+#### 2.3 MCU/Bare-metal Real-time Solution
+
+*   **Advantages:** Extremely stable, no jitter;
+*   **Disadvantages:** No Linux ecosystem, cannot run vision, AI, complex protocols, HMI;
+*   **Applicable:** Pure safety monitoring, I/O logic, cannot be used for integrated devices.
+
+**Conclusion: RK3588 + RT-Linux is currently the only optimal solution for domestic integrated industrial control devices**, balancing computing power, ecosystem, vision capabilities, and industrial hard real-time determinism.
+
+### III. RK3588 RT-Linux Hard Real-time Architecture Overall Design
+
+To meet the demands of industrial EtherCAT, SoftPLC, and precision motion control, this article adopts a five-layer real-time architecture: **kernel RT patch + CPU isolation + task binding + memory locking + minimal system trimming**, to completely eliminate sources of system jitter.
+
+#### 3.1 Core Architecture Layers
+
+*   **Kernel Layer:** Apply PREEMPT-RT full preemption patch, enable high-resolution timers, disable kernel preemption delays;
+*   **Hardware Scheduling Layer:** CPU core isolation, dedicated big cores for real-time tasks, small cores for non-real-time operations;
+*   **Memory Layer:** Memory locking, disable Swap, prohibit dynamic memory allocation;
+*   **Interrupt Layer:** Interrupt affinity binding, mask irrelevant interrupts, disable asynchronous preemption interference;
+*   **Application Layer:** Real-time tasks with FIFO scheduling, freeze background processes, trim log I/O.![](https://pub-048dcb96257f476697b113fcb5939cb9.r2.dev/blog/163655939/02_9b1cc55e628c4bc3b7debfa2e70faff0.jpeg)
+
+#### 3.2 CPU Core Partitioning and Isolation Scheme (Optimal for Industrial Control)
+
+RK3588 8-core architecture: 4*A76 (big cores) + 4*A55 (small cores)
+
+**Industrial Isolation Strategy (Recommended for Mass Production)**
+
+*   **Real-time Cores (A76 0~1):** Exclusively run EtherCAT, CODESYS PLC, motion control, and safety tasks;
+*   **Non-real-time Cores (A76 2~3 + all A55):** Run HMI, vision, AI, logging, network, and file operations;
+
+By isolating cores via kernel parameters, non-real-time processes **cannot preempt real-time cores**, thus eliminating cycle jitter caused by task preemption at the hardware level.
+
+### IV. Full-Process Engineering-Grade Real-time Optimization Steps (Directly Reusable for Mass Production)
+
+#### 4.1 Kernel Compilation and PREEMPT-RT Patch Deployment
+
+Select a stable kernel (5.10/6.1), adapt to the official RK3588 BSP, and apply the corresponding PREEMPT-RT patch.
+
+Key configuration items:
+
+*   Enable **CONFIG\_PREEMPT\_RT\_FULL** for full preemption real-time mode;
+*   Disable voluntary preempt and kernel deferred scheduling;
+*   Enable high resolution timer;
+*   Disable time-consuming modules such as debug stack, tracing, perf, and log printing;
+*   Disable dynamic CPU frequency scaling (DVFS)
