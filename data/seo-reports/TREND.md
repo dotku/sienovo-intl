@@ -1,6 +1,6 @@
 # SEO trend (auto-generated, do not edit)
 
-_Latest update: 2026-08-11T02:16:11.117Z_
+_Latest update: 2026-08-12T02:16:33.065Z_
 
 ## Daily search analytics (28-day rolling window per row)
 
@@ -76,6 +76,7 @@ _Latest update: 2026-08-11T02:16:11.117Z_
 | 2026-08-07 | 0 | 96 | 0.00% | 42 |
 | 2026-08-08 | 0 | 94 | 0.00% | 42 |
 | 2026-08-09 | 0 | 86 | 0.00% | 40 |
+| 2026-08-10 | 0 | 90 | 0.00% | 40 |
 
 ## Indexing coverage trend
 
@@ -151,6 +152,7 @@ _Latest update: 2026-08-11T02:16:11.117Z_
 | 2026-08-09 | 3/3 | 100% | ~0 |
 | 2026-08-10 | 3/3 | 100% | ~0 |
 | 2026-08-11 | 3/3 | 100% | ~0 |
+| 2026-08-12 | 3/3 | 100% | ~0 |
 
 ---
-70 daily snapshots · 70 coverage snapshots
+71 daily snapshots · 71 coverage snapshots
