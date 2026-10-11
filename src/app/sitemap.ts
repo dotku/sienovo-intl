@@ -1,5 +1,5 @@
 import { MetadataRoute } from "next";
-import { getAllPosts, isLowQualityPost } from "@/lib/blog";
+import { getAllPosts, isIndexablePost, productRelevance } from "@/lib/blog";
 import { prisma } from "@/lib/prisma";
 import { SITE_URL } from "@/lib/site";
 
@@ -14,12 +14,14 @@ export const revalidate = 3600;
 // tail.  Next.js's `generateSitemaps()` API auto-generates
 // `/sitemap.xml` as the index that lists each child sitemap below.
 //
-//   /sitemap/0.xml  — TOP TIER       (statics + products + top 100 per locale)
-//   /sitemap/1.xml  — EN long tail   (EN posts ranked 101+, non-low-quality)
-//   /sitemap/2.xml  — ZH long tail   (ZH posts ranked 101+, non-low-quality)
+//   /sitemap/0.xml  — statics + products + the more product-relevant half of
+//                     the indexable EN posts
+//   /sitemap/1.xml  — the rest of the indexable EN posts
+//   /sitemap/2.xml  — ZH static pages (contact, press)
 //
-// Low-quality posts (content < LOW_QUALITY_THRESHOLD) are excluded from
-// every child sitemap and are also marked `noindex` on their detail page.
+// Only posts that pass isIndexablePost() (lib/blog) are listed — the same
+// rule that sets index/noindex on the post page, so the sitemap never lists a
+// noindex URL. ZH blog posts are CSDN copies and are never listed.
 
 export async function generateSitemaps() {
   return [{ id: 0 }, { id: 1 }, { id: 2 }];
@@ -116,12 +118,8 @@ async function topTierSitemap(): Promise<MetadataRoute.Sitemap> {
     { url: SITE_URL, lastModified: now, changeFrequency: "weekly", priority: 1.0, images: [heroImage] },
     { url: `${SITE_URL}/blog`, lastModified: now, changeFrequency: "daily", priority: 0.8 },
     { url: `${SITE_URL}/blog/all`, lastModified: now, changeFrequency: "daily", priority: 0.8 },
-    { url: `${SITE_URL}/zh/blog`, lastModified: now, changeFrequency: "daily", priority: 0.7 },
-    { url: `${SITE_URL}/zh/blog/all`, lastModified: now, changeFrequency: "daily", priority: 0.7 },
     { url: `${SITE_URL}/press`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
-    { url: `${SITE_URL}/zh/press`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
     { url: `${SITE_URL}/contact`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
-    { url: `${SITE_URL}/zh/contact`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
   ];
 
   let productEntries: MetadataRoute.Sitemap = [];
@@ -142,70 +140,41 @@ async function topTierSitemap(): Promise<MetadataRoute.Sitemap> {
     console.error("[sitemap] prisma.product.findMany failed", err);
   }
 
-  // ALL product-channel posts (not just top 100) go in the top tier at high
-  // priority — this is the content we want crawled first.
-  const enBrand = safeUrls("en-brand", () =>
-    brandPosts("en").map((post) => ({
-      url: `${SITE_URL}/blog/${post.slug}`,
-      lastModified: post.date ? new Date(post.date) : new Date(),
-      changeFrequency: "monthly" as const,
-      priority: 0.8,
-    })),
-  );
+  const enTop = safeUrls("en-top", () => indexableEn().slice(0, TOP_TIER_SIZE).map(postEntry));
 
-  const zhBrand = safeUrls("zh-brand", () =>
-    brandPosts("zh").map((post) => ({
-      url: `${SITE_URL}/zh/blog/${post.slug}`,
-      lastModified: post.date ? new Date(post.date) : new Date(),
-      changeFrequency: "monthly" as const,
-      priority: 0.7,
-    })),
-  );
-
-  return [...staticEntries, ...productEntries, ...enBrand, ...zhBrand];
+  return [...staticEntries, ...productEntries, ...enTop];
 }
 
-// ── ID 1: EN filler long tail (non-product channels) ────────────────────────
+// ── ID 1: remaining indexable EN posts ──────────────────────────────────────
 function enLongTailSitemap(): MetadataRoute.Sitemap {
-  return safeUrls("en-rest", () =>
-    nonBrandPosts("en").map((post) => ({
-      url: `${SITE_URL}/blog/${post.slug}`,
-      lastModified: post.date ? new Date(post.date) : new Date(),
-      changeFrequency: "monthly" as const,
-      priority: 0.3,
-    })),
-  );
+  return safeUrls("en-rest", () => indexableEn().slice(TOP_TIER_SIZE).map(postEntry));
 }
 
-// ── ID 2: ZH filler long tail (non-product channels) ────────────────────────
+// ── ID 2: ZH static pages (ZH blog posts are noindex CSDN copies) ───────────
 function zhLongTailSitemap(): MetadataRoute.Sitemap {
-  return safeUrls("zh-rest", () =>
-    nonBrandPosts("zh").map((post) => ({
-      url: `${SITE_URL}/zh/blog/${post.slug}`,
-      lastModified: post.date ? new Date(post.date) : new Date(),
-      changeFrequency: "monthly" as const,
-      priority: 0.3,
-    })),
-  );
+  const now = new Date();
+  return [
+    { url: `${SITE_URL}/zh/contact`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
+    { url: `${SITE_URL}/zh/press`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
+  ];
 }
 
-// ── Channel-aware ranking ───────────────────────────────────────────────────
-// szxinmai (深圳信迈's own CSDN) and ARM_FPGA_AI are Sienovo's product content —
-// the SEO asset. yeyuangen is a third-party programmer's blog we mirror for the
-// long tail. We put the product channels in the top-tier sitemap at high
-// priority so Google spends crawl budget there first, and demote the filler.
-function isBrandChannel(post: { source?: string }): boolean {
-  return /\/(szxinmai|ARM_FPGA_AI)\//i.test(post.source || "");
+// ── Indexable EN posts, most product-relevant first ─────────────────────────
+const TOP_TIER_SIZE = 170;
+
+function indexableEn() {
+  return getAllPosts("en")
+    .filter((post) => isIndexablePost(post, "en"))
+    .map((post) => ({ post, score: productRelevance(post) }))
+    .sort((a, b) => b.score - a.score || (b.post.date > a.post.date ? 1 : -1));
 }
 
-function brandPosts(locale: "en" | "zh") {
-  return getAllPosts(locale)
-    .filter((post) => !isLowQualityPost(post) && isBrandChannel(post))
-    .sort((a, b) => (b.content?.length ?? 0) - (a.content?.length ?? 0));
-}
-
-function nonBrandPosts(locale: "en" | "zh") {
-  return getAllPosts(locale)
-    .filter((post) => !isLowQualityPost(post) && !isBrandChannel(post))
-    .sort((a, b) => (b.content?.length ?? 0) - (a.content?.length ?? 0));
+function postEntry({ post, score }: { post: ReturnType<typeof getAllPosts>[number]; score: number }) {
+  return {
+    url: `${SITE_URL}/blog/${post.slug}`,
+    lastModified: post.date ? new Date(post.date) : new Date(),
+    changeFrequency: "monthly" as const,
+    // 0.5–0.8 by product relevance so the core product articles lead.
+    priority: Math.round((0.5 + Math.min(score, 30) / 100) * 100) / 100,
+  };
 }

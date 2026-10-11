@@ -6,13 +6,9 @@ export const metadata = {
   title: "技术博客 - 嵌入式系统、边缘 AI 与工业计算 | Sienovo",
   description:
     "Sienovo 关于嵌入式系统、边缘 AI、FPGA、ARM 平台与工业计算解决方案的技术文章。",
-  alternates: {
-    canonical: "/zh/blog",
-    languages: {
-      en: "/blog",
-      zh: "/zh/blog",
-    },
-  },
+  alternates: { canonical: "/zh/blog" },
+  // Lists of the noindex ZH copies — crawlable for links, not indexed.
+  robots: { index: false, follow: true },
 };
 
 export default async function ZhBlogPage({

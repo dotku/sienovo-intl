@@ -9,10 +9,7 @@ export const metadata = {
     "Complete archive of Sienovo technical articles on edge AI, embedded systems, FPGA, ARM platforms, and industrial computing.",
   alternates: {
     canonical: "/blog/all",
-    languages: {
-      en: "/blog/all",
-      zh: "/zh/blog/all",
-    },
+    // No zh alternate: /zh/blog/all lists the noindex CSDN copies.
   },
 };
 

@@ -51,24 +51,13 @@ export async function generateMetadata({
   const description = post.seoDescription || buildDescription(post.content);
   const title = post.seoTitle || post.title;
   const url = `${SITE_URL}/zh/blog/${slug}`;
-  const enExists = !!getPostBySlug(slug, "en");
-  const lowQuality = isLowQualityPost(post);
-
+  // ZH posts are verbatim copies of the CSDN originals: readable here, but
+  // kept out of Google's index (see isIndexablePost in lib/blog).
   return {
     title,
     description,
-    alternates: {
-      canonical: url,
-      ...(enExists && {
-        languages: {
-          en: `${SITE_URL}/blog/${slug}`,
-          zh: url,
-        },
-      }),
-    },
-    robots: lowQuality
-      ? { index: false, follow: true }
-      : { index: true, follow: true },
+    alternates: { canonical: url },
+    robots: { index: false, follow: true },
     openGraph: {
       type: "article",
       title,

@@ -4,6 +4,7 @@ import {
   getPostBySlug,
   getRelatedPosts,
   isLowQualityPost,
+  isIndexablePost,
 } from "@/lib/blog";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -57,24 +58,15 @@ export async function generateMetadata({
   const description = post.seoDescription || buildDescription(post.content);
   const title = post.seoTitle || post.title;
   const url = `${SITE_URL}/blog/${slug}`;
-  const zhExists = !!getPostBySlug(slug, "zh");
-  const lowQuality = isLowQualityPost(post);
+  // Indexing policy lives in lib/blog (isIndexablePost). No zh hreflang: the
+  // ZH copies are noindex, and hreflang must not point at noindex pages.
+  const indexable = isIndexablePost(post, "en");
 
   return {
     title,
     description,
-    alternates: {
-      canonical: url,
-      ...(zhExists && {
-        languages: {
-          en: url,
-          zh: `${SITE_URL}/zh/blog/${slug}`,
-        },
-      }),
-    },
-    robots: lowQuality
-      ? { index: false, follow: true }
-      : { index: true, follow: true },
+    alternates: { canonical: url },
+    robots: indexable ? { index: true, follow: true } : { index: false, follow: true },
     openGraph: {
       type: "article",
       title,

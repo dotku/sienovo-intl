@@ -7,13 +7,9 @@ export const metadata = {
   title: "全部文章 · Sienovo 博客归档",
   description:
     "Sienovo 技术博客全部文章归档，涵盖边缘 AI、嵌入式系统、FPGA、ARM 平台与工业计算。",
-  alternates: {
-    canonical: "/zh/blog/all",
-    languages: {
-      en: "/blog/all",
-      zh: "/zh/blog/all",
-    },
-  },
+  alternates: { canonical: "/zh/blog/all" },
+  // Lists of the noindex ZH copies — crawlable for links, not indexed.
+  robots: { index: false, follow: true },
 };
 
 export default function ZhBlogAllPage() {
