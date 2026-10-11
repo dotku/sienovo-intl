@@ -34,6 +34,9 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
+      // No Chinese home page yet: send /zh to the Chinese blog instead of a 404
+      // (it was linked as the zh hreflang alternate of the home page).
+      { source: "/zh", destination: "/zh/blog", permanent: true },
       {
         source: "/en/blog",
         destination: "/blog",

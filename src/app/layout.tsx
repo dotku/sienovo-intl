@@ -78,10 +78,11 @@ export const metadata: Metadata = {
   },
   alternates: {
     canonical: "/",
+    // No zh entry here: there is no Chinese home page (/zh redirects to
+    // /zh/blog). Pages with a real Chinese counterpart declare it themselves.
     languages: {
       en: "/",
       "x-default": "/",
-      zh: "/zh",
     },
     types: {
       "application/rss+xml": [
