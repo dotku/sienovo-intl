@@ -41,6 +41,7 @@ export default function Footer() {
                   +86 187 1869 9276
                 </a>
               </li>
+              <li>{locale === "zh" ? "微信" : "WeChat"}: <span className="select-all">xinmai002leo</span></li>
               <li className="text-xs leading-relaxed">600 California St, San Francisco, CA 94108</li>
             </ul>
           </div>

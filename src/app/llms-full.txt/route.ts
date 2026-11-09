@@ -51,6 +51,7 @@ The INT-AIBOX-P-8 is an Intelligent Edge AI Analytics Box featuring:
 
 - Email: collin.liu@sienovo.cn
 - WhatsApp: +86 187 1868 8532
+- WeChat: xinmai002leo
 - Demo: https://calendly.com/sienovo
 - Address: 600 California St, San Francisco, CA 94108
 

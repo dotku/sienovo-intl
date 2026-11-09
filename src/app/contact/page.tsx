@@ -7,7 +7,7 @@ import { SITE_URL } from "@/lib/site";
 export const metadata: Metadata = {
   title: "Contact & Support",
   description:
-    "Get in touch with Sienovo for sales, technical support, and partnership inquiries about INT-AIBOX edge AI computing and industrial video analytics. Email, WhatsApp, and offices in Shenzhen and San Francisco.",
+    "Get in touch with Sienovo for sales, technical support, and partnership inquiries about INT-AIBOX edge AI computing and industrial video analytics. Email, WhatsApp, WeChat, and offices in Shenzhen and San Francisco.",
   alternates: {
     canonical: "/contact",
     languages: { en: "/contact", "x-default": "/contact", zh: "/zh/contact" },
@@ -23,6 +23,7 @@ export const metadata: Metadata = {
 const EMAIL = "collin.liu@sienovo.cn";
 const WHATSAPP = "+86 187 1869 9276";
 const WHATSAPP_URL = "https://wa.me/8618718699276";
+const WECHAT = "xinmai002leo";
 
 const labels: ContactFormLabels = {
   name: "Name",
@@ -83,6 +84,10 @@ export default function ContactPage() {
               >
                 {WHATSAPP}
               </a>
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-400">WeChat</h2>
+              <p className="mt-1 select-all text-lg text-gray-900">{WECHAT}</p>
             </div>
             <div>
               <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-400">Offices</h2>

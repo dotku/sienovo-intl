@@ -7,7 +7,7 @@ import { SITE_URL } from "@/lib/site";
 export const metadata: Metadata = {
   title: "联系我们与技术支持",
   description:
-    "联系深圳信迈 Sienovo,咨询 INT-AIBOX 边缘 AI 计算盒与工业视频分析的销售、技术支持与合作。邮箱、WhatsApp,深圳与旧金山办公室。",
+    "联系深圳信迈 Sienovo,咨询 INT-AIBOX 边缘 AI 计算盒与工业视频分析的销售、技术支持与合作。邮箱、WhatsApp、微信,深圳与旧金山办公室。",
   alternates: {
     canonical: "/zh/contact",
     languages: { en: "/contact", "x-default": "/contact", zh: "/zh/contact" },
@@ -23,6 +23,7 @@ export const metadata: Metadata = {
 const EMAIL = "collin.liu@sienovo.cn";
 const WHATSAPP = "+86 187 1869 9276";
 const WHATSAPP_URL = "https://wa.me/8618718699276";
+const WECHAT = "xinmai002leo";
 
 const labels: ContactFormLabels = {
   name: "姓名",
@@ -83,6 +84,10 @@ export default function ContactPageZh() {
               >
                 {WHATSAPP}
               </a>
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-400">微信</h2>
+              <p className="mt-1 select-all text-lg text-gray-900">{WECHAT}</p>
             </div>
             <div>
               <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-400">办公室</h2>

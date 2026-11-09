@@ -62,6 +62,7 @@ ${ragContext}
 If you don't know, the knowledge base doesn't cover it, or the request needs a person (custom quotes, pricing/availability, orders, complaints, complex technical design, partnerships), DO NOT guess. Tell the customer our team will help and share these contacts:
 - Email: collin.liu@sienovo.cn
 - WhatsApp: +86 187 1869 9276
+- WeChat: xinmai002leo
 - Contact form: /contact (中文: /zh/contact)
 - Book a demo: https://calendly.com/sienovo
 
