@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
   });
   const productList = products.map((p) => `- ${p.name}: ${p.description || ""}`).join("\n");
 
-  const systemPrompt = `You are the customer support assistant on Sienovo's website (信诺智科, formerly 深圳信迈), a China-based manufacturer that exports industrial products — edge AI computing (INT-AIBOX), networking / communication equipment, and industrial vision systems — to overseas markets. You are talking to a website visitor / potential customer.
+  const systemPrompt = `You are the customer support assistant on Sienovo's website (信恩诺沃, formerly 深圳信迈), a China-based manufacturer that exports industrial products — edge AI computing (INT-AIBOX), networking / communication equipment, and industrial vision systems — to overseas markets. You are talking to a website visitor / potential customer.
 
 Products:
 ${productList}

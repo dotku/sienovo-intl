@@ -7,13 +7,13 @@ import { SITE_URL } from "@/lib/site";
 export const metadata: Metadata = {
   title: "联系我们与技术支持",
   description:
-    "联系信诺智科 Sienovo,咨询 INT-AIBOX 边缘 AI 计算盒与工业视频分析的销售、技术支持与合作。邮箱、WhatsApp、微信,深圳与旧金山办公室。",
+    "联系信恩诺沃 Sienovo,咨询 INT-AIBOX 边缘 AI 计算盒与工业视频分析的销售、技术支持与合作。邮箱、WhatsApp、微信,深圳与旧金山办公室。",
   alternates: {
     canonical: "/zh/contact",
     languages: { en: "/contact", "x-default": "/contact", zh: "/zh/contact" },
   },
   openGraph: {
-    title: "联系我们 | Sienovo 信诺智科",
+    title: "联系我们 | Sienovo 信恩诺沃",
     description: "联系 Sienovo 咨询销售、技术支持与合作。",
     url: `${SITE_URL}/zh/contact`,
     type: "website",
@@ -42,12 +42,12 @@ export default function ContactPageZh() {
   const ld = {
     "@context": "https://schema.org",
     "@type": "ContactPage",
-    name: "联系 Sienovo 信诺智科",
+    name: "联系 Sienovo 信恩诺沃",
     url: `${SITE_URL}/zh/contact`,
     mainEntity: {
       "@type": "Organization",
       name: "Sienovo",
-      alternateName: ["信诺智科", "深圳信迈"],
+      alternateName: ["信恩诺沃", "深圳信迈"],
       email: EMAIL,
       url: SITE_URL,
     },
