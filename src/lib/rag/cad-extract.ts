@@ -107,7 +107,7 @@ export function analyzeCad(buffer: Buffer, fileName: string): string {
 /** Turn the structured extraction into a product narrative via Bedrock Claude. */
 async function narrateCad(structured: string, fileName: string): Promise<string> {
   if (!bedrockConfigured()) return "";
-  const prompt = `You are a hardware product analyst at Sienovo (深圳信迈), an edge-AI / industrial computing company. Below is data mined from an Altium PCB design file ("${fileName}") — IC part numbers, detected interfaces, component counts, and signal net names.
+  const prompt = `You are a hardware product analyst at Sienovo (信诺智科), an edge-AI / industrial computing company. Below is data mined from an Altium PCB design file ("${fileName}") — IC part numbers, detected interfaces, component counts, and signal net names.
 
 Write a concise PRODUCT DESCRIPTION in BOTH English and 中文 (English first, then 中文). Infer and state:
 - the likely product type / category,
