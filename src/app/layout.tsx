@@ -129,6 +129,8 @@ export default function RootLayout({
               "@context": "https://schema.org",
               "@type": "Organization",
               name: "Sienovo",
+              legalName: "西诺维（深圳）科技有限公司",
+              alternateName: ["西诺维", "Sienovo Shenzhen"],
               url: siteUrl,
               logo: `${siteUrl}/images/pptx/aibox-sg8.png`,
               description:

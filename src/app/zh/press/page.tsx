@@ -11,7 +11,7 @@ import {
 export const metadata: Metadata = {
   title: "媒体中心 · 品牌资源与媒体联系",
   description:
-    "Sienovo（信恩诺沃）媒体中心 —— 提供品牌资源下载、产品图片与视频、公司简介以及面向媒体的联系方式。",
+    "Sienovo（西诺维）媒体中心 —— 提供品牌资源下载、产品图片与视频、公司简介以及面向媒体的联系方式。",
   alternates: {
     canonical: "/zh/press",
     languages: {
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "媒体中心 | Sienovo",
     description:
-      "Sienovo（信恩诺沃）面向记者与编辑的品牌资源、产品图片与媒体联系方式。",
+      "Sienovo（西诺维）面向记者与编辑的品牌资源、产品图片与媒体联系方式。",
     url: `${SITE_URL}/zh/press`,
     type: "website",
     locale: "zh_CN",
@@ -34,7 +34,7 @@ const MEDIA_EMAIL = "collin.liu@sienovo.cn";
 const YOUTUBE_CHANNEL = "https://www.youtube.com/@dk_wholesale";
 
 const BOILERPLATE_PARAGRAPHS = [
-  "Sienovo（信恩诺沃）是一家专注于边缘 AI 计算的公司，为工业场景提供智能视频分析解决方案。INT-AIBOX 系列产品搭载最高 12 TOPS INT8 算力，支持 8 至 16 路高清视频接入，内置 40 多种 AI 算法，覆盖安全、安防与运营场景。",
+  "Sienovo（西诺维）是一家专注于边缘 AI 计算的公司，为工业场景提供智能视频分析解决方案。INT-AIBOX 系列产品搭载最高 12 TOPS INT8 算力，支持 8 至 16 路高清视频接入，内置 40 多种 AI 算法，覆盖安全、安防与运营场景。",
   "Sienovo 设备采用工业级无风扇设计，配套自研管理平台，支持远程配置、车队级运维以及算法 OTA 升级。产品广泛部署于智慧社区、加油站、建筑工地、园区、零售与环保监测等行业，并已进入全球市场。",
 ];
 
@@ -99,7 +99,7 @@ export default function PressPageZh() {
     "@context": "https://schema.org",
     "@type": "Organization",
     name: "Sienovo",
-    alternateName: ["信恩诺沃", "深圳信迈", "Shenzhen Sienovo"],
+    alternateName: ["西诺维", "深圳信迈", "Shenzhen Sienovo"],
     url: SITE_URL,
     logo: `${SITE_URL}${BRAND_ASSETS.logoSquare.href}`,
     image: BRAND_ASSETS.previews.map((p) => `${SITE_URL}${p.href}`),

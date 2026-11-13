@@ -29,7 +29,7 @@ const MEDIA_EMAIL = "collin.liu@sienovo.cn";
 const YOUTUBE_CHANNEL = "https://www.youtube.com/@dk_wholesale";
 
 const BOILERPLATE_PARAGRAPHS = [
-  "Sienovo (信恩诺沃) is an edge AI computing company delivering intelligent video analytics for industrial environments. Our INT-AIBOX series combines up to 12 TOPS of INT8 AI compute with 8 to 16 channels of HD video ingest and 40+ pre-loaded AI algorithms covering safety, security, and operations.",
+  "Sienovo (西诺维) is an edge AI computing company delivering intelligent video analytics for industrial environments. Our INT-AIBOX series combines up to 12 TOPS of INT8 AI compute with 8 to 16 channels of HD video ingest and 40+ pre-loaded AI algorithms covering safety, security, and operations.",
   "Sienovo devices are fanless, industrial-grade, and ship with a managed platform for remote configuration, fleet operations, and OTA algorithm updates. Customers deploy Sienovo in smart communities, gas stations, construction sites, parks, retail, and environmental monitoring across global markets.",
 ];
 
@@ -48,7 +48,7 @@ export default function PressPage() {
     "@context": "https://schema.org",
     "@type": "Organization",
     name: "Sienovo",
-    alternateName: ["信恩诺沃", "深圳信迈", "Shenzhen Sienovo"],
+    alternateName: ["西诺维", "深圳信迈", "Shenzhen Sienovo"],
     url: SITE_URL,
     logo: `${SITE_URL}${BRAND_ASSETS.logoSquare.href}`,
     image: BRAND_ASSETS.previews.map((p) => `${SITE_URL}${p.href}`),
