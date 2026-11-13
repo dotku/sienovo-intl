@@ -146,6 +146,7 @@ export default function RootLayout({
                 email: "collin.liu@sienovo.cn",
                 contactType: "sales",
               },
+              sameAs: ["https://www.youtube.com/@sienovo"],
             }),
           }}
         />

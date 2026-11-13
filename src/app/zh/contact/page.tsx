@@ -90,6 +90,17 @@ export default function ContactPageZh() {
               <p className="mt-1 select-all text-lg text-gray-900">{WECHAT}</p>
             </div>
             <div>
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-400">YouTube 频道</h2>
+              <a
+                href="https://www.youtube.com/@sienovo"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-1 block text-lg text-accent hover:underline"
+              >
+                @sienovo
+              </a>
+            </div>
+            <div>
               <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-400">办公室</h2>
               <p className="mt-1 text-gray-700">总部 — 中国深圳</p>
               <p className="text-gray-700">600 California St, San Francisco, CA 94108</p>

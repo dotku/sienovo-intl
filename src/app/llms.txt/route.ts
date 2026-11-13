@@ -43,6 +43,7 @@ ${postList}
 - Email: collin.liu@sienovo.cn
 - WhatsApp: +86 187 1868 8532
 - WeChat: xinmai002leo
+- YouTube: https://www.youtube.com/@sienovo
 - Website: ${siteUrl}
 - Address: 600 California St, San Francisco, CA 94108
 `;
