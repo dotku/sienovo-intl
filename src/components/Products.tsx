@@ -50,6 +50,14 @@ const PRODUCT_HIGHLIGHTS: Record<string, { icon: string; stats: { label: string;
       { label: "Nodes", value: "12" },
     ],
   },
+  "visionint-x300": {
+    icon: "M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316zM16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z",
+    stats: [
+      { label: "Video", value: "4K HDR" },
+      { label: "FOV", value: "140°" },
+      { label: "Weight", value: "52 g" },
+    ],
+  },
   "xm9691": {
     icon: "M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z",
     stats: [
@@ -67,6 +75,7 @@ function getTagForProduct(slug: string, dict: Record<string, string>): string {
     "xm3588-gw01": dict.tagGateway || "IoT Gateway",
     "se10-u0": dict.tagServer || "AI Server",
     "xm9691": dict.tagIPC || "Industrial Controller",
+    "visionint-x300": dict.tagCamera || "Action Camera",
   };
   return tags[slug] || "Product";
 }
