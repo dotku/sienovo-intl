@@ -18,6 +18,7 @@ export const PRODUCT_MEDIA: Record<string, ProductMedia> = {
     category: "Action Cameras",
     gallery: [
       { src: `${X}/pair.png`, alt: "VisionInt X300 front and side views", caption: "52 g body, 63 × 32 × 31.5 mm" },
+      { src: `${X}/battery.jpg`, alt: "VisionInt X300 battery life: about 150 minutes", caption: "~150 min per charge (2K @ 30 fps), record while charging" },
       { src: `${X}/4k.jpg`, alt: "2K vs 4K resolution comparison", caption: "True 4K vs 2K detail", illustrative: true },
       { src: `${X}/hdr.jpg`, alt: "HDR off vs HDR on comparison", caption: "HDR for high-contrast scenes", illustrative: true },
       { src: `${X}/fov.jpg`, alt: "110° vs 140° field of view comparison", caption: "140° wide field of view", illustrative: true },
