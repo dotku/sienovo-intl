@@ -6,6 +6,7 @@ import CTA from "@/components/CTA";
 import { prisma } from "@/lib/prisma";
 import { SITE_URL } from "@/lib/site";
 import { PRODUCT_MEDIA } from "@/lib/product-media";
+import ProductMediaGallery from "@/components/ProductMediaGallery";
 
 export const revalidate = 3600;
 
@@ -225,30 +226,7 @@ export default async function ProductDetailPage({
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-12 text-center">
                 Product Gallery
               </h2>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {media.gallery.map((g) => (
-                  <figure
-                    key={g.src}
-                    className="bg-white rounded-xl border border-gray-100 overflow-hidden"
-                  >
-                    <div className="aspect-[16/10] bg-white flex items-center justify-center">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={g.src}
-                        alt={g.alt}
-                        loading="lazy"
-                        className="w-full h-full object-contain"
-                      />
-                    </div>
-                    <figcaption className="px-4 py-3 text-sm text-gray-700 flex items-center justify-between gap-3">
-                      <span>{g.caption}</span>
-                      {g.illustrative && (
-                        <span className="text-xs text-gray-400 shrink-0">Illustrative</span>
-                      )}
-                    </figcaption>
-                  </figure>
-                ))}
-              </div>
+              <ProductMediaGallery items={media.gallery} />
             </div>
           </section>
         )}
