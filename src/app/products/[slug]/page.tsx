@@ -210,7 +210,7 @@ export default async function ProductDetailPage({
                 <img
                   src={media.hero}
                   alt={`${product.name} front view`}
-                  className="w-full max-w-sm md:max-w-md h-auto drop-shadow-2xl"
+                  className="w-auto h-auto max-w-full max-h-72 md:max-h-[420px] drop-shadow-2xl"
                   width={600}
                   height={600}
                 />
