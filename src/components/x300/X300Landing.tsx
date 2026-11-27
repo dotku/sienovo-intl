@@ -87,6 +87,16 @@ const CTA_BTN = "bg-accent hover:bg-red-700 text-white rounded-full font-medium"
 
 function SubNav() {
   const [active, setActive] = useState<string>("overview");
+  // The sub-nav quote button only appears once the hero's own button has scrolled away,
+  // so the top of the page never shows two quote buttons at once.
+  const [showCta, setShowCta] = useState(false);
+  useEffect(() => {
+    const hero = document.getElementById("x300-hero-cta");
+    if (!hero || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([e]) => setShowCta(!e.isIntersecting), { rootMargin: "-112px 0px 0px 0px" });
+    io.observe(hero);
+    return () => io.disconnect();
+  }, []);
   useEffect(() => {
     if (typeof IntersectionObserver === "undefined") return;
     const io = new IntersectionObserver(
@@ -101,9 +111,9 @@ function SubNav() {
   }, []);
   return (
     <div className="sticky top-16 z-40 bg-white/85 backdrop-blur-xl border-b border-black/5">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between gap-3">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between gap-4">
         <span className="hidden sm:block font-semibold text-gray-900 shrink-0">VisionInt X300</span>
-        <nav aria-label="VisionInt X300 sections" className="flex-1 sm:flex-none flex items-center overflow-x-auto [scrollbar-width:none] -ml-3 sm:ml-0 md:gap-2">
+        <nav aria-label="VisionInt X300 sections" className="flex-1 sm:flex-none flex items-center overflow-x-auto [scrollbar-width:none] -ml-3 sm:ml-0 md:gap-2 [mask-image:linear-gradient(to_right,black_85%,transparent)] md:[mask-image:none]">
           {NAV.map(([id, label]) => (
             <a
               key={id}
@@ -117,9 +127,21 @@ function SubNav() {
             </a>
           ))}
         </nav>
-        <a href="#contact" className={`${CTA_BTN} shrink-0 inline-flex items-center min-h-9 px-4 text-xs sm:text-sm`}>
-          Request a Quote
-        </a>
+        <div
+          aria-hidden={!showCta}
+          className={`shrink-0 flex items-center overflow-hidden transition-all duration-300 motion-reduce:transition-none ${
+            showCta ? "max-w-48 opacity-100 sm:pl-4 sm:border-l sm:border-gray-200" : "max-w-0 opacity-0 pointer-events-none"
+          }`}
+        >
+          <a
+            href="#contact"
+            tabIndex={showCta ? 0 : -1}
+            className={`${CTA_BTN} whitespace-nowrap inline-flex items-center h-8 px-3.5 text-xs`}
+          >
+            <span className="sm:hidden">Get Quote</span>
+            <span className="hidden sm:inline">Request a Quote</span>
+          </a>
+        </div>
       </div>
     </div>
   );
@@ -141,7 +163,7 @@ function Hero() {
               <br />
               Ready when you are.
             </p>
-            <div className="mt-10 flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
+            <div id="x300-hero-cta" className="mt-10 flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
               <a href="#contact" className={`${CTA_BTN} px-7 py-3 text-center`}>
                 Request a Quote
               </a>
