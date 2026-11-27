@@ -23,7 +23,6 @@ export const PRODUCT_MEDIA: Record<string, ProductMedia> = {
       { src: `${X}/fov.jpg`, alt: "110° vs 140° field of view comparison", caption: "140° wide field of view", illustrative: true },
       { src: `${X}/cycling.jpg`, alt: "Mountain biker with helmet-mounted camera", caption: "Cycling & motorcycle POV", illustrative: true },
       { src: `${X}/camping.jpg`, alt: "Tent by a lake at dusk", caption: "Camping & travel", illustrative: true },
-      { src: `${X}/campus.jpg`, alt: "Student wearing the camera on a lanyard", caption: "Campus vlog", illustrative: true },
     ],
   },
 };
