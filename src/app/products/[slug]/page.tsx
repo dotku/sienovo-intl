@@ -158,13 +158,14 @@ export default async function ProductDetailPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
-      <Header />
       {product.slug === "visionint-x300" ? (
         <main>
           <X300Landing specGroups={product.specGroups} />
           <CTA variant="x300" />
         </main>
       ) : (
+      <>
+      <Header />
       <main>
         <div className="bg-gray-50 border-b border-gray-100">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
@@ -320,6 +321,7 @@ export default async function ProductDetailPage({
 
         <CTA />
       </main>
+      </>
       )}
       <Footer />
     </>

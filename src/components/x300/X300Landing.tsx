@@ -3,6 +3,7 @@
 // Apple-style landing page for /products/visionint-x300.
 // Facts come from the VisionInt X300 deck; comparison/scenario images are illustrative.
 
+import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 const IMG = "/images/products/visionint-x300";
@@ -93,7 +94,7 @@ function SubNav() {
   useEffect(() => {
     const hero = document.getElementById("x300-hero-cta");
     if (!hero || typeof IntersectionObserver === "undefined") return;
-    const io = new IntersectionObserver(([e]) => setShowCta(!e.isIntersecting), { rootMargin: "-112px 0px 0px 0px" });
+    const io = new IntersectionObserver(([e]) => setShowCta(!e.isIntersecting), { rootMargin: "-60px 0px 0px 0px" });
     io.observe(hero);
     return () => io.disconnect();
   }, []);
@@ -101,7 +102,7 @@ function SubNav() {
     if (typeof IntersectionObserver === "undefined") return;
     const io = new IntersectionObserver(
       (entries) => entries.forEach((e) => e.isIntersecting && setActive(e.target.id)),
-      { rootMargin: "-120px 0px -60% 0px" },
+      { rootMargin: "-70px 0px -60% 0px" },
     );
     NAV.forEach(([id]) => {
       const el = document.getElementById(id);
@@ -110,9 +111,17 @@ function SubNav() {
     return () => io.disconnect();
   }, []);
   return (
-    <div className="sticky top-16 z-40 bg-white/85 backdrop-blur-xl border-b border-black/5">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
-        <span className="hidden sm:block font-semibold text-gray-900 shrink-0">VisionInt X300</span>
+    // Single-layer bar: replaces the site header on this page (brand + product sections + quote).
+    <header className="sticky top-0 z-50 bg-white/85 backdrop-blur-xl border-b border-black/5">
+      <div className="bg-accent h-1" />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3 shrink-0">
+          <Link href="/" className="text-xl font-bold tracking-tight text-gray-900" aria-label="Sienovo home">
+            SIENOVO
+          </Link>
+          <span aria-hidden className="hidden sm:block h-5 w-px bg-gray-300" />
+          <span className="hidden sm:block font-semibold text-gray-900">VisionInt X300</span>
+        </div>
         <nav aria-label="VisionInt X300 sections" className="flex-1 sm:flex-none flex items-center overflow-x-auto [scrollbar-width:none] -ml-3 sm:ml-0 md:gap-2 [mask-image:linear-gradient(to_right,black_85%,transparent)] md:[mask-image:none]">
           {NAV.map(([id, label]) => (
             <a
@@ -143,13 +152,13 @@ function SubNav() {
           </a>
         </div>
       </div>
-    </div>
+    </header>
   );
 }
 
 function Hero() {
   return (
-    <section id="overview" className="relative overflow-hidden bg-black text-white scroll-mt-28">
+    <section id="overview" className="relative overflow-hidden bg-black text-white scroll-mt-20">
       <div
         aria-hidden
         className="absolute inset-0 bg-[radial-gradient(ellipse_at_70%_45%,rgba(221,50,50,0.28),transparent_55%),radial-gradient(ellipse_at_20%_90%,rgba(206,147,107,0.18),transparent_50%)]"
@@ -217,7 +226,7 @@ function Highlights() {
 
 function Design() {
   return (
-    <section id="design" className="bg-[#f5f5f7] scroll-mt-28">
+    <section id="design" className="bg-[#f5f5f7] scroll-mt-20">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-24 md:py-32 grid md:grid-cols-2 gap-12 items-center">
         <Reveal>
           <p className="text-[#b82424] font-semibold mb-3">Design</p>
@@ -250,7 +259,7 @@ function ImageQuality() {
   const [i, setI] = useState(0);
   const c = COMPARE[i];
   return (
-    <section id="image" className="bg-black text-white scroll-mt-28">
+    <section id="image" className="bg-black text-white scroll-mt-20">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-24 md:py-32">
         <Reveal className="text-center max-w-3xl mx-auto">
           <p className="text-accent-warm font-semibold mb-3">Image</p>
@@ -321,7 +330,7 @@ function ImageQuality() {
 function Battery() {
   const [ref, seen] = useInView<HTMLDivElement>(0.4);
   return (
-    <section id="battery" className="bg-white scroll-mt-28">
+    <section id="battery" className="bg-white scroll-mt-20">
       <div ref={ref} className="max-w-6xl mx-auto px-4 sm:px-6 py-24 md:py-32 text-center">
         <Reveal>
           <p className="text-[#b82424] font-semibold mb-3">Battery</p>
@@ -367,7 +376,7 @@ const CONNECT = [
 
 function Connect() {
   return (
-    <section id="connect" className="bg-[#f5f5f7] scroll-mt-28">
+    <section id="connect" className="bg-[#f5f5f7] scroll-mt-20">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-24 md:py-32">
         <Reveal className="text-center max-w-2xl mx-auto">
           <p className="text-[#b82424] font-semibold mb-3">Connectivity</p>
@@ -429,7 +438,7 @@ function Business() {
     { t: "ODM", d: "Industrial design and hardware/software customization on the X300 platform, scoped per project." },
   ];
   return (
-    <section id="partners" className="bg-black text-white scroll-mt-28">
+    <section id="partners" className="bg-black text-white scroll-mt-20">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-24 md:py-28">
         <Reveal className="text-center max-w-2xl mx-auto">
           <p className="text-accent-warm font-semibold mb-3">For partners</p>
@@ -455,7 +464,7 @@ function Business() {
 
 function Specs({ groups }: { groups: SpecGroup[] }) {
   return (
-    <section id="specs" className="bg-white scroll-mt-28">
+    <section id="specs" className="bg-white scroll-mt-20">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-24 md:py-28">
         <p className="text-[#b82424] font-semibold mb-3">Specs</p>
         <h2 className="text-4xl sm:text-5xl font-semibold tracking-tight text-gray-900">Tech Specs</h2>
