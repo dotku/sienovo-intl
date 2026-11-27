@@ -53,7 +53,7 @@ export default function Header() {
               SIENOVO
             </span>
           </a>
-          <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-600">
+          <nav className="hidden xl:flex items-center gap-6 text-sm font-medium text-gray-600">
             {NAV_ITEMS.map((item) => (
               <a
                 key={item.href}
@@ -66,19 +66,19 @@ export default function Header() {
             {/* Language Switcher */}
             <button
               onClick={switchLocale}
-              className="px-2 py-1 rounded border border-gray-200 text-xs font-semibold text-gray-500 hover:text-accent hover:border-accent transition-colors"
+              className="whitespace-nowrap px-2 py-1 rounded border border-gray-200 text-xs font-semibold text-gray-500 hover:text-accent hover:border-accent transition-colors"
             >
               {locale === "en" ? "中文" : "EN"}
             </button>
             <a
               href="/login"
-              className="bg-accent text-white px-5 py-2 rounded hover:bg-red-700 transition-colors"
+              className="whitespace-nowrap bg-accent text-white px-5 py-2 rounded hover:bg-red-700 transition-colors"
             >
               {t.login || "Login"}
             </a>
           </nav>
           <button
-            className="md:hidden p-2 text-gray-600 hover:text-gray-900"
+            className="xl:hidden p-2 text-gray-600 hover:text-gray-900"
             onClick={() => setOpen(!open)}
             aria-label="Toggle menu"
           >
@@ -93,7 +93,7 @@ export default function Header() {
         </div>
       </div>
       {open && (
-        <nav className="md:hidden border-t border-gray-100 bg-white">
+        <nav className="xl:hidden border-t border-gray-100 bg-white">
           <div className="px-4 py-3 space-y-2">
             {NAV_ITEMS.map((item) => (
               <a

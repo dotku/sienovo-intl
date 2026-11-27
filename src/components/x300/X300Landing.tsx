@@ -111,7 +111,7 @@ function SubNav() {
   }, []);
   return (
     <div className="sticky top-16 z-40 bg-white/85 backdrop-blur-xl border-b border-black/5">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between gap-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
         <span className="hidden sm:block font-semibold text-gray-900 shrink-0">VisionInt X300</span>
         <nav aria-label="VisionInt X300 sections" className="flex-1 sm:flex-none flex items-center overflow-x-auto [scrollbar-width:none] -ml-3 sm:ml-0 md:gap-2 [mask-image:linear-gradient(to_right,black_85%,transparent)] md:[mask-image:none]">
           {NAV.map(([id, label]) => (
