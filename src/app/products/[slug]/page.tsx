@@ -5,6 +5,7 @@ import Footer from "@/components/Footer";
 import CTA from "@/components/CTA";
 import { prisma } from "@/lib/prisma";
 import { SITE_URL } from "@/lib/site";
+import { PRODUCT_MEDIA } from "@/lib/product-media";
 
 export const revalidate = 3600;
 
@@ -58,7 +59,8 @@ export async function generateMetadata({
     product.description?.slice(0, 160).trim() ||
     `${product.name} — edge AI computing solution by Sienovo.`;
   const url = `${SITE_URL}/products/${product.slug}`;
-  const image = product.image || `${SITE_URL}/images/pptx/aibox-sg8.png`;
+  const og = PRODUCT_MEDIA[product.slug]?.og;
+  const image = og ? `${SITE_URL}${og}` : product.image || `${SITE_URL}/images/pptx/aibox-sg8.png`;
 
   return {
     title: product.name,
@@ -93,7 +95,10 @@ export default async function ProductDetailPage({
 
   const otherProducts = await getOtherProducts(slug);
   const url = `${SITE_URL}/products/${product.slug}`;
-  const image = product.image || `${SITE_URL}/images/pptx/aibox-sg8.png`;
+  const media = PRODUCT_MEDIA[product.slug];
+  const image = media
+    ? [media.hero, media.og, ...media.gallery.filter((g) => !g.illustrative).map((g) => g.src)].map((s) => `${SITE_URL}${s}`)
+    : product.image || `${SITE_URL}/images/pptx/aibox-sg8.png`;
 
   // Google Rich Results requires Product schema to declare at least one of
   // `offers` / `review` / `aggregateRating`. These are B2B industrial boxes
@@ -113,7 +118,7 @@ export default async function ProductDetailPage({
       `${product.name} — edge AI computing solution by Sienovo.`,
     image,
     brand: { "@type": "Brand", name: "Sienovo" },
-    category: "Edge AI Computing",
+    category: media?.category ?? "Edge AI Computing",
     url,
     offers: {
       "@type": "Offer",
@@ -170,7 +175,11 @@ export default async function ProductDetailPage({
         </div>
 
         <section className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
+          <div
+            className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24 ${
+              media ? "grid md:grid-cols-2 gap-10 items-center" : ""
+            }`}
+          >
             <div className="max-w-3xl">
               <h1 className="text-4xl md:text-5xl font-bold mb-6">
                 {product.name}
@@ -195,8 +204,54 @@ export default async function ProductDetailPage({
                 </a>
               </div>
             </div>
+            {media && (
+              <div className="flex justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={media.hero}
+                  alt={`${product.name} front view`}
+                  className="w-full max-w-sm md:max-w-md h-auto drop-shadow-2xl"
+                  width={600}
+                  height={600}
+                />
+              </div>
+            )}
           </div>
         </section>
+
+        {media && media.gallery.length > 0 && (
+          <section id="gallery" className="py-20 bg-gray-50">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-12 text-center">
+                Product Gallery
+              </h2>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {media.gallery.map((g) => (
+                  <figure
+                    key={g.src}
+                    className="bg-white rounded-xl border border-gray-100 overflow-hidden"
+                  >
+                    <div className="aspect-[16/10] bg-white flex items-center justify-center">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={g.src}
+                        alt={g.alt}
+                        loading="lazy"
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                    <figcaption className="px-4 py-3 text-sm text-gray-700 flex items-center justify-between gap-3">
+                      <span>{g.caption}</span>
+                      {g.illustrative && (
+                        <span className="text-xs text-gray-400 shrink-0">Illustrative</span>
+                      )}
+                    </figcaption>
+                  </figure>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
 
         <section id="specs" className="py-20 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

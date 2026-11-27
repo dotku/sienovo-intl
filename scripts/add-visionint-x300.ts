@@ -14,7 +14,7 @@ const p = {
   slug: "visionint-x300",
   description:
     "Entry-priced true-4K action camera, 52 g, with a 140° wide-angle lens, HDR, and about 150 minutes of recording per charge. The image pipeline is tuned by an engineering team with smartphone ISP experience on Qualcomm and MediaTek platforms. Wi-Fi 6 gives about 180 ms live preview and auto-connects to the Android/iOS app. Available for wholesale, OEM private label, and ODM customization.",
-  image: null as string | null,
+  image: "/images/products/visionint-x300/front.png" as string | null,
   specs: [
     { category: "Imaging", items: [
       { label: "Sensor", value: "1/2.7-inch, 8 MP" },
